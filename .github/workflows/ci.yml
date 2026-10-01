@@ -28,8 +28,8 @@
 # trigger it by hand rather than waiting for 03:00.
 #
 # GitHub Actions again, since 29 September 2026 (ADR-063). The repository is public
-# as ALaustrup/demiurge-chain, where Actions costs nothing, so CI no longer needs
-# the owner's computer. Woodpecker (ADR-058) ran it from 28 to 29 September; every
+# as QOR-MATRIX/demiurge-chain (ADR-064), where Actions costs nothing, so CI no
+# longer needs the owner's computer. Woodpecker (ADR-058) ran it from 28 to 29 September; every
 # fault its runs found is carried here: pallets GATES.toml names before they exist
 # are recorded as absent rather than ending the coverage loop, and apt retries its
 # downloads.

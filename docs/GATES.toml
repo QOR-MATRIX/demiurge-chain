@@ -571,6 +571,13 @@ type = "tightening"
 change = "[ci] names repository = \"ALaustrup/demiurge-chain\", and the dashboard passes it to every gh call (run list, the branch head, run download). Until now gh chose the repository from the clone's remotes, and with the private archive as origin beside the public repository it read the archive's runs, not the ones kinds.ci names. A [ci] section without a repository now makes ci readings fail with that reason instead of guessing. No kind's met condition or threshold changed and no check was relaxed."
 reason = "kinds.ci has read ALaustrup/demiurge-chain since ADR-063, but the code never said so: measured on 2026-09-30, `gh run list` in this clone returned a demiurge-cloud run."
 
+[[change_log]]
+date = "2026-10-01"
+type = "evidence-rule"
+change = "kinds.ci and [ci].repository read QOR-MATRIX/demiurge-chain (ADR-064) instead of ALaustrup/demiurge-chain. The workflow, its file, its jobs and every met condition are unchanged; only the repository whose runs are read moved, with the code, to the owner's organisation."
+approved_by = "owner, 2026-10-01"
+note = "Every job on the personal account's repository was refused before starting by an account billing lock, so no ci unit could ever be met there. The owner created the organisation and pushed the same tree to it; its first run executed jobs. No check was dropped or relaxed and no unit became unmeasurable."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -602,14 +609,14 @@ met = "the run exited 0, reported no failures, and every name in `require` passe
 unmeasurable = "the suite has no directory, or has never been run"
 
 [kinds.ci]
-reads = "GitHub Actions on ALaustrup/demiurge-chain (ADR-063): the latest run of `workflow` on `branch`, .github/workflows/ci.yml"
+reads = "GitHub Actions on QOR-MATRIX/demiurge-chain (ADR-063, ADR-064): the latest run of `workflow` on `branch`, .github/workflows/ci.yml"
 met = "that run concluded success and ran on the branch head"
 
 # What "Pleroma CI" runs. A "ci" unit is met only when the whole run passed.
 # Removing or relaxing anything listed here is loosening (see the rule above).
 [ci]
 workflow = "Pleroma CI"
-repository = "ALaustrup/demiurge-chain"
+repository = "QOR-MATRIX/demiurge-chain"
 file = ".github/workflows/ci.yml"
 quality_gates = [
   "chain/: cargo fmt --all --check; cargo clippy --workspace --all-targets -D warnings; cargo test --workspace --locked, WITHOUT SKIP_WASM_BUILD, which cannot build a chain specification and is never evidence",

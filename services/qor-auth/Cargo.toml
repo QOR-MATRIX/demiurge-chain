@@ -5,7 +5,7 @@ edition = "2024"
 authors = ["Alaustrup <alaustrup@demiurge.io>"]
 license = "MIT"
 description = "Qor ID Authentication Service - The Non-Dual Identity System"
-repository = "https://github.com/ALaustrup/demiurge-chain"
+repository = "https://github.com/QOR-MATRIX/demiurge-chain"
 keywords = ["authentication", "identity", "blockchain", "qor-id"]
 categories = ["authentication", "web-programming"]
 

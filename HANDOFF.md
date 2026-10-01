@@ -1152,6 +1152,33 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       live delivery there is unproven. `/ready` 200. **GitHub is still locked:** `gh run rerun 36695500285` created
       six jobs, each refused in 3 s, "your account is locked due to a billing issue". `ci.qorsync.dev` still
       resolves, so the Cloudflare leftovers are not deleted. Whether the $10 cap is set is unknown from here.
+      **Committed and pushed on the owner's word: `7e154e1` on `public/main`.** `/ready` 200 after Railway's rebuild.
+      **Live mail from Railway is proven to Resend's test address:** `POST /api/v1/auth/register` as
+      `mailtest_20261001` with `delivered@resend.dev` answered 201, and Resend lists "Confirm your email address for
+      QOR ID" to that address as **delivered** (09:16 UTC, email `01a0f6bf…`). The link was not opened. **That test
+      account now exists in the live database**, with a random password nobody kept; delete it or leave it. A real
+      inbox is still untried. **Seen in the same Resend listing, not investigated:** two verification messages
+      **bounced** on 22 September, to `hasemail@` and `withemail@example.invalid` — some local test run sent real
+      mail through the owner's key. Bounces cost the sending domain reputation; find the run and point it at the
+      stand-in (`RESEND_API_URL`) or unset the key for it.
+    - **CI RUNS: the repository moved to the organisation `QOR-MATRIX` (ADR-064, 1 October).** The owner disputes
+      the charge behind the personal account's lock and will not pay it, created the organisation, and by hand
+      (`gh repo create QOR-MATRIX/demiurge-chain --public`, `git push matrix public-main:main`) pushed `7e154e1`
+      there. **The owner saw its first run in progress**, the first job of this workflow ever to execute. **Nobody
+      has seen a run finish**, and its Linux-only steps had never run before, so expect faults.
+      - **The classifier refuses the assistant everything about that repository**: creating it, pushing, even
+        `gh run list -R QOR-MATRIX/demiurge-chain` ("Data Exfiltration"), and `git remote set-url` ("Remote
+        Repoint"). So the owner reads CI and runs the git commands, until they allow them in Claude Code's settings.
+      - **Remotes, unchanged by the assistant:** `matrix` = `QOR-MATRIX/demiurge-chain` (push here now);
+        `public` = `ALaustrup/demiurge-chain` (no longer pushed to; the owner archives it); `origin` = the private
+        archive. `public-main` still tracks `public/main`.
+      - **Changed in the tree, uncommitted:** ADR-064 and both indexes; `GATES.toml` `[ci].repository` and
+        `kinds.ci` with an evidence-rule entry; the gates test's expected name; the README badge, the issue-template
+        links, both `Cargo.toml` `repository` fields, `ci.yml`'s comment, `DIRECTION.md`, `HOSTING.md`,
+        `DEPLOY-RAILWAY.md`, `SYSTEMS.md`, `OWNER.md`.
+      - **Railway still deploys from `ALaustrup/demiurge-chain`.** Its GitHub app must be given the organisation
+        (owner), then `connect-service-source` to `QOR-MATRIX/demiurge-chain`. Until then a push redeploys nothing,
+        and `DEPLOY-RAILWAY.md` already names the new source: it is ahead of the service.
       **Trap for later:** nothing pins these files' line endings, so a Windows build and a Linux build of QOR ID
       cannot share a database; a `.gitattributes` `eol=lf` on `services/qor-auth/migrations/*.sql` would end it, and
       would in turn need the same checksum correction on the launcher's local database (`qor-local-pg`).

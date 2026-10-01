@@ -61,8 +61,8 @@ A proposal that strengthens none of them is out of scope. The six products are h
 each is a surface over the primitives, not a seventh thing beside them.
 
 The product name is **Demiurge-Cloud**. The protocol name is **Demiurge**. The repository is
-`ALaustrup/demiurge-chain`, public since 29 September 2026 (ADR-063); `ALaustrup/demiurge-cloud` is the private
-archive of everything before it.
+`QOR-MATRIX/demiurge-chain`, public since 29 September 2026 (ADR-063) and in the organisation since 1 October
+(ADR-064); `ALaustrup/demiurge-cloud` is the private archive of everything before it.
 
 ### The base layer today
 

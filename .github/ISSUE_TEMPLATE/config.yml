@@ -7,14 +7,14 @@ blank_issues_enabled: true
 
 contact_links:
   - name: Report a security vulnerability
-    url: https://github.com/ALaustrup/demiurge-chain/blob/main/SECURITY.md
+    url: https://github.com/QOR-MATRIX/demiurge-chain/blob/main/SECURITY.md
     about: >-
       Do NOT open a public issue for a vulnerability. SECURITY.md says how to
       report one privately. This link is here so that the instruction is in
       front of someone at the moment they would otherwise file it publicly.
 
   - name: Where the work stands, and what is next
-    url: https://github.com/ALaustrup/demiurge-chain/blob/main/HANDOFF.md
+    url: https://github.com/QOR-MATRIX/demiurge-chain/blob/main/HANDOFF.md
     about: >-
       Before reporting that something does not work, check HANDOFF.md. The
       project is pre-release: much of what looks missing is known, unbuilt and
@@ -22,7 +22,7 @@ contact_links:
       and client/ are frozen and are not expected to work against this chain.
 
   - name: The roadmap and what is in scope
-    url: https://github.com/ALaustrup/demiurge-chain/blob/main/docs/DIRECTION.md
+    url: https://github.com/QOR-MATRIX/demiurge-chain/blob/main/docs/DIRECTION.md
     about: >-
       The only roadmap. A feature request that is not on it needs a decision
       record before it needs an issue.

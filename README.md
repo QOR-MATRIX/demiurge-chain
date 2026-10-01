@@ -1,6 +1,6 @@
 # Demiurge-Cloud
 
-[![Pleroma CI](https://github.com/ALaustrup/demiurge-chain/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ALaustrup/demiurge-chain/actions/workflows/ci.yml)
+[![Pleroma CI](https://github.com/QOR-MATRIX/demiurge-chain/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/QOR-MATRIX/demiurge-chain/actions/workflows/ci.yml)
 
 > CI runs on GitHub Actions for this public repository (ADR-063): every push and pull request to `main`, and
 > two validators nightly.

@@ -4,6 +4,8 @@
 **Supersedes:** [ADR-058](ADR-058-ci-on-woodpecker.md) (CI on Woodpecker) and
 [ADR-060](ADR-060-operations-on-the-owners-computer.md) (operations on the owner's computer), and, for QOR ID,
 Postgres and Redis, [ADR-015](ADR-015-infrastructure-ownership.md)'s Fly.io.
+**Amended by:** [ADR-064](ADR-064-the-repository-lives-in-the-qor-matrix-organisation.md), 1 October 2026: the public
+repository, and CI with it, moved to `QOR-MATRIX/demiurge-chain`.
 
 ## Context
 

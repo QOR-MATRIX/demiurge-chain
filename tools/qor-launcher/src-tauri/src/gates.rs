@@ -1857,7 +1857,7 @@ mod tests {
     fn ci_is_read_from_the_named_repository_only() {
         let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
         let file = load_file(&repo).expect("docs/GATES.toml loads");
-        assert_eq!(ci_repository(&file), Ok("ALaustrup/demiurge-chain"));
+        assert_eq!(ci_repository(&file), Ok("QOR-MATRIX/demiurge-chain"));
 
         let unnamed: GatesFile =
             toml::from_str("status = \"x\"\n[ci]\nworkflow = \"Pleroma CI\"\n").unwrap();

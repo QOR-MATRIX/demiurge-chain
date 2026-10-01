@@ -15,7 +15,7 @@ members = ["node", "pallets/drc369", "pallets/drc369-royalties", "pallets/valida
 authors = ["Demiurge"]
 edition = "2021"
 license = "Apache-2.0"
-repository = "https://github.com/ALaustrup/demiurge-chain"
+repository = "https://github.com/QOR-MATRIX/demiurge-chain"
 version = "0.1.0"
 
 [workspace.dependencies]

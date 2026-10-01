@@ -54,7 +54,7 @@ laptop. **Nothing needs to be live before it is deployable**, and most of this i
 | **Marketing / landing** | — | `apps/marketing-site` exists and is **frozen** | **Deferred by the owner** (2026-09-17) | No roadmap item, no gate. Not started |
 | **Email sending** | Resend, from `demiurge.cloud` | **Yes, proven live** to Resend's test address | Already live; the **webhook** endpoint needs QOR ID public | §5 |
 | **Resend webhooks** | Bounce and complaint reports | Endpoint **exists in code**, has never received a live delivery | With QOR ID | Resend cannot deliver to a laptop |
-| **CI** | GitHub Actions on the public `ALaustrup/demiurge-chain` (ADR-063) | Workflow exists; **no job has ever executed**. Every run so far is refused with "your account is locked due to a billing issue", which is an account lock, not the workflow | **Now** | Blocked on the owner: Settings, Billing and plans |
+| **CI** | GitHub Actions on the public `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064) | **Jobs execute since 1 October**, in the owner's organisation; on the personal account every run was refused by a billing lock. No run has been seen to finish yet | **Now** | The first runs' results, and any fault the Linux-only steps show |
 | **Relays** | Named by the owner | **Not defined in the repository** | Unknown | Scope undefined; a name is reserved, nothing more |
 | **Agentic synchronisation** | Named by the owner | **Not defined in the repository** | Unknown | As above |
 | **QOR Engine** | Named by the owner | **Not defined in the repository** | Unknown | As above |

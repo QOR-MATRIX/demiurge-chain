@@ -10,7 +10,8 @@ are planned on top of it, all sharing one sign-in, one asset format and one curr
 
 ## What exists and works today
 
-The code is public at `github.com/ALaustrup/demiurge-chain` since 29 September. Tests last run 30 September; Railway checked 1 October.
+The code is public at `github.com/QOR-MATRIX/demiurge-chain` (your organisation, since 1 October).
+Tests last run 30 September; Railway checked 1 October.
 
 - **The chain.** Produces blocks and finalises them — *finalise: agree a block can never be undone* —
   holds assets, sends them, and **sells them for CGT and pays royalties**. Two machines running it agree (last checked 29 September).
@@ -28,8 +29,11 @@ the asset**, sell from the launcher, or let an asset nest or change state.
 - **1 October: QOR ID runs on Railway**, with your account in it. It first refused to start (the copied
   database had Windows line endings on record); you applied the correction and it went green.
   **`https://id.qorsync.dev` answers from Railway** (checked: ready, database and cache ok), with your
-  PC off the path. Email is switched on (its log says so) but no message has been sent yet, the
-  temporary database door is closed, and signing in from the launcher is untried.
+  PC off the path. Email works: a test sign-up's message was delivered to Resend's test
+  inbox (a real inbox is untried). The temporary database door is closed, and signing in from the launcher is untried.
+- **CI runs at last.** *CI: the robot that checks every change.* You made the organisation QOR-MATRIX
+  and pushed the code there; its jobs started, which your locked personal account never allowed
+  (ADR-064). Whether they pass is not known yet.
 - **The PC stack is retired**: its containers are removed (data volumes kept) and `infra/ops/` is deleted.
 - **The progress dashboard was reading the wrong CI**: the private archive's, not the public one's. Fixed;
   it now names `demiurge-chain` outright.
@@ -46,12 +50,12 @@ the asset**, sell from the launcher, or let an asset nest or change state.
 
 ## What only you can do
 
-1. **Unlock your GitHub account.** *CI: the robot that checks every change.* No run has passed; I re-ran
-   it on 1 October and all six jobs were refused: "your account is locked due to a billing issue". Settings →
-   Billing and plans.
+1. **Tell me how the first CI run ended** (github.com/QOR-MATRIX/demiurge-chain/actions), and **let
+   Railway see the organisation** (Railway → Account → Integrations → GitHub → add QOR-MATRIX), or a
+   push no longer redeploys sign-in. The billing dispute on your personal account blocks nothing now.
 2. **Bounce reports**: in Resend add a webhook to `https://id.qorsync.dev/api/v1/webhooks/resend`
    and paste its `whsec_…` secret into Railway as `RESEND_WEBHOOK_SECRET`.
-3. **Say yes to a test email** from Railway: it makes one test account there.
+3. **Sign up with your own email** once, to see a real inbox receive the message.
 4. **Cap Railway at $10 a month**, if you have not: Railway → Workspace → Usage → hard limit.
 5. **In Cloudflare**, delete the `ci` record and the tunnel. Then try signing in from the launcher
    (Settings → QOR ID address `https://id.qorsync.dev/api/v1`).
