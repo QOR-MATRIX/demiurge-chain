@@ -1,16 +1,21 @@
-//! A listing a creator is drafting for an asset they hold (L4.6).
+//! The description of a listing, drafted by a creator for an asset they hold
+//! (L4.6).
 //!
 //! # Nothing here is published, and the form says so
 //!
-//! **There is no marketplace.** A listing every account can see needs the
-//! royalty pallet (M4.2), a priced transfer, and an indexer to serve what is
-//! listed (ADR-028, M5.4). None exists. What this module does is keep the
-//! creator's own draft on their own machine, so the work of describing an asset
-//! is not lost between now and Market (P5), and so the shape of a listing is
-//! decided by looking at a real one rather than by imagining it.
+//! **The listing a buyer can act on is not in this module.** It is a price on
+//! chain, published and settled through `pallet-drc369-royalties`
+//! ([`crate::chain::sales`], ADR-061). The chain holds that price and nothing
+//! else: a title, a kind and a description have nowhere public to go until
+//! there is an indexer to serve them and a storefront to show them (ADR-028,
+//! M5.4, P5). What this module does is keep the creator's own description on
+//! their own machine, so the work of describing an asset is not lost between
+//! now and Market, and so the shape of a listing is decided by looking at a real
+//! one rather than by imagining it.
 //!
 //! A draft is a file in the launcher's data directory. It is not sent anywhere,
-//! not synchronised and not visible to anybody else.
+//! not synchronised and not visible to anybody else. It carries the price that
+//! was typed when it was saved, as a note; the price that counts is the chain's.
 //!
 //! # The vocabulary lives here, in one place
 //!
@@ -188,8 +193,8 @@ pub struct Detail {
     pub value: String,
 }
 
-/// A draft listing: what this creator would offer, if there were anywhere to
-/// offer it.
+/// A drafted description: what this creator would say about the asset, if there
+/// were anywhere to show it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Listing {
     pub collection: u32,

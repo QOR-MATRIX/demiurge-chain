@@ -16,6 +16,12 @@
 // It also drives a trade (L4.4, L4.5): the menu opened by the keyboard and by the
 // pointer's secondary button, the assets chosen, the warning before anything is
 // sent, and what reaches the host.
+// And it drives a sale from both sides (L4.6): a price typed and what the host
+// says a sale at it pays, drawn amount for amount; a listing declined and then
+// approved; the card's price taken from the chain's answer; a withdrawal; and a
+// purchase of an asset looked up by its number, refused once and then settled.
+// The fixture's amounts are ones no arithmetic on the price reproduces, so a
+// view that worked a split out for itself could not draw them.
 // And after "Make permanent", the view must draw the chain's next answer,
 // not flip a flag it believes: the host's second answer carries an asset the
 // first did not, which an optimistic view cannot show.
@@ -44,6 +50,9 @@
 //   3. Inventory.tsx labelled every asset "Permanent" whatever the host said.
 //
 // Each made this check fail; the commit that added it records the counts.
+//
+// The selling and buying half was proven the same way on 1 October 2026; the
+// faults and what each made fail are in tools/qor-launcher/README.md.
 
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -89,6 +98,7 @@ const FRESH = {
   current: ref('1f', 211),
   commit: { kind: 'SHA-1', id: 'a1'.repeat(20) },
   revisable: true,
+  listing: null,
 };
 // Revised once, then made permanent: what it carries now differs from what it
 // was minted with, and the view must show the former as its reference.
@@ -100,6 +110,7 @@ const REVISED = {
   current: ref('3d', 377),
   commit: { kind: 'SHA-1', id: 'b2'.repeat(20) },
   revisable: false,
+  listing: null,
 };
 const BEFORE = [FRESH, REVISED];
 // The host's answer AFTER "Make permanent": the first asset is permanent, and
@@ -112,6 +123,7 @@ const ARRIVED = {
   current: ref('4c', 99),
   commit: { kind: 'SHA-1', id: 'c3'.repeat(20) },
   revisable: true,
+  listing: null,
 };
 const AFTER = [{ ...FRESH, revisable: false }, REVISED, ARRIVED];
 // After a trade of REVISED and ARRIVED, the host answers with what is left. A
@@ -143,6 +155,156 @@ const PARTNER = {
   trades: 3,
 };
 const MESSAGE = 'for the album';
+
+// --- selling and buying (L4.6) ----------------------------------------------
+// Every amount below is the HOST's, and none follows from its price by any
+// arithmetic: 61.25, 113.70 and 1,025.55 are not 5% of 1,200.50, 9.5% of the
+// rest and what is left. A view that computed a split would draw other numbers.
+const SELLER = '5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy';
+const ROYALTY = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
+const SOURCE = '5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y';
+const sparks = (cgt) => `${cgt.replace(/[,.]/g, '')}0000000000000000`;
+const payout = (kind, address, share, cgt) => ({
+  kind, address, share, amount_sparks: sparks(cgt), amount_cgt: cgt, to_buyer: false,
+});
+const BREAKDOWN = {
+  price_sparks: sparks('1,200.50'),
+  price_cgt: '1,200.50',
+  source: { collection: 2, item: 7 },
+  source_share: '5%',
+  payouts: [
+    payout('source', SOURCE, null, '61.25'),
+    payout('royalty', ROYALTY, '9.5%', '113.70'),
+    payout('seller', ADDRESS, null, '1,025.55'),
+  ],
+  blocked: null,
+};
+// A price no sale could settle at: the host says why, and the view shows it.
+const BLOCKED = {
+  price_sparks: sparks('7.00'),
+  price_cgt: '7.00',
+  source: null,
+  source_share: null,
+  payouts: [payout('royalty', ROYALTY, '9.5%', '0.66'), payout('seller', ADDRESS, null, '6.34')],
+  blocked: `A sale at this price cannot settle as things stand. ${ROYALTY} is owed 0.66 CGT from it, and that account holds too little to stay open on that.`,
+};
+// Answered late, after the price in the field has moved on.
+const SLOW = {
+  price_sparks: sparks('55.00'),
+  price_cgt: '55.00',
+  source: null,
+  source_share: null,
+  payouts: [payout('seller', ADDRESS, null, '55.00')],
+  blocked: null,
+};
+// What the CHAIN says the listing is, once listed: deliberately not the price
+// that was typed, so a card that drew what it believed cannot pass.
+const LISTING = { seller: ADDRESS, price_sparks: sparks('1,234.00'), price_cgt: '1,234.00', void: false };
+const LISTED = [{ ...FRESH, revisable: false, listing: LISTING }];
+const SAME = {
+  price_sparks: LISTING.price_sparks,
+  price_cgt: LISTING.price_cgt,
+  source: null,
+  source_share: null,
+  payouts: [payout('seller', ADDRESS, null, '1,234.00')],
+  blocked: null,
+};
+// Someone else's asset, reached by its number.
+const FOUND_ASSET = {
+  collection: 9,
+  item: 3,
+  name: 'someone-elses-remix',
+  origin: ref('7a', 512),
+  current: ref('7a', 512),
+  commit: { kind: 'SHA-1', id: 'd4'.repeat(20) },
+  revisable: true,
+  listing: { seller: SELLER, price_sparks: sparks('3,000.00'), price_cgt: '3,000.00', void: false },
+};
+const TERMS = { recipients: [{ address: ROYALTY, share: '9.5%' }], remix: '12%' };
+const FOUND = {
+  asset: FOUND_ASSET,
+  holder: SELLER,
+  held_by_viewer: false,
+  derived_from: { collection: 2, item: 7 },
+  terms: TERMS,
+  source_terms: { recipients: [{ address: SOURCE, share: '40%' }], remix: '5%' },
+  breakdown: {
+    price_sparks: sparks('3,000.00'),
+    price_cgt: '3,000.00',
+    source: { collection: 2, item: 7 },
+    source_share: '5%',
+    payouts: [
+      payout('source', SOURCE, null, '151.10'),
+      payout('royalty', ROYALTY, '9.5%', '270.20'),
+      payout('seller', SELLER, null, '2,578.70'),
+    ],
+    blocked: null,
+  },
+  viewer_free_cgt: '8,894.50',
+  cannot_buy: null,
+  pasted_root_matches: true,
+};
+// For sale, and out of this account's reach: the HOST says so and says why. A
+// card that judged it for itself would offer Buy, since a price is on it.
+const POOR = {
+  ...FOUND,
+  asset: { ...FOUND_ASSET, item: 4, name: 'out-of-reach' },
+  cannot_buy:
+    'This account cannot cover it. Buying takes 3,000.00 CGT and the account has 894.50 CGT it can spend: it holds 994.50 CGT, and 100.00 CGT of that has to stay for the account to remain open.',
+  pasted_root_matches: null,
+};
+// What a buyer pastes: the line the seller's own menu copies.
+const PASTED = `BLAKE3-256 ${FOUND_ASSET.current.root} (asset ${FOUND_ASSET.collection}/${FOUND_ASSET.item})`;
+// The same asset after its seller raised the price.
+const REPRICED = {
+  ...FOUND,
+  asset: {
+    ...FOUND_ASSET,
+    listing: { ...FOUND_ASSET.listing, price_sparks: sparks('3,500.00'), price_cgt: '3,500.00' },
+  },
+  breakdown: {
+    ...FOUND.breakdown,
+    price_sparks: sparks('3,500.00'),
+    price_cgt: '3,500.00',
+    payouts: [
+      payout('source', SOURCE, null, '176.05'),
+      payout('royalty', ROYALTY, '9.5%', '315.90'),
+      payout('seller', SELLER, null, '3,008.05'),
+    ],
+  },
+  pasted_root_matches: null,
+};
+// And after this account bought it: held here, listed nowhere.
+const BOUGHT_ASSET = { ...FOUND_ASSET, listing: null };
+const BOUGHT = [{ ...FRESH, revisable: false }, BOUGHT_ASSET];
+const HELD = {
+  ...FOUND,
+  asset: BOUGHT_ASSET,
+  holder: ADDRESS,
+  held_by_viewer: true,
+  breakdown: null,
+  viewer_free_cgt: '5,394.50',
+  cannot_buy: 'This asset is not listed for sale.',
+  pasted_root_matches: null,
+};
+const RECEIPT = {
+  collection: FOUND_ASSET.collection,
+  item: FOUND_ASSET.item,
+  name: FOUND_ASSET.name,
+  seller: SELLER,
+  buyer: ADDRESS,
+  price_sparks: sparks('3,500.00'),
+  price_cgt: '3,500.00',
+  payouts: REPRICED.breakdown.payouts,
+  tx_hash: '0x07',
+  block_hash: '0x08',
+};
+// The price as a person types it. `parseFloat` reads this as 1.
+const TYPED = '1,200.50';
+const PRICE_CHANGED =
+  'The price changed since you looked: it was 3,000.00 CGT and it is 3,500.00 CGT now. Nothing was sent.';
+const NOT_A_NUMBER =
+  "That is not an asset's number. It is the two numbers on an asset's card, like 4/0, or the reference its holder copied from the asset's menu.";
 
 const HISTORY_REFUSAL =
   'Transaction history is not available yet. A Substrate node serves no history RPC; it comes from an indexer over the chain\'s events (ADR-028), which is not built.';
@@ -261,6 +423,16 @@ try {
     window.__BEFORE__ = ${JSON.stringify(BEFORE)};
     window.__AFTER__ = ${JSON.stringify(AFTER)};
     window.__TRADED__ = ${JSON.stringify(TRADED)};
+    window.__LISTED__ = ${JSON.stringify(LISTED)};
+    window.__BOUGHT__ = ${JSON.stringify(BOUGHT)};
+    window.__PREVIEW_CALLS__ = [];
+    window.__LIST_CALLS__ = [];
+    window.__UNLIST_CALLS__ = [];
+    window.__SALE_CALLS__ = [];
+    window.__BUY_CALLS__ = [];
+    window.__SALE_MODE__ = 'listed';
+    window.__DECLINE_NEXT__ = false;
+    window.__REFUSE_BUY__ = false;
     window.__TRADE_CALLS__ = [];
     window.__LISTING_SAVES__ = [];
     window.__VOCABULARY__ = ${JSON.stringify(VOCABULARY)};
@@ -278,6 +450,8 @@ try {
             return Promise.reject({ kind: 'rpc', message: 'the node did not answer: fixture outage' });
           if (window.__MODE__ === 'empty') return Promise.resolve([]);
           if (window.__MODE__ === 'traded') return Promise.resolve(window.__TRADED__);
+          if (window.__MODE__ === 'listed') return Promise.resolve(window.__LISTED__);
+          if (window.__MODE__ === 'bought') return Promise.resolve(window.__BOUGHT__);
           return Promise.resolve(window.__MODE__ === 'after' ? window.__AFTER__ : window.__BEFORE__);
         }
         if (cmd === 'drc369_make_permanent') {
@@ -295,6 +469,59 @@ try {
             created: 1,
             updated: 2,
           });
+        }
+        if (cmd === 'drc369_sale_preview') {
+          window.__PREVIEW_CALLS__.push(args);
+          if (args.price === 'abc')
+            return Promise.reject({ kind: 'bad_amount', message: 'amount is not valid: "abc" is not a number' });
+          if (args.price === '7') return Promise.resolve(${JSON.stringify(BLOCKED)});
+          // Held back until the check releases it, after the field has moved on.
+          if (args.price === '55')
+            return new Promise((answer) => {
+              window.__RELEASE_SLOW__ = () => answer(${JSON.stringify(SLOW)});
+            });
+          if (args.price === ${JSON.stringify(LISTING.price_cgt)}) return Promise.resolve(${JSON.stringify(SAME)});
+          return Promise.resolve(${JSON.stringify(BREAKDOWN)});
+        }
+        if (cmd === 'drc369_list') {
+          window.__LIST_CALLS__.push(args);
+          if (window.__DECLINE_NEXT__) {
+            window.__DECLINE_NEXT__ = false;
+            return Promise.reject({ kind: 'declined', message: 'declined at the confirmation prompt; nothing was signed or changed' });
+          }
+          window.__MODE__ = 'listed';
+          return Promise.resolve({
+            collection: args.collection,
+            item: args.item,
+            price_sparks: ${JSON.stringify(BREAKDOWN.price_sparks)},
+            price_cgt: ${JSON.stringify(BREAKDOWN.price_cgt)},
+            tx_hash: '0x05',
+            block_hash: '0x06',
+          });
+        }
+        if (cmd === 'drc369_unlist') {
+          window.__UNLIST_CALLS__.push(args);
+          window.__MODE__ = 'traded';
+          return Promise.resolve({ collection: args.collection, item: args.item, tx_hash: '0x09', block_hash: '0x0a' });
+        }
+        if (cmd === 'drc369_sale') {
+          window.__SALE_CALLS__.push(args);
+          if (!/\\d+\\/\\d+/.test(args.asset))
+            return Promise.reject({ kind: 'qontrol', message: ${JSON.stringify(NOT_A_NUMBER)} });
+          if (args.asset === '9/4') return Promise.resolve(${JSON.stringify(POOR)});
+          if (window.__SALE_MODE__ === 'repriced') return Promise.resolve(${JSON.stringify(REPRICED)});
+          if (window.__SALE_MODE__ === 'bought') return Promise.resolve(${JSON.stringify(HELD)});
+          return Promise.resolve(${JSON.stringify(FOUND)});
+        }
+        if (cmd === 'drc369_buy') {
+          window.__BUY_CALLS__.push(args);
+          if (window.__REFUSE_BUY__) {
+            window.__REFUSE_BUY__ = false;
+            return Promise.reject({ kind: 'qontrol', message: ${JSON.stringify(PRICE_CHANGED)} });
+          }
+          window.__MODE__ = 'bought';
+          window.__SALE_MODE__ = 'bought';
+          return Promise.resolve(${JSON.stringify(RECEIPT)});
         }
         if (cmd === 'trade_partners') return Promise.resolve([${JSON.stringify(PARTNER)}]);
         if (cmd === 'drc369_trade') {
@@ -449,8 +676,9 @@ try {
   check('history says why it is absent, in the host\'s words', history === true);
 
   // Every class the surface uses must exist in the stylesheet (see the same
-  // check in check-projects-view.mjs for why).
-  const undefinedClasses = await evaluate(`(() => {
+  // check in check-projects-view.mjs for why). A function, because the dialogs
+  // opened further down are drawn inside the surface and are held to it too.
+  const undefinedClasses = () => evaluate(`(() => {
     const selectors = [];
     const walk = (list) => {
       for (const rule of list) {
@@ -469,11 +697,28 @@ try {
       .filter((c) => !all.includes('.' + CSS.escape(c)))
       .sort();
   })()`);
+  const undefinedOnTheSurface = await undefinedClasses();
   check(
     'every class the surface uses is defined by the stylesheet',
-    undefinedClasses.length === 0,
-    undefinedClasses.join(' '),
+    undefinedOnTheSurface.length === 0,
+    undefinedOnTheSurface.join(' '),
   );
+
+  // Wait for what the next line is about to read, rather than for a length of
+  // time: a fixed sleep is a flake waiting for a loaded machine (HANDOFF.md §5).
+  // `until` throws, naming what never came, so a missing screen stops the run
+  // at the line that is wrong instead of failing forty checks after it.
+  const eventually = async (expression, ms = 8000) => {
+    const deadline = Date.now() + ms;
+    for (;;) {
+      if (await evaluate(expression)) return true;
+      if (Date.now() > deadline) return false;
+      await sleep(40);
+    }
+  };
+  const until = async (expression, what) => {
+    if (!(await eventually(expression))) throw new Error(`timed out waiting for ${what}: ${expression}`);
+  };
 
   // Make the revisable one permanent.
   const before = (await evaluate(`window.__ASSET_CALLS__.length`)) ?? 0;
@@ -541,8 +786,8 @@ try {
   })()`);
   check('the keyboard opens the menu', menu !== null);
   check('it is a menu, and it takes focus', menu?.role === 'menu' && menu?.focusedIsItem === true);
-  check('Sell is offered, and the menu says a draft publishes nowhere',
-    menu?.sellDisabled === false && /publishes nowhere/i.test(menu?.text ?? ''));
+  check('Sell is offered, and the menu says nobody browses to a listing',
+    menu?.sellDisabled === false && /nobody browses to it/i.test(menu?.text ?? ''));
   // The owner looked for "Trade" and found "Send…", because the label used to
   // depend on how many assets the account held. A feature does not hide its own
   // name: these are the three things an asset offers, named.
@@ -670,69 +915,277 @@ try {
   assertMatches(await drawn(), TRADED, 'after the trade');
 
 
-  // --- Sell: a draft listing, and nothing published (L4.6) -----------------
+  // --- Sell: a listing published on chain (L4.6) ----------------------------
   // The asset the trade raised its menu from has just left this account, so the
-  // listing is drafted for the one still held. No `?.` on these clicks: a card
-  // that is not there must throw here, not pass by doing nothing.
+  // listing is made for the one still held. No `?.` on these clicks: a card
+  // that is not there must throw here, not pass by doing nothing. And no fixed
+  // sleeps: each step waits for what it is about to read.
   const sellId = `${FRESH.collection}/${FRESH.item}`;
-  await evaluate(`document.querySelector('main [data-asset="${sellId}"] [data-asset-more]').click()`);
-  await sleep(250);
-  await evaluate(`document.querySelectorAll('[data-asset-menu] [role="menuitem"]')[1].click()`);
-  await sleep(300);
+  const openMenu = async (id) => {
+    await evaluate(`document.querySelector('main [data-asset="${id}"] [data-asset-more]').click()`);
+    await until(`Boolean(document.querySelector('[data-asset-menu]'))`, 'the asset\'s menu');
+  };
+  const menuNames = () => evaluate(
+    `[...document.querySelectorAll('[data-asset-menu] [role="menuitem"]')].map((n) => n.textContent.trim())`,
+  );
+  const pressMenu = (name) => evaluate(`(() => {
+    const item = [...document.querySelectorAll('[data-asset-menu] [role="menuitem"]')]
+      .find((n) => n.textContent.trim() === ${JSON.stringify(name)});
+    item.click();
+  })()`);
+  // What the breakdown on screen says, row by row, as text.
+  const breakdownDrawn = (inside) => evaluate(`(() => {
+    const box = document.querySelector('${inside} [data-breakdown]');
+    if (!box) return null;
+    return {
+      rows: [...box.querySelectorAll('[data-payout]')].map((row) => ({
+        kind: row.getAttribute('data-payout'),
+        text: row.textContent.replace(/\\s+/g, ' ').trim(),
+        amount: row.lastElementChild.textContent.trim(),
+      })),
+      source: box.querySelector('[data-breakdown-source]')?.textContent.replace(/\\s+/g, ' ').trim() ?? null,
+      total: box.querySelector('[data-breakdown-total]').textContent.replace(/\\s+/g, ' ').trim(),
+      note: box.querySelector('[data-breakdown-note]').textContent,
+      blocked: box.querySelector('[data-breakdown-blocked]')?.textContent ?? null,
+    };
+  })()`);
+  const previewState = () => evaluate(`document.querySelector('[data-sell-preview]').getAttribute('data-sell-preview')`);
+  const listDisabled = () => evaluate(`document.querySelector('[data-sell-list]').disabled`);
+
+  await openMenu(sellId);
+  await pressMenu('Sell');
+  await until(`Boolean(document.querySelector('[data-sell-dialog]'))`, 'the listing form');
 
   const sell = await evaluate(`(() => {
     const dialog = document.querySelector('[data-sell-dialog]');
-    if (!dialog) return null;
     return {
-      unpublished: dialog.querySelector('[data-sell-unpublished]')?.textContent ?? '',
+      reach: dialog.querySelector('[data-sell-reach]').textContent.replace(/\\s+/g, ' '),
       asset: Boolean(dialog.querySelector('[data-sell-asset]')),
-      categories: [...dialog.querySelectorAll('[data-sell-category]')].map((n) => n.getAttribute('data-sell-category')),
-      fields: [...dialog.querySelectorAll('[data-sell-field]')].length,
-      title: dialog.querySelector('[data-sell-title]')?.value ?? null,
-      saveDisabled: dialog.querySelector('[data-sell-save]')?.disabled === true,
+      price: dialog.querySelector('[data-sell-price]').value,
+      priceLabelled: dialog.querySelector('label[for="sell-price"]') !== null,
+      preview: dialog.querySelector('[data-sell-preview]').getAttribute('data-sell-preview'),
+      listDisabled: dialog.querySelector('[data-sell-list]').disabled,
+      listLabel: dialog.querySelector('[data-sell-list]').textContent.trim(),
+      withdraw: Boolean(dialog.querySelector('[data-sell-withdraw]')),
+      described: Boolean(dialog.querySelector('[data-sell-description]')),
     };
   })()`);
-  check('Sell opens a listing form beside the asset', sell !== null && sell.asset === true);
-  check('it says, in the product, that nothing is published',
-    /nothing here is published/i.test(sell?.unpublished ?? '') && /marketplace/i.test(sell?.unpublished ?? ''));
+  check('Sell opens a listing form beside the asset', sell.asset === true);
+  check('it says, in the product, that a listing is public and on chain',
+    /public and on chain/i.test(sell.reach), sell.reach);
+  check('and that there is no storefront, so a buyer needs the asset\'s number',
+    /no storefront/i.test(sell.reach) && sell.reach.includes(sellId), sell.reach);
+  check('the price starts empty: nothing here suggests one', sell.price === '');
+  check('the price field has a label', sell.priceLabelled === true);
+  check('with no price there is nothing to list, and nothing was asked of the host',
+    sell.listDisabled === true && sell.preview === 'none' &&
+      (await evaluate(`window.__PREVIEW_CALLS__.length`)) === 0);
+  check('an unlisted asset is offered "List for sale" and no withdrawal',
+    sell.listLabel === 'List for sale' && sell.withdraw === false, sell.listLabel);
+  check('the description is another screen, not part of the listing', sell.described === false);
+
+  // A typed price goes to the host as it was typed, and what the host answers
+  // is what is drawn: every amount, in the chain's order, and no sum made here.
+  await type('[data-sell-price]', '1200.5');
+  await until(`document.querySelector('[data-sell-preview]').getAttribute('data-sell-preview') === 'ready'`, 'the breakdown');
+  const previewCalls = await evaluate(`window.__PREVIEW_CALLS__`);
+  check('the host is asked what that price would pay, with the price as typed',
+    previewCalls.length === 1 && previewCalls[0].price === '1200.5' &&
+      `${previewCalls[0].collection}/${previewCalls[0].item}` === sellId,
+    JSON.stringify(previewCalls));
+  const drawnBreakdown = await breakdownDrawn('[data-sell-dialog]');
+  check('every part the host returned is drawn, in the order the chain pays them',
+    JSON.stringify(drawnBreakdown.rows.map((r) => r.kind)) === JSON.stringify(BREAKDOWN.payouts.map((p) => p.kind)),
+    JSON.stringify(drawnBreakdown.rows.map((r) => r.kind)));
+  check('each part shows the host\'s amount and nothing recomputed',
+    JSON.stringify(drawnBreakdown.rows.map((r) => r.amount)) === JSON.stringify(BREAKDOWN.payouts.map((p) => p.amount_cgt)),
+    JSON.stringify(drawnBreakdown.rows.map((r) => r.amount)));
+  check('the work it was remixed from is named, with its share of the price',
+    (drawnBreakdown.source ?? '').includes(`${BREAKDOWN.source.collection}/${BREAKDOWN.source.item}`) &&
+      (drawnBreakdown.source ?? '').includes(BREAKDOWN.source_share), String(drawnBreakdown.source));
+  check('a royalty names its share and who receives it',
+    drawnBreakdown.rows[1].text.includes(BREAKDOWN.payouts[1].share) &&
+      drawnBreakdown.rows[1].text.includes(BREAKDOWN.payouts[1].address.slice(0, 6)), drawnBreakdown.rows[1].text);
+  check('the seller\'s own line reads "You keep"', drawnBreakdown.rows[2].text.startsWith('You keep'), drawnBreakdown.rows[2].text);
+  check('the total is the price the host returned',
+    drawnBreakdown.total.includes('A buyer pays') && drawnBreakdown.total.includes(BREAKDOWN.price_cgt), drawnBreakdown.total);
+  check('it says nothing else is taken', /nothing else is taken/i.test(drawnBreakdown.note));
+  check('a price that would settle can be listed', (await listDisabled()) === false);
+
+  // A price the chain would refuse every sale at: the host's reason is shown,
+  // and it cannot be listed.
+  await type('[data-sell-price]', '7');
+  await until(`Boolean(document.querySelector('[data-sell-dialog] [data-breakdown-blocked]'))`, 'the blocked breakdown');
+  const blocked = await breakdownDrawn('[data-sell-dialog]');
+  check('a price no sale could settle at shows the host\'s reason',
+    (blocked.blocked ?? '').includes('cannot settle'), String(blocked.blocked));
+  check('and cannot be listed', (await listDisabled()) === true);
+
+  // A price that is not one: the host's words, not a guess.
+  await type('[data-sell-price]', 'abc');
+  await until(`document.querySelector('[data-sell-preview]').getAttribute('data-sell-preview') === 'refused'`, 'the refusal');
+  const priceRefusal = await evaluate(`document.querySelector('[data-sell-price-refusal]').textContent`);
+  check('a price that is not a number is refused in the host\'s words',
+    priceRefusal.includes('is not a number') && !priceRefusal.includes('[object'), priceRefusal);
+  check('and cannot be listed either', (await listDisabled()) === true);
+
+  // A late answer for a price no longer in the field is dropped: the breakdown
+  // on screen is for the price on screen, or a person approves the wrong one.
+  await type('[data-sell-price]', '55');
+  await until(`typeof window.__RELEASE_SLOW__ === 'function'`, 'the slow preview to be asked for');
+  // Typed as a person types a large number. The host reads the separator; a
+  // view that parsed the price itself would send something else.
+  await type('[data-sell-price]', TYPED);
+  await until(`document.querySelector('[data-sell-preview]').getAttribute('data-sell-preview') === 'ready'`, 'the breakdown again');
+  await evaluate(`window.__RELEASE_SLOW__()`);
+  // The one wait here that is a length of time: it is for something that must
+  // NOT happen, and there is nothing to wait for but a moment in which it could.
+  await evaluate(`new Promise((done) => setTimeout(done, 120))`);
+  const afterLate = await breakdownDrawn('[data-sell-dialog]');
+  check('a late answer for another price does not replace the breakdown',
+    afterLate.total.includes(BREAKDOWN.price_cgt) && !afterLate.total.includes(SLOW.price_cgt), afterLate.total);
+
+  // Declined in the host's dialog: nothing is listed, the form stays, and the
+  // person is told in words.
+  check('nothing has been listed yet', (await evaluate(`window.__LIST_CALLS__.length`)) === 0);
+  await evaluate(`window.__DECLINE_NEXT__ = true`);
+  const assetAsksBeforeDecline = await evaluate(`window.__ASSET_CALLS__.length`);
+  await evaluate(`document.querySelector('[data-sell-list]').click()`);
+  await until(`Boolean(document.querySelector('[data-sell-refusal]'))`, 'the refusal after declining');
+  const declinedText = await evaluate(`document.querySelector('[data-sell-refusal]').textContent`);
+  check('a declined listing says nothing was signed', /nothing was signed/i.test(declinedText), declinedText);
+  check('the form stays open after declining', (await evaluate(`Boolean(document.querySelector('[data-sell-dialog]'))`)) === true);
+  check('and the card shows no listing',
+    (await evaluate(`Boolean(document.querySelector('main [data-asset="${sellId}"] [data-asset-listing]'))`)) === false);
+  check('a declined listing does not re-read the chain as if something changed',
+    (await evaluate(`window.__ASSET_CALLS__.length`)) === assetAsksBeforeDecline);
+
+  // Approved: the host is sent exactly what was typed, once, and the card then
+  // draws the listing the CHAIN reports, which the fixture makes differ from
+  // what was typed so a view that drew its own belief cannot pass.
+  await evaluate(`document.querySelector('[data-sell-list]').click()`);
+  await until(`!document.querySelector('[data-sell-dialog]')`, 'the form to close after listing');
+  check('the person is told what to send a buyer',
+    await eventually(`document.body.textContent.includes(${JSON.stringify(`A buyer needs this asset’s number: ${sellId}`)})`));
+  const listCalls = await evaluate(`window.__LIST_CALLS__`);
+  check('listing asks the host twice in all: the declined one and this one', listCalls.length === 2, `${listCalls.length}`);
+  const listCall = listCalls[1] ?? {};
+  check('it sends the active account, that asset and the price exactly as typed, unparsed',
+    listCall.from === ADDRESS && `${listCall.collection}/${listCall.item}` === sellId && listCall.price === TYPED,
+    JSON.stringify(listCall));
+  await until(`Boolean(document.querySelector('main [data-asset="${sellId}"] [data-asset-listing]'))`, 'the listing on the card');
+  const listedCard = await evaluate(`(() => {
+    const card = document.querySelector('main [data-asset="${sellId}"]');
+    return {
+      listing: card.querySelector('[data-asset-listing]').textContent.replace(/\\s+/g, ' ').trim(),
+      price: card.querySelector('[data-asset-price]').textContent.replace(/\\s+/g, ' ').trim(),
+      withdraw: card.querySelector('[data-asset-withdraw]')?.textContent.trim() ?? null,
+    };
+  })()`);
+  check('the card says it is for sale', listedCard.listing.startsWith('For sale'), listedCard.listing);
+  check('at the price the chain reports, not the one that was typed',
+    listedCard.price === `${LISTING.price_cgt} CGT`, listedCard.price);
+  check('a listed card offers Withdraw', listedCard.withdraw === 'Withdraw', String(listedCard.withdraw));
+
+  // A listed asset's menu offers a new price and a withdrawal in Sell's place.
+  await openMenu(sellId);
+  const listedMenu = await menuNames();
+  check('a listed asset\'s menu names Trade, Change price, Withdraw listing, Copy reference',
+    JSON.stringify(listedMenu) === JSON.stringify(['Trade…', 'Change price', 'Withdraw listing', 'Copy reference']),
+    JSON.stringify(listedMenu));
+  check('the menu says a listing is on chain and that nobody browses to it',
+    /price on chain/i.test(await evaluate(`document.querySelector('[data-asset-menu]').textContent`)) &&
+      /no storefront/i.test(await evaluate(`document.querySelector('[data-asset-menu]').textContent`)));
+  await pressMenu('Change price');
+  await until(`Boolean(document.querySelector('[data-sell-dialog] [data-sell-current]'))`, 'the form for a listed asset');
+  await until(`document.querySelector('[data-sell-preview]').getAttribute('data-sell-preview') === 'ready'`, 'the listed price\'s breakdown');
+  const relisting = await evaluate(`(() => {
+    const dialog = document.querySelector('[data-sell-dialog]');
+    return {
+      current: dialog.querySelector('[data-sell-current]').textContent.replace(/\\s+/g, ' '),
+      price: dialog.querySelector('[data-sell-price]').value,
+      listLabel: dialog.querySelector('[data-sell-list]').textContent.trim(),
+      listDisabled: dialog.querySelector('[data-sell-list]').disabled,
+      withdraw: dialog.querySelector('[data-sell-withdraw]')?.textContent.trim() ?? null,
+    };
+  })()`);
+  check('the form says what it is listed at now', relisting.current.includes(`${LISTING.price_cgt} CGT`), relisting.current);
+  check('and starts from that price', relisting.price === LISTING.price_cgt, relisting.price);
+  check('the same price again cannot be sent: there is nothing to change',
+    relisting.listLabel === 'Change the price' && relisting.listDisabled === true, relisting.listLabel);
+  check('a listed asset can be withdrawn from the form', relisting.withdraw === 'Withdraw listing', String(relisting.withdraw));
+
+  // --- the description: drafted on this machine, published nowhere ---------
+  // Its own screen, reached from the listing, which keeps the price typed there.
+  await type('[data-sell-price]', '1200.5');
+  await evaluate(`document.querySelector('[data-sell-describe]').click()`);
+  await until(`Boolean(document.querySelector('[data-sell-description]'))`, 'the description screen');
+  const describing = await evaluate(`(() => {
+    const dialog = document.querySelector('[data-sell-dialog]');
+    const panel = dialog.querySelector('[role="dialog"]');
+    return {
+      step: panel.getAttribute('data-sell-step'),
+      label: panel.getAttribute('aria-label'),
+      listing: Boolean(dialog.querySelector('[data-sell-list]')),
+      focused: document.activeElement === dialog.querySelector('[data-sell-title]'),
+      unpublished: dialog.querySelector('[data-sell-unpublished]').textContent.replace(/\\s+/g, ' '),
+      categories: [...dialog.querySelectorAll('[data-sell-category]')].map((n) => n.getAttribute('data-sell-category')),
+      fields: [...dialog.querySelectorAll('[data-sell-field]')].length,
+      title: dialog.querySelector('[data-sell-title]').value,
+      saveDisabled: dialog.querySelector('[data-sell-save]').disabled,
+      price: dialog.querySelector('[data-sell-draft-price]').textContent.replace(/\\s+/g, ' '),
+    };
+  })()`);
+  check('the description is a screen of its own, named for what it is, with nothing on it that lists',
+    describing.step === 'describe' && describing.label === 'Describe it' && describing.listing === false,
+    JSON.stringify(describing));
+  check('the keyboard starts in its title', describing.focused === true);
+  check('it says which price the draft keeps: the one typed on the listing screen',
+    describing.price.includes('1200.5'), describing.price);
+  check('it says, in the product, that a description is not published',
+    /not published/i.test(describing.unpublished) && /this machine only/i.test(describing.unpublished),
+    describing.unpublished);
   check('the categories come from the host, not from this view',
-    JSON.stringify(sell?.categories) === JSON.stringify(VOCABULARY.map((c) => c.id)),
-    JSON.stringify(sell?.categories));
-  check('no category is chosen, so nothing is asked yet', sell?.fields === 0, String(sell?.fields));
-  check('the title starts as the name the chain holds', sell?.title === FRESH.name, String(sell?.title));
-  check('it cannot be saved before a kind and a price', sell?.saveDisabled === true);
+    JSON.stringify(describing.categories) === JSON.stringify(VOCABULARY.map((c) => c.id)),
+    JSON.stringify(describing.categories));
+  check('no category is chosen, so nothing is asked yet', describing.fields === 0, String(describing.fields));
+  check('the title starts as the name the chain holds', describing.title === FRESH.name, String(describing.title));
+  check('it cannot be saved before a kind is chosen', describing.saveDisabled === true);
+  check('every class the listing form uses is defined by the stylesheet',
+    (await undefinedClasses()).length === 0, (await undefinedClasses()).join(' '));
 
   // Choosing a kind asks that kind's questions, and only those.
   await evaluate(`document.querySelector('[data-sell-category="gaming"]').click()`);
-  await sleep(200);
+  await until(`document.querySelectorAll('[data-sell-field]').length === 2`, 'the gaming questions');
   const gaming = await evaluate(`[...document.querySelectorAll('[data-sell-field]')].map((n) => n.getAttribute('data-sell-field'))`);
   check('choosing Gaming asks the gaming questions',
     JSON.stringify(gaming) === JSON.stringify(['kind', 'players']), JSON.stringify(gaming));
 
   await evaluate(`document.querySelector('[data-sell-category="physical"]').click()`);
-  await sleep(200);
+  await until(`Boolean(document.querySelector('[data-sell-note]'))`, 'the physical kind\'s warning');
   const physical = await evaluate(`(() => ({
     fields: [...document.querySelectorAll('[data-sell-field]')].map((n) => n.getAttribute('data-sell-field')),
-    note: document.querySelector('[data-sell-note]')?.textContent ?? null,
+    note: document.querySelector('[data-sell-note]').textContent,
+    labelled: document.querySelector('label[for="sell-answer-arrives"]') !== null,
   }))()`);
   check('choosing another kind asks different questions',
-    JSON.stringify(physical?.fields) === JSON.stringify(['arrives']), JSON.stringify(physical?.fields));
+    JSON.stringify(physical.fields) === JSON.stringify(['arrives']), JSON.stringify(physical.fields));
   check('a kind that needs a warning shows it before anything is typed',
-    /not the object/i.test(physical?.note ?? ''), String(physical?.note));
+    /not the object/i.test(physical.note), String(physical.note));
+  check('a question answered by typing has a label', physical.labelled === true);
 
   // What is typed is what the host is sent: no more, no less.
   await evaluate(`document.querySelector('[data-sell-category="gaming"]').click()`);
-  await sleep(200);
+  await until(`Boolean(document.querySelector('[data-sell-option="kind:Tool"]'))`, 'the gaming answers');
   await type('[data-sell-title]', 'A tower defence');
-  await type('[data-sell-price]', '1200.5');
   await evaluate(`document.querySelector('[data-sell-option="kind:Tool"]').click()`);
-  await sleep(200);
+  await until(`document.querySelector('[data-sell-option="kind:Tool"]').getAttribute('aria-pressed') === 'true'`, 'the answer to be chosen');
   check('nothing has been saved yet', (await evaluate(`window.__LISTING_SAVES__.length`)) === 0);
   await evaluate(`document.querySelector('[data-sell-save]').click()`);
-  await sleep(400);
+  await until(`Boolean(document.querySelector('[data-sell-saved]'))`, 'the draft to be saved');
   const saves = await evaluate(`window.__LISTING_SAVES__`);
   check('saving sends the host one draft', Array.isArray(saves) && saves.length === 1, JSON.stringify(saves));
-  const draft = saves?.[0] ?? {};
+  const draft = saves[0] ?? {};
   check('it sends the title, the kind and the price that were typed',
     draft.title === 'A tower defence' && draft.category === 'gaming' && draft.price_cgt === '1200.5',
     JSON.stringify(draft));
@@ -742,11 +1195,227 @@ try {
   check('it is for the asset whose menu was used',
     `${draft.collection}/${draft.item}` === sellId, `${draft.collection}/${draft.item}`);
   check('and the person is told it went no further',
-    /not published anywhere/i.test(await evaluate(`document.querySelector('[data-sell-saved]')?.textContent ?? ''`)));
+    /not published anywhere/i.test(await evaluate(`document.querySelector('[data-sell-saved]').textContent`)));
+  check('saving a description lists nothing', (await evaluate(`window.__LIST_CALLS__.length`)) === 2);
+
+  // Back to the listing: the same dialog, the price still as it was typed.
+  await evaluate(`document.querySelector('[data-sell-back]').click()`);
+  await until(`document.querySelector('[data-sell-dialog] [role="dialog"]').getAttribute('data-sell-step') === 'price'`, 'the listing screen again');
+  check('going back returns to the listing, with the price as it was typed',
+    (await evaluate(`document.querySelector('[data-sell-price]').value`)) === '1200.5');
+  check('and the listing now offers the description that was saved',
+    (await evaluate(`document.querySelector('[data-sell-describe]').textContent.trim()`)) === 'Your description');
 
   await evaluate(`document.querySelector('[data-sell-dialog] [aria-label="Close"]').click()`);
-  await sleep(250);
+  await until(`!document.querySelector('[data-sell-dialog]')`, 'the listing form to close');
   check('the listing form closes', (await evaluate(`Boolean(document.querySelector('[data-sell-dialog]'))`)) === false);
+
+  // Withdraw, from the card: the host is asked once, for that asset, and the
+  // card then draws what the chain says.
+  check('nothing has been withdrawn yet', (await evaluate(`window.__UNLIST_CALLS__.length`)) === 0);
+  await evaluate(`document.querySelector('main [data-asset="${sellId}"] [data-asset-withdraw]').click()`);
+  await until(`!document.querySelector('main [data-asset="${sellId}"] [data-asset-listing]')`, 'the listing to leave the card');
+  const unlistCalls = await evaluate(`window.__UNLIST_CALLS__`);
+  check('withdrawing asks the host exactly once', unlistCalls.length === 1, `${unlistCalls.length}`);
+  check('for the active account and exactly that asset',
+    unlistCalls[0]?.from === ADDRESS && `${unlistCalls[0]?.collection}/${unlistCalls[0]?.item}` === sellId,
+    JSON.stringify(unlistCalls[0]));
+  check('afterwards the card offers no withdrawal',
+    (await evaluate(`Boolean(document.querySelector('main [data-asset="${sellId}"] [data-asset-withdraw]'))`)) === false);
+  assertMatches(await drawn(), TRADED, 'after withdrawing');
+
+
+  // --- Buy: one asset, looked up by its number (L4.6) -----------------------
+  // There is no catalogue (ADR-028), so the surface starts from a number its
+  // holder gave the buyer, and it must say so rather than look like a shop.
+  const find = await evaluate(`(() => {
+    const section = document.querySelector('main [data-find]');
+    return {
+      honest: section.querySelector('[data-find-honest]').textContent.replace(/\\s+/g, ' '),
+      labelled: section.querySelector('label[for="find-asset"]') !== null,
+      submitDisabled: section.querySelector('[data-find-submit]').disabled,
+      cards: section.querySelectorAll('[data-found-asset]').length,
+    };
+  })()`);
+  check('buying says there is no storefront, and what to ask a holder for',
+    /no storefront/i.test(find.honest) && /number/i.test(find.honest), find.honest);
+  check('the lookup field has a label', find.labelled === true);
+  check('with nothing typed there is nothing to look up, and nothing is listed unasked',
+    find.submitDisabled === true && find.cards === 0 && (await evaluate(`window.__SALE_CALLS__.length`)) === 0);
+
+  // Something that is not a number: the host's words, and no card.
+  await type('[data-find-input]', 'nonsense');
+  await evaluate(`document.querySelector('[data-find-submit]').click()`);
+  await until(`Boolean(document.querySelector('[data-find-refusal]'))`, 'the lookup\'s refusal');
+  const findRefusal = await evaluate(`document.querySelector('[data-find-refusal]').textContent`);
+  check('what is not an asset\'s number is refused in the host\'s words',
+    findRefusal.includes('not an asset\'s number') && !findRefusal.includes('[object'), findRefusal);
+  check('and no card is drawn for it', (await evaluate(`document.querySelectorAll('[data-found-asset]').length`)) === 0);
+
+  // For sale, but not to this account: whether it can be bought is the host's
+  // judgement, drawn as given. The card shows the reason and offers no Buy.
+  const poorId = `${POOR.asset.collection}/${POOR.asset.item}`;
+  await type('[data-find-input]', poorId);
+  await evaluate(`document.querySelector('[data-find-submit]').click()`);
+  await until(`Boolean(document.querySelector('[data-found-asset="${poorId}"]'))`, 'the card of an asset out of reach');
+  const poor = await evaluate(`(() => {
+    const card = document.querySelector('[data-found-asset="${poorId}"]');
+    return {
+      price: card.querySelector('[data-asset-price]').textContent.replace(/\\s+/g, ' ').trim(),
+      cannot: card.querySelector('[data-asset-cannot-buy]')?.textContent ?? null,
+      buy: Boolean(card.querySelector('[data-asset-buy]')),
+    };
+  })()`);
+  check('an asset the host says this account cannot buy shows the host\'s reason',
+    poor.cannot === POOR.cannot_buy, String(poor.cannot));
+  check('and offers no Buy, though it has a price',
+    poor.buy === false && poor.price === `${POOR.asset.listing.price_cgt} CGT`, JSON.stringify(poor));
+  check('the refusal from the lookup before it is gone',
+    (await evaluate(`Boolean(document.querySelector('[data-find-refusal]'))`)) === false);
+
+  // A number: the host is sent what was typed and who is asking, and the asset
+  // comes back as a card. Submitted as the Enter key submits it.
+  const foundId = `${FOUND.asset.collection}/${FOUND.asset.item}`;
+  await type('[data-find-input]', PASTED);
+  await evaluate(`document.querySelector('main [data-find] form').requestSubmit()`);
+  await until(`Boolean(document.querySelector('[data-found-asset="${foundId}"]'))`, 'the found asset\'s card');
+  const saleCalls = await evaluate(`window.__SALE_CALLS__`);
+  check('the host is asked for exactly what was pasted, for the active account',
+    saleCalls.length === 3 && saleCalls[2].asset === PASTED && saleCalls[2].viewer === ADDRESS,
+    JSON.stringify(saleCalls));
+  check('one asset is shown at a time: the one that was asked for',
+    (await evaluate(`document.querySelectorAll('[data-found-asset]').length`)) === 1);
+  const foundCard = () => evaluate(`(() => {
+    const card = document.querySelector('[data-found-asset="${foundId}"]');
+    if (!card) return null;
+    return {
+      name: card.querySelector('[data-asset-name]').textContent.trim(),
+      root: card.querySelector('[data-asset-root]').textContent.trim(),
+      price: card.querySelector('[data-asset-price]')?.textContent.replace(/\\s+/g, ' ').trim() ?? null,
+      holder: card.querySelector('[data-asset-holder]').textContent.trim(),
+      holderInFull: card.querySelector('[data-asset-holder]').getAttribute('title'),
+      match: card.querySelector('[data-asset-match]')?.textContent ?? null,
+      cannot: card.querySelector('[data-asset-cannot-buy]')?.textContent ?? null,
+      buy: Boolean(card.querySelector('[data-asset-buy]')),
+      menu: Boolean(card.querySelector('[data-asset-more]')),
+      withdraw: Boolean(card.querySelector('[data-asset-withdraw]')),
+      permanent: [...card.querySelectorAll('button')].filter((b) => b.textContent.trim() === 'Make permanent').length,
+    };
+  })()`);
+  let card = await foundCard();
+  check('the found asset is drawn as a card, by its name and the reference it carries now',
+    card.name === FOUND.asset.name && card.root === `${FOUND.asset.current.algo} ${FOUND.asset.current.root}`,
+    JSON.stringify(card));
+  check('it shows the price the chain holds', card.price === `${FOUND.asset.listing.price_cgt} CGT`, String(card.price));
+  check('and who holds it, with the whole address behind the short one',
+    card.holder.startsWith(FOUND.holder.slice(0, 8)) && card.holderInFull === FOUND.holder, card.holder);
+  check('it says the pasted fingerprint is the one the asset carries', /fingerprint you pasted/i.test(card.match ?? ''));
+  check('a listed asset someone else holds offers Buy', card.buy === true && card.cannot === null);
+  check('and nothing only its holder may do: no menu, no withdrawal, no Make permanent',
+    card.menu === false && card.withdraw === false && card.permanent === 0, JSON.stringify(card));
+  check('a found asset is not counted among the assets this account holds',
+    (await drawn()).length === TRADED.length, `${(await drawn()).length}`);
+
+  // The close-up of a found asset carries its holder and its royalty terms.
+  await evaluate(`document.querySelector('[data-found-asset="${foundId}"] [data-asset-name]').click()`);
+  await until(`Boolean(document.querySelector('[data-asset-closeup]'))`, 'the found asset\'s close-up');
+  const foundCloseUp = await evaluate(`document.querySelector('[data-asset-closeup]').textContent.replace(/\\s+/g, ' ')`);
+  check('its close-up names its holder in full', foundCloseUp.includes(FOUND.holder));
+  check('and the royalty terms the chain holds',
+    foundCloseUp.includes(`${FOUND.terms.recipients[0].share} of every sale to ${FOUND.terms.recipients[0].address}`) &&
+      foundCloseUp.includes(`owes them ${FOUND.terms.remix}`), foundCloseUp);
+  check('and what it was remixed from',
+    foundCloseUp.includes(`Asset ${FOUND.derived_from.collection}/${FOUND.derived_from.item}`));
+  await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await until(`!document.querySelector('[data-asset-closeup]')`, 'the close-up to close');
+
+  // Buy opens one screen, and that screen is the warning.
+  await evaluate(`document.querySelector('[data-found-asset="${foundId}"] [data-asset-buy]').click()`);
+  await until(`Boolean(document.querySelector('[data-buy-dialog]'))`, 'the purchase dialog');
+  const buying = await evaluate(`(() => {
+    const dialog = document.querySelector('[data-buy-dialog]');
+    const panel = dialog.querySelector('[role="dialog"]');
+    return {
+      label: panel.getAttribute('aria-label'),
+      modal: panel.getAttribute('aria-modal'),
+      focused: document.activeElement === panel || panel.contains(document.activeElement),
+      asset: dialog.querySelector('[data-buy-asset]').textContent.replace(/\\s+/g, ' '),
+      warning: dialog.querySelector('[data-buy-warning]').textContent.replace(/\\s+/g, ' '),
+      balance: dialog.querySelector('[data-buy-balance]').textContent.replace(/\\s+/g, ' '),
+      revisable: dialog.querySelector('[data-buy-revisable]')?.textContent ?? null,
+      confirm: dialog.querySelector('[data-buy-confirm]').textContent.trim(),
+      confirmDisabled: dialog.querySelector('[data-buy-confirm]').disabled,
+    };
+  })()`);
+  check('Buy opens a dialog named for the asset, and focus moves into it',
+    buying.label === `Buy ${FOUND.asset.name}` && buying.modal === 'true' && buying.focused === true,
+    JSON.stringify(buying));
+  check('it shows the asset and its whole fingerprint',
+    buying.asset.includes(foundId) && buying.asset.includes(FOUND.asset.current.root));
+  const buyBreakdown = await breakdownDrawn('[data-buy-dialog]');
+  check('it shows where the price goes: every part the host returned, in order',
+    JSON.stringify(buyBreakdown.rows.map((r) => [r.kind, r.amount])) ===
+      JSON.stringify(FOUND.breakdown.payouts.map((p) => [p.kind, p.amount_cgt])),
+    JSON.stringify(buyBreakdown.rows));
+  check('the seller is named, not "you"', buyBreakdown.rows.at(-1).text.startsWith('The seller'), buyBreakdown.rows.at(-1).text);
+  check('the total is what the buyer pays, as the host returned it',
+    buyBreakdown.total.includes('You pay') && buyBreakdown.total.includes(FOUND.breakdown.price_cgt), buyBreakdown.total);
+  check('it says the purchase cannot be undone, and that no more than the price can be taken',
+    /cannot be undone/i.test(buying.warning) && /will not pay more/i.test(buying.warning), buying.warning);
+  check('it says what the account can spend', buying.balance.includes(`${FOUND.viewer_free_cgt} CGT`), buying.balance);
+  check('a revisable asset says it can still be revised', /still revisable/i.test(buying.revisable ?? ''));
+  check('the button names the price', buying.confirm === `Buy for ${FOUND.breakdown.price_cgt} CGT` && buying.confirmDisabled === false, buying.confirm);
+  check('every class the purchase dialog uses is defined by the stylesheet',
+    (await undefinedClasses()).length === 0, (await undefinedClasses()).join(' '));
+  check('opening the dialog buys nothing', (await evaluate(`window.__BUY_CALLS__.length`)) === 0);
+
+  // The price changed since the buyer looked: the host refuses, in words, and
+  // the dialog reads the asset again and draws THAT, so nobody is left looking
+  // at a price the chain no longer holds.
+  const salesBeforeRefusal = await evaluate(`window.__SALE_CALLS__.length`);
+  await evaluate(`window.__REFUSE_BUY__ = true; window.__SALE_MODE__ = 'repriced'`);
+  await evaluate(`document.querySelector('[data-buy-confirm]').click()`);
+  await until(`Boolean(document.querySelector('[data-buy-reread]'))`, 'the purchase\'s refusal, and the screen read again');
+  const buyRefusal = await evaluate(`document.querySelector('[data-buy-refusal]').textContent`);
+  check('a refused purchase shows the host\'s reason in words',
+    buyRefusal.includes('The price changed since you looked') && !buyRefusal.includes('[object'), buyRefusal);
+  check('the dialog stays open after a refusal', (await evaluate(`Boolean(document.querySelector('[data-buy-dialog]'))`)) === true);
+  const firstBuy = (await evaluate(`window.__BUY_CALLS__`))[0] ?? {};
+  check('the host was sent the price and the fingerprint that were on screen',
+    firstBuy.from === ADDRESS && `${firstBuy.collection}/${firstBuy.item}` === foundId &&
+      firstBuy.priceSparks === FOUND.breakdown.price_sparks && firstBuy.root === FOUND.asset.current.root,
+    JSON.stringify(firstBuy));
+  check('after a refusal the dialog asks the host for the asset again',
+    (await evaluate(`window.__SALE_CALLS__.length`)) === salesBeforeRefusal + 1);
+  const reread = await breakdownDrawn('[data-buy-dialog]');
+  check('and draws the price and the parts the chain holds now',
+    reread.total.includes(REPRICED.breakdown.price_cgt) &&
+      JSON.stringify(reread.rows.map((r) => r.amount)) === JSON.stringify(REPRICED.breakdown.payouts.map((p) => p.amount_cgt)),
+    JSON.stringify(reread));
+  check('the button names the new price, and the refusal says the screen was read again',
+    (await evaluate(`document.querySelector('[data-buy-confirm]').textContent.trim()`)) === `Buy for ${REPRICED.breakdown.price_cgt} CGT` &&
+      /read from the chain again/i.test(buyRefusal), buyRefusal);
+
+  // Approved: one call, with the price now on screen; then the chain is asked
+  // what is held, and the card that offered it says who holds it.
+  const asksBeforeBuy = await evaluate(`window.__ASSET_CALLS__.length`);
+  await evaluate(`document.querySelector('[data-buy-confirm]').click()`);
+  await until(`!document.querySelector('[data-buy-dialog]')`, 'the purchase dialog to close after buying');
+  check('the person is told it is theirs, at the price the chain settled',
+    await eventually(`document.body.textContent.includes(${JSON.stringify(`for ${RECEIPT.price_cgt} CGT. It is in your Inventory.`)})`));
+  const buyCalls = await evaluate(`window.__BUY_CALLS__`);
+  check('buying asks the host once more, and only once', buyCalls.length === 2, `${buyCalls.length}`);
+  check('with the price that was on screen when Buy was pressed',
+    buyCalls[1]?.priceSparks === REPRICED.breakdown.price_sparks && buyCalls[1]?.root === REPRICED.asset.current.root,
+    JSON.stringify(buyCalls[1]));
+  await until(`window.__ASSET_CALLS__.length > ${asksBeforeBuy}`, 'the chain to be asked what is held');
+  await until(`Boolean(document.querySelector('main [data-asset="${foundId}"]'))`, 'the bought asset among those held');
+  assertMatches(await drawn(), BOUGHT, 'after buying');
+  await until(`Boolean(document.querySelector('[data-found-asset="${foundId}"] [data-asset-cannot-buy]'))`, 'the found card to say it is held');
+  card = await foundCard();
+  check('the card that offered it now says this account holds it, and offers no Buy',
+    card.buy === false && card.holder === 'This account' && card.cannot === HELD.cannot_buy,
+    JSON.stringify(card));
 
   // Nothing held: it says so.
   await evaluate(`window.__MODE__ = 'empty'`);

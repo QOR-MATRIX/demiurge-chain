@@ -21,10 +21,40 @@
 //!   mint** and refused past [`Config::MaxRemixDepth`], so no settlement path
 //!   ever walks the graph (decision 11).
 //!
+//! - **nesting** (M4.2 and M4.5, requirement R-2): an owner places one of their
+//!   assets inside another of their assets, and takes it out again. See below.
+//!
 //! Royalties live beside this pallet, in `pallet-drc369-royalties`, which reads
-//! `derived_from` to pay a remix's upstream creator. Nesting, state and XP and
-//! physics are later M4 items and are not started here. Neither is sponsorship
-//! (M4.4): the minter pays every deposit.
+//! `derived_from` to pay a remix's upstream creator. State and XP and physics
+//! are later M4 items and are not started here. Neither is sponsorship (M4.4):
+//! the minter pays every deposit.
+//!
+//! # Nesting, and why a cycle cannot be made (requirement R-2)
+//!
+//! `pallet-nfts` has no item-owns-item relation (inventory F-D3), so the
+//! relation lives here: [`ParentOf`] says which asset an asset is inside, and
+//! [`ChildCount`] how many an asset holds. Four rules, each a refusal:
+//!
+//! - **Only the owner of both.** `nest` needs the signer to hold the child *and*
+//!   the parent. The custom chain checked the child alone until 14 September
+//!   2026, so a stranger could nest under an owner's asset and block its burn.
+//! - **No cycles.** `nest` walks from the parent towards the root and refuses if
+//!   it meets the child: an asset inside itself, or A inside B inside A, at any
+//!   length. The walk is at most [`Config::MaxNestingDepth`] steps, because
+//!   nothing is ever nested deeper than that, so the check has a fixed cost.
+//! - **A bounded tree.** A nest deeper than [`Config::MaxNestingDepth`] is
+//!   refused, and so is one into a parent already holding
+//!   [`Config::MaxChildren`]. An asset that holds others cannot itself be
+//!   nested: a tree is built from the root down, which is what keeps the depth
+//!   bound exact without walking a subtree to measure it.
+//! - **Held in place.** While an asset is nested, or holds a nested asset, it is
+//!   locked in `pallet-nfts` (ADR-025): this pallet is the runtime's `Locker`,
+//!   so `pallet-nfts` itself refuses to transfer or burn it, whatever call or
+//!   batch the attempt arrives in, and a sale cannot hand it over. Nothing here
+//!   moves a tree, so nothing has to walk one inside a transfer's weight.
+//!
+//! `unnest` reverses `nest` exactly, and may take out an asset that still holds
+//! others: the depth of what it holds is never stored, only walked.
 //!
 //! # A mint must be authorised (requirement 7)
 //!
@@ -223,6 +253,26 @@ pub mod pallet {
         /// `16`, an engineering bound and part of the wire format).
         #[pallet::constant]
         type MaxRemixDepth: Get<u8>;
+
+        /// How deep an asset may be nested: a free-standing asset is at depth
+        /// `0`, an asset inside it at `1`, and nothing is deeper than this
+        /// (ADR-047 decision 13 row 7: `8`, an engineering bound and part of the
+        /// wire format).
+        ///
+        /// **Why there is a bound at all:** refusing a cycle (R-2) means walking
+        /// from the parent to its root, one storage read a step. Without a bound
+        /// an owner could build a chain as long as they liked and make every
+        /// later `nest` under it as expensive as they liked, at a weight that
+        /// has to be charged before the walk is made. With it the walk is at
+        /// most this many reads, and the weight charges exactly that many.
+        #[pallet::constant]
+        type MaxNestingDepth: Get<u8>;
+
+        /// How many assets one asset may hold directly (ADR-047 decision 13 row
+        /// 7: `64`, an engineering bound and part of the wire format). It bounds
+        /// what anything that later enumerates a parent's children has to read.
+        #[pallet::constant]
+        type MaxChildren: Get<u32>;
     }
 
     /// Each creator's singles collection. Written by the creator's first mint,
@@ -248,6 +298,33 @@ pub mod pallet {
     /// remixed, its remix share may not rise (ADR-062).
     #[pallet::storage]
     pub type RemixCount<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        CollectionId,
+        Blake2_128Concat,
+        ItemId,
+        u32,
+        ValueQuery,
+    >;
+
+    /// The asset each nested asset is inside. Absent for a free-standing asset.
+    /// Written by `nest`, removed by `unnest`, and by nothing else.
+    #[pallet::storage]
+    pub type ParentOf<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        CollectionId,
+        Blake2_128Concat,
+        ItemId,
+        (CollectionId, ItemId),
+        OptionQuery,
+    >;
+
+    /// How many assets each asset holds directly. Never above
+    /// [`Config::MaxChildren`]. Which assets they are is in the `Nested` and
+    /// `Unnested` events, for the indexer (ADR-028); the chain keeps no list.
+    #[pallet::storage]
+    pub type ChildCount<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
         CollectionId,
@@ -297,6 +374,20 @@ pub mod pallet {
             content: ContentRef,
             by: T::AccountId,
         },
+        /// `child` was placed inside `parent`. `depth` is how deep `child` now
+        /// is: `1` inside a free-standing asset.
+        Nested {
+            parent: (CollectionId, ItemId),
+            child: (CollectionId, ItemId),
+            by: T::AccountId,
+            depth: u8,
+        },
+        /// `child` was taken out of `parent`, and stands on its own again.
+        Unnested {
+            parent: (CollectionId, ItemId),
+            child: (CollectionId, ItemId),
+            by: T::AccountId,
+        },
     }
 
     #[pallet::error]
@@ -323,6 +414,22 @@ pub mod pallet {
         UnknownSource,
         /// The remix would be deeper than `MaxRemixDepth` allows.
         RemixTooDeep,
+        /// The asset to nest into is not a DRC-369 asset.
+        UnknownParent,
+        /// The parent is the asset itself, or is nested somewhere inside it
+        /// (requirement R-2).
+        NestingCycle,
+        /// The asset would be nested deeper than `MaxNestingDepth` allows.
+        NestedTooDeep,
+        /// The asset is already inside another. Take it out first.
+        AlreadyNested,
+        /// The asset is not inside another.
+        NotNested,
+        /// The asset holds other assets, and only an asset holding none may be
+        /// nested. Take them out first.
+        HoldsAssets,
+        /// The parent already holds `MaxChildren` assets.
+        TooManyChildren,
     }
 
     #[pallet::call]
@@ -472,9 +579,144 @@ pub mod pallet {
                 Ok(())
             })
         }
+
+        /// Place an asset inside another asset. The signer must hold both.
+        ///
+        /// Refused if it would make a cycle (R-2), nest deeper than
+        /// [`Config::MaxNestingDepth`], or fill the parent past
+        /// [`Config::MaxChildren`]; if the asset is already nested; and if it
+        /// holds assets itself. From here until `unnest`, neither asset can be
+        /// transferred or sold (see [`Pallet::is_held_in_place`]).
+        #[pallet::call_index(3)]
+        #[pallet::weight(<T as Config>::WeightInfo::nest(T::MaxNestingDepth::get().into()))]
+        pub fn nest(
+            origin: OriginFor<T>,
+            collection: CollectionId,
+            item: ItemId,
+            parent: (CollectionId, ItemId),
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let child = (collection, item);
+
+            ensure!(
+                Assets::<T>::contains_key(collection, item),
+                Error::<T>::UnknownAsset
+            );
+            ensure!(
+                Assets::<T>::contains_key(parent.0, parent.1),
+                Error::<T>::UnknownParent
+            );
+            // Both, not the child alone: nesting under an asset changes what its
+            // owner can do with it, so only its owner may (requirement 7).
+            Self::ensure_owner(&who, collection, item)?;
+            Self::ensure_owner(&who, parent.0, parent.1)?;
+            ensure!(
+                !ParentOf::<T>::contains_key(collection, item),
+                Error::<T>::AlreadyNested
+            );
+
+            let depth = Self::depth_inside(parent, child)?;
+
+            // Checked after the walk, so a cycle is reported as one. What the
+            // child holds would end up deeper than `depth`, and nothing here
+            // measures how much deeper, so it is refused instead.
+            ensure!(
+                ChildCount::<T>::get(collection, item) == 0,
+                Error::<T>::HoldsAssets
+            );
+            let held = ChildCount::<T>::get(parent.0, parent.1);
+            ensure!(held < T::MaxChildren::get(), Error::<T>::TooManyChildren);
+
+            ParentOf::<T>::insert(collection, item, parent);
+            ChildCount::<T>::insert(parent.0, parent.1, held.saturating_add(1));
+
+            Self::deposit_event(Event::Nested {
+                parent,
+                child,
+                by: who,
+                depth,
+            });
+            Ok(())
+        }
+
+        /// Take a nested asset out of its parent. Only its owner, who is the
+        /// parent's owner too: neither has moved since the nest.
+        ///
+        /// What the asset itself holds stays inside it.
+        #[pallet::call_index(4)]
+        #[pallet::weight(<T as Config>::WeightInfo::unnest())]
+        pub fn unnest(
+            origin: OriginFor<T>,
+            collection: CollectionId,
+            item: ItemId,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let parent = ParentOf::<T>::get(collection, item).ok_or(Error::<T>::NotNested)?;
+            Self::ensure_owner(&who, collection, item)?;
+
+            ParentOf::<T>::remove(collection, item);
+            ChildCount::<T>::mutate_exists(parent.0, parent.1, |count| {
+                // Dropped at zero, so an asset holding nothing leaves no entry.
+                *count = count
+                    .and_then(|held| held.checked_sub(1))
+                    .filter(|left| *left > 0);
+            });
+
+            Self::deposit_event(Event::Unnested {
+                parent,
+                child: (collection, item),
+                by: who,
+            });
+            Ok(())
+        }
     }
 
     impl<T: Config> Pallet<T> {
+        /// How deep `child` would be inside `parent`, refusing a cycle and a
+        /// depth past the bound (requirement R-2).
+        ///
+        /// Walks from `parent` to its root. `parent` at the root gives `1`. The
+        /// walk reads [`ParentOf`] at most [`Config::MaxNestingDepth`] times:
+        /// each step raises the depth, and the depth is refused as soon as it
+        /// passes the bound. Meeting `child` on the way means `parent` is
+        /// `child` or is inside it.
+        fn depth_inside(
+            parent: (CollectionId, ItemId),
+            child: (CollectionId, ItemId),
+        ) -> Result<u8, DispatchError> {
+            let bound = T::MaxNestingDepth::get();
+            let mut depth: u8 = 1;
+            let mut cursor = parent;
+            loop {
+                ensure!(cursor != child, Error::<T>::NestingCycle);
+                ensure!(depth <= bound, Error::<T>::NestedTooDeep);
+                match ParentOf::<T>::get(cursor.0, cursor.1) {
+                    Some(above) => {
+                        depth = depth.checked_add(1).ok_or(Error::<T>::NestedTooDeep)?;
+                        cursor = above;
+                    }
+                    None => return Ok(depth),
+                }
+            }
+        }
+
+        /// Whether an asset is nested or holds a nested asset, and so cannot be
+        /// transferred, sold or burned. Two reads, whatever the tree looks like.
+        pub fn is_held_in_place(collection: CollectionId, item: ItemId) -> bool {
+            ParentOf::<T>::contains_key(collection, item)
+                || ChildCount::<T>::get(collection, item) > 0
+        }
+
+        /// The asset this one is inside, if it is nested.
+        pub fn parent_of(collection: CollectionId, item: ItemId) -> Option<(CollectionId, ItemId)> {
+            ParentOf::<T>::get(collection, item)
+        }
+
+        /// How many assets this one holds directly.
+        pub fn children_of(collection: CollectionId, item: ItemId) -> u32 {
+            ChildCount::<T>::get(collection, item)
+        }
+
         /// A reference a mint or a revision will carry.
         fn accept(content: &ContentRef) -> DispatchResult {
             ensure!(
@@ -582,6 +824,17 @@ pub mod pallet {
         pub fn asset(collection: CollectionId, item: ItemId) -> Option<Asset> {
             Assets::<T>::get(collection, item)
         }
+    }
+}
+
+/// `pallet-nfts` asks this before it transfers or burns an item (ADR-025: "a
+/// nested child is locked in `pallet-nfts`"). Mounted as the runtime's
+/// `pallet_nfts::Config::Locker`, it holds a nested asset and the asset holding
+/// it in place by whatever route the move arrives: a bare call, a batch, an
+/// approved account, or a sale.
+impl<T: Config> frame_support::traits::Locker<CollectionId, ItemId> for Pallet<T> {
+    fn is_locked(collection: CollectionId, item: ItemId) -> bool {
+        Self::is_held_in_place(collection, item)
     }
 }
 

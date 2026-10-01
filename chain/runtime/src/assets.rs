@@ -1,5 +1,7 @@
 //! Assets: `pallet-nfts` as the ownership ledger and `pallet-drc369` over it
 //! (ADR-025, ADR-047, M4.1), with a source recorded for every value (ADR-052).
+//! Nesting (M4.2, M4.5) adds two bounds and makes `pallet-drc369` the ledger's
+//! `Locker`.
 //!
 //! # Where each value comes from
 //!
@@ -14,7 +16,10 @@
 //!   of them; the ecosystem's own asset chain is the one configuration every
 //!   wallet has already met. Its deadline is twelve thirty-day months of
 //!   six-second blocks, and this chain's blocks are six seconds too.
-//! - **Deposits: PLACEHOLDERS, not decided values.** See [`deposits`].
+//! - **`MaxNestingDepth`, `MaxChildren`** 8/64: ADR-047, decision 13 row 7.
+//! - **Deposits: PLACEHOLDERS, not decided values.** See [`deposits`]. Nesting
+//!   adds none: a nest is one small entry on an asset whose own deposit already
+//!   bounds how many can exist, as ADR-061 reasoned for a listing.
 //! - **Weights**: `pallet-nfts`'s own reference weights, and for `pallet-drc369`
 //!   placeholders built from them. Neither is benchmarked on this chain's
 //!   hardware; both are debt owed to M7.2.
@@ -34,6 +39,16 @@
 //! call even if the filter were loosened. A root call through `pallet-sudo`
 //! bypasses the filter, as it bypasses everything, on development and test
 //! networks only (ADR-037).
+//!
+//! # A nested asset stays where it is
+//!
+//! The filter still lets `Nfts::transfer` through, and a nested asset must not
+//! leave its parent by it. That is not the filter's job and is not done there:
+//! `pallet-nfts` asks its `Locker` inside every transfer and burn, and the
+//! `Locker` is `pallet-drc369`, which answers that an asset is locked while it
+//! is nested or holds a nested asset (ADR-025). So the refusal is `pallet-nfts`'s
+//! own `ItemLocked`, and it holds for a bare transfer, one inside `batch_all`,
+//! one by an approved account, and the transfer a sale ends with.
 
 use super::*;
 
@@ -123,9 +138,9 @@ impl pallet_nfts::Config for Runtime {
     /// creator's singles collection comes from `pallet-drc369`'s first mint.
     type CreateOrigin = AsEnsureOriginWithArg<NeverEnsureOrigin<AccountId>>;
     type ForceOrigin = frame_system::EnsureRoot<AccountId>;
-    /// Nothing is locked yet. Nesting (M4.2) locks a nested child here
-    /// (ADR-025).
-    type Locker = ();
+    /// A nested asset, and an asset holding one, cannot be transferred or
+    /// burned (ADR-025). See the module documentation.
+    type Locker = Drc369;
     type CollectionDeposit = NftsCollectionDeposit;
     type ItemDeposit = NftsItemDeposit;
     type MetadataDepositBase = NftsMetadataDepositBase;
@@ -155,6 +170,11 @@ impl pallet_drc369::Config for Runtime {
     type WeightInfo = pallet_drc369::weights::PlaceholderWeight<Runtime>;
     /// ADR-047 decision 13 row 7: an engineering bound, part of the wire format.
     type MaxRemixDepth = ConstU8<16>;
+    /// ADR-047 decision 13 row 7: an engineering bound, part of the wire format.
+    /// It is also the most reads the cycle check makes (R-2).
+    type MaxNestingDepth = ConstU8<8>;
+    /// ADR-047 decision 13 row 7: an engineering bound, part of the wire format.
+    type MaxChildren = ConstU32<64>;
 }
 
 impl pallet_drc369_royalties::Config for Runtime {

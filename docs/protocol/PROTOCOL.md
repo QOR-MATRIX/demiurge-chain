@@ -151,13 +151,14 @@ Standard Substrate RPC. There is no custom RPC surface: no method writes state o
 is no faucet, no admin mint and no privileged endpoint. What the chain does, it does through signed
 transactions in blocks (D-008).
 
-## 12. Assets (DRC-369, M4.1 and M4.2's royalties)
+## 12. Assets (DRC-369: M4.1, M4.2's royalties and nesting, and R-2)
 
 `pallet-nfts` is the ownership ledger (ADR-025), mounted as `Nfts` at index 7. `pallet-drc369`, mounted as `Drc369` at
 index 8, makes an item a DRC-369 asset (ADR-047, ADR-052). `pallet-utility`, mounted as `Utility` at index 9, puts
 several calls in one transaction (ADR-053). `pallet-drc369-royalties`, mounted as `Drc369Royalties` at index 10, holds
-royalty terms and settles sales in CGT (ADR-061). `spec_version` is 4 and `transaction_version` 2, since
-29 September 2026, when `Drc369::mint` gained its `derived_from` argument.
+royalty terms and settles sales in CGT (ADR-061). `spec_version` is 5 since 1 October 2026, when `Drc369::nest` and
+`unnest` were added; `transaction_version` is 2, since 29 September 2026, when `Drc369::mint` gained its
+`derived_from` argument. No existing call's encoding changed on 1 October.
 
 - **An asset is `(collection, item)`**, two `u32`s. Each creator has one **singles collection**, created by their first
   mint; they own it, pay its deposit and administer it.
@@ -189,12 +190,37 @@ royalty terms and settles sales in CGT (ADR-061). `spec_version` is 4 and `trans
   revision to the same reference and commit is refused.
 - **`Drc369::make_permanent(collection, item)`**: the current owner only. One-way: no call makes an asset revisable
   again, and `revise` is refused from then on, for every later owner.
+- **Nesting** (M4.2, and requirement R-2 of M4.5). **`Drc369::nest(collection, item, parent)`** places the asset
+  `(collection, item)` inside the asset `parent`, a `(collection, item)` pair. **`Drc369::unnest(collection, item)`**
+  takes it out again. Both are signed. What `nest` refuses:
+  - a signer who does not hold **both** assets (`NotOwner`) — the child alone is not enough;
+  - either end not being a DRC-369 asset (`UnknownAsset`, `UnknownParent`);
+  - an asset already inside another (`AlreadyNested`);
+  - **a cycle** (`NestingCycle`): the parent is the asset itself, or is nested anywhere inside it. The chain walks
+    from the parent to its root to find out, at most **8** steps;
+  - a depth past **8** (`NestedTooDeep`): a free-standing asset is at depth 0, an asset inside it at 1;
+  - an asset that itself holds assets (`HoldsAssets`): a tree is built from the root down, which keeps the depth
+    bound exact without measuring a subtree;
+  - a parent already holding **64** assets (`TooManyChildren`).
+
+  `unnest` needs the asset to be nested (`NotNested`) and the signer to hold it. It may take out an asset that still
+  holds others; they stay inside it.
+- **A nested asset stays where it is.** While an asset is nested, **or holds a nested asset**, `pallet-nfts` refuses
+  to transfer or burn it, with its own `ItemLocked`: `pallet-drc369` is the ledger's `Locker` (ADR-025). That holds
+  for `Nfts::transfer` by the owner or by an approved account, for the same call inside `Utility::batch_all`, and for
+  `Drc369Royalties::buy`, which ends in a transfer and so fails whole, moving no CGT. A listing may exist on such an
+  asset; it cannot be bought until the asset is taken out. To move a tree, take it apart, move the assets and nest
+  them again; one `batch_all` can carry all of that. Nesting changes neither an asset's owner nor its record, takes
+  no deposit and charges nothing.
 - **Events:** `Drc369::SinglesCollectionCreated`, `Minted` (with `origin`, `commit`, `revisable`, `derived_from`), `Revised` (with
-  `from`, `to`, `commit`) and `Locked` (made permanent, with the reference it fixes), besides `pallet-nfts`' own
+  `from`, `to`, `commit`), `Locked` (made permanent, with the reference it fixes), `Nested { parent, child, by, depth }`
+  and `Unnested { parent, child, by }`, besides `pallet-nfts`' own
   `Created`, `Issued`, `ItemMetadataSet` and `Transferred`.
 - **What a client reads:** `Nfts::Account`, keyed by owner, then collection, then item, is the owner index;
   `Drc369::Assets` holds each asset's `origin`, `current`, `commit`, `revisable`, `derived_from` and `remix_depth`;
-  `Drc369::RemixCount` how many remixes name it; `Drc369Royalties::RoyaltyTerms` and `Drc369Royalties::Listings` hold its terms and listing; `Nfts::ItemMetadataOf` holds the
+  `Drc369::RemixCount` how many remixes name it; `Drc369::ParentOf` the asset it is nested inside, if any, and
+  `Drc369::ChildCount` how many it holds (which ones is in the `Nested` and `Unnested` events; the chain keeps no
+  list); `Drc369Royalties::RoyaltyTerms` and `Drc369Royalties::Listings` hold its terms and listing; `Nfts::ItemMetadataOf` holds the
   name. The runtime API `Drc369Api` answers `assets_of(owner)` and `asset(collection, item)` from the same state.
 - **One way in.** Of `pallet-nfts`'s thirty-nine calls, the base call filter lets through only `transfer`,
   `approve_transfer`, `cancel_approval` and `clear_all_transfer_approvals`; every other one is refused as
@@ -239,9 +265,11 @@ royalty terms and settles sales in CGT (ADR-061). `spec_version` is 4 and `trans
 Each of these is a roadmap item, not an omission from this description.
 
 - **Fees, issuance, burn and a treasury.** Nothing is charged or paid in CGT (OPEN-1 to OPEN-4, M6).
-- **The rest of DRC-369**: nesting with cycles refused (R-2), state and XP, physics, rental, fractional ownership and
+- **The rest of DRC-369**: state and XP, physics, rental, fractional ownership and
   burning (M4.2 to M4.5); and sponsorship and agent caps (M4.4, M5). Their pallets are named (ADR-032) and not
-  written. Remix provenance and royalties exist since 29 September 2026; remix *rights* do not.
+  written. Remix provenance and royalties exist since 29 September 2026, and nesting with cycles refused (R-2) since
+  1 October 2026; remix *rights* do not. Moving a parent together with what it holds does not exist either: a tree
+  is held in place.
 - **Governance that can execute.** ADR-021's collective and then OpenGov. Until one exists, the governance
   origin is root, which on a development network is the sudo key and on a mainnet runtime has no caller at
   all.

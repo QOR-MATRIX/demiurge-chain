@@ -1179,6 +1179,67 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       - **Railway still deploys from `ALaustrup/demiurge-chain`.** Its GitHub app must be given the organisation
         (owner), then `connect-service-source` to `QOR-MATRIX/demiurge-chain`. Until then a push redeploys nothing,
         and `DEPLOY-RAILWAY.md` already names the new source: it is ahead of the service.
+      - **Committed `34f21c1`, pushed to `matrix` by the owner.** Its CI run's result is not known yet.
+      - **Step (e) closed by the owner: no Railway usage cap.** The $10 figure given earlier that day is withdrawn
+        ("I am not capping railway"). Do not set one, and do not raise it again unless the bill does.
+    - **Three agents, 1 October, on the owner's instruction** (chain M4.5 nesting; the launcher's Sell and Buy on
+      chain; QOR ID's two faults). The QOR ID one is done and spot-checked by the lead:
+      - **Line endings: closed.** `.gitattributes` pins `services/qor-auth/migrations/*.sql` to LF (`i/lf w/lf`,
+        checked); `src/migration_hygiene.rs` fails the tests on a carriage return in a migration, on disk or
+        embedded, seen failing first. `qor-local-pg` was corrected with
+        `services/qor-auth/scripts/correct-migration-checksums.ps1` (18 rows; a second run changes nothing) and
+        `target/release/qor-auth.exe` rebuilt. Any other local database migrated on Windows before today needs the
+        script once (`scripts/run-local-stack.md` §4), then a rebuild. This closes the "Trap for later" above.
+      - **The two bounced emails of 22 September: cause found and closed.** `EmailConfig::default()` read the
+        environment, seven test helpers used it, and this PC has the real `RESEND_API_KEY`, `EMAIL_FROM` and
+        `BASE_URL` set, so `registering_with_an_email_leaves_it_unverified` and
+        `an_account_with_an_email_address_is_refused` sent real mail. `Default` is gone, only `main` calls
+        `EmailConfig::from_env()`, a test build refuses any API base not on this machine, and two guard tests pin it.
+        **Still open:** a *running* local QOR ID started with the ambient key and no `RESEND_API_URL` sends whatever
+        the e2e scripts register; `start-local.ps1` inherits the user environment. Owner's call: clear the key for
+        that child, or take it out of the user environment now that Railway holds it.
+      - **130 tests** (125 + 5) with Postgres, Redis and `--include-ignored`; fmt and clippy clean; log and SQL
+        hygiene pass. The five are required by `alpha.qor-auth-tests` (tightening, logged). `migration_hygiene` is a
+        new test-only module name, after `sql_hygiene` and `log_hygiene`: AGENTS §8 asks the owner about names.
+        Not yet run in CI.
+      - **Chain: nesting and R-2 built (ADR-065), `spec_version` 5.** `Drc369::nest` / `unnest` in
+        `pallet-drc369`, which is now `pallet-nfts`'s `Locker`: a nested asset and the asset holding it cannot be
+        transferred, sold or burned. Depth 8, 64 children (ADR-047). **109 workspace tests with the wasm built**
+        (was 96), fmt and clippy clean, as the agent reported; the lead did not re-run the suite. 13 new tests, each
+        seen to fail first, are required by `alpha.pallets` and `alpha.chain-tests` (tightening, logged).
+        **M4.2 and M4.5 stay unticked: state and XP are not built.** ADR-065 records twelve choices; **1, 2 and 5
+        are product choices for the owner** (a parent holding assets cannot move or be nested; a nested asset can
+        be listed but not bought). **Not done:** the release node was not rebuilt, so the running
+        `demiurge-node.exe` still serves `spec_version` 4 and nesting has never run on a live node;
+        `chain/README.md`'s metadata sizes were not re-measured; the launcher has no nesting surface and was not
+        built against the new metadata.
+      - **Launcher: Sell publishes on chain and Buy settles (L4.6, still unticked).** `src-tauri/src/chain/sales.rs`
+        and five commands (`drc369_sale`, `_sale_preview`, `_list`, `_unlist`, `_buy`), each through the host
+        dialog; `BuyDialog.tsx`, `SaleBreakdown.tsx`, a rewritten `SellDialog.tsx`. Buying is by an asset's number,
+        inside Inventory: there is no catalogue, because there is no indexer. As the agent reported: **182 host
+        tests** (was 163), fmt and clippy clean, **5 live tests** against the spec-4 node including
+        `a_sale_pays_every_part_and_hands_the_asset_over` (a remix sold at 2,000 CGT + 7 Sparks, every part exact to
+        the Spark, declined prompts moving nothing), and `npm run check` exit 0 **on its second run** — Inventory
+        238, readability 341, the rest unchanged. The first run failed on the accessibility case "stored off, then
+        live: the backdrop starts", the known intermittent one.
+        - **Owner's decisions owed:** (1) **`check-readability.mjs`'s measuring rule changed** — text clipped inside
+          a scrolling dialog no longer counts as visible. Logged in `GATES.toml` as evidence-rule, **NOT YET
+          APPROVED**. (2) The module name `chain/sales.rs` and the five command names (AGENTS §8). (3) Buying by
+          asset number as the surface.
+        - **Known weaknesses:** the payout preview is a **second copy of the pallet's `split`** in the host
+          (`sp-arithmetic =28.0.1`), pinned by the pallet's vectors and the live `Sold` event; a runtime API would
+          remove it. **A revision landing between the dialog and the block is not caught**: the host compares
+          fingerprints, the chain's `buy` has only `max_price`. One view check (the re-read after a purchase)
+          cannot fail, and the README says so. `market.md` decision 9 allows a zero price and the pallet refuses
+          it. Royalty terms and remix mints have no launcher surface. No person has used any of it.
+        - **Traps, to move to §5:** a view check waiting for "the chain was asked again" passes on an unrelated
+          re-read (Inventory reloads when the active account object is replaced, which may also flicker in the
+          real app); `cargo test --lib chain::live -- --ignored` also runs `vault::keychain::live`.
+      - **Integration, done:** the release node was rebuilt at `spec_version` 5 (2m 34s) and restarted on a fresh
+        `--dev` chain, and the launcher's five live tests passed against it (378 s), the sale among them
+        (`%LOCALAPPDATA%\qor-ops\integration-spec5.log`). So the launcher's sale works on the runtime that has
+        nesting. Nesting itself has still not been called on a live node. A `--dev` node keeps its chain in a
+        temporary directory, so every restart is a new chain.
       **Trap for later:** nothing pins these files' line endings, so a Windows build and a Linux build of QOR ID
       cannot share a database; a `.gitattributes` `eol=lf` on `services/qor-auth/migrations/*.sql` would end it, and
       would in turn need the same checksum correction on the launcher's local database (`qor-local-pg`).

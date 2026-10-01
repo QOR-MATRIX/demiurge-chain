@@ -31,7 +31,11 @@
 //      exemption stays visible.
 //
 // Text is measured where it is visible: in the viewport, not clipped away, and at
-// the top and the bottom of each surface's scrolling area.
+// the top and the bottom of each surface's scrolling area. "Not clipped away"
+// includes a dialog that scrolls inside the window (1 October 2026): the part of
+// a run that an overflowing ancestor has scrolled out of its box is not on
+// screen, so it is not measured there, and the dialog is measured again
+// scrolled to its end, where it is.
 //
 // No dependencies beyond Node 22+ and an installed Edge or Chrome.
 //
@@ -167,9 +171,37 @@ const ADDRESS = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
 const ACCOUNTS = [{ address: ADDRESS, account_id: '0x' + 'd4'.repeat(32), path: '', index: 0, label: 'Main' }];
 const SESSION = { qor_id: 'fixture#0001', username: 'fixture', discriminator: 1, role: 'user', address: ADDRESS, avatar_url: null };
 const TOKEN = { symbol: 'CGT', name: 'Creator God Token', decimals: 18, sub_unit: 'Spark' };
+// The first is listed, so the price on a card is on the screen being measured;
+// the second carries a listing its previous holder made, which is void.
 const ASSETS = [
-  { collection: 0, item: 0, name: 'first-song', origin: { algo: 'BLAKE3-256', root: '1f'.repeat(32), size: 211 }, current: { algo: 'BLAKE3-256', root: '3d'.repeat(32), size: 377 }, commit: { kind: 'SHA-1', id: 'a1'.repeat(20) }, revisable: true },
-  { collection: 0, item: 1, name: 'final-mix', origin: { algo: 'BLAKE3-256', root: '4c'.repeat(32), size: 99 }, current: { algo: 'BLAKE3-256', root: '4c'.repeat(32), size: 99 }, commit: { kind: 'SHA-1', id: 'b2'.repeat(20) }, revisable: false },
+  { collection: 0, item: 0, name: 'first-song', origin: { algo: 'BLAKE3-256', root: '1f'.repeat(32), size: 211 }, current: { algo: 'BLAKE3-256', root: '3d'.repeat(32), size: 377 }, commit: { kind: 'SHA-1', id: 'a1'.repeat(20) }, revisable: true, listing: { seller: ADDRESS, price_sparks: '1200500000000000000000', price_cgt: '1,200.50', void: false } },
+  { collection: 0, item: 1, name: 'final-mix', origin: { algo: 'BLAKE3-256', root: '4c'.repeat(32), size: 99 }, current: { algo: 'BLAKE3-256', root: '4c'.repeat(32), size: 99 }, commit: { kind: 'SHA-1', id: 'b2'.repeat(20) }, revisable: false, listing: { seller: '5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy', price_sparks: '900000000000000000000', price_cgt: '900.00', void: true } },
+];
+// Selling and buying (L4.6). What a sale pays, with a part the chain would
+// refuse, so the warning under it is on the screen too; and someone else's
+// asset, found by its number, whose fingerprint is not the one that was pasted,
+// so the card's and the dialog's warnings are measured as well.
+const OTHER = '5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy';
+const PAYOUTS = [
+  { kind: 'source', address: '5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y', share: null, amount_sparks: '60000000000000000000', amount_cgt: '60.00', to_buyer: false },
+  { kind: 'royalty', address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty', share: '9.5%', amount_sparks: '108300000000000000000', amount_cgt: '108.30', to_buyer: true },
+  { kind: 'seller', address: OTHER, share: null, amount_sparks: '1031700000000000000000', amount_cgt: '1,031.70', to_buyer: false },
+];
+const BREAKDOWN = {
+  price_sparks: '1200000000000000000000', price_cgt: '1,200.00',
+  source: { collection: 2, item: 7 }, source_share: '5%', payouts: PAYOUTS,
+  blocked: 'A sale at this price cannot settle as things stand. 5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y is owed 60.00 CGT from it, and that account holds too little to stay open on that: an account needs 100.00 CGT to exist.',
+};
+const FOUND = {
+  asset: { collection: 9, item: 3, name: 'someone-elses-remix', origin: { algo: 'BLAKE3-256', root: '7a'.repeat(32), size: 512 }, current: { algo: 'BLAKE3-256', root: '7a'.repeat(32), size: 512 }, commit: { kind: 'SHA-1', id: 'd4'.repeat(20) }, revisable: true, listing: { seller: OTHER, price_sparks: '1200000000000000000000', price_cgt: '1,200.00', void: false } },
+  holder: OTHER, held_by_viewer: false, derived_from: { collection: 2, item: 7 },
+  terms: { recipients: [{ address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty', share: '9.5%' }], remix: '12%' },
+  source_terms: null,
+  breakdown: { ...BREAKDOWN, blocked: null },
+  viewer_free_cgt: '8,894.50', cannot_buy: null, pasted_root_matches: false,
+};
+const VOCABULARY = [
+  { id: 'physical', name: 'Physical (offline)', note: 'The chain moves the record, not the object.', fields: [{ id: 'arrives', label: 'What actually arrives', options: [] }, { id: 'who-ships', label: 'Who sends it', options: ['You', 'Someone else'] }] },
 ];
 // A project with a change whose diff has every kind of line: the rows are
 // tinted by kind, and text over a tint is text over a background too.
@@ -226,6 +258,10 @@ const HOST_STUB = `
         if (cmd === 'qor_restore') return session ? ok(session) : no('not_authenticated', 'no session');
         if (cmd === 'qor_username_available') return ok(true);
         if (cmd === 'drc369_assets') return ok(${JSON.stringify(ASSETS)});
+        if (cmd === 'drc369_sale_preview') return ok(${JSON.stringify(BREAKDOWN)});
+        if (cmd === 'drc369_sale') return ok(${JSON.stringify(FOUND)});
+        if (cmd === 'listing_vocabulary') return ok(${JSON.stringify(VOCABULARY)});
+        if (cmd === 'listing_drafts') return ok([]);
         if (cmd === 'cgt_balance') return ok({ address: args.address, sparks: '8994500000000000000000', cgt: '8994.5', display: '8,994.50 CGT' });
         if (cmd === 'chain_status')
           return ok({ endpoint: 'ws://127.0.0.1:9944', reachable: true, chain_name: 'Demiurge Development', block_number: 812, finalized_number: 810, latency_ms: 3, detail: null });
@@ -261,9 +297,24 @@ const COLLECT = `(() => {
     if (cs.visibility !== 'visible' || Number(cs.opacity) === 0) continue;
     const range = document.createRange();
     range.selectNodeContents(node);
+    // The boxes of every ancestor that scrolls and has more than it shows. What
+    // lies outside one is scrolled out of sight, wherever a hit test lands: a
+    // dialog's overlay is an ancestor of everything in the dialog, so a point
+    // in the clipped part "hits" an ancestor and used to count as visible.
+    const boxes = [];
+    for (let n = el.parentElement; n && n !== document.documentElement; n = n.parentElement) {
+      const o = getComputedStyle(n);
+      const scrolls = /(auto|scroll)/.test(o.overflowY) && n.scrollHeight > n.clientHeight + 1;
+      const scrollsAcross = /(auto|scroll)/.test(o.overflowX) && n.scrollWidth > n.clientWidth + 1;
+      if (scrolls || scrollsAcross) boxes.push(n.getBoundingClientRect());
+    }
     for (const r of range.getClientRects()) {
-      const x0 = Math.max(0, r.left), y0 = Math.max(0, r.top);
-      const x1 = Math.min(innerWidth, r.right), y1 = Math.min(innerHeight, r.bottom);
+      let x0 = Math.max(0, r.left), y0 = Math.max(0, r.top);
+      let x1 = Math.min(innerWidth, r.right), y1 = Math.min(innerHeight, r.bottom);
+      for (const b of boxes) {
+        x0 = Math.max(x0, b.left); y0 = Math.max(y0, b.top);
+        x1 = Math.min(x1, b.right); y1 = Math.min(y1, b.bottom);
+      }
       if (x1 - x0 < 2 || y1 - y0 < 4) continue;
       // Visible here, not clipped away or under another element. The scrim and
       // the canvas take no pointer events, so they never count as a cover.
@@ -768,6 +819,72 @@ try {
             await sleep(200);
           } else {
             check(`${theme}, ${backdrop}, a trade dialog opens`, false);
+          }
+
+          // Selling and buying are screens a person reads before CGT moves
+          // (L4.6): what a sale pays, the description that is published
+          // nowhere, an asset found by its number, and the purchase dialog.
+          // Each step waits for what it is about to measure; an element that
+          // must be there is addressed without `?.`, so a missing one stops
+          // the run at the line that is wrong.
+          const shown = async (expression) => {
+            const deadline = Date.now() + 8000;
+            for (;;) {
+              if (await evaluate(expression)) return true;
+              if (Date.now() > deadline) return false;
+              await sleep(50);
+            }
+          };
+          const typeInto = (selector, text) => evaluate(`(() => {
+            const input = document.querySelector(${JSON.stringify(selector)});
+            Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(text)});
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          })()`);
+
+          await evaluate(`document.querySelector('main [data-asset-more]').click()`);
+          if (await shown(`Boolean(document.querySelector('[data-asset-menu] [data-asset-sell]'))`)) {
+            await evaluate(`document.querySelector('[data-asset-menu] [data-asset-sell]').click()`);
+          }
+          if (await shown(`Boolean(document.querySelector('[data-sell-dialog]'))`)) {
+            await typeInto('[data-sell-price]', '1200');
+            if (await shown(`Boolean(document.querySelector('[data-sell-dialog] [data-breakdown-blocked]'))`)) {
+              judge(`${theme}, ${backdrop}, a listing, with what a sale pays`, await measure());
+            } else {
+              check(`${theme}, ${backdrop}, the listing form shows what a sale pays`, false);
+            }
+            await evaluate(`document.querySelector('[data-sell-describe]').click()`);
+            if (await shown(`Boolean(document.querySelector('[data-sell-category="physical"]'))`)) {
+              await evaluate(`document.querySelector('[data-sell-category="physical"]').click()`);
+              await shown(`Boolean(document.querySelector('[data-sell-note]'))`);
+              judge(`${theme}, ${backdrop}, a listing's description`, await measure());
+              // A long form scrolls inside the dialog; its end is read too.
+              if ((await evaluate(SCROLL_TO_END)) > 0) {
+                judge(`${theme}, ${backdrop}, a listing's description, scrolled to the end`, await measure());
+              }
+            } else {
+              check(`${theme}, ${backdrop}, the listing's description opens`, false);
+            }
+            await evaluate(`document.querySelector('[data-sell-dialog] [aria-label="Close"]').click()`);
+            await shown(`!document.querySelector('[data-sell-dialog]')`);
+          } else {
+            check(`${theme}, ${backdrop}, the listing form opens`, false);
+          }
+
+          await typeInto('[data-find-input]', '9/3');
+          await evaluate(`document.querySelector('[data-find-submit]').click()`);
+          if (await shown(`Boolean(document.querySelector('[data-found-asset] [data-asset-buy]'))`)) {
+            await evaluate(`document.querySelector('[data-found-asset]').scrollIntoView({ block: 'center' })`);
+            judge(`${theme}, ${backdrop}, an asset found by its number`, await measure());
+            await evaluate(`document.querySelector('[data-found-asset] [data-asset-buy]').click()`);
+            if (await shown(`Boolean(document.querySelector('[data-buy-dialog] [data-breakdown]'))`)) {
+              judge(`${theme}, ${backdrop}, the purchase dialog`, await measure());
+              await evaluate(`document.querySelector('[data-buy-dialog] [aria-label="Close"]').click()`);
+              await shown(`!document.querySelector('[data-buy-dialog]')`);
+            } else {
+              check(`${theme}, ${backdrop}, the purchase dialog opens`, false);
+            }
+          } else {
+            check(`${theme}, ${backdrop}, an asset is found by its number`, false);
           }
         }
       }

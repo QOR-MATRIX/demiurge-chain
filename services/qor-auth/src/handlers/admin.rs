@@ -503,7 +503,7 @@ mod tests {
             AppConfig::default(),
             db,
             redis,
-            EmailService::new(EmailConfig::default()),
+            EmailService::new(EmailConfig::unconfigured()),
         ))
     }
 

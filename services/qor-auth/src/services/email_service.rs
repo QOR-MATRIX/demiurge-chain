@@ -43,8 +43,14 @@ pub struct EmailConfig {
     pub api_url: String,
 }
 
-impl Default for EmailConfig {
-    fn default() -> Self {
+// There is deliberately no `Default`. It used to read the environment, so a test that wrote
+// `EmailConfig::default()` meaning "nothing in particular" got whatever the machine it ran on had
+// set: on the owner's computer, a real Resend key, and two test registrations were sent as real
+// mail and bounced. Reading the environment now has to be asked for by name, and only `main` asks.
+impl EmailConfig {
+    /// The configuration the running service uses, read from the environment. Only `main` calls
+    /// this; a test that did would depend on the machine it runs on, and a guard test fails on it.
+    pub fn from_env() -> Self {
         Self {
             resend_api_key: std::env::var("RESEND_API_KEY").unwrap_or_default(),
             from: std::env::var("EMAIL_FROM").unwrap_or_default(),
@@ -53,6 +59,26 @@ impl Default for EmailConfig {
             api_url: std::env::var("RESEND_API_URL").unwrap_or_else(|_| RESEND_API_URL.to_string()),
         }
     }
+
+    /// For a test that sends no mail: no key and no sender, whatever the environment holds, and an
+    /// API base on this machine that nothing listens on.
+    #[cfg(test)]
+    pub fn unconfigured() -> Self {
+        Self {
+            resend_api_key: String::new(),
+            from: String::new(),
+            base_url: "https://example.invalid".into(),
+            api_url: "http://127.0.0.1:9".into(),
+        }
+    }
+}
+
+/// Whether the API base is on this machine, where a test's stand-in for Resend listens.
+#[cfg(test)]
+fn on_this_machine(url: &str) -> bool {
+    reqwest::Url::parse(url).is_ok_and(|parsed| {
+        parsed.scheme() == "http" && matches!(parsed.host_str(), Some("127.0.0.1" | "localhost"))
+    })
 }
 
 /// Whether messages may be sent to this API base: HTTPS anywhere, or plain HTTP only to this
@@ -271,6 +297,11 @@ impl EmailService {
                 }
             }
         };
+
+        // In a test build, mail goes to a stand-in on this machine or nowhere. Whatever a test is
+        // configured with, by mistake or from the environment, it cannot reach Resend.
+        #[cfg(test)]
+        let http = http.filter(|_| on_this_machine(&config.api_url));
 
         Self {
             config,
@@ -514,15 +545,6 @@ mod tests {
     };
     use std::sync::{Arc, Mutex};
 
-    fn unconfigured() -> EmailConfig {
-        EmailConfig {
-            resend_api_key: String::new(),
-            from: String::new(),
-            base_url: "https://example.invalid".into(),
-            api_url: RESEND_API_URL.into(),
-        }
-    }
-
     fn configured(api_url: String) -> EmailConfig {
         EmailConfig {
             resend_api_key: "re_test_key".into(),
@@ -599,7 +621,7 @@ mod tests {
 
     #[tokio::test]
     async fn an_unconfigured_service_refuses_rather_than_pretending_to_send() {
-        let service = EmailService::new(unconfigured());
+        let service = EmailService::new(EmailConfig::unconfigured());
         assert!(!service.is_configured());
         assert!(matches!(
             service
@@ -793,6 +815,120 @@ mod tests {
                 "{refused} must be refused"
             );
         }
+    }
+
+    /// Two test registrations were once sent as real mail, and bounced: their helper built the
+    /// service from the environment, and the machine had a real key set. However a test is
+    /// configured, it must not be able to reach Resend.
+    #[tokio::test]
+    async fn a_test_build_sends_only_to_a_stand_in_on_this_machine() {
+        for elsewhere in [
+            RESEND_API_URL,
+            "https://api.resend.com/",
+            "https://mail.example",
+        ] {
+            // Everything a real deployment has: a key, a sender and an origin for the links.
+            let service = EmailService::new(configured(elsewhere.into()));
+            assert!(
+                !service.is_configured(),
+                "a test build must refuse to send through {elsewhere}"
+            );
+            assert!(matches!(
+                service
+                    .send_verification_email("someone@example.invalid", "someone", "verify-me")
+                    .await,
+                Err(AppError::ServiceUnavailable(_))
+            ));
+        }
+
+        // The service `main` would build from this machine's environment, whatever that holds, is
+        // either unconfigured or pointed at this machine. Nothing is sent here.
+        let from_this_machine = EmailConfig::from_env();
+        assert!(
+            !EmailService::new(from_this_machine.clone()).is_configured()
+                || on_this_machine(&from_this_machine.api_url)
+        );
+
+        assert!(!EmailService::new(EmailConfig::unconfigured()).is_configured());
+        assert!(EmailService::new(configured("http://127.0.0.1:9".into())).is_configured());
+    }
+
+    fn rust_files(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+        for entry in std::fs::read_dir(dir).expect("the source directory") {
+            let path = entry.expect("a directory entry").path();
+            if path.is_dir() {
+                rust_files(&path, out);
+            } else if path.extension().is_some_and(|extension| extension == "rs") {
+                out.push(path);
+            }
+        }
+    }
+
+    /// The environment is read for email in one place, and asked for in one place. A test helper
+    /// that reads it gets whatever the machine has set, which is how real mail was sent.
+    #[test]
+    fn only_main_builds_the_email_service_from_the_environment() {
+        let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        let mut files = Vec::new();
+        rust_files(&src, &mut files);
+
+        // Assembled, so this test does not find itself.
+        let type_name = "EmailConfig";
+        let from_env = format!("{type_name}::from_env(");
+        let default_call = format!("{type_name}::default(");
+        let default_impl = format!("Default for {type_name}");
+        let variables: Vec<String> = ["RESEND_API_KEY", "EMAIL_FROM", "RESEND_API_URL", "BASE_URL"]
+            .iter()
+            .map(|name| format!("var(\"{name}\")"))
+            .collect();
+
+        let mut callers = Vec::new();
+        let mut problems = Vec::new();
+        for path in &files {
+            let name = path
+                .strip_prefix(&src)
+                .expect("under src")
+                .to_string_lossy()
+                .replace('\\', "/");
+            let source = std::fs::read_to_string(path).expect("source");
+            for (number, line) in source.lines().enumerate() {
+                if line.trim_start().starts_with("//") {
+                    continue;
+                }
+                let at = format!("{name}:{}", number + 1);
+                if line.contains(&from_env) {
+                    callers.push(at.clone());
+                }
+                if line.contains(&default_call) || line.contains(&default_impl) {
+                    problems.push(format!(
+                        "{at}: {type_name} has a default again; a default that reads the environment sent real mail from a test"
+                    ));
+                }
+                if name != "services/email_service.rs"
+                    && variables.iter().any(|variable| line.contains(variable))
+                {
+                    problems.push(format!(
+                        "{at}: reads an email setting from the environment outside the email service"
+                    ));
+                }
+            }
+        }
+
+        assert!(problems.is_empty(), "{}", problems.join("\n"));
+        // This file's own call is the guard above, which sends nothing.
+        let outside: Vec<&String> = callers
+            .iter()
+            .filter(|at| !at.starts_with("services/email_service.rs:"))
+            .collect();
+        assert_eq!(
+            outside.len(),
+            1,
+            "only main builds the email service from the environment; found {callers:?}"
+        );
+        assert!(
+            outside[0].starts_with("main.rs:"),
+            "only main builds the email service from the environment; found {callers:?}"
+        );
     }
 
     #[test]

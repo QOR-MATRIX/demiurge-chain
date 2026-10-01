@@ -1,5 +1,8 @@
 //! Tests for M4.1. Each of the five the roadmap names was shown to fail against
 //! a planted fault before it was trusted; the commit that added them records how.
+//!
+//! The nesting tests at the end are M4.2's nesting and M4.5's requirement R-2.
+//! Each of them was shown to fail against a planted fault too.
 
 use crate::{mock::*, *};
 use codec::{DecodeAll, Encode, MaxEncodedLen};
@@ -229,7 +232,10 @@ fn make_permanent_is_one_way_and_revise_is_refused_after() {
     // And nothing turns it back: the pallet has no call that could.
     let calls: Vec<&str> =
         <Call<Test> as frame_support::traits::GetCallName>::get_call_names().to_vec();
-    assert_eq!(calls, vec!["mint", "revise", "make_permanent"]);
+    assert_eq!(
+        calls,
+        vec!["mint", "revise", "make_permanent", "nest", "unnest"]
+    );
 }
 
 #[test]
@@ -536,5 +542,284 @@ fn a_remix_of_nothing_or_past_the_depth_bound_is_refused_at_mint() {
         let before = Singles::<Test>::get(account(ALICE)).unwrap();
         assert_noop!(remix(ALICE, 50, source), Error::<Test>::RemixTooDeep);
         assert_eq!(Singles::<Test>::get(account(ALICE)).unwrap(), before);
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Nesting (M4.2, M4.5, requirement R-2, ADR-025)
+// ---------------------------------------------------------------------------
+
+/// Alice's assets are `(0, 0)`, `(0, 1)`, … in the order she mints them.
+fn alice_mints(count: u8) {
+    for seed in 0..count {
+        assert_ok!(mint(ALICE, seed + 1));
+    }
+}
+
+fn nest(who: u8, child: (CollectionId, ItemId), parent: (CollectionId, ItemId)) -> DispatchResult {
+    Drc369::nest(signed(who), child.0, child.1, parent)
+}
+
+fn unnest(who: u8, child: (CollectionId, ItemId)) -> DispatchResult {
+    Drc369::unnest(signed(who), child.0, child.1)
+}
+
+#[test]
+fn an_owner_nests_an_asset_and_takes_it_out_again() {
+    new_test_ext().execute_with(|| {
+        alice_mints(3);
+        assert_ok!(nest(ALICE, (0, 1), (0, 0)));
+        assert_ok!(nest(ALICE, (0, 2), (0, 1)));
+
+        assert_eq!(Drc369::parent_of(0, 0), None);
+        assert_eq!(Drc369::parent_of(0, 1), Some((0, 0)));
+        assert_eq!(Drc369::parent_of(0, 2), Some((0, 1)));
+        assert_eq!(Drc369::children_of(0, 0), 1);
+        assert_eq!(Drc369::children_of(0, 1), 1);
+        assert_eq!(Drc369::children_of(0, 2), 0);
+        // Nesting changes where an asset is, not whose it is or what it is.
+        assert_eq!(Nfts::owner(0, 2), Some(account(ALICE)));
+        assert_eq!(Drc369::asset(0, 2).unwrap().origin, content(3));
+
+        // Taking the middle one out takes what it holds with it.
+        assert_ok!(unnest(ALICE, (0, 1)));
+        assert_eq!(Drc369::parent_of(0, 1), None);
+        assert_eq!(Drc369::parent_of(0, 2), Some((0, 1)));
+        assert_eq!(Drc369::children_of(0, 0), 0);
+        assert!(!Drc369::is_held_in_place(0, 0));
+
+        assert_ok!(unnest(ALICE, (0, 2)));
+        // Nothing is left behind: no parent, no count, nothing held in place.
+        assert_eq!(ParentOf::<Test>::iter().count(), 0);
+        assert_eq!(ChildCount::<Test>::iter().count(), 0);
+        for item in 0..3 {
+            assert!(!Drc369::is_held_in_place(0, item));
+        }
+
+        let nesting: Vec<_> = events()
+            .into_iter()
+            .filter(|e| matches!(e, Event::Nested { .. } | Event::Unnested { .. }))
+            .collect();
+        assert_eq!(
+            nesting,
+            vec![
+                Event::Nested {
+                    parent: (0, 0),
+                    child: (0, 1),
+                    by: account(ALICE),
+                    depth: 1,
+                },
+                Event::Nested {
+                    parent: (0, 1),
+                    child: (0, 2),
+                    by: account(ALICE),
+                    depth: 2,
+                },
+                Event::Unnested {
+                    parent: (0, 0),
+                    child: (0, 1),
+                    by: account(ALICE),
+                },
+                Event::Unnested {
+                    parent: (0, 1),
+                    child: (0, 2),
+                    by: account(ALICE),
+                },
+            ]
+        );
+
+        // And it can go somewhere else afterwards.
+        assert_ok!(nest(ALICE, (0, 0), (0, 2)));
+        assert_eq!(Drc369::parent_of(0, 0), Some((0, 2)));
+    });
+}
+
+/// The parent-owner check: the custom chain checked the child alone until
+/// 14 September 2026, so a stranger could nest under somebody's asset.
+#[test]
+fn only_the_owner_of_both_assets_may_nest_them() {
+    new_test_ext().execute_with(|| {
+        alice_mints(2);
+        assert_ok!(mint(BOB, 8));
+        assert_ok!(mint(BOB, 9));
+
+        // Bob's own asset, under Alice's.
+        assert_noop!(nest(BOB, (1, 0), (0, 0)), Error::<Test>::NotOwner);
+        // Alice's asset, under Bob's own.
+        assert_noop!(nest(BOB, (0, 1), (1, 0)), Error::<Test>::NotOwner);
+        // Neither his.
+        assert_noop!(nest(BOB, (0, 1), (0, 0)), Error::<Test>::NotOwner);
+        for origin in [RuntimeOrigin::none(), RuntimeOrigin::root()] {
+            assert_noop!(Drc369::nest(origin, 0, 1, (0, 0)), DispatchError::BadOrigin);
+        }
+        assert_eq!(ParentOf::<Test>::iter().count(), 0);
+
+        // Nor may anyone else take an asset out.
+        assert_ok!(nest(ALICE, (0, 1), (0, 0)));
+        assert_noop!(unnest(BOB, (0, 1)), Error::<Test>::NotOwner);
+        assert_noop!(
+            Drc369::unnest(RuntimeOrigin::root(), 0, 1),
+            DispatchError::BadOrigin
+        );
+        assert_eq!(Drc369::parent_of(0, 1), Some((0, 0)));
+    });
+}
+
+#[test]
+fn an_asset_cannot_be_nested_in_itself() {
+    new_test_ext().execute_with(|| {
+        alice_mints(1);
+        assert_noop!(nest(ALICE, (0, 0), (0, 0)), Error::<Test>::NestingCycle);
+        assert!(!Drc369::is_held_in_place(0, 0));
+    });
+}
+
+/// R-2's own example: A inside B, then B inside A.
+#[test]
+fn a_two_asset_cycle_is_refused() {
+    new_test_ext().execute_with(|| {
+        alice_mints(2);
+        assert_ok!(nest(ALICE, (0, 0), (0, 1)));
+        assert_noop!(nest(ALICE, (0, 1), (0, 0)), Error::<Test>::NestingCycle);
+        assert_eq!(Drc369::parent_of(0, 1), None);
+    });
+}
+
+/// A cycle through every level the bound allows is still seen as a cycle: the
+/// walk reaches the child on its last step.
+#[test]
+fn a_longer_cycle_is_refused() {
+    new_test_ext().execute_with(|| {
+        alice_mints(4);
+        // 0 holds 1 holds 2.
+        assert_ok!(nest(ALICE, (0, 1), (0, 0)));
+        assert_ok!(nest(ALICE, (0, 2), (0, 1)));
+        assert_noop!(nest(ALICE, (0, 0), (0, 2)), Error::<Test>::NestingCycle);
+
+        // 0 holds 1 holds 2 holds 3, as deep as the bound goes.
+        assert_ok!(nest(ALICE, (0, 3), (0, 2)));
+        assert_eq!(MAX_NESTING_DEPTH, 3);
+        assert_noop!(nest(ALICE, (0, 0), (0, 3)), Error::<Test>::NestingCycle);
+        assert_noop!(nest(ALICE, (0, 1), (0, 3)), Error::<Test>::AlreadyNested);
+        assert_eq!(Drc369::parent_of(0, 0), None);
+    });
+}
+
+#[test]
+fn nesting_deeper_than_the_bound_is_refused() {
+    new_test_ext().execute_with(|| {
+        alice_mints(MAX_NESTING_DEPTH + 2);
+        for depth in 1..=MAX_NESTING_DEPTH {
+            let child = (0, depth as ItemId);
+            let parent = (0, depth as ItemId - 1);
+            assert_ok!(nest(ALICE, child, parent));
+            assert!(events().contains(&Event::Nested {
+                parent,
+                child,
+                by: account(ALICE),
+                depth,
+            }));
+        }
+
+        // One more level would be past the bound.
+        let deepest = (0, MAX_NESTING_DEPTH as ItemId);
+        let another = (0, MAX_NESTING_DEPTH as ItemId + 1);
+        assert_noop!(nest(ALICE, another, deepest), Error::<Test>::NestedTooDeep);
+
+        // The same asset one level up is exactly at the bound, and allowed.
+        let above = (0, MAX_NESTING_DEPTH as ItemId - 1);
+        assert_ok!(nest(ALICE, another, above));
+    });
+}
+
+/// What keeps the depth bound exact: a tree is built from the root down, so an
+/// asset never arrives carrying levels nothing counted.
+#[test]
+fn an_asset_holding_others_cannot_itself_be_nested() {
+    new_test_ext().execute_with(|| {
+        alice_mints(3);
+        assert_ok!(nest(ALICE, (0, 1), (0, 0)));
+        assert_noop!(nest(ALICE, (0, 0), (0, 2)), Error::<Test>::HoldsAssets);
+
+        // Emptied, it may be.
+        assert_ok!(unnest(ALICE, (0, 1)));
+        assert_ok!(nest(ALICE, (0, 0), (0, 2)));
+    });
+}
+
+#[test]
+fn a_parent_holds_no_more_than_the_bound() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(MAX_CHILDREN, 2);
+        alice_mints(4);
+        assert_ok!(nest(ALICE, (0, 1), (0, 0)));
+        assert_ok!(nest(ALICE, (0, 2), (0, 0)));
+        assert_noop!(nest(ALICE, (0, 3), (0, 0)), Error::<Test>::TooManyChildren);
+        assert_eq!(Drc369::children_of(0, 0), MAX_CHILDREN);
+
+        // Taking one out makes room for another.
+        assert_ok!(unnest(ALICE, (0, 1)));
+        assert_ok!(nest(ALICE, (0, 3), (0, 0)));
+        assert_eq!(Drc369::children_of(0, 0), MAX_CHILDREN);
+    });
+}
+
+/// ADR-025: a nested child is locked in `pallet-nfts`. So is the asset holding
+/// it, because nothing here moves a tree. The refusal is `pallet-nfts`'s own.
+#[test]
+fn a_nested_asset_and_the_asset_holding_it_cannot_be_transferred() {
+    new_test_ext().execute_with(|| {
+        alice_mints(2);
+        // An approval given beforehand does not get round it either.
+        assert_ok!(Nfts::approve_transfer(
+            signed(ALICE),
+            0,
+            1,
+            account(BOB),
+            None
+        ));
+        assert_ok!(nest(ALICE, (0, 1), (0, 0)));
+
+        assert_noop!(
+            Nfts::transfer(signed(ALICE), 0, 1, account(BOB)),
+            pallet_nfts::Error::<Test>::ItemLocked
+        );
+        assert_noop!(
+            Nfts::transfer(signed(BOB), 0, 1, account(BOB)),
+            pallet_nfts::Error::<Test>::ItemLocked
+        );
+        assert_noop!(
+            Nfts::transfer(signed(ALICE), 0, 0, account(BOB)),
+            pallet_nfts::Error::<Test>::ItemLocked
+        );
+        assert_eq!(Nfts::owner(0, 0), Some(account(ALICE)));
+        assert_eq!(Nfts::owner(0, 1), Some(account(ALICE)));
+
+        // Taken out, both move again.
+        assert_ok!(unnest(ALICE, (0, 1)));
+        assert_ok!(Nfts::transfer(signed(ALICE), 0, 1, account(BOB)));
+        assert_ok!(Nfts::transfer(signed(ALICE), 0, 0, account(BOB)));
+        assert_eq!(Nfts::owner(0, 0), Some(account(BOB)));
+        assert_eq!(Nfts::owner(0, 1), Some(account(BOB)));
+    });
+}
+
+#[test]
+fn an_asset_is_in_one_place_at_a_time_and_only_assets_nest() {
+    new_test_ext().execute_with(|| {
+        alice_mints(3);
+        assert_noop!(unnest(ALICE, (0, 1)), Error::<Test>::NotNested);
+
+        assert_ok!(nest(ALICE, (0, 1), (0, 0)));
+        // Not into a second parent, and not into the same one twice.
+        assert_noop!(nest(ALICE, (0, 1), (0, 2)), Error::<Test>::AlreadyNested);
+        assert_noop!(nest(ALICE, (0, 1), (0, 0)), Error::<Test>::AlreadyNested);
+        assert_eq!(Drc369::children_of(0, 0), 1);
+        assert_eq!(Drc369::children_of(0, 2), 0);
+
+        // Neither end may be something that is not a DRC-369 asset.
+        assert_noop!(nest(ALICE, (0, 9), (0, 0)), Error::<Test>::UnknownAsset);
+        assert_noop!(nest(ALICE, (0, 2), (0, 9)), Error::<Test>::UnknownParent);
+        assert_noop!(unnest(ALICE, (0, 9)), Error::<Test>::NotNested);
     });
 }

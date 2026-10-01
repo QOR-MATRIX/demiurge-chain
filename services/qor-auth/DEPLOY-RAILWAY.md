@@ -58,6 +58,19 @@ service's Variables tab. Rotating the JWT secrets signs every session out.
 set in Cloudflare, which holds `qorsync.dev`'s DNS (ADR-060). `.dev` is HSTS-preloaded, so the name only opens once
 Railway has issued its certificate.
 
+## Trap: migration checksums and line endings
+
+sqlx records the SHA-384 of each file in `migrations/` in `_sqlx_migrations`, and a line ending is part of
+the file. This database was first migrated by a Windows build whose clone held the files as CRLF, and the
+Linux build here (LF) refused it: "migration 1 was previously applied but has been modified". The checksums
+were corrected by hand on 1 October 2026, and the database now holds the LF ones.
+
+It cannot recur from line endings: `.gitattributes` pins `services/qor-auth/migrations/*.sql` to LF on every
+platform, and `src/migration_hygiene.rs` fails the tests if a migration, on disk or compiled in, holds a
+carriage return. If that message appears again, a migration really was edited after it was applied. Restore
+the file; never edit a checksum to match. `scripts/correct-migration-checksums.ps1` exists for local
+databases migrated before the fix (`scripts/run-local-stack.md`, section 4) and is not for this one.
+
 ## After a deploy
 
 Read the deploy logs for the migrations, then `https://id.qorsync.dev/ready`.

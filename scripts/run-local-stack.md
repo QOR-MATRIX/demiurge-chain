@@ -120,6 +120,29 @@ export RUN_ENV=development RUST_LOG=info
 
 If Redis needs a password, put it in the URL: `redis://:<password>@localhost:6379/3`.
 
+**"migration 1 was previously applied but has been modified"** at startup, on a database that was
+migrated on Windows before 1 October 2026, is a line-ending fault and not a modified migration. sqlx
+records the SHA-384 of each migration file, and until `.gitattributes` pinned
+`services/qor-auth/migrations/*.sql` to LF, a Windows clone held those files as CRLF, so such a
+database holds CRLF checksums that no build produces any more. Correct it once, with the database
+running and nothing else changed:
+
+```powershell
+$env:DATABASE_URL = 'postgres://<user>:<password>@127.0.0.1:<port>/qor_auth'
+powershell -File services/qor-auth/scripts/correct-migration-checksums.ps1 -DryRun   # report only
+powershell -File services/qor-auth/scripts/correct-migration-checksums.ps1
+```
+
+It rewrites a row only where it holds the CRLF checksum of the same file, leaves a row that already
+holds the LF checksum alone (so a second run changes nothing), and leaves alone and reports a row that
+holds anything else, because that migration really was modified. It runs no migration, never prints the
+URL, uses `psql` if it is on PATH and Docker's otherwise, and refuses a host other than this machine
+unless told `-AllowRemoteHost`. Then rebuild the service (`cargo build --release`): a binary built
+before the change still carries the CRLF files and is refused by the corrected database.
+`tools/qor-launcher/scripts/start-local.ps1` builds only when the binary is missing, so it will not do
+that for you. The launcher's own database (`qor-local-pg`) was corrected and the binary rebuilt on
+1 October 2026.
+
 Check it:
 
 ```bash
@@ -157,6 +180,12 @@ cargo build --manifest-path tools/qor-launcher/qontrol-git/Cargo.toml
 - **Email** goes through Resend. Set `RESEND_API_KEY`, `EMAIL_FROM` (a sender on a domain verified in
   Resend) and `BASE_URL` (where the links point). Without the first two, `forgot-password` answers 503 and
   registration sends no verification email. No email content is ever logged.
+  **`cargo test` never sends mail, whatever the environment holds**: no test reads these variables, and a
+  test build refuses any API base that is not on this machine. A *running* service does read them, so
+  before pointing an end-to-end script (`services/qor-auth/scripts/e2e/`) at one, start it with
+  `RESEND_API_URL` set to the script's stand-in, or with `RESEND_API_KEY` unset. Started with a real key
+  and no `RESEND_API_URL`, it sends the scripts' `@example.invalid` registrations as real mail, and they
+  bounce.
 - **Admin routes** need an account whose role is `god`. Locally, set it in the database
   (`UPDATE users SET role = 'god' WHERE username = '...'`) and sign in again.
 - **After moving the repository**, the launcher's build cache holds absolute paths to the old location

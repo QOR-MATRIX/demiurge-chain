@@ -578,6 +578,31 @@ change = "kinds.ci and [ci].repository read QOR-MATRIX/demiurge-chain (ADR-064) 
 approved_by = "owner, 2026-10-01"
 note = "Every job on the personal account's repository was refused before starting by an account billing lock, so no ci unit could ever be met there. The owner created the organisation and pushed the same tree to it; its first run executed jobs. No check was dropped or relaxed and no unit became unmeasurable."
 
+[[change_log]]
+date = "2026-10-01"
+type = "tightening"
+change = "alpha.qor-id-live names its address: https://id.qorsync.dev/ready, QOR ID on Railway (ADR-063). The criterion had an empty url since it was written, because QOR ID was deployed nowhere."
+reason = "QOR ID has answered there since 2026-10-01 (200, database and cache ok, measured). /ready is named rather than /health because /health answers 200 with a dead database. A unit that could not be measured can now be measured, and fail."
+
+[[change_log]]
+date = "2026-10-01"
+type = "tightening"
+change = "alpha.qor-auth-tests requires five more tests: no migration file, and no migration compiled into the binary, holds a carriage return, and a planted one is found; a test build sends mail only to a stand-in on this machine; and only main builds the email service from the environment."
+reason = "CRLF migration checksums from a Windows build made Railway's Linux build refuse its own database, and test helpers that read the environment sent two registrations as real mail from the owner's computer on 2026-09-22, which bounced. Neither can regress silently. The carriage-return test and the from_env scan were each seen to fail against a planted fault first."
+
+[[change_log]]
+date = "2026-10-01"
+type = "tightening"
+change = "Nesting and requirement R-2 (ADR-065). alpha.pallets requires ten more of pallet-drc369's tests and alpha.chain-tests three more of the runtime's, covering nest and un-nest, the owner of both assets, self-nesting, a two-asset and a longer cycle, the depth and child bounds, and a nested asset refused transfer, batch and sale. No kind's met condition or threshold changed and no unit became unmeasurable."
+reason = "alpha.pallets' own comment: tests are listed once they exist, and alpha.chain-tests' comment has said since 2026-09-18 that R-2 joins it with pallet-drc369. Each of the thirteen was shown to fail against a planted fault first."
+
+[[change_log]]
+date = "2026-10-01"
+type = "evidence-rule"
+change = "check-readability.mjs no longer counts text scrolled out of an overflowing ancestor's box as visible, and measures a scrolling dialog scrolled to its end. Before, a scrolling dialog's clipped text was measured against the modal overlay it sat behind and read 1:1. The check grows from 251 to 341 checks (five new screens per theme and backdrop, for selling and buying). check-inventory-view.mjs grows from 127 to 238, with two assertions rewritten because the behaviour they pinned changed (Sell now publishes)."
+approved_by = "NOT YET APPROVED: submitted to the owner on 2026-10-01"
+note = "A change to what a check measures is the owner's decision under this file's rule, and this one was made by an agent building the selling surface. Compared on one theme with the old and new scripts on the same build: 58 common screens, 52 with identical counts of measured text, 6 with more, none with fewer. If the owner refuses it, the rule reverts and the new dialogs must be made to fit without scrolling."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -797,6 +822,17 @@ nothing holds value."""
     "a_listing_is_void_once_its_seller_no_longer_holds_the_asset",
     "a_sale_the_buyer_cannot_pay_for_moves_nothing",
     "a_part_that_cannot_be_received_refuses_the_whole_sale",
+    # Nesting and R-2 (ADR-065); each shown to fail against a planted fault first.
+    "an_owner_nests_an_asset_and_takes_it_out_again",
+    "only_the_owner_of_both_assets_may_nest_them",
+    "an_asset_cannot_be_nested_in_itself",
+    "a_two_asset_cycle_is_refused",
+    "a_longer_cycle_is_refused",
+    "nesting_deeper_than_the_bound_is_refused",
+    "an_asset_holding_others_cannot_itself_be_nested",
+    "a_parent_holds_no_more_than_the_bound",
+    "a_nested_asset_and_the_asset_holding_it_cannot_be_transferred",
+    "an_asset_is_in_one_place_at_a_time_and_only_assets_nest",
   ]
 
   [[gates.criteria]]
@@ -872,6 +908,10 @@ nothing holds value."""
     # and a trade that cannot finish moves nothing.
     "a_batch_cannot_smuggle_a_call_the_filter_refuses",
     "a_trade_that_cannot_finish_moves_nothing",
+    # A nested asset stays where it is, by every route (ADR-065). R-2 is in alpha.pallets.
+    "a_nested_asset_cannot_be_transferred_in_this_runtime",
+    "a_batch_cannot_move_a_nested_asset",
+    "a_nested_asset_cannot_be_sold",
   ]
 
   [[gates.criteria]]
@@ -905,7 +945,14 @@ nothing holds value."""
              "an_address_for_another_network_is_refused",
              "a_challenge_is_spent_once",
              "an_ed25519_signature_is_not_accepted",
-             "no_account_keeps_a_key_or_an_address_that_can_no_longer_be_proven"]
+             "no_account_keeps_a_key_or_an_address_that_can_no_longer_be_proven",
+             # A Windows build and a Linux build record the same migration checksums.
+             "no_migration_file_holds_a_carriage_return",
+             "no_migration_compiled_into_the_binary_holds_a_carriage_return",
+             "a_carriage_return_is_found_and_a_file_without_one_passes",
+             # No test can send real mail, whatever the machine's environment holds.
+             "a_test_build_sends_only_to_a_stand_in_on_this_machine",
+             "only_main_builds_the_email_service_from_the_environment"]
 
   # No token, key, secret, password, link or address reaches a log, at any level. The test drives
   # every flow that handles one through the real router and captures everything logged; CI also scans
@@ -973,7 +1020,8 @@ nothing holds value."""
   [[gates.criteria]]
   id = "alpha.qor-id-live"
   kind = "http"
-  url = ""
+  # /ready, not /health: it tests Postgres and Redis, and /health answers 200 with a dead database.
+  url = "https://id.qorsync.dev/ready"
   expect_status = 200
 
 # ===========================================================================

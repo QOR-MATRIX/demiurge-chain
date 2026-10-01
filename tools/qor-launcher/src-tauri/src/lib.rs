@@ -723,6 +723,108 @@ async fn drc369_trade(
     Ok(receipt)
 }
 
+// ─────────────────────── selling and buying (L4.6) ──────────────────────────
+
+/// One asset, whoever holds it: what it is, whether it is for sale, and what a
+/// sale would pay. `asset` is whatever the person pasted — an asset's number,
+/// or the reference its holder copied from the asset's menu. There is no
+/// catalogue to browse (ADR-028), so this is how a buyer reaches an asset.
+#[tauri::command]
+async fn drc369_sale(
+    state: tauri::State<'_, AppState>,
+    asset: String,
+    viewer: Option<String>,
+) -> Result<chain::sales::SaleView, QorError> {
+    state.chain.sale(&asset, viewer.as_deref()).await
+}
+
+/// What a sale of an asset at a typed price would pay, part by part, before
+/// anything is listed. The price is parsed exactly; no float touches it.
+#[tauri::command]
+async fn drc369_sale_preview(
+    state: tauri::State<'_, AppState>,
+    collection: u32,
+    item: u32,
+    price: String,
+) -> Result<chain::sales::Breakdown, QorError> {
+    let sparks = cgt::parse_cgt(&price)?;
+    state.chain.sale_preview(collection, item, sparks).await
+}
+
+/// List an asset for sale at a price in CGT, or change its price, through the
+/// same dialog and vault as every other signature.
+#[tauri::command]
+async fn drc369_list(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    from: String,
+    collection: u32,
+    item: u32,
+    price: String,
+) -> Result<chain::sales::ListReceipt, QorError> {
+    // Exact, or refused: excess precision is never rounded away (AGENTS.md §5).
+    let sparks = cgt::parse_cgt(&price)?;
+    state
+        .chain
+        .list(
+            &state.vault,
+            &HostDialog(app),
+            &from,
+            collection,
+            item,
+            sparks,
+        )
+        .await
+}
+
+/// Withdraw an asset's listing.
+#[tauri::command]
+async fn drc369_unlist(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    from: String,
+    collection: u32,
+    item: u32,
+) -> Result<chain::sales::UnlistReceipt, QorError> {
+    state
+        .chain
+        .unlist(&state.vault, &HostDialog(app), &from, collection, item)
+        .await
+}
+
+/// Buy a listed asset. `price_sparks` and `root` are what the buyer was shown:
+/// if either has changed on chain, nobody is asked and nothing is sent.
+#[tauri::command]
+async fn drc369_buy(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    from: String,
+    collection: u32,
+    item: u32,
+    price_sparks: String,
+    root: String,
+) -> Result<chain::sales::SaleReceipt, QorError> {
+    let seen = price_sparks
+        .parse::<u128>()
+        .map_err(|_| QorError::BadAmount("the price that was shown is not a number".into()))?;
+    state
+        .chain
+        .buy(
+            &state.vault,
+            &HostDialog(app),
+            &from,
+            collection,
+            item,
+            chain::sales::Seen {
+                price_sparks: seen,
+                root: &root,
+            },
+        )
+        .await
+}
+
+// ─────────────────── listing drafts, on this machine only ───────────────────
+
 /// The categories a listing can have, and what each one asks. One table, in the
 /// host, so the form cannot invent a vocabulary of its own (`listings.rs`).
 #[tauri::command]
@@ -730,8 +832,9 @@ async fn listing_vocabulary() -> Result<&'static [listings::Category], QorError>
     Ok(listings::CATEGORIES)
 }
 
-/// Save a draft listing for an asset. **Nothing is published**: there is no
-/// marketplace to publish to (M4.2, M5.4), and this stays on this machine.
+/// Save an asset's description as a draft. **A draft is not published**: the
+/// chain holds a listing's price and nothing else, and no storefront exists to
+/// show a description (M5.4), so this stays on this machine.
 #[tauri::command]
 async fn listing_save(
     state: tauri::State<'_, AppState>,
@@ -1072,6 +1175,11 @@ pub fn run() {
             drc369_assets,
             drc369_make_permanent,
             drc369_trade,
+            drc369_sale,
+            drc369_sale_preview,
+            drc369_list,
+            drc369_unlist,
+            drc369_buy,
             trade_partners,
             listing_vocabulary,
             listing_save,

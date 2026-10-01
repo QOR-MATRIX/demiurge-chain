@@ -40,6 +40,7 @@ export type QorErrorKind =
   | 'io'
   | 'declined'
   | 'hello'
+  | 'qontrol'
   | 'internal';
 
 export interface AccountView {
@@ -418,6 +419,103 @@ export interface OwnedAsset {
   current: ContentView;
   commit: CommitView | null;
   revisable: boolean;
+  /** Its listing, if it is offered for sale, read from the chain with it. */
+  listing: ListingView | null;
+}
+
+/** An asset's listing on chain: who is selling it, and for how much. */
+export interface ListingView {
+  seller: string;
+  /** Integer Sparks as a decimal string. `u128` does not fit in a JS number. */
+  price_sparks: string;
+  /** The price in CGT, grouped for reading. Display only. */
+  price_cgt: string;
+  /** Whoever listed it no longer holds the asset, so nobody can buy from it. */
+  void: boolean;
+}
+
+/** An asset's royalty terms, as its creator set them on chain. */
+export interface TermsView {
+  recipients: { address: string; share: string }[];
+  /** What a sale of any remix of this asset owes those recipients. */
+  remix: string;
+}
+
+export type PayoutKind = 'source' | 'royalty' | 'seller';
+
+/** One part of a sale's price, and who receives it. */
+export interface Payout {
+  kind: PayoutKind;
+  address: string;
+  /** A royalty recipient's share. Null for the seller and for a source's recipients. */
+  share: string | null;
+  amount_sparks: string;
+  amount_cgt: string;
+  /** The recipient is the buyer, so this part never leaves their account. */
+  to_buyer: boolean;
+}
+
+/**
+ * What a sale at one price pays, part by part, in the order the chain pays it.
+ * Worked out by the host with the chain's own arithmetic; the view only draws it.
+ */
+export interface Breakdown {
+  price_sparks: string;
+  price_cgt: string;
+  /** The asset this one was remixed from, when a sale owes it a share. */
+  source: TradeItem | null;
+  source_share: string | null;
+  payouts: Payout[];
+  /** Why the chain would refuse a sale at this price as things stand, in words. */
+  blocked: string | null;
+}
+
+/** One asset, whoever holds it, and everything about selling or buying it. */
+export interface SaleView {
+  asset: OwnedAsset;
+  holder: string;
+  held_by_viewer: boolean;
+  derived_from: TradeItem | null;
+  terms: TermsView | null;
+  source_terms: TermsView | null;
+  /** Present only while the asset can be bought. */
+  breakdown: Breakdown | null;
+  /** What the asking account can spend, in CGT. */
+  viewer_free_cgt: string | null;
+  /** Why the asking account cannot buy it, in words. Null when it can. */
+  cannot_buy: string | null;
+  /** When a fingerprint was pasted with the number: whether the asset still carries it. */
+  pasted_root_matches: boolean | null;
+}
+
+export interface ListReceipt {
+  collection: number;
+  item: number;
+  price_sparks: string;
+  price_cgt: string;
+  tx_hash: string;
+  block_hash: string;
+}
+
+export interface UnlistReceipt {
+  collection: number;
+  item: number;
+  tx_hash: string;
+  block_hash: string;
+}
+
+/** A finalised sale, as the chain's own `Sold` event reports it. */
+export interface SaleReceipt {
+  collection: number;
+  item: number;
+  name: string;
+  seller: string;
+  buyer: string;
+  price_sparks: string;
+  price_cgt: string;
+  payouts: Payout[];
+  tx_hash: string;
+  block_hash: string;
 }
 
 export interface MintReceipt {
@@ -457,7 +555,10 @@ export interface ListingDetail {
   value: string;
 }
 
-/** A draft listing, saved on this machine and published nowhere. */
+/**
+ * An asset's description, drafted on this machine and published nowhere. The
+ * listing a buyer can act on is the price on chain (`sales` below).
+ */
 export interface Listing {
   collection: number;
   item: number;
@@ -472,9 +573,10 @@ export interface Listing {
 }
 
 /**
- * Draft listings (L4.6). **Nothing is published**: there is no marketplace to
- * publish to (M4.2, M5.4), and a draft never leaves this machine. The
- * vocabulary comes from the host, so the form keeps none of its own.
+ * Drafted descriptions (L4.6). **A draft is not published**: the chain holds a
+ * listing's price and nothing else, there is no storefront to show a
+ * description (M5.4), and a draft never leaves this machine. The vocabulary
+ * comes from the host, so the form keeps none of its own.
  */
 export const listings = {
   vocabulary: () => call<ListingCategory[]>('listing_vocabulary'),
@@ -490,6 +592,34 @@ export const listings = {
   }) => call<Listing>('listing_save', { draft }),
   discard: (collection: number, item: number) =>
     call<void>('listing_discard', { collection, item }),
+};
+
+/**
+ * Selling and buying, settled on chain in CGT (L4.6, ADR-061).
+ *
+ * The host reads the listing and the royalty terms from chain storage, works
+ * out what a sale pays with the chain's own arithmetic, draws its own dialog
+ * and signs. The view sends an asset and a typed price, and draws what comes
+ * back. **There is no catalogue**: a buyer reaches an asset by its number.
+ */
+export const sales = {
+  /** One asset by its number, or by the reference its holder copied. */
+  find: (asset: string, viewer: string | null) =>
+    call<SaleView>('drc369_sale', { asset, viewer }),
+  /** What a sale at a typed price would pay. The host parses the price, exactly. */
+  preview: (collection: number, item: number, price: string) =>
+    call<Breakdown>('drc369_sale_preview', { collection, item, price }),
+  /** List an asset, or change its price. The host's dialog says what a sale pays. */
+  list: (from: string, collection: number, item: number, price: string) =>
+    call<ListReceipt>('drc369_list', { from, collection, item, price }),
+  unlist: (from: string, collection: number, item: number) =>
+    call<UnlistReceipt>('drc369_unlist', { from, collection, item }),
+  /**
+   * Buy a listed asset. `priceSparks` and `root` are what was on screen: if
+   * either has changed on chain, the host asks nobody and sends nothing.
+   */
+  buy: (from: string, collection: number, item: number, priceSparks: string, root: string) =>
+    call<SaleReceipt>('drc369_buy', { from, collection, item, priceSparks, root }),
 };
 
 /** One account this machine has traded with. Local, and never sent anywhere. */

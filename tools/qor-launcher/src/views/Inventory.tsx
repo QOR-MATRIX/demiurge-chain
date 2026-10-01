@@ -18,6 +18,17 @@
  * sends the whole trade as one transaction; whatever it returns, the assets are
  * read from the chain again, so what disappears from here disappeared on chain.
  *
+ * **Selling and buying are on chain, and so is what is drawn of them** (L4.6).
+ * A card's price is the listing the chain holds, read with the asset. Listing,
+ * withdrawing and buying each go through the host's own dialog, and afterwards
+ * the assets are read again rather than adjusted here.
+ *
+ * **There is no storefront, and this does not draw one.** A catalogue of what
+ * is for sale is an indexer over the chain's events (ADR-028, M5.4), which is
+ * not built. So buying starts from an asset's number, which its holder gives
+ * the buyer: the "Buy an asset" section looks one asset up and shows it as a
+ * card with Buy on it. It lists nothing nobody asked for.
+ *
  * **History still has no source.** A Substrate node serves no history RPC; it
  * comes from an indexer reading the chain's events (ADR-028), which is not
  * built. The host refuses `cgt_history` for exactly that reason, and this view
@@ -25,19 +36,22 @@
  * happened.
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, Info, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowDownLeft, ArrowUpRight, Info, RefreshCw, Search } from 'lucide-react';
 
 import {
   assets,
   chain,
   explain,
+  sales,
   shortAddress,
   type HistoryEntry,
   type OwnedAsset,
+  type SaleView,
 } from '../lib/ipc';
 import { selectActiveAccount, useQor } from '../state/store';
 import { AssetCard } from '../qfx/AssetCard';
+import { BuyDialog } from './BuyDialog';
 import { TradeDialog } from './TradeDialog';
 import { SellDialog } from './SellDialog';
 import { Surface } from '../components/ui/Surface';
@@ -46,6 +60,13 @@ import { ViewHeader } from './parts';
 type Held =
   | { state: 'reading' }
   | { state: 'read'; assets: OwnedAsset[] }
+  | { state: 'failed'; reason: string };
+
+/** One asset looked up by its number, to buy. */
+type Found =
+  | { state: 'idle' }
+  | { state: 'looking' }
+  | { state: 'found'; sale: SaleView }
   | { state: 'failed'; reason: string };
 
 export function Inventory() {
@@ -60,6 +81,11 @@ export function Inventory() {
   const [busy, setBusy] = useState<string | null>(null);
   const [trading, setTrading] = useState<OwnedAsset | null>(null);
   const [selling, setSelling] = useState<OwnedAsset | null>(null);
+  const [wanted, setWanted] = useState('');
+  const [found, setFound] = useState<Found>({ state: 'idle' });
+  const [buying, setBuying] = useState<SaleView | null>(null);
+  const foundCard = useRef<HTMLDivElement | null>(null);
+  const symbol = token?.symbol ?? 'CGT';
 
   const readAssets = useCallback(async () => {
     if (!account) return;
@@ -105,6 +131,49 @@ export function Inventory() {
     }
   };
 
+  /** Withdraw a listing, or clear a void one. The host asks first. */
+  const withdraw = async (asset: OwnedAsset) => {
+    if (!account) return;
+    setBusy(`${asset.collection}/${asset.item}`);
+    try {
+      await sales.unlist(account.address, asset.collection, asset.item);
+      notify(
+        'ok',
+        asset.listing?.void
+          ? 'The void listing is cleared.'
+          : `"${asset.name || 'The asset'}" is no longer for sale.`,
+      );
+    } catch (e) {
+      notify('bad', explain(e));
+    } finally {
+      // Whatever happened, draw what the chain now says.
+      await readAssets();
+      setBusy(null);
+    }
+  };
+
+  /** Look one asset up by its number. `text` is whatever was pasted. */
+  const lookUp = useCallback(
+    async (text: string) => {
+      if (text.trim() === '') return;
+      setFound({ state: 'looking' });
+      try {
+        setFound({ state: 'found', sale: await sales.find(text, account?.address ?? null) });
+      } catch (e) {
+        setFound({ state: 'failed', reason: explain(e) });
+      }
+    },
+    [account],
+  );
+
+  // The card is drawn under the lookup, usually below the fold: bring it into
+  // view, or pressing "Look it up" looks as if it did nothing.
+  const foundId =
+    found.state === 'found' ? `${found.sale.asset.collection}/${found.sale.asset.item}` : null;
+  useEffect(() => {
+    if (foundId) foundCard.current?.scrollIntoView({ block: 'nearest' });
+  }, [foundId]);
+
   const heldAssets = held.state === 'read' ? held.assets : [];
 
   return (
@@ -146,11 +215,86 @@ export function Inventory() {
                   asset={asset}
                   index={i}
                   busy={busy === `${asset.collection}/${asset.item}`}
-                  onTrade={() => setTrading(asset)}
-                  onSell={() => setSelling(asset)}
-                  onMakePermanent={() => void makePermanent(asset)}
+                  symbol={symbol}
+                  held={{
+                    onTrade: () => setTrading(asset),
+                    onSell: () => setSelling(asset),
+                    onMakePermanent: () => void makePermanent(asset),
+                    onWithdraw: () => void withdraw(asset),
+                  }}
                 />
               ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mb-8" data-find>
+          <div className="mb-3 flex items-baseline gap-3">
+            <h2 className="eyebrow text-accent">Buy an asset</h2>
+            <span className="text-caption text-ink-faint">By its number, from whoever holds it</span>
+          </div>
+
+          <Surface className="p-5">
+            <p className="text-caption text-ink-body" data-find-honest>
+              There is no storefront to browse yet. To buy an asset, ask its holder for its number
+              — the two numbers on its card, like 4/0 — or for the reference they copy from its
+              menu, and paste it here. The launcher reads that one asset from the chain.
+            </p>
+            <form
+              className="mt-3 flex flex-wrap items-end gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void lookUp(wanted);
+              }}
+            >
+              <div className="min-w-0 flex-1">
+                <label className="block text-caption text-ink-muted" htmlFor="find-asset">
+                  Asset number or reference
+                </label>
+                <input
+                  id="find-asset"
+                  className="field numeric mt-1"
+                  value={wanted}
+                  onChange={(event) => setWanted(event.target.value)}
+                  placeholder="4/0"
+                  spellCheck={false}
+                  autoComplete="off"
+                  data-find-input
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn whitespace-nowrap"
+                disabled={!account || wanted.trim() === '' || found.state === 'looking'}
+                data-find-submit
+              >
+                <Search size={13} />
+                {found.state === 'looking' ? 'Reading the chain…' : 'Look it up'}
+              </button>
+            </form>
+
+            <div aria-live="polite">
+              {found.state === 'failed' && (
+                <p className="mt-3 text-caption text-bad" data-find-refusal>
+                  {found.reason}
+                </p>
+              )}
+            </div>
+          </Surface>
+
+          {found.state === 'found' && (
+            <div
+              ref={foundCard}
+              className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+              data-found
+            >
+              <AssetCard
+                asset={found.sale.asset}
+                index={0}
+                busy={false}
+                symbol={symbol}
+                found={{ sale: found.sale, onBuy: () => setBuying(found.sale) }}
+              />
             </div>
           )}
         </section>
@@ -180,7 +324,7 @@ export function Inventory() {
                   key={`${entry.hash}-${i}`}
                   entry={entry}
                   index={i}
-                  symbol={token?.symbol ?? 'CGT'}
+                  symbol={symbol}
                 />
               ))}
             </ul>
@@ -188,13 +332,54 @@ export function Inventory() {
         </section>
       </div>
 
-      {selling && (
+      {selling && account && (
         <SellDialog
           asset={selling}
+          from={account.address}
+          symbol={symbol}
+          onListed={(receipt) => {
+            setSelling(null);
+            notify(
+              'ok',
+              `Listed at ${receipt.price_cgt} ${symbol}. A buyer needs this asset\u2019s number: ${receipt.collection}/${receipt.item}.`,
+            );
+            void readAssets();
+          }}
+          onWithdrawn={() => {
+            const name = selling.name || 'The asset';
+            setSelling(null);
+            notify('ok', `"${name}" is no longer for sale.`);
+            void readAssets();
+          }}
           onSaved={() =>
-            notify('ok', 'Draft saved on this machine. Nothing is published: there is no market yet.')
+            notify('ok', 'Description saved on this machine. It is not published anywhere.')
           }
           onClose={() => setSelling(null)}
+        />
+      )}
+
+      {buying && account && (
+        <BuyDialog
+          from={account.address}
+          sale={buying}
+          symbol={symbol}
+          onBought={(receipt) => {
+            setBuying(null);
+            notify(
+              'ok',
+              `Bought "${receipt.name || 'the asset'}" for ${receipt.price_cgt} ${symbol}. It is in your Inventory.`,
+            );
+            void readAssets();
+            // The card that offered it now says who holds it: this account.
+            void lookUp(`${receipt.collection}/${receipt.item}`);
+          }}
+          onClose={() => {
+            // The dialog may have read the asset again after a refusal, so the
+            // card under it is read again too rather than left showing less.
+            const id = `${buying.asset.collection}/${buying.asset.item}`;
+            setBuying(null);
+            void lookUp(id);
+          }}
         />
       )}
 

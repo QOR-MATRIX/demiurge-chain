@@ -429,12 +429,22 @@ The core of the first release.
    share that never rises once the work is remixed. Evidence: 19 royalty tests and 2 remix tests, every rule
    shown to fail against a planted fault first, and the workspace suite with the wasm built. Remix
    *rights* are access gating (ADR-006) and not part of it; the launcher's selling surface is L4.6.
+
+   **The nesting half is built (1 October 2026, ADR-065).** `Drc369::nest` and `unnest`, only by the owner of both
+   assets; depth bounded at 8 and children at 64 (ADR-047 decision 13); `pallet-drc369` is `pallet-nfts`'s `Locker`,
+   so a nested asset and the asset holding it cannot be transferred, sold or burned until taken out. `spec_version`
+   is 5. State and XP remain, so the item stays unticked.
 3. [ ] Rental, fractional ownership and fixed-point physics.
 4. [ ] Sponsored fees and deposits, so that a new creator can mint without holding CGT first (inventory
    F-Q1, F-D7).
 5. [ ] **The DRC-369 acceptance tests, and requirement R-2**: state and XP, nesting, royalty arithmetic,
    authorised mint, the parent-owner check, and a nesting cycle refused within a bounded depth. Moved
    here from M3.3 on 2026-09-18, because the pallets they test are this milestone's.
+
+   **R-2 is met (1 October 2026, ADR-065):** a nest whose parent is the child, or anything inside it, is refused
+   by a walk of at most eight reads; the parent-owner check, nesting, authorised mint and royalty arithmetic have
+   their tests. Evidence: 10 pallet tests and 3 runtime tests, each shown to fail against a planted fault first,
+   and 109 workspace tests with the wasm built. The item stays unticked until state and XP exist and are tested.
 6. [x] **Several assets moved in one signature**: `pallet-utility`'s `batch_all` mounted and let through the
    call filter, so a trade of many assets either happens entirely or not at all.
 
@@ -637,8 +647,15 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 
    **Since 2026-09-29 the chain can settle a sale** (M4.2's royalty half, ADR-061): `Drc369Royalties::list` and
    `buy` pay royalties and the seller in CGT and hand the asset over in one transaction. What is still missing
-   is the launcher calling them, and the indexer, without which a listing on chain is visible only to someone
-   who already knows the asset to look up.
+   is the indexer, without which a listing on chain is visible only to someone who already knows the asset to
+   look up.
+
+   **Since 2026-10-01 the launcher calls the settled sale.** Sell publishes a price on chain (`list`), Withdraw
+   removes it (`unlist`), and an asset looked up by its number can be bought (`buy`); each shows what the sale
+   pays before the host dialog, and a declined prompt moves nothing (`src-tauri/src/chain/sales.rs`, live test
+   `a_sale_pays_every_part_and_hands_the_asset_over`). **Unticked:** nobody can find a listing without being
+   given the asset's number (no indexer, M5.4), royalty terms cannot be set from the launcher, and no person has
+   run it against the native dialogs.
 
    **Half of it exists since 2026-09-23, and the item stays unticked, because the half that exists is the
    half nobody else can see.** Sell opens a form that drafts a listing on this machine

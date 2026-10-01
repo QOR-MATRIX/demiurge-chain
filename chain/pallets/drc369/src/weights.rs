@@ -8,7 +8,7 @@
 //! estimate of the right shape, not a measurement.
 //!
 //! Roadmap item M7.2 requires a benchmarked weight for every call before a public
-//! network, and these are three of them. Until then the chain charges no fee at
+//! network, and these are five of them. Until then the chain charges no fee at
 //! all (OPEN-4), so a weight here bounds how much fits in a block and nothing
 //! else.
 
@@ -22,6 +22,10 @@ pub trait WeightInfo {
     fn mint() -> Weight;
     fn revise() -> Weight;
     fn make_permanent() -> Weight;
+    /// `depth` is the most `ParentOf` reads the cycle check can make: the
+    /// pallet passes `MaxNestingDepth`, so the worst case is what is charged.
+    fn nest(depth: u32) -> Weight;
+    fn unnest() -> Weight;
 }
 
 /// The placeholder the runtime uses until M7.2.
@@ -53,6 +57,24 @@ impl<T: frame_system::Config> WeightInfo for PlaceholderWeight<T> {
         pallet_nfts::weights::SubstrateWeight::<T>::set_metadata()
             .saturating_add(T::DbWeight::get().reads_writes(2, 1))
     }
+
+    /// Reads both `Assets` records and both `pallet-nfts` `Item`s for their
+    /// owners, the child's `ParentOf` and `ChildCount` and the parent's
+    /// `ChildCount`, then walks `ParentOf` towards the root, one read a step and
+    /// at most `depth` of them. Writes the child's `ParentOf` and the parent's
+    /// `ChildCount`. `set_metadata` stands in for the computation, as above.
+    fn nest(depth: u32) -> Weight {
+        pallet_nfts::weights::SubstrateWeight::<T>::set_metadata()
+            .saturating_add(T::DbWeight::get().reads_writes(7, 2))
+            .saturating_add(T::DbWeight::get().reads(depth.into()))
+    }
+
+    /// Reads the child's `ParentOf` and its `Item` for the owner, and the
+    /// parent's `ChildCount`; writes `ParentOf` and `ChildCount`.
+    fn unnest() -> Weight {
+        pallet_nfts::weights::SubstrateWeight::<T>::set_metadata()
+            .saturating_add(T::DbWeight::get().reads_writes(3, 2))
+    }
 }
 
 /// For tests.
@@ -64,6 +86,12 @@ impl WeightInfo for () {
         Weight::zero()
     }
     fn make_permanent() -> Weight {
+        Weight::zero()
+    }
+    fn nest(_depth: u32) -> Weight {
+        Weight::zero()
+    }
+    fn unnest() -> Weight {
         Weight::zero()
     }
 }

@@ -1,5 +1,6 @@
 //! DRC-369 from the launcher: mint a project's commit (M4.1), make an asset
 //! permanent, read back what an account holds, and trade assets away (L4.5).
+//! Selling one and buying one are in [`super::sales`] (L4.6).
 //!
 //! Every call is built from the connected node's metadata, signed in the vault
 //! behind the host dialog, submitted and waited on until GRANDPA finalises it —
@@ -8,9 +9,10 @@
 //!
 //! **What an account holds is read from chain storage, every time.** The owner
 //! index is `pallet-nfts`'s `Account` map; each item's record is
-//! `Drc369::Assets`; its name is `Nfts::ItemMetadataOf` (ADR-052). The launcher
-//! keeps no list of its own, so what the Inventory shows is what the chain says,
-//! not what the launcher last believed.
+//! `Drc369::Assets`; its name is `Nfts::ItemMetadataOf` (ADR-052); whether it is
+//! offered for sale is `Drc369Royalties::Listings` (ADR-061). The launcher keeps
+//! no list of its own, so what the Inventory shows is what the chain says, not
+//! what the launcher last believed.
 
 use scale_decode::DecodeAsType;
 use scale_encode::EncodeAsType;
@@ -26,6 +28,7 @@ use crate::vault::{canonical_address, normalise_address, Vault};
 use crate::{Confirm, Prompt};
 
 use super::config::DemiurgeConfig;
+use super::sales::ListingView;
 use super::{decode_signature, plainly, ChainClient, Connection, FINALITY_TIMEOUT};
 
 /// The longest name an asset may carry: `pallet-nfts`'s `StringLimit`, 256 bytes
@@ -54,14 +57,14 @@ pub const MESSAGE_LIMIT: usize = 256;
 
 #[derive(EncodeAsType)]
 #[allow(non_camel_case_types)]
-enum HashAlgoArg {
+pub(super) enum HashAlgoArg {
     Blake3_256,
     Sha2_256,
     Blake2_256,
 }
 
 #[derive(EncodeAsType)]
-struct ContentRefArg {
+pub(super) struct ContentRefArg {
     algo: HashAlgoArg,
     root: H256,
     size: u64,
@@ -82,7 +85,7 @@ impl From<&ContentRef> for ContentRefArg {
 }
 
 #[derive(EncodeAsType)]
-enum CommitIdArg {
+pub(super) enum CommitIdArg {
     Sha1([u8; 20]),
     Sha256([u8; 32]),
 }
@@ -220,6 +223,8 @@ pub struct OwnedAsset {
     pub current: ContentView,
     pub commit: Option<CommitView>,
     pub revisable: bool,
+    /// Its listing, if it is offered for sale (`Drc369Royalties::Listings`).
+    pub listing: Option<ListingView>,
 }
 
 /// What a mint needs from the project, computed before anyone is asked.
@@ -272,10 +277,10 @@ pub struct PermanenceReceipt {
 }
 
 /// A transaction the node finalised and reported as successful.
-struct Finalised {
-    tx_hash: String,
-    block_hash: String,
-    events: ExtrinsicEvents<DemiurgeConfig>,
+pub(super) struct Finalised {
+    pub(super) tx_hash: String,
+    pub(super) block_hash: String,
+    pub(super) events: ExtrinsicEvents<DemiurgeConfig>,
 }
 
 impl ChainClient {
@@ -607,7 +612,7 @@ impl ChainClient {
     }
 
     /// One asset, if `owner` holds it and it is a DRC-369 asset.
-    async fn asset(
+    pub(super) async fn asset(
         &self,
         connection: &Connection,
         owner: [u8; 32],
@@ -664,6 +669,8 @@ impl ChainClient {
             None => String::new(),
         };
 
+        let listing = self.listing(connection, owner, collection, item).await?;
+
         Ok(Some(OwnedAsset {
             collection,
             item,
@@ -672,6 +679,7 @@ impl ChainClient {
             current: ContentView::from(&record.current),
             commit: record.commit.as_ref().map(CommitView::from),
             revisable: record.revisable,
+            listing,
         }))
     }
 
@@ -733,7 +741,7 @@ impl ChainClient {
     /// Build the call from metadata, ask, sign in the vault, run
     /// `before_submit`, submit, and wait for finality and success.
     #[allow(clippy::too_many_arguments)]
-    async fn sign_and_finalise<Call: subxt::transactions::Payload>(
+    pub(super) async fn sign_and_finalise<Call: subxt::transactions::Payload>(
         &self,
         connection: &Connection,
         vault: &Vault,
@@ -1062,6 +1070,7 @@ mod tests {
             current: ContentView::from(&ContentRef::of(b"two")),
             commit: None,
             revisable: true,
+            listing: None,
         };
         let prompt = permanence_prompt(
             &asset,
@@ -1084,6 +1093,7 @@ mod tests {
             current: ContentView::from(&ContentRef::of(b"one")),
             commit: None,
             revisable: true,
+            listing: None,
         }
     }
 

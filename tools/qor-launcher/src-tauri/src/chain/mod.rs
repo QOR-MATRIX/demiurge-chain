@@ -36,6 +36,7 @@
 
 pub mod assets;
 pub mod config;
+pub mod sales;
 
 use std::time::{Duration, Instant};
 
@@ -1305,6 +1306,621 @@ mod live {
         );
         assert_eq!(again.times_asked(), 0);
         assert_eq!(client.assets_of(&creator).await.unwrap().len(), 1);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// L4.6, end to end against a real node: a remix listed, bought and paid
+    /// out — the remix share to its source's recipients, the royalty to its
+    /// own, the rest to the seller — and the chain asked afterwards who holds
+    /// what, to the Spark.
+    ///
+    /// The split's arithmetic is proven where it lives, in
+    /// `chain/pallets/drc369-royalties`. What is proven here is the launcher's
+    /// half: every call is built from the node's own metadata; a declined
+    /// listing, purchase or withdrawal moves nothing; what the dialog says a
+    /// sale will pay is what the chain's `Sold` event then reports, part for
+    /// part; and everything the chain would refuse is refused before anyone is
+    /// asked, in words.
+    ///
+    /// The amounts are written out here rather than computed, so this does not
+    /// pass by agreeing with itself.
+    #[tokio::test]
+    #[ignore = "needs a running Demiurge development node; see the module docs"]
+    async fn a_sale_pays_every_part_and_hands_the_asset_over() {
+        use crate::cgt::SPARKS_PER_CGT as CGT;
+        use crate::chain::assets::{CommitIdArg, ContentRefArg, MintRequest, TradeItem};
+        use crate::chain::sales::{Payout, PayoutKind, Seen};
+        use crate::content::{CommitId, ContentRef, Manifest, SourceRef, TemporaryStore};
+        use crate::Prompt;
+
+        // A mint holds about 1,100 CGT at the placeholder deposits (ADR-052).
+        const FUNDING: u128 = 5_000 * CGT;
+        // Seven Sparks over, so the rounding has somewhere to go.
+        const PRICE: u128 = 2_000 * CGT + 7;
+
+        #[derive(Debug, DecodeAsType)]
+        struct Minted {
+            collection: u32,
+            item: u32,
+        }
+
+        let endpoint = endpoint();
+        let client = ChainClient::new(&endpoint).unwrap();
+        let status = client.status().await;
+        assert!(
+            status.reachable,
+            "no node at {endpoint}: {:?}",
+            status.detail
+        );
+
+        let dir = std::env::temp_dir().join(format!(
+            "qor-sale-live-{}-{}",
+            std::process::id(),
+            status.block_number.unwrap_or_default()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        let vault = crate::vault::testing::vault_in(&dir);
+        let phrase = crate::vault::derive::generate_mnemonic().unwrap();
+        let creator = vault.create(&phrase).unwrap()[0].address.clone();
+        let remixer = vault.add_account("the remixer").unwrap().address;
+        let buyer = vault.add_account("the buyer").unwrap().address;
+        // Named in both sets of terms, never funded: the sale opens the account.
+        let collaborator = vault.add_account("a collaborator").unwrap().address;
+        for account in [&creator, &remixer, &buyer] {
+            fund_from_alice(&endpoint, normalise_address(account).unwrap(), FUNDING).await;
+        }
+        let account = |address: &str| AccountId32(normalise_address(address).unwrap());
+        let silent = || Prompt {
+            title: String::new(),
+            body: String::new(),
+            approve: String::new(),
+        };
+
+        // ── The original, with terms, and a remix of it with terms of its own.
+        let store = TemporaryStore::in_data_dir(&dir);
+        let bytes = b"the original take".to_vec();
+        let manifest = Manifest::new(
+            vec![("stems/original.wav".into(), ContentRef::of(&bytes))],
+            1_758_900_000,
+            Some(SourceRef {
+                commit: CommitId::Sha1([0x61; 20]),
+                branch: Some("main".into()),
+            }),
+        )
+        .unwrap();
+        let original = client
+            .mint(
+                &vault,
+                &Scripted::approving(),
+                &creator,
+                &MintRequest {
+                    name: "the-original".into(),
+                    reference: manifest.reference(),
+                    commit: CommitId::Sha1([0x61; 20]),
+                    branch: Some("main".into()),
+                    files: 1,
+                },
+                || {
+                    store.put(&manifest.reference(), &manifest.bytes())?;
+                    Ok(())
+                },
+            )
+            .await
+            .unwrap();
+
+        let connection = client.connected().await.unwrap();
+        // The launcher has no surface for setting terms or minting a remix yet,
+        // so the test sends those calls itself, through the same signing path
+        // as everything else.
+        let terms =
+            |collection: u32, item: u32, recipients: Vec<(AccountId32, u32)>, remix: u32| {
+                dynamic::transaction(
+                    "Drc369Royalties",
+                    "set_terms",
+                    (collection, item, recipients, remix),
+                )
+            };
+        // A sale of any remix owes this one's recipients 20%, divided one to
+        // three between the creator (10%) and the collaborator (30%).
+        client
+            .sign_and_finalise(
+                &connection,
+                &vault,
+                &Scripted::approving(),
+                &creator,
+                &terms(
+                    original.collection,
+                    original.item,
+                    vec![
+                        (account(&creator), 100_000),
+                        (account(&collaborator), 300_000),
+                    ],
+                    200_000,
+                ),
+                |_, _| silent(),
+                || Ok(()),
+                "terms",
+            )
+            .await
+            .map(|_| ())
+            .expect("the original's terms");
+
+        let remix_reference = ContentRef::of(b"the remix's manifest");
+        let minted = client
+            .sign_and_finalise(
+                &connection,
+                &vault,
+                &Scripted::approving(),
+                &remixer,
+                &dynamic::transaction(
+                    "Drc369",
+                    "mint",
+                    (
+                        ContentRefArg::from(&remix_reference),
+                        Some(CommitIdArg::from(&CommitId::Sha1([0x62; 20]))),
+                        b"the-remix".to_vec(),
+                        true,
+                        Some((original.collection, original.item)),
+                    ),
+                ),
+                |_, _| silent(),
+                || Ok(()),
+                "mint",
+            )
+            .await
+            .map(|finalised| finalised.events)
+            .expect("the remix");
+        let remix = minted
+            .iter()
+            .filter_map(Result::ok)
+            .find(|event| event.pallet_name() == "Drc369" && event.event_name() == "Minted")
+            .expect("a Minted event")
+            .decode_fields_unchecked_as::<Minted>()
+            .unwrap();
+        let (collection, item) = (remix.collection, remix.item);
+        let number = format!("{collection}/{item}");
+        // The remix's own terms: the collaborator again, 2.5% of every sale.
+        client
+            .sign_and_finalise(
+                &connection,
+                &vault,
+                &Scripted::approving(),
+                &remixer,
+                &terms(collection, item, vec![(account(&collaborator), 25_000)], 0),
+                |_, _| silent(),
+                || Ok(()),
+                "terms",
+            )
+            .await
+            .map(|_| ())
+            .expect("the remix's terms");
+
+        // 1. Looked up by its number, by someone who does not hold it: what it
+        //    is, who holds it, its terms and its source's, and not for sale.
+        let found = client.sale(&number, Some(&buyer)).await.unwrap();
+        assert_eq!(found.asset.name, "the-remix");
+        assert_eq!(found.holder, remixer);
+        assert!(!found.held_by_viewer);
+        assert_eq!(
+            found.derived_from,
+            Some(TradeItem {
+                collection: original.collection,
+                item: original.item
+            })
+        );
+        let own = found.terms.as_ref().expect("the remix's terms");
+        assert_eq!(own.recipients.len(), 1);
+        assert_eq!(own.recipients[0].address, collaborator);
+        assert_eq!(own.recipients[0].share, "2.5%");
+        let upstream = found.source_terms.as_ref().expect("the original's terms");
+        assert_eq!(upstream.remix, "20%");
+        assert_eq!(upstream.recipients[0].address, creator);
+        assert_eq!(upstream.recipients[1].share, "30%");
+        assert!(found.asset.listing.is_none());
+        assert!(found.breakdown.is_none());
+        assert!(found.cannot_buy.as_deref().unwrap().contains("not listed"));
+        // The line an asset's menu copies is read as that asset, and its
+        // fingerprint is checked against the chain's.
+        let pasted = format!(
+            "{} {} (asset {number})",
+            found.asset.current.algo, found.asset.current.root
+        );
+        assert_eq!(
+            client
+                .sale(&pasted, None)
+                .await
+                .unwrap()
+                .pasted_root_matches,
+            Some(true)
+        );
+        assert!(client
+            .sale("4000000/0", None)
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("no DRC-369 asset"));
+        let root = found.asset.current.root.clone();
+        fn seen(price_sparks: u128, root: &str) -> Seen<'_> {
+            Seen { price_sparks, root }
+        }
+
+        // 2. What cannot happen is refused before anyone is asked.
+        let nobody = Scripted::approving();
+        assert!(client
+            .buy(
+                &vault,
+                &nobody,
+                &buyer,
+                collection,
+                item,
+                seen(PRICE, &root)
+            )
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("not listed"));
+        assert!(client
+            .unlist(&vault, &nobody, &remixer, collection, item)
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("nothing to withdraw"));
+        assert!(client
+            .list(&vault, &nobody, &buyer, collection, item, PRICE)
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("holds no DRC-369 asset"));
+        // At 200 CGT the source's pool is 40, and the creator's 10 of it is
+        // fine, but the collaborator's 30 cannot open an account that does not
+        // exist: 100 CGT is the least one can hold (ADR-036). The chain would
+        // refuse every sale at that price.
+        let too_low = client
+            .list(&vault, &nobody, &remixer, collection, item, 200 * CGT)
+            .await
+            .unwrap_err()
+            .to_string();
+        assert!(too_low.contains(&collaborator), "{too_low}");
+        assert!(too_low.contains("30.00 CGT"), "{too_low}");
+        assert_eq!(nobody.times_asked(), 0);
+
+        // 3. A declined listing publishes nothing and sends nothing.
+        let nonce = client.nonce(&remixer).await.unwrap();
+        let declining = Scripted::declining();
+        let declined = client
+            .list(&vault, &declining, &remixer, collection, item, 2 * PRICE)
+            .await
+            .unwrap_err();
+        assert_eq!(declined.kind(), "declined");
+        assert_eq!(declining.times_asked(), 1);
+        assert_eq!(client.nonce(&remixer).await.unwrap(), nonce);
+        assert!(client.assets_of(&remixer).await.unwrap()[0]
+            .listing
+            .is_none());
+
+        // 4. An approved listing is on chain, and the Inventory's own read of
+        //    the asset carries it.
+        let approving = Scripted::approving();
+        let listed = client
+            .list(&vault, &approving, &remixer, collection, item, 2 * PRICE)
+            .await
+            .unwrap();
+        assert_eq!(approving.times_asked(), 1);
+        assert_eq!(listed.price_sparks, (2 * PRICE).to_string());
+        assert!(listed.block_hash.starts_with("0x"), "a finalised block");
+        {
+            let asked = approving.asked.lock();
+            assert_eq!(asked[0].approve, "List for sale");
+            assert!(asked[0].body.contains("the-remix"));
+            assert!(asked[0].body.contains(&collaborator));
+            assert!(asked[0].body.contains("The listing is public"));
+        }
+        let held = client.assets_of(&remixer).await.unwrap();
+        let listing = held[0].listing.as_ref().expect("a listing");
+        assert_eq!(listing.seller, remixer);
+        assert_eq!(listing.price_sparks, (2 * PRICE).to_string());
+        assert!(!listing.void);
+
+        // The same price again is refused without asking; a new price is a
+        // change, and the dialog says what it was.
+        let again = Scripted::approving();
+        assert!(client
+            .list(&vault, &again, &remixer, collection, item, 2 * PRICE)
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("already listed"));
+        assert_eq!(again.times_asked(), 0);
+        client
+            .list(&vault, &again, &remixer, collection, item, PRICE)
+            .await
+            .unwrap();
+        assert_eq!(again.asked.lock()[0].approve, "Change the price");
+
+        // 5. The buyer looked while it cost twice as much. Nobody is asked to
+        //    approve a price they did not see, and the seller cannot buy.
+        let stale = Scripted::approving();
+        assert!(client
+            .buy(
+                &vault,
+                &stale,
+                &buyer,
+                collection,
+                item,
+                seen(2 * PRICE, &root)
+            )
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("The price changed since you looked"));
+        assert!(client
+            .buy(
+                &vault,
+                &stale,
+                &buyer,
+                collection,
+                item,
+                seen(PRICE, &"0".repeat(64))
+            )
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("revised since you looked"));
+        assert!(client
+            .buy(
+                &vault,
+                &stale,
+                &remixer,
+                collection,
+                item,
+                seen(PRICE, &root)
+            )
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("your own listing"));
+        assert_eq!(stale.times_asked(), 0);
+
+        // 6. What the launcher says the sale will pay, before anyone signs.
+        //    20% of the price is 400 CGT and one Spark; a quarter of that,
+        //    rounded down, is the creator's 100 CGT, and three quarters the
+        //    collaborator's 300 CGT. Of the 1,600 CGT and seven Sparks left,
+        //    2.5% is the collaborator's 40 CGT. The seller has the rest.
+        let expected: Vec<(PayoutKind, String, u128)> = vec![
+            (PayoutKind::Source, creator.clone(), 100 * CGT),
+            (PayoutKind::Source, collaborator.clone(), 300 * CGT),
+            (PayoutKind::Royalty, collaborator.clone(), 40 * CGT),
+            (PayoutKind::Seller, remixer.clone(), 1_560 * CGT + 7),
+        ];
+        let parts = |payouts: &[Payout]| -> Vec<(PayoutKind, String, u128)> {
+            payouts
+                .iter()
+                .map(|p| (p.kind, p.address.clone(), p.amount_sparks.parse().unwrap()))
+                .collect()
+        };
+        let looked = client.sale(&number, Some(&buyer)).await.unwrap();
+        assert_eq!(looked.cannot_buy, None);
+        let foretold = looked.breakdown.as_ref().expect("a live listing");
+        assert_eq!(foretold.price_sparks, PRICE.to_string());
+        assert_eq!(parts(&foretold.payouts), expected);
+        assert_eq!(foretold.blocked, None);
+        assert_eq!(
+            parts(
+                &client
+                    .sale_preview(collection, item, PRICE)
+                    .await
+                    .unwrap()
+                    .payouts
+            ),
+            expected
+        );
+
+        // 7. A declined purchase moves nothing: no CGT, no asset, no nonce.
+        let before = [
+            client.balance(&creator).await.unwrap(),
+            client.balance(&remixer).await.unwrap(),
+            client.balance(&buyer).await.unwrap(),
+            client.balance(&collaborator).await.unwrap(),
+        ];
+        assert_eq!(before[3], 0, "the collaborator's account does not exist");
+        let buyer_nonce = client.nonce(&buyer).await.unwrap();
+        let declining = Scripted::declining();
+        let declined = client
+            .buy(
+                &vault,
+                &declining,
+                &buyer,
+                collection,
+                item,
+                seen(PRICE, &root),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(declined.kind(), "declined");
+        assert_eq!(declining.times_asked(), 1);
+        {
+            let asked = declining.asked.lock();
+            assert!(asked[0].body.contains("cannot be undone"));
+            assert!(asked[0].body.contains("You will not pay more than"));
+            assert!(asked[0].body.contains(&remixer));
+        }
+        assert_eq!(client.balance(&buyer).await.unwrap(), before[2]);
+        assert_eq!(client.balance(&remixer).await.unwrap(), before[1]);
+        assert_eq!(client.balance(&creator).await.unwrap(), before[0]);
+        assert_eq!(client.balance(&collaborator).await.unwrap(), 0);
+        assert_eq!(client.nonce(&buyer).await.unwrap(), buyer_nonce);
+        assert!(client.assets_of(&buyer).await.unwrap().is_empty());
+        assert_eq!(client.assets_of(&remixer).await.unwrap().len(), 1);
+
+        // 8. An approved purchase settles: the chain's own Sold event names
+        //    every part, and it is what the launcher foretold.
+        let approving = Scripted::approving();
+        let receipt = client
+            .buy(
+                &vault,
+                &approving,
+                &buyer,
+                collection,
+                item,
+                seen(PRICE, &root),
+            )
+            .await
+            .unwrap();
+        assert_eq!(approving.times_asked(), 1);
+        assert!(receipt.block_hash.starts_with("0x"), "a finalised block");
+        assert_eq!(receipt.price_sparks, PRICE.to_string());
+        assert_eq!(receipt.seller, remixer);
+        assert_eq!(receipt.buyer, buyer);
+        assert_eq!(parts(&receipt.payouts), expected);
+
+        // The balances, to the Spark. There is no transaction payment yet
+        // (OPEN-4); when there is, the buyer's line is the one that says so.
+        assert_eq!(
+            client.balance(&creator).await.unwrap(),
+            before[0] + 100 * CGT
+        );
+        assert_eq!(
+            client.balance(&remixer).await.unwrap(),
+            before[1] + 1_560 * CGT + 7
+        );
+        assert_eq!(client.balance(&buyer).await.unwrap(), before[2] - PRICE);
+        assert_eq!(
+            client.balance(&collaborator).await.unwrap(),
+            340 * CGT,
+            "the sale opened the collaborator's account"
+        );
+
+        // And the asset: the buyer holds it, the seller does not, and the
+        // listing went with the sale.
+        let theirs = client.assets_of(&buyer).await.unwrap();
+        assert_eq!(theirs.len(), 1, "{theirs:?}");
+        assert_eq!((theirs[0].collection, theirs[0].item), (collection, item));
+        assert!(theirs[0].listing.is_none(), "a sale clears its listing");
+        assert!(client.assets_of(&remixer).await.unwrap().is_empty());
+        let after = client.sale(&number, Some(&buyer)).await.unwrap();
+        assert!(after.held_by_viewer);
+        assert!(after.cannot_buy.as_deref().unwrap().contains("not listed"));
+
+        // 9. Withdrawing: declined changes nothing, approved removes it.
+        client
+            .list(
+                &vault,
+                &Scripted::approving(),
+                &buyer,
+                collection,
+                item,
+                900 * CGT,
+            )
+            .await
+            .unwrap();
+        let declining = Scripted::declining();
+        assert_eq!(
+            client
+                .unlist(&vault, &declining, &buyer, collection, item)
+                .await
+                .unwrap_err()
+                .kind(),
+            "declined"
+        );
+        assert!(declining.asked.lock()[0].body.contains("900.00 CGT"));
+        assert!(client.assets_of(&buyer).await.unwrap()[0].listing.is_some());
+        // Someone who neither listed it nor holds it cannot withdraw it.
+        let stranger = Scripted::approving();
+        assert!(client
+            .unlist(&vault, &stranger, &creator, collection, item)
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("Only the account that holds this asset"));
+        assert_eq!(stranger.times_asked(), 0);
+        client
+            .unlist(&vault, &Scripted::approving(), &buyer, collection, item)
+            .await
+            .unwrap();
+        assert!(client.assets_of(&buyer).await.unwrap()[0].listing.is_none());
+
+        // 10. A listing is void once its seller no longer holds the asset: the
+        //     new holder's card says so, nobody can buy from it, and anyone may
+        //     clear it.
+        client
+            .list(
+                &vault,
+                &Scripted::approving(),
+                &buyer,
+                collection,
+                item,
+                900 * CGT,
+            )
+            .await
+            .unwrap();
+        client
+            .trade(
+                &vault,
+                &Scripted::approving(),
+                &buyer,
+                &remixer,
+                &[TradeItem { collection, item }],
+                None,
+            )
+            .await
+            .unwrap();
+        let back = client.assets_of(&remixer).await.unwrap();
+        assert!(back[0].listing.as_ref().expect("the old listing").void);
+        let void = client.sale(&number, Some(&creator)).await.unwrap();
+        assert!(void.breakdown.is_none());
+        assert!(void.cannot_buy.as_deref().unwrap().contains("void"));
+        let clearing = Scripted::approving();
+        client
+            .unlist(&vault, &clearing, &creator, collection, item)
+            .await
+            .unwrap();
+        assert!(clearing.asked.lock()[0]
+            .body
+            .contains("This listing is void"));
+        assert!(client.assets_of(&remixer).await.unwrap()[0]
+            .listing
+            .is_none());
+
+        // 11. The chain's own refusal, reached by going round the launcher's
+        //     checks: a purchase that names less than the price as the most it
+        //     will pay, which is what a price raised in between looks like to
+        //     the chain. Its refusal is put in words, and nothing moved.
+        client
+            .list(
+                &vault,
+                &Scripted::approving(),
+                &remixer,
+                collection,
+                item,
+                900 * CGT,
+            )
+            .await
+            .unwrap();
+        let buyer_before = client.balance(&buyer).await.unwrap();
+        let refused = client
+            .sign_and_finalise(
+                &connection,
+                &vault,
+                &Scripted::approving(),
+                &buyer,
+                &dynamic::transaction("Drc369Royalties", "buy", (collection, item, 899 * CGT)),
+                |_, _| silent(),
+                || Ok(()),
+                "purchase",
+            )
+            .await
+            .map(|_| ())
+            .unwrap_err();
+        assert!(
+            refused.to_string().contains("PriceAboveLimit"),
+            "the chain names its own error: {refused}"
+        );
+        let words = crate::chain::sales::in_words(refused).to_string();
+        assert!(words.contains("price was raised"), "{words}");
+        assert!(words.contains("the purchase 0x"), "{words}");
+        assert_eq!(client.balance(&buyer).await.unwrap(), buyer_before);
+        assert_eq!(client.assets_of(&remixer).await.unwrap().len(), 1);
 
         let _ = std::fs::remove_dir_all(&dir);
     }

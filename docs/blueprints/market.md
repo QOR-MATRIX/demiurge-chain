@@ -9,6 +9,14 @@ variants, of which `library` renders a blueprint page (`views/Horizon.tsx`) and 
 
 **Since 22 September 2026:** ADR-047, the object model and DRC-369's wire format, is accepted and M2.3 is ticked, and M2.1 was ticked the same day against the owner's review of a ten-line summary of the inventory's DRC-369 section. Wherever this document says something waits on "M2.1 and M2.3", it now waits on neither, and where it calls the content fingerprint undecided, it is a BLAKE3-256 manifest root with its algorithm tagged.
 
+**Since 1 October 2026:** the launcher calls the settled sale the chain gained on 29 September
+(`Drc369Royalties::list`, `unlist` and `buy`, ADR-061). In Inventory, Sell publishes a price on chain, and an asset
+looked up by its number can be bought; both show what the sale pays before anything is signed
+(`tools/qor-launcher/src-tauri/src/chain/sales.rs`). So step 5 of "How a purchase settles" below exists. Steps 1 and
+7, the indexer, do not: there is still no catalogue and no Market surface, and a buyer reaches an asset only by a
+number its holder gave them. One mismatch is recorded here rather than resolved: the pallet refuses a price of zero
+(`ZeroPrice`), and decision 9 at the end of this document allows zero-price listings.
+
 ## What it is
 
 Market is where a creator puts finished work up for sale and a buyer pays for it in CGT. Library is where

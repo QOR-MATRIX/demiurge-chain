@@ -161,8 +161,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // (M4.6). Existing calls kept their encoding in both. 4: remix provenance
     // and `pallet-drc369-royalties` (M4.2, ADR-061); `Drc369::mint` gained its
     // `derived_from` argument, so its encoding changed and `transaction_version`
-    // moved to 2.
-    spec_version: 4,
+    // moved to 2. 5: nesting (M4.2, M4.5, R-2): `Drc369::nest` and `unnest`
+    // are new calls and `pallet-drc369` became `pallet-nfts`'s `Locker`.
+    // Existing calls kept their encoding, so `transaction_version` stays.
+    spec_version: 5,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,

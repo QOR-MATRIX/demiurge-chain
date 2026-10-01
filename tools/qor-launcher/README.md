@@ -54,7 +54,8 @@ tools/qor-launcher
 ├── src-tauri/               Rust host (everything security-relevant)
 │   ├── src/cgt.rs           Denomination: parsing, formatting, precision
 │   ├── src/chain/           subxt client for the Substrate chain in chain/ (L3.1, ADR-040),
-│   │                        including DRC-369 mint, make-permanent and enumeration (M4.1)
+│   │                        including DRC-369 mint, make-permanent and enumeration (M4.1),
+│   │                        and selling and buying settled on chain (chain/sales.rs, L4.6)
 │   ├── src/content/         The object model (ADR-047): manifest, BLAKE3 root, 41-byte
 │   │                        reference, and the temporary content store
 │   ├── src/gates.rs         Release-gate progress from docs/GATES.toml (L2.2)
@@ -322,7 +323,7 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
 
 ### Verified
 
-- 162 Rust host tests passing with no node running (2026-09-26), 39 of them Qontrol's and 7 the object
+- 182 Rust host tests passing with no node running (2026-10-01), 39 of them Qontrol's and 7 the object
   model's (ADR-047: the same files in any order make the same reference, one changed byte changes it, the
   reference is the 41 bytes the chain stores, and the manifest's encoding is pinned). Build the helper
   first: without it the Qontrol tests that commit skip and say so, and under
@@ -340,6 +341,23 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   pinned commit and name; then made permanent through the same dialog and vault, after which a second
   attempt is refused before anyone is asked. Both live tests pass together; Alice's funding is serialised
   because they run in parallel and would otherwise race her nonce.
+- A fourth live test (2026-10-01, L4.6), `a_sale_pays_every_part_and_hands_the_asset_over`: a remix with
+  royalty terms of its own, derived from an original with terms, is listed, bought and paid out against a
+  development node at `spec_version` 4. A declined listing, purchase and withdrawal each move nothing and
+  leave the nonce where it was; what the launcher says the sale will pay is what the chain's `Sold` event then
+  reports, part for part; and the four balances are asserted to the Spark, with amounts written out in the
+  test rather than computed (2,000 CGT and seven Sparks: 100 and 300 CGT to the source's two recipients, 40
+  CGT to the remix's own, 1,560 CGT and the seven Sparks to the seller). It also proves a listing below what
+  a recipient could receive is refused before anyone is asked, a price or fingerprint that changed since the
+  buyer looked is refused before anyone is asked, a void listing can be cleared by anyone, and the chain's
+  own `PriceAboveLimit` is put in words. The test sends `set_terms` and a remix mint itself, because the
+  launcher has no surface for either. All four live tests passed together on 2026-10-01 (377 s).
+- **What a sale pays is the chain's arithmetic, not the launcher's.** `src-tauri/src/chain/sales.rs` carries
+  the pallet's `split`, line for line, on `sp-arithmetic` at the version the pinned SDK release uses
+  (`=28.0.1`, ADR-033 rule 1): `Permill::mul_floor` and `multiply_by_rational_with_rounding`, no float and no
+  hand-written `a * b / c`. Its four arithmetic tests are the pallet's own vectors, the largest intermediate
+  included. After a sale, what each account received is read from the `Sold` event and nothing else.
+  Eleven faults planted in that module on 2026-10-01 each failed at least one of its 19 tests.
 - The accessibility settings take effect in a real rendering engine: after `npm run build`,
   `node scripts/check-accessibility.mjs` runs 41 checks against headless Edge or Chrome (2026-09-22), seven
   of them a precondition that the page is visible. One case, "stored off, then live: the backdrop starts",
@@ -383,21 +401,38 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   afterwards the view draws what the host says is held, not what it hoped. Proven to fail first against three
   faults: Review sending immediately, the trade sending everything held rather than what was chosen, and the
   menu button removed so only the right click remains.
-- **Sell drafts a listing and publishes nothing**, and the same check drives that too: the form opens beside
-  the asset, says in the product that nothing is published, takes its categories and its questions from the
-  host (`src-tauri/src/listings.rs`) rather than keeping a second copy of the vocabulary in the view, asks a
-  kind's own questions and only those, shows Physical (offline)'s warning before that kind is chosen, and
-  sends the host exactly what was typed — the title, the kind, the one answer chosen, the price — and nothing
-  that was not. The price is parsed by the host, exactly: excess precision is refused, never rounded.
-  **The Sell block runs after the trade block, so it uses an asset the trade did not send away**; the first
+- **Sell publishes a listing on chain, and Buy settles one** (L4.6, 2026-10-01), and the same check drives
+  both from the view's side, 238 checks in all. Selling: the form says a listing is public and on chain and
+  that there is no storefront; a typed price goes to the host as typed and what the host says a sale pays is
+  drawn amount for amount, in the chain's order, with the host's total; a price no sale could settle at shows
+  the host's reason and cannot be listed; a late answer for another price is dropped; a declined listing
+  leaves the form open and says nothing was signed; an approved one sends the host that account, that asset
+  and that text once, and the card then shows the price **the chain reports**, which the fixture makes differ
+  from the one typed; a listed asset's menu offers Change price and Withdraw listing; and Withdraw asks the
+  host once. Buying: the section says there is no storefront; what is not an asset's number is refused in the
+  host's words; a found asset is a card with its holder and its price, not counted among those held, with no
+  holder's menu; an asset the host says cannot be bought shows the reason and no Buy; the purchase dialog
+  shows every part of the price, the warning and the balance; a refused purchase shows the host's reason,
+  reads the asset again and draws that; and the host is sent the price and the fingerprint that were on
+  screen. **The fixture's amounts are ones no arithmetic on the price reproduces**, so a view that worked a
+  split out for itself could not draw them. Proven against 19 faults planted in the view, one at a time, each
+  failing the check; a twentieth, removing the re-read of held assets after a purchase, went **unnoticed**,
+  because the Inventory already reads again whenever the store replaces the active account, which a click
+  causes. That check is true and proves nothing.
+- **The description is a second screen, and publishes nothing**: a title, a kind and that kind's questions,
+  taken from the host's table (`src-tauri/src/listings.rs`) rather than a second copy in the view, saved on
+  this machine only, and it says so before anything is typed. The chain holds a listing's price and nothing
+  else, so until an indexer and a storefront exist (M5.4) there is nowhere public for a description to go.
+  **These blocks run after the trade block, so they use an asset the trade did not send away**; the first
   version used the traded one and passed silently, because the click that opens the menu used `?.` and a
-  missing card made it a no-op. Those clicks no longer use `?.`.
+  missing card made it a no-op. Those clicks do not use `?.`, and the new blocks wait for what they are about
+  to read (`until`) rather than for a length of time.
 - **Every run of text is readable as it is painted**, on every screen — the Gate's three states, its unlock
   screen with Windows Hello on and just cancelled, a checked recovery phrase, and all
   ten surfaces on the rail (Settings with its Windows Hello panel), plus an asset's menu, a trade, its warning, a file's diff, the discard question
   and what the guard holds back — in every theme,
   with the backdrop off and with a hostile white backdrop in the canvas's exact place:
-  `node scripts/check-readability.mjs`, 251 checks over 10,200 runs of text, all AA (2026-09-28). It measures each run twice, from two screenshots: its declared colour
+  `node scripts/check-readability.mjs`, 341 checks over 14,500 runs of text, all AA (2026-10-01). It measures each run twice, from two screenshots: its declared colour
   over the background actually behind it, and its glyphs as actually drawn, so an overlay or a stacking
   mistake is caught as well as a weak colour. It was written because the launcher was unreadable with the
   backdrop live — the scrim was painted over the interface — while every other check passed; it failed on

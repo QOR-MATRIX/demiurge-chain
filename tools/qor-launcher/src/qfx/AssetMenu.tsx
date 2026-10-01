@@ -12,15 +12,16 @@
  * # It decides nothing
  *
  * Every item here reports upwards. Trade opens the dialog that the host refuses
- * or signs; Share copies text; Sell opens the listing form (L4.6), which drafts
- * on this machine and publishes nowhere — a listing every account can see needs
- * the royalty pallet (M4.2) and the indexer (M5.4). The note under it says that
- * before the item is used, because a form that looks like it published
- * something is worse than one that says what it did not do.
+ * or signs; Share copies text; Sell opens the listing form (L4.6), which
+ * publishes a price on chain through the host's own dialog. An asset already
+ * listed offers a new price and a withdrawal in Sell's place. The note under
+ * them says what a listing does not do — nobody browses to it, because nothing
+ * serves a catalogue yet (M5.4) — before the item is used, because a form that
+ * looks like it opened a shop is worse than one that says what it did not do.
  */
 
 import { useEffect, useRef } from 'react';
-import { Copy, Send, Store } from 'lucide-react';
+import { Copy, Send, Store, Undo2 } from 'lucide-react';
 
 /** Where the menu opens: the pointer, or the button that opened it. */
 export interface MenuAt {
@@ -30,13 +31,27 @@ export interface MenuAt {
 
 interface Props {
   at: MenuAt;
+  /** The asset is listed, and its listing can be bought from. */
+  listed: boolean;
+  /** The asset carries a listing its previous holder made, which is void. */
+  stale: boolean;
   onTrade: () => void;
   onSell: () => void;
+  onWithdraw: () => void;
   onShare: () => void;
   onClose: () => void;
 }
 
-export function AssetMenu({ at, onTrade, onSell, onShare, onClose }: Props) {
+export function AssetMenu({
+  at,
+  listed,
+  stale,
+  onTrade,
+  onSell,
+  onWithdraw,
+  onShare,
+  onClose,
+}: Props) {
   const box = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -101,11 +116,23 @@ export function AssetMenu({ at, onTrade, onSell, onShare, onClose }: Props) {
         data-asset-sell
       >
         <Store size={13} />
-        Sell
+        {listed ? 'Change price' : 'Sell'}
       </button>
+      {(listed || stale) && (
+        <button
+          type="button"
+          role="menuitem"
+          className="menu-item text-ui"
+          onClick={onWithdraw}
+          data-asset-withdraw
+        >
+          <Undo2 size={13} />
+          {stale ? 'Clear void listing' : 'Withdraw listing'}
+        </button>
+      )}
       <p className="menu-note text-micro">
-        A listing is drafted on this machine. It publishes nowhere: that needs the royalty pallet
-        (M4.2) and the indexer (M5.4), and neither exists yet.
+        A listing puts a price on chain. Nobody browses to it: there is no storefront yet (M5.4),
+        so a buyer needs this asset&rsquo;s number from you.
       </p>
       <button type="button" role="menuitem" className="menu-item text-ui" onClick={onShare}>
         <Copy size={13} />

@@ -438,6 +438,16 @@ fn the_asset_bounds_are_the_ones_recorded_with_a_source() {
         <<Runtime as pallet_drc369_royalties::Config>::MaxRoyaltyRecipients as Get<u32>>::get(),
         8
     );
+    // ADR-047 decision 13 row 7 again: how deep an asset nests, which is also
+    // the most reads the cycle check makes, and how many assets one may hold.
+    assert_eq!(
+        <<Runtime as pallet_drc369::Config>::MaxNestingDepth as Get<u8>>::get(),
+        8
+    );
+    assert_eq!(
+        <<Runtime as pallet_drc369::Config>::MaxChildren as Get<u32>>::get(),
+        64
+    );
 }
 
 /// The deposits are placeholders (U-14), derived by ADR-030's arithmetic from
@@ -600,5 +610,198 @@ fn a_sale_pays_royalties_in_cgt_and_hands_the_asset_over() {
         assert_eq!(Balances::free_balance(&alice) - alice_before, 900 * CGT);
         assert_eq!(bob_before - Balances::free_balance(&bob), 1_000 * CGT);
         assert_eq!(Nfts::owner(0, 0), Some(bob.clone()));
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Nesting (M4.2, M4.5, requirement R-2)
+// ---------------------------------------------------------------------------
+
+fn nest_of(item: u32, parent: u32) -> RuntimeCall {
+    RuntimeCall::Drc369(pallet_drc369::Call::nest {
+        collection: 0,
+        item,
+        parent: (0, parent),
+    })
+}
+
+fn unnest_of(item: u32) -> RuntimeCall {
+    RuntimeCall::Drc369(pallet_drc369::Call::unnest {
+        collection: 0,
+        item,
+    })
+}
+
+fn refusal(call: RuntimeCall, who: &AccountId) -> sp_runtime::DispatchError {
+    call.dispatch(RuntimeOrigin::signed(who.clone()))
+        .expect_err("the call is refused")
+        .error
+}
+
+/// In this runtime `pallet-drc369` is `pallet-nfts`'s `Locker` (ADR-025), so the
+/// transfer the call filter lets through cannot take a nested asset out of its
+/// parent, or move the parent from under it, for the owner or for an account the
+/// owner approved.
+#[test]
+fn a_nested_asset_cannot_be_transferred_in_this_runtime() {
+    let alice = account(1);
+    let bob = account(2);
+    chain_with(vec![
+        (alice.clone(), 10_000 * CGT),
+        (bob.clone(), 10_000 * CGT),
+    ])
+    .execute_with(|| {
+        mint(&alice, b"chest");
+        mint(&alice, b"sword");
+        assert_ok!(Nfts::approve_transfer(
+            RuntimeOrigin::signed(alice.clone()),
+            0,
+            1,
+            MultiAddress::Id(bob.clone()),
+            None
+        ));
+
+        // Nesting and un-nesting are DRC-369's own calls, and pass the filter.
+        assert!(AssetCallFilter::contains(&nest_of(1, 0)));
+        assert!(AssetCallFilter::contains(&unnest_of(1)));
+        assert_ok!(nest_of(1, 0).dispatch(RuntimeOrigin::signed(alice.clone())));
+
+        let locked: sp_runtime::DispatchError = pallet_nfts::Error::<Runtime>::ItemLocked.into();
+        assert_eq!(refusal(transfer_of(1, &bob), &alice), locked);
+        assert_eq!(refusal(transfer_of(1, &bob), &bob), locked);
+        assert_eq!(refusal(transfer_of(0, &bob), &alice), locked);
+        assert_eq!(Nfts::owner(0, 0), Some(alice.clone()));
+        assert_eq!(Nfts::owner(0, 1), Some(alice.clone()));
+
+        // A cycle is refused here as it is in the pallet's own tests (R-2).
+        assert_eq!(
+            refusal(nest_of(0, 1), &alice),
+            pallet_drc369::Error::<Runtime>::NestingCycle.into()
+        );
+
+        assert_ok!(unnest_of(1).dispatch(RuntimeOrigin::signed(alice.clone())));
+        assert_ok!(transfer_of(1, &bob).dispatch(RuntimeOrigin::signed(alice.clone())));
+        assert_eq!(Nfts::owner(0, 1), Some(bob));
+    });
+}
+
+/// A batch is not a way round nesting. A nested asset inside `batch_all` is
+/// refused by the ledger itself and takes the whole batch with it; the calls
+/// that could change an asset behind DRC-369 stay filtered inside one; and the
+/// one honest route, taking the asset out first, is the owner's alone.
+#[test]
+fn a_batch_cannot_move_a_nested_asset() {
+    let alice = account(1);
+    let bob = account(2);
+    chain_with(vec![
+        (alice.clone(), 10_000 * CGT),
+        (bob.clone(), 10_000 * CGT),
+    ])
+    .execute_with(|| {
+        mint(&alice, b"chest");
+        mint(&alice, b"sword");
+        mint(&alice, b"loose");
+        assert_ok!(nest_of(1, 0).dispatch(RuntimeOrigin::signed(alice.clone())));
+
+        let locked: sp_runtime::DispatchError = pallet_nfts::Error::<Runtime>::ItemLocked.into();
+        let batch = |calls: Vec<RuntimeCall>| {
+            RuntimeCall::Utility(pallet_utility::Call::batch_all { calls })
+        };
+
+        // A free asset first, then the nested one: neither moves.
+        assert_eq!(
+            refusal(
+                batch(vec![transfer_of(2, &bob), transfer_of(1, &bob)]),
+                &alice
+            ),
+            locked
+        );
+        // Nor does the parent. And a batch inside a batch is not a deeper way
+        // in: `pallet-utility` refuses to nest `batch_all` at all.
+        assert_eq!(refusal(batch(vec![transfer_of(0, &bob)]), &alice), locked);
+        assert_eq!(
+            refusal(batch(vec![batch(vec![transfer_of(1, &bob)])]), &alice),
+            frame_system::Error::<Runtime>::CallFiltered.into()
+        );
+        // Burning it out of the tree is filtered, as it always was.
+        assert_eq!(
+            refusal(
+                batch(vec![RuntimeCall::Nfts(pallet_nfts::Call::burn {
+                    collection: 0,
+                    item: 1,
+                })]),
+                &alice
+            ),
+            frame_system::Error::<Runtime>::CallFiltered.into()
+        );
+        // Bob cannot take it out for himself in a batch of his own.
+        assert_eq!(
+            refusal(batch(vec![unnest_of(1), transfer_of(1, &bob)]), &bob),
+            pallet_drc369::Error::<Runtime>::NotOwner.into()
+        );
+        for item in 0..3 {
+            assert_eq!(Nfts::owner(0, item), Some(alice.clone()));
+        }
+        assert_eq!(Drc369::parent_of(0, 1), Some((0, 0)));
+
+        // The owner taking it out and then moving it is two acts in one
+        // signature, and is allowed: the asset is no longer nested when it moves.
+        assert_ok!(batch(vec![unnest_of(1), transfer_of(1, &bob)])
+            .dispatch(RuntimeOrigin::signed(alice.clone())));
+        assert_eq!(Nfts::owner(0, 1), Some(bob));
+        assert_eq!(Drc369::parent_of(0, 1), None);
+    });
+}
+
+/// A sale ends with a transfer, and the ledger refuses it for a nested asset, so
+/// the sale is refused whole: no CGT moves and the listing is left as it was.
+#[test]
+fn a_nested_asset_cannot_be_sold() {
+    let alice = account(1);
+    let bob = account(2);
+    chain_with(vec![
+        (alice.clone(), 10_000 * CGT),
+        (bob.clone(), 10_000 * CGT),
+    ])
+    .execute_with(|| {
+        mint(&alice, b"chest");
+        mint(&alice, b"sword");
+        for item in 0..2 {
+            assert_ok!(Drc369Royalties::list(
+                RuntimeOrigin::signed(alice.clone()),
+                0,
+                item,
+                1_000 * CGT
+            ));
+        }
+        assert_ok!(nest_of(1, 0).dispatch(RuntimeOrigin::signed(alice.clone())));
+
+        let alice_before = Balances::free_balance(&alice);
+        let bob_before = Balances::free_balance(&bob);
+        for item in 0..2 {
+            let buy = RuntimeCall::Drc369Royalties(pallet_drc369_royalties::Call::buy {
+                collection: 0,
+                item,
+                max_price: 1_000 * CGT,
+            });
+            assert_eq!(
+                refusal(buy, &bob),
+                pallet_nfts::Error::<Runtime>::ItemLocked.into()
+            );
+            assert_eq!(Nfts::owner(0, item), Some(alice.clone()));
+            assert!(Drc369Royalties::listing(0, item).is_some());
+        }
+        assert_eq!(Balances::free_balance(&alice), alice_before);
+        assert_eq!(Balances::free_balance(&bob), bob_before);
+
+        // Taken out, the same listing sells.
+        assert_ok!(unnest_of(1).dispatch(RuntimeOrigin::signed(alice.clone())));
+        assert_ok!(Drc369Royalties::buy(
+            RuntimeOrigin::signed(bob.clone()),
+            0,
+            1,
+            1_000 * CGT
+        ));
+        assert_eq!(Nfts::owner(0, 1), Some(bob));
     });
 }

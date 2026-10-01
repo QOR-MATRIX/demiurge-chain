@@ -1337,7 +1337,7 @@ mod registration_tests {
             AppConfig::default(),
             db,
             redis,
-            EmailService::new(EmailConfig::default()),
+            EmailService::new(EmailConfig::unconfigured()),
         ))
     }
 
@@ -1648,7 +1648,7 @@ mod password_reset_tests {
             AppConfig::default(),
             db,
             redis,
-            EmailService::new(EmailConfig::default()),
+            EmailService::new(EmailConfig::unconfigured()),
         ))
     }
 
@@ -1812,7 +1812,7 @@ mod backup_code_tests {
             AppConfig::default(),
             db,
             redis,
-            EmailService::new(EmailConfig::default()),
+            EmailService::new(EmailConfig::unconfigured()),
         ))
     }
 
@@ -2038,7 +2038,7 @@ mod sign_in_tests {
             AppConfig::default(),
             db,
             redis,
-            EmailService::new(EmailConfig::default()),
+            EmailService::new(EmailConfig::unconfigured()),
         ))
     }
 
@@ -2587,7 +2587,7 @@ mod chain_account_tests {
             AppConfig::default(),
             db,
             redis,
-            EmailService::new(EmailConfig::default()),
+            EmailService::new(EmailConfig::unconfigured()),
         ))
     }
 

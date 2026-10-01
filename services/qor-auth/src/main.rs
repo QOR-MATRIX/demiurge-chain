@@ -45,6 +45,8 @@ mod state;
 #[cfg(test)]
 mod log_hygiene;
 #[cfg(test)]
+mod migration_hygiene;
+#[cfg(test)]
 mod sql_hygiene;
 
 use crate::config::AppConfig;
@@ -86,7 +88,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("✅ Connected to Redis");
 
     // Initialize email service
-    let email_config = services::EmailConfig::default();
+    let email_config = services::EmailConfig::from_env();
     let email_service = services::EmailService::new(email_config)
         .with_webhook_secret(std::env::var("RESEND_WEBHOOK_SECRET").ok());
     if email_service.webhook_secret().is_none() {

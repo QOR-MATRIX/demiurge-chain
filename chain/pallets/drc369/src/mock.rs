@@ -70,7 +70,8 @@ impl pallet_nfts::Config for Test {
     // own call. The singles collection comes from this pallet.
     type CreateOrigin = AsEnsureOriginWithArg<NeverEnsureOrigin<AccountId>>;
     type ForceOrigin = frame_system::EnsureRoot<AccountId>;
-    type Locker = ();
+    // As in the runtime: a nested asset, and the asset holding it, are locked.
+    type Locker = Drc369;
     type CollectionDeposit = ConstU128<COLLECTION_DEPOSIT>;
     type ItemDeposit = ConstU128<ITEM_DEPOSIT>;
     type MetadataDepositBase = ConstU128<METADATA_DEPOSIT_BASE>;
@@ -96,9 +97,17 @@ impl pallet_nfts::Config for Test {
 /// Smaller than the runtime's 16, so a test can reach it in a few mints.
 pub const MAX_REMIX_DEPTH: u8 = 3;
 
+/// Smaller than the runtime's 8, so a test can reach it in a few nests.
+pub const MAX_NESTING_DEPTH: u8 = 3;
+
+/// Smaller than the runtime's 64, for the same reason.
+pub const MAX_CHILDREN: u32 = 2;
+
 impl pallet_drc369::Config for Test {
     type WeightInfo = ();
     type MaxRemixDepth = frame_support::traits::ConstU8<MAX_REMIX_DEPTH>;
+    type MaxNestingDepth = frame_support::traits::ConstU8<MAX_NESTING_DEPTH>;
+    type MaxChildren = ConstU32<MAX_CHILDREN>;
 }
 
 pub fn account(id: u8) -> AccountId {

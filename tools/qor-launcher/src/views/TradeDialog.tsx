@@ -39,6 +39,7 @@ import { AlertTriangle, Plus, Send, X } from 'lucide-react';
 
 import {
   assets as assetsApi,
+  explain,
   shortAddress,
   MESSAGE_LIMIT,
   TRADE_LIMIT,
@@ -118,7 +119,8 @@ export function TradeDialog({ from, held, start, onSent, onClose }: Props) {
     } catch (error) {
       // Back to composing: the destination or an asset is usually what is wrong.
       setConfirming(false);
-      setRefusal(error instanceof Error ? error.message : String(error));
+      // The host refuses with `{ kind, message }`, not an `Error`.
+      setRefusal(explain(error));
     } finally {
       setBusy(false);
     }

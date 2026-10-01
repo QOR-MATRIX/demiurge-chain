@@ -123,3 +123,11 @@ infra/**/*.sh text eol=lf
 infra/**/*.ps1 text eol=lf
 infra/**/Caddyfile text eol=lf
 infra/**/*.yaml text eol=lf
+
+# QOR ID's migrations. sqlx embeds each file at build time and records its SHA-384
+# in `_sqlx_migrations`; a build whose files have other line endings is then refused
+# by that database ("was previously applied but has been modified"). With
+# core.autocrlf=true a Windows clone checked these out as CRLF while Railway's
+# Linux build read LF, so the two could not share a database. LF everywhere.
+# `services/qor-auth/src/migration_hygiene.rs` fails the tests on a carriage return.
+services/qor-auth/migrations/*.sql text eol=lf

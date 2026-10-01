@@ -91,6 +91,8 @@ impl pallet_nfts::Config for Test {
 impl pallet_drc369::Config for Test {
     type WeightInfo = ();
     type MaxRemixDepth = ConstU8<16>;
+    type MaxNestingDepth = ConstU8<8>;
+    type MaxChildren = ConstU32<64>;
 }
 
 /// The runtime's value (ADR-057), so the bound is tested as it will run.
