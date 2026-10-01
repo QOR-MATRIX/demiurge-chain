@@ -1235,6 +1235,11 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
         - **Traps, to move to §5:** a view check waiting for "the chain was asked again" passes on an unrelated
           re-read (Inventory reloads when the active account object is replaced, which may also flicker in the
           real app); `cargo test --lib chain::live -- --ignored` also runs `vault::keychain::live`.
+      - **Launcher 0.1.5 built, on the owner's instruction** (was 0.1.0 everywhere, the installed copy included):
+        `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `Cargo.lock` and `tauri.conf.json`.
+        `npm run app:build` produced `src-tauri/target/release/bundle/msi/QOR Launcher_0.1.5_x64_en-US.msi` and
+        `bundle/nsis/QOR Launcher_0.1.5_x64-setup.exe`, **unsigned** (no code-signing identity yet, L6), carrying
+        the selling surface. Not installed and not run by anyone; no check was run on the packaged build.
       - **Integration, done:** the release node was rebuilt at `spec_version` 5 (2m 34s) and restarted on a fresh
         `--dev` chain, and the launcher's five live tests passed against it (378 s), the sale among them
         (`%LOCALAPPDATA%\qor-ops\integration-spec5.log`). So the launcher's sale works on the runtime that has
