@@ -40,13 +40,20 @@
  * card carries who holds it and Buy — or, where it cannot be bought, the host's
  * reason in words. The card never works out whether a purchase is possible: the
  * host does, from the chain (`src-tauri/src/chain/sales.rs`).
+ *
+ * A third way to draw it: **listed**, on the Market (L7.2). The card carries
+ * who holds it, what it was remixed from, and the host's standing for it —
+ * Buy only when the host says it can be bought, the host's reason in words
+ * when it cannot, and Withdraw (or Clear, for a void listing) on the viewer's
+ * own. It has no menu: the Market is a shelf of other people's work, not an
+ * inventory.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { Lock, Maximize2, MoreHorizontal, ShoppingBag, Undo2, X } from 'lucide-react';
 
 import { shortAddress } from '../lib/ipc';
-import type { OwnedAsset, SaleView } from '../lib/ipc';
+import type { MarketListing, OwnedAsset, SaleView } from '../lib/ipc';
 import { Surface } from '../components/ui/Surface';
 import { AssetMenu, type MenuAt } from './AssetMenu';
 import { Sigil } from './Sigil';
@@ -80,17 +87,27 @@ export interface FoundActions {
   onBuy: () => void;
 }
 
+/** What a card offers on the Market, where every listing is drawn. */
+export interface ListedActions {
+  /** The listing as the host read it, with its standing and its reason. */
+  listing: MarketListing;
+  onBuy: () => void;
+  /** Withdraw the viewer's own listing, or clear a void one on what they hold. */
+  onWithdraw: () => void;
+}
+
 interface Props {
   asset: OwnedAsset;
   index: number;
   busy: boolean;
   symbol: string;
-  /** Exactly one of the two: an asset is drawn as held, or as found. */
+  /** Exactly one of the three: an asset is drawn as held, found or listed. */
   held?: HeldActions;
   found?: FoundActions;
+  listed?: ListedActions;
 }
 
-export function AssetCard({ asset, index, busy, symbol, held, found }: Props) {
+export function AssetCard({ asset, index, busy, symbol, held, found, listed: onMarket }: Props) {
   const face = useRef<HTMLElement | null>(null);
   const opener = useRef<HTMLButtonElement | null>(null);
   const menuButton = useRef<HTMLButtonElement | null>(null);
@@ -159,8 +176,10 @@ export function AssetCard({ asset, index, busy, symbol, held, found }: Props) {
             event.preventDefault();
             setMenu({ x: event.clientX, y: event.clientY });
           }}
-          data-asset={found ? undefined : id}
+          data-asset={found || onMarket ? undefined : id}
           data-found-asset={found ? id : undefined}
+          data-market-asset={onMarket ? id : undefined}
+          data-market-standing={onMarket?.listing.standing}
         >
           <div className="flex items-baseline justify-between gap-3">
             <button
@@ -214,7 +233,8 @@ export function AssetCard({ asset, index, busy, symbol, held, found }: Props) {
               </span>
             </p>
           )}
-          {stale && (
+          {/* On the Market the host's own reason says this, in its place below. */}
+          {stale && !onMarket && (
             <p className="mt-2 border-y border-edge py-1.5 text-micro text-ink-muted" data-asset-stale>
               A listing made by an earlier holder is still on chain. It is void: nobody can buy
               from it.
@@ -232,6 +252,40 @@ export function AssetCard({ asset, index, busy, symbol, held, found }: Props) {
             <dd className="numeric min-w-0 truncate text-ink-body" data-asset-commit>
               {asset.commit ? `${asset.commit.id} (${asset.commit.kind})` : 'None'}
             </dd>
+            {onMarket && (
+              <>
+                {stale && listing && (
+                  <>
+                    <dt className="text-ink-muted">Listed by</dt>
+                    <dd
+                      className="numeric min-w-0 truncate text-ink-body"
+                      title={listing.seller}
+                      data-market-seller
+                    >
+                      {shortAddress(listing.seller, 8, 8)}
+                    </dd>
+                  </>
+                )}
+                <dt className="text-ink-muted">Holder</dt>
+                <dd
+                  className="numeric min-w-0 truncate text-ink-body"
+                  title={onMarket.listing.holder}
+                  data-market-holder
+                >
+                  {onMarket.listing.held_by_viewer
+                    ? 'This account'
+                    : shortAddress(onMarket.listing.holder, 8, 8)}
+                </dd>
+                {onMarket.listing.derived_from && (
+                  <>
+                    <dt className="text-ink-muted">Remix of</dt>
+                    <dd className="numeric min-w-0 truncate text-ink-body" data-market-source>
+                      {`Asset ${onMarket.listing.derived_from.collection}/${onMarket.listing.derived_from.item}`}
+                    </dd>
+                  </>
+                )}
+              </>
+            )}
             {found && (
               <>
                 <dt className="text-ink-muted">Holder</dt>
@@ -262,6 +316,17 @@ export function AssetCard({ asset, index, busy, symbol, held, found }: Props) {
           {found && found.sale.cannot_buy && (
             <p className="mt-3 text-caption text-ink-muted" data-asset-cannot-buy>
               {found.sale.cannot_buy}
+            </p>
+          )}
+
+          {onMarket && onMarket.listing.standing === 'yours' && (
+            <p className="mt-3 text-micro text-accent" data-market-yours>
+              Your listing
+            </p>
+          )}
+          {onMarket && onMarket.listing.reason && (
+            <p className="mt-3 text-caption text-ink-muted" data-market-reason>
+              {onMarket.listing.reason}
             </p>
           )}
 
@@ -303,6 +368,32 @@ export function AssetCard({ asset, index, busy, symbol, held, found }: Props) {
                 {stale ? 'Clear void listing' : 'Withdraw'}
               </button>
             )}
+            {onMarket && onMarket.listing.standing === 'buyable' && (
+              <button
+                type="button"
+                className="btn btn-primary whitespace-nowrap"
+                onClick={onMarket.onBuy}
+                disabled={busy}
+                data-market-buy
+              >
+                <ShoppingBag size={13} />
+                Buy
+              </button>
+            )}
+            {onMarket &&
+              (onMarket.listing.standing === 'yours' ||
+                (onMarket.listing.standing === 'void' && onMarket.listing.held_by_viewer)) && (
+                <button
+                  type="button"
+                  className="btn whitespace-nowrap"
+                  onClick={onMarket.onWithdraw}
+                  disabled={busy}
+                  data-market-withdraw
+                >
+                  <Undo2 size={13} />
+                  {onMarket.listing.standing === 'void' ? 'Clear void listing' : 'Withdraw'}
+                </button>
+              )}
             {found && listed && listing && !found.sale.cannot_buy && (
               <button
                 type="button"
@@ -346,6 +437,7 @@ export function AssetCard({ asset, index, busy, symbol, held, found }: Props) {
           asset={asset}
           symbol={symbol}
           sale={found?.sale ?? null}
+          marketListing={onMarket?.listing ?? null}
           onClose={() => {
             setOpen(false);
             opener.current?.focus();
@@ -365,12 +457,15 @@ function AssetCloseUp({
   asset,
   symbol,
   sale,
+  marketListing,
   onClose,
 }: {
   asset: OwnedAsset;
   symbol: string;
   /** What the host read about a found asset: its holder and its terms. */
   sale: SaleView | null;
+  /** What the host read about a listing on the Market: its holder and source. */
+  marketListing: MarketListing | null;
   onClose: () => void;
 }) {
   const panel = useRef<HTMLDivElement | null>(null);
@@ -450,6 +545,22 @@ function AssetCloseUp({
                     : 'On chain. A buyer reaches it by this asset’s number.'}
                 </span>
               </dd>
+            </>
+          )}
+          {marketListing && (
+            <>
+              <dt className="text-caption text-ink-muted">Held by</dt>
+              <dd className="numeric min-w-0 break-all text-ink-body" data-closeup-holder>
+                {marketListing.holder}
+              </dd>
+              {marketListing.derived_from && (
+                <>
+                  <dt className="text-caption text-ink-muted">Remixed from</dt>
+                  <dd className="numeric min-w-0 text-ink-body">
+                    Asset {marketListing.derived_from.collection}/{marketListing.derived_from.item}
+                  </dd>
+                </>
+              )}
             </>
           )}
           {sale && (

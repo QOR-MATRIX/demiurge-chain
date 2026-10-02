@@ -83,6 +83,15 @@ export const SYSTEMS: System[] = [
     glyph: 'boxes',
   },
   {
+    id: 'market',
+    name: 'Market',
+    tagline: 'What is listed for sale on chain, read through your node. No search yet.',
+    domain: 'exchange',
+    state: 'live',
+    surface: 'market',
+    glyph: 'store',
+  },
+  {
     id: 'explorer',
     name: 'Explorer',
     tagline: 'Blocks, transactions and accounts, as they are written.',

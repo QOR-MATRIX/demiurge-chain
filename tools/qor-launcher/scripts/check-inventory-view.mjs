@@ -786,8 +786,10 @@ try {
   })()`);
   check('the keyboard opens the menu', menu !== null);
   check('it is a menu, and it takes focus', menu?.role === 'menu' && menu?.focusedIsItem === true);
-  check('Sell is offered, and the menu says nobody browses to a listing',
-    menu?.sellDisabled === false && /nobody browses to it/i.test(menu?.text ?? ''));
+  // Before the Market (L7.2) this read "nobody browses to it"; now a listing is
+  // seen there, and what it lacks is search.
+  check('Sell is offered, and the menu says the Market shows a listing, with no search',
+    menu?.sellDisabled === false && /the Market shows it/i.test(menu?.text ?? '') && /no search/i.test(menu?.text ?? ''));
   // The owner looked for "Trade" and found "Send…", because the label used to
   // depend on how many assets the account held. A feature does not hide its own
   // name: these are the three things an asset offers, named.
@@ -973,8 +975,10 @@ try {
   check('Sell opens a listing form beside the asset', sell.asset === true);
   check('it says, in the product, that a listing is public and on chain',
     /public and on chain/i.test(sell.reach), sell.reach);
-  check('and that there is no storefront, so a buyer needs the asset\'s number',
-    /no storefront/i.test(sell.reach) && sell.reach.includes(sellId), sell.reach);
+  // Since the Market (L7.2): it is seen there, with no search, and the number is
+  // how to point a buyer at it. Before the Market this said "no storefront".
+  check('and that the Market shows it with no search, so the number is how to point a buyer at it',
+    /Market/.test(sell.reach) && /no search/i.test(sell.reach) && sell.reach.includes(sellId), sell.reach);
   check('the price starts empty: nothing here suggests one', sell.price === '');
   check('the price field has a label', sell.priceLabelled === true);
   check('with no price there is nothing to list, and nothing was asked of the host',
@@ -1093,9 +1097,10 @@ try {
   check('a listed asset\'s menu names Trade, Change price, Withdraw listing, Copy reference',
     JSON.stringify(listedMenu) === JSON.stringify(['Trade…', 'Change price', 'Withdraw listing', 'Copy reference']),
     JSON.stringify(listedMenu));
-  check('the menu says a listing is on chain and that nobody browses to it',
+  check('the menu says a listing is on chain, that the Market shows it, and that it has no search',
     /price on chain/i.test(await evaluate(`document.querySelector('[data-asset-menu]').textContent`)) &&
-      /no storefront/i.test(await evaluate(`document.querySelector('[data-asset-menu]').textContent`)));
+      /Market/.test(await evaluate(`document.querySelector('[data-asset-menu]').textContent`)) &&
+      /no search/i.test(await evaluate(`document.querySelector('[data-asset-menu]').textContent`)));
   await pressMenu('Change price');
   await until(`Boolean(document.querySelector('[data-sell-dialog] [data-sell-current]'))`, 'the form for a listed asset');
   await until(`document.querySelector('[data-sell-preview]').getAttribute('data-sell-preview') === 'ready'`, 'the listed price\'s breakdown');
@@ -1237,8 +1242,8 @@ try {
       cards: section.querySelectorAll('[data-found-asset]').length,
     };
   })()`);
-  check('buying says there is no storefront, and what to ask a holder for',
-    /no storefront/i.test(find.honest) && /number/i.test(find.honest), find.honest);
+  check('buying names the Market, says it has no search, and what to ask a holder for',
+    /Market/.test(find.honest) && /no search/i.test(find.honest) && /number/i.test(find.honest), find.honest);
   check('the lookup field has a label', find.labelled === true);
   check('with nothing typed there is nothing to look up, and nothing is listed unasked',
     find.submitDisabled === true && find.cards === 0 && (await evaluate(`window.__SALE_CALLS__.length`)) === 0);

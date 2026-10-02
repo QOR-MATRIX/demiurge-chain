@@ -1946,4 +1946,234 @@ mod live {
 
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    /// One look at the Market, through a real node, signing nothing: whatever
+    /// the node holds decodes, every count agrees with the others, and the
+    /// window is arranged as asked. Safe to run beside tests that sign.
+    #[tokio::test]
+    #[ignore = "needs a running Demiurge development node; see the module docs"]
+    async fn the_market_reads_whatever_the_node_holds() {
+        use crate::chain::market::{Order, Show, Standing, PAGE, SCAN_BOUND};
+
+        let endpoint = endpoint();
+        let client = ChainClient::new(&endpoint).unwrap();
+        let status = client.status().await;
+        assert!(
+            status.reachable,
+            "no node at {endpoint}: {:?}",
+            status.detail
+        );
+
+        let page = client
+            .market(None, Show::All, Order::PriceLow, 0, PAGE)
+            .await
+            .expect("the Market reads from a node at spec 6 or later");
+        assert!(page.block_hash.starts_with("0x"), "{}", page.block_hash);
+        assert!(!page.chain_name.is_empty());
+        assert!(!page.endpoint.is_empty());
+        assert_eq!(page.bound, SCAN_BOUND);
+        assert!(page.on_chain <= SCAN_BOUND);
+        if page.truncated {
+            assert_eq!(page.on_chain, SCAN_BOUND, "cut short only at the bound");
+        }
+        assert_eq!(page.matching, page.on_chain, "everyone's matches all read");
+        assert_eq!(page.yours, 0, "nobody is looking, so nothing is theirs");
+        assert_eq!(page.offset, 0);
+        assert!(page.listings.len() + page.unreadable <= PAGE.min(page.matching));
+        let mut last = 0u128;
+        for listing in &page.listings {
+            let sale = listing.asset.listing.as_ref().expect("a listed asset");
+            let price: u128 = sale.price_sparks.parse().unwrap();
+            assert!(price >= last, "cheapest first");
+            last = price;
+            assert!(!listing.held_by_viewer);
+            assert_ne!(listing.standing, Standing::Yours);
+            assert_eq!(sale.void, listing.standing == Standing::Void);
+            assert_eq!(
+                listing.reason.is_some(),
+                listing.standing != Standing::Buyable
+            );
+        }
+        // Nobody's listings, asked for by nobody: none.
+        let yours = client
+            .market(None, Show::Yours, Order::Number, 0, PAGE)
+            .await
+            .unwrap();
+        assert_eq!(yours.matching, 0);
+        assert!(yours.listings.is_empty());
+        eprintln!(
+            "the Market at block {} on {}: {} listed, {} unreadable in the first window, truncated {}",
+            page.block_number, page.chain_name, page.on_chain, page.unreadable, page.truncated
+        );
+    }
+
+    /// A listing made through the launcher is read back by the Market: the
+    /// seller's own, with Withdraw's standing; anyone else's to buy; in the
+    /// right filter; and gone once withdrawn. Other listings may be on the
+    /// same chain, so the asset is looked for page by page, as a person would.
+    #[tokio::test]
+    #[ignore = "needs a running Demiurge development node; see the module docs"]
+    async fn a_listing_made_here_is_read_back_by_the_market() {
+        use crate::cgt::SPARKS_PER_CGT as CGT;
+        use crate::chain::assets::MintRequest;
+        use crate::chain::market::{MarketListing, Order, Show, Standing, PAGE};
+        use crate::content::{CommitId, ContentRef, Manifest, SourceRef, TemporaryStore};
+
+        const FUNDING: u128 = 5_000 * CGT;
+        // Eleven Sparks over a whole number, so the price is read exactly.
+        const PRICE: u128 = 321 * CGT + 11;
+
+        let endpoint = endpoint();
+        let client = ChainClient::new(&endpoint).unwrap();
+        let status = client.status().await;
+        assert!(
+            status.reachable,
+            "no node at {endpoint}: {:?}",
+            status.detail
+        );
+
+        let dir = std::env::temp_dir().join(format!(
+            "qor-market-live-{}-{}",
+            std::process::id(),
+            status.block_number.unwrap_or_default()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        let vault = crate::vault::testing::vault_in(&dir);
+        let phrase = crate::vault::derive::generate_mnemonic().unwrap();
+        let seller = vault.create(&phrase).unwrap()[0].address.clone();
+        // Looks, never signs, so it needs no CGT.
+        let looker = vault.add_account("someone looking").unwrap().address;
+        fund_from_alice(&endpoint, normalise_address(&seller).unwrap(), FUNDING).await;
+
+        let store = TemporaryStore::in_data_dir(&dir);
+        let bytes = b"a loop for the market".to_vec();
+        let manifest = Manifest::new(
+            vec![("loops/one.wav".into(), ContentRef::of(&bytes))],
+            1_759_400_000,
+            Some(SourceRef {
+                commit: CommitId::Sha1([0x6d; 20]),
+                branch: Some("main".into()),
+            }),
+        )
+        .unwrap();
+        let minted = client
+            .mint(
+                &vault,
+                &Scripted::approving(),
+                &seller,
+                &MintRequest {
+                    name: "market-live".into(),
+                    reference: manifest.reference(),
+                    commit: CommitId::Sha1([0x6d; 20]),
+                    branch: Some("main".into()),
+                    files: 1,
+                },
+                || {
+                    store.put(&manifest.reference(), &manifest.bytes())?;
+                    Ok(())
+                },
+            )
+            .await
+            .unwrap();
+        let (collection, item) = (minted.collection, minted.item);
+
+        /// Walk the Market page by page for one asset.
+        async fn find(
+            client: &ChainClient,
+            viewer: &str,
+            show: Show,
+            asset: (u32, u32),
+        ) -> Option<MarketListing> {
+            let mut offset = 0;
+            loop {
+                let page = client
+                    .market(Some(viewer), show, Order::Number, offset, PAGE)
+                    .await
+                    .unwrap();
+                if let Some(found) = page
+                    .listings
+                    .into_iter()
+                    .find(|l| (l.asset.collection, l.asset.item) == asset)
+                {
+                    return Some(found);
+                }
+                offset += PAGE;
+                if offset >= page.matching {
+                    return None;
+                }
+            }
+        }
+
+        // Not listed yet: in nobody's Market.
+        assert!(find(&client, &seller, Show::All, (collection, item))
+            .await
+            .is_none());
+
+        client
+            .list(
+                &vault,
+                &Scripted::approving(),
+                &seller,
+                collection,
+                item,
+                PRICE,
+            )
+            .await
+            .unwrap();
+
+        // 1. The seller's own: theirs, held by them, at the price exactly.
+        let own = find(&client, &seller, Show::Yours, (collection, item))
+            .await
+            .expect("the seller's listing among their own");
+        assert_eq!(own.standing, Standing::Yours);
+        assert_eq!(own.reason, None);
+        assert!(own.held_by_viewer);
+        assert_eq!(own.holder, seller);
+        assert_eq!(own.asset.name, "market-live");
+        assert_eq!(own.asset.current.root, manifest.reference().root_hex());
+        let listing = own.asset.listing.as_ref().unwrap();
+        assert_eq!(listing.seller, seller);
+        assert_eq!(listing.price_sparks, PRICE.to_string());
+        assert!(!listing.void);
+        let mine = client
+            .market(Some(&seller), Show::Yours, Order::Number, 0, PAGE)
+            .await
+            .unwrap();
+        assert_eq!(mine.yours, 1, "this seller has one listing");
+        assert_eq!(mine.matching, 1);
+
+        // 2. Anyone else's to buy, and among "others", not "yours".
+        let seen = find(&client, &looker, Show::All, (collection, item))
+            .await
+            .expect("the listing in everyone's Market");
+        assert_eq!(seen.standing, Standing::Buyable);
+        assert_eq!(seen.reason, None);
+        assert!(!seen.held_by_viewer);
+        assert_eq!(seen.holder, seller);
+        assert!(find(&client, &looker, Show::Others, (collection, item))
+            .await
+            .is_some());
+        assert!(find(&client, &looker, Show::Yours, (collection, item))
+            .await
+            .is_none());
+
+        // 3. Withdrawn: gone from the Market.
+        client
+            .unlist(&vault, &Scripted::approving(), &seller, collection, item)
+            .await
+            .unwrap();
+        assert!(find(&client, &looker, Show::All, (collection, item))
+            .await
+            .is_none());
+        assert_eq!(
+            client
+                .market(Some(&seller), Show::Yours, Order::Number, 0, PAGE)
+                .await
+                .unwrap()
+                .matching,
+            0
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

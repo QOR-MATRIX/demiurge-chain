@@ -23,11 +23,12 @@
  * withdrawing and buying each go through the host's own dialog, and afterwards
  * the assets are read again rather than adjusted here.
  *
- * **There is no storefront, and this does not draw one.** A catalogue of what
- * is for sale is an indexer over the chain's events (ADR-028, M5.4), which is
- * not built. So buying starts from an asset's number, which its holder gives
- * the buyer: the "Buy an asset" section looks one asset up and shows it as a
- * card with Buy on it. It lists nothing nobody asked for.
+ * **What is for sale is the Market's, not this view's** (`Market.tsx`, L7.2).
+ * The Market walks the chain's listing storage through the connected node; a
+ * searchable catalogue needs the indexer (ADR-028, M5.4), which is not built.
+ * Here, buying starts from an asset's number, which its holder gives the
+ * buyer: the "Buy an asset" section looks one asset up and shows it as a card
+ * with Buy on it. It lists nothing nobody asked for.
  *
  * **History still has no source.** A Substrate node serves no history RPC; it
  * comes from an indexer reading the chain's events (ADR-028), which is not
@@ -236,9 +237,10 @@ export function Inventory() {
 
           <Surface className="p-5">
             <p className="text-caption text-ink-body" data-find-honest>
-              There is no storefront to browse yet. To buy an asset, ask its holder for its number
-              — the two numbers on its card, like 4/0 — or for the reference they copy from its
-              menu, and paste it here. The launcher reads that one asset from the chain.
+              The Market lists what is for sale on chain, with no search yet. To buy an asset you
+              were told about, ask its holder for its number — the two numbers on its card, like
+              4/0 — or for the reference they copy from its menu, and paste it here. The launcher
+              reads that one asset from the chain.
             </p>
             <form
               className="mt-3 flex flex-wrap items-end gap-2"

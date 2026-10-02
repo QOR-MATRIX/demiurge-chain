@@ -200,6 +200,23 @@ const FOUND = {
   breakdown: { ...BREAKDOWN, blocked: null },
   viewer_free_cgt: '8,894.50', cannot_buy: null, pasted_root_matches: false,
 };
+// The Market (L7.2): one listing of each standing, the walk cut short at its
+// bound and one listing unreadable, so every notice the screen can draw is on
+// the screen being measured.
+const listed = (item, name, standing, holder, viewerHolds, isVoid, reason, derived) => ({
+  asset: { ...FOUND.asset, item, name, listing: { ...FOUND.asset.listing, void: isVoid } },
+  holder, held_by_viewer: viewerHolds, derived_from: derived, standing, reason,
+});
+const MARKET = {
+  listings: [
+    listed(3, 'someone-elses-remix', 'buyable', OTHER, false, false, null, { collection: 2, item: 7 }),
+    listed(4, 'nested-stem', 'held_in_place', OTHER, false, false, 'Nobody can buy this asset as it stands. It is nested inside asset 4/9, and the chain will not move it until its holder takes it out.', null),
+    { ...listed(5, 'my-loop', 'yours', ADDRESS, true, false, null, null), asset: { ...FOUND.asset, item: 5, name: 'my-loop', listing: { ...FOUND.asset.listing, seller: ADDRESS } } },
+    listed(6, 'handed-on', 'void', ADDRESS, true, true, 'A listing made by an earlier holder of this asset is still on chain. It is void: nobody can buy from it. You hold the asset, and you can clear it.', null),
+  ],
+  offset: 0, matching: 500, on_chain: 500, yours: 2, truncated: true, bound: 500, unreadable: 1,
+  block_number: 810, block_hash: '0x' + 'ab'.repeat(32), endpoint: 'ws://127.0.0.1:9944', chain_name: 'Demiurge Development',
+};
 const VOCABULARY = [
   { id: 'physical', name: 'Physical (offline)', note: 'The chain moves the record, not the object.', fields: [{ id: 'arrives', label: 'What actually arrives', options: [] }, { id: 'who-ships', label: 'Who sends it', options: ['You', 'Someone else'] }] },
 ];
@@ -260,6 +277,7 @@ const HOST_STUB = `
         if (cmd === 'drc369_assets') return ok(${JSON.stringify(ASSETS)});
         if (cmd === 'drc369_sale_preview') return ok(${JSON.stringify(BREAKDOWN)});
         if (cmd === 'drc369_sale') return ok(${JSON.stringify(FOUND)});
+        if (cmd === 'drc369_market') return ok(${JSON.stringify(MARKET)});
         if (cmd === 'listing_vocabulary') return ok(${JSON.stringify(VOCABULARY)});
         if (cmd === 'listing_drafts') return ok([]);
         if (cmd === 'cgt_balance') return ok({ address: args.address, sparks: '8994500000000000000000', cgt: '8994.5', display: '8,994.50 CGT' });
@@ -568,7 +586,7 @@ try {
     return moved;
   })()`;
 
-  const SURFACES = ['Nexus', 'Vault', 'Inventory', 'Projects', 'Library', 'Social', 'Mesh', 'Chain', 'Gates', 'Settings'];
+  const SURFACES = ['Nexus', 'Vault', 'Inventory', 'Market', 'Projects', 'Library', 'Social', 'Mesh', 'Chain', 'Gates', 'Settings'];
   const GATE = [
     ['absent', 'the Gate, with no vault'],
     ['locked', 'the Gate, the last Windows Hello, cancelled'],

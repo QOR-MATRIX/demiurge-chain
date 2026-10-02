@@ -285,9 +285,8 @@ export function SellDialog({
               <Info size={14} className="mt-0.5 flex-none text-ink-faint" />
               <p className="text-caption text-ink-body">
                 <span className="text-ink">A description is not published.</span> The chain holds a
-                listing&rsquo;s price and nothing else, and no storefront exists to show a title or
-                a description (M5.4). What you write here is saved on this machine only, ready for
-                when Market exists.
+                listing&rsquo;s price and nothing else, so the Market shows no title or description
+                (M5.4). What you write here is saved on this machine only.
               </p>
             </div>
 
@@ -473,10 +472,10 @@ export function SellDialog({
               <Info size={14} className="mt-0.5 flex-none text-ink-faint" />
               <p className="text-caption text-ink-body">
                 <span className="text-ink">A listing is public and on chain:</span> this asset, your
-                address and the price. There is no storefront yet, so nobody will come across it. A
-                buyer needs this asset&rsquo;s number,{' '}
-                <span className="numeric text-ink">{id}</span>: use Copy reference in the
-                asset&rsquo;s menu and send it to them.
+                address and the price. It appears in the Market, which reads listings straight from
+                the chain and has no search yet (M5.4). To point a buyer at it, send them its
+                number, <span className="numeric text-ink">{id}</span>: use Copy reference in the
+                asset&rsquo;s menu.
               </p>
             </div>
 

@@ -574,8 +574,8 @@ export interface Listing {
 
 /**
  * Drafted descriptions (L4.6). **A draft is not published**: the chain holds a
- * listing's price and nothing else, there is no storefront to show a
- * description (M5.4), and a draft never leaves this machine. The vocabulary
+ * listing's price and nothing else, so the Market has no description to show
+ * (M5.4), and a draft never leaves this machine. The vocabulary
  * comes from the host, so the form keeps none of its own.
  */
 export const listings = {
@@ -600,7 +600,8 @@ export const listings = {
  * The host reads the listing and the royalty terms from chain storage, works
  * out what a sale pays with the chain's own arithmetic, draws its own dialog
  * and signs. The view sends an asset and a typed price, and draws what comes
- * back. **There is no catalogue**: a buyer reaches an asset by its number.
+ * back. A buyer reaches an asset by its number, or from the Market (`market`
+ * below), which lists what the chain holds and has no search.
  */
 export const sales = {
   /** One asset by its number, or by the reference its holder copied. */
@@ -620,6 +621,85 @@ export const sales = {
    */
   buy: (from: string, collection: number, item: number, priceSparks: string, root: string) =>
     call<SaleReceipt>('drc369_buy', { from, collection, item, priceSparks, root }),
+};
+
+/** Whose listings the Market shows (`chain/market.rs`'s `Show`). */
+export type MarketShow = 'all' | 'others' | 'yours';
+
+/**
+ * The order the Market shows listings in (`Order`). There is no "newest": a
+ * listing on chain carries no time, so the host offers none.
+ */
+export type MarketOrder = 'price_low' | 'price_high' | 'number';
+
+/** Whether the account looking can buy a listing, and if not, why (`Standing`). */
+export type MarketStanding = 'buyable' | 'yours' | 'void' | 'held_in_place';
+
+/** One listing, as the host read it at one finalised block (`MarketListing`). */
+export interface MarketListing {
+  /** The asset, with its listing: name, content reference, price and seller. */
+  asset: OwnedAsset;
+  /** Who holds it now. The seller, unless the listing is void. */
+  holder: string;
+  held_by_viewer: boolean;
+  /** The asset it was remixed from, if its minter declared one. */
+  derived_from: TradeItem | null;
+  standing: MarketStanding;
+  /** Why it cannot be bought, in words. Null when it can. */
+  reason: string | null;
+}
+
+/**
+ * One look at the Market (`MarketPage`). Every count is the host's: the view
+ * draws them and works none of them out.
+ */
+export interface MarketPage {
+  /** The window that was asked for, in the host's order. */
+  listings: MarketListing[];
+  /** Where the window starts among the listings that match. */
+  offset: number;
+  /** How many listings match what was asked for, among those read. */
+  matching: number;
+  /** How many listings the walk read from the chain, whoever made them. */
+  on_chain: number;
+  /** How many of those the account looking made. */
+  yours: number;
+  /** The chain holds more listings than `bound`; the rest were not read. */
+  truncated: boolean;
+  /** The most listings one look reads. */
+  bound: number;
+  /** Listings in this window whose asset could not be read, left out of `listings`. */
+  unreadable: number;
+  /** The finalised block all of it was read at. */
+  block_number: number;
+  block_hash: string;
+  /** The node it was read through, and what that node calls its chain. */
+  endpoint: string;
+  chain_name: string;
+}
+
+/**
+ * How many listings the Market asks for at a time. The host's own default is
+ * the same number (`market::PAGE`); it is sent explicitly so the view's pages
+ * and the host's windows cannot disagree.
+ */
+export const MARKET_PAGE = 24;
+
+/**
+ * The Market (L7.2's first slice). There is no indexer (ADR-028), so the host
+ * walks the chain's listing storage through the connected node at its latest
+ * finalised block, bounded, and reads details only for the window asked for.
+ * It reads and signs nothing; buying goes through `sales.buy` like every
+ * other purchase.
+ */
+export const market = {
+  page: (
+    viewer: string | null,
+    show: MarketShow,
+    order: MarketOrder,
+    offset: number,
+    limit: number = MARKET_PAGE,
+  ) => call<MarketPage>('drc369_market', { viewer, show, order, offset, limit }),
 };
 
 /** One account this machine has traded with. Local, and never sent anywhere. */

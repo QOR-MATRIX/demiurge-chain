@@ -20,6 +20,7 @@ import {
   Settings,
   Share2,
   Library,
+  Store,
   Wallet,
 } from 'lucide-react';
 
@@ -44,6 +45,7 @@ const ITEMS: Item[] = [
   { id: 'nexus', label: 'Nexus', icon: LayoutGrid, hint: 'Every system, one place' },
   { id: 'vault', label: 'Vault', icon: Wallet, hint: 'Hold, send and receive CGT' },
   { id: 'inventory', label: 'Inventory', icon: Boxes, hint: 'DRC-369 assets you own' },
+  { id: 'market', label: 'Market', icon: Store, hint: 'What is for sale on chain, as your node reads it' },
   { id: 'projects', label: 'Projects', icon: FolderGit2, hint: 'Version your work, on this machine' },
   { id: 'library', label: 'Library', icon: Library, hint: 'Games and applications' },
   { id: 'social', label: 'Social', icon: MessagesSquare, hint: 'Rooms, messages and presence' },
