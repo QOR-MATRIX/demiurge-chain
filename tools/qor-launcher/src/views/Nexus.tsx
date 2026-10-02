@@ -42,6 +42,7 @@ import {
   Shapes,
   Share2,
   Sparkles,
+  Store,
   Target,
   Users,
   Wallet,
@@ -86,6 +87,7 @@ const GLYPHS: Record<string, LucideIcon> = {
   code: Code2,
   target: Target,
   checks: ListChecks,
+  store: Store,
 };
 
 export function Nexus() {

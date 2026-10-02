@@ -39,6 +39,7 @@ export type Surface =
   | 'nexus'
   | 'vault'
   | 'inventory'
+  | 'market'
   | 'projects'
   | 'library'
   | 'social'

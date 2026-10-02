@@ -131,8 +131,8 @@ export function AssetMenu({
         </button>
       )}
       <p className="menu-note text-micro">
-        A listing puts a price on chain. Nobody browses to it: there is no storefront yet (M5.4),
-        so a buyer needs this asset&rsquo;s number from you.
+        A listing puts a price on chain, and the Market shows it to anyone whose node reads it. It
+        has no search yet (M5.4), so you can also send a buyer this asset&rsquo;s number.
       </p>
       <button type="button" role="menuitem" className="menu-item text-ui" onClick={onShare}>
         <Copy size={13} />

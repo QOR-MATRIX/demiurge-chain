@@ -22,6 +22,7 @@ import { ChainView } from './views/ChainView';
 import { GatesView } from './views/GatesView';
 import { Horizon } from './views/Horizon';
 import { Inventory } from './views/Inventory';
+import { Market } from './views/Market';
 import { Projects } from './views/Projects';
 import { QfxCanvas } from './qfx/Canvas';
 import { Nexus } from './views/Nexus';
@@ -33,6 +34,7 @@ const SURFACE_LABELS: Record<string, string> = {
   nexus: 'Nexus, all systems',
   vault: 'CGT Vault',
   inventory: 'Inventory and history',
+  market: 'Market, what is for sale on chain',
   library: 'Library',
   social: 'Social',
   mesh: 'Mesh',
@@ -121,6 +123,7 @@ export function App() {
                     {surface === 'nexus' && <Nexus />}
                     {surface === 'vault' && <VaultView />}
                     {surface === 'inventory' && <Inventory />}
+                    {surface === 'market' && <Market />}
                     {surface === 'projects' && <Projects />}
                     {surface === 'chain' && <ChainView />}
                     {surface === 'gates' && <GatesView />}

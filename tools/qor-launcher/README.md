@@ -4,9 +4,11 @@ The sovereign gateway to the Demiurge ecosystem. One desktop application through
 which every chain and engine system is reached: QOR ID, the CGT Vault, the game
 library, community, peer-to-peer distribution and the node itself.
 
-**Status:** Gate, Nexus, Vault, Chain, Gates and Settings are built and
-running; Library, Social and Mesh are placeholder pages that state their own
-blockers rather than showing mock content, and Market does not exist. Of the L1
+**Status:** Gate, Nexus, Vault, Inventory, Projects, Chain, Gates and Settings
+are built and running, and so is the first slice of Market (L7.2): every listing
+the chain holds, read through the connected node, with no search and no indexer
+behind it. Library, Social and Mesh are placeholder pages that state their own
+blockers rather than showing mock content. Of the L1
 roadmap items, L1.1, L1.2, L1.3 and L1.5 are ticked; **L1.4 is implemented but
 unticked** until its native dialogs are exercised in a running launcher, and
 L1.6 and L1.7 wait on CI running at all. L3.1 and L3.2 are done.
@@ -50,12 +52,13 @@ tools/qor-launcher
 │   ├── qfx/                 The living backdrop (QFX layer one): one WebGL2 canvas behind
 │   │                        the interface, under the chrome's scrim
 │   ├── state/store.ts       One Zustand store
-│   └── views/               Overview, Vault, Chain, Inventory, Release gates, Projects, Settings, Horizon
+│   └── views/               Overview, Vault, Chain, Inventory, Market, Release gates, Projects, Settings, Horizon
 ├── src-tauri/               Rust host (everything security-relevant)
 │   ├── src/cgt.rs           Denomination: parsing, formatting, precision
 │   ├── src/chain/           subxt client for the Substrate chain in chain/ (L3.1, ADR-040),
 │   │                        including DRC-369 mint, make-permanent and enumeration (M4.1),
-│   │                        and selling and buying settled on chain (chain/sales.rs, L4.6)
+│   │                        selling and buying settled on chain (chain/sales.rs, L4.6),
+│   │                        and the Market's read of every listing (chain/market.rs, L7.2)
 │   ├── src/content/         The object model (ADR-047): manifest, BLAKE3 root, 41-byte
 │   │                        reference, and the temporary content store
 │   ├── src/gates.rs         Release-gate progress from docs/GATES.toml (L2.2)
@@ -292,7 +295,7 @@ npm install
 npm run app:dev        # dev, with hot reload
 npm run app:build      # release bundle (msi, nsis, deb, appimage, dmg)
 npm run icons          # regenerate the icon set from scripts/make_icons.py
-npm run check          # design, accessibility, gates view, Projects view, Inventory view, the Gate's restore and Hello, QFX contrast, readability (needs npm run build first)
+npm run check          # design, accessibility, gates view, Projects view, Inventory view, Market view, the Gate's restore and Hello, QFX contrast, readability (needs npm run build first)
 ```
 
 Rust tests. Build Qontrol's helper first, or its tests that commit skip:
@@ -323,7 +326,7 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
 
 ### Verified
 
-- 182 Rust host tests passing with no node running (2026-10-01), 39 of them Qontrol's and 7 the object
+- 193 Rust host tests passing with no node running (2026-10-02; 182 on 2026-10-01), 39 of them Qontrol's and 7 the object
   model's (ADR-047: the same files in any order make the same reference, one changed byte changes it, the
   reference is the 41 bytes the chain stores, and the manifest's encoding is pinned). Build the helper
   first: without it the Qontrol tests that commit skip and say so, and under
@@ -408,13 +411,13 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   menu button removed so only the right click remains.
 - **Sell publishes a listing on chain, and Buy settles one** (L4.6, 2026-10-01), and the same check drives
   both from the view's side, 238 checks in all. Selling: the form says a listing is public and on chain and
-  that there is no storefront; a typed price goes to the host as typed and what the host says a sale pays is
+  that the Market shows it with no search (before the Market existed, that there was no storefront); a typed price goes to the host as typed and what the host says a sale pays is
   drawn amount for amount, in the chain's order, with the host's total; a price no sale could settle at shows
   the host's reason and cannot be listed; a late answer for another price is dropped; a declined listing
   leaves the form open and says nothing was signed; an approved one sends the host that account, that asset
   and that text once, and the card then shows the price **the chain reports**, which the fixture makes differ
   from the one typed; a listed asset's menu offers Change price and Withdraw listing; and Withdraw asks the
-  host once. Buying: the section says there is no storefront; what is not an asset's number is refused in the
+  host once. Buying: the section names the Market and says it has no search; what is not an asset's number is refused in the
   host's words; a found asset is a card with its holder and its price, not counted among those held, with no
   holder's menu; an asset the host says cannot be bought shows the reason and no Buy; the purchase dialog
   shows every part of the price, the warning and the balance; a refused purchase shows the host's reason,
@@ -424,20 +427,58 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   failing the check; a twentieth, removing the re-read of held assets after a purchase, went **unnoticed**,
   because the Inventory already reads again whenever the store replaces the active account, which a click
   causes. That check is true and proves nothing.
+- **The Market lists what is for sale on chain** (L7.2's first slice, 2026-10-02), on the rail and as a Nexus
+  tile. `src/views/Market.tsx` draws `drc369_market` (`src-tauri/src/chain/market.rs`): every listing the
+  chain holds, walked from `Drc369Royalties::Listings` through the connected node at its latest finalised
+  block, bounded at 500, with details read only for the 24 on screen. **There is no indexer** (ADR-028), so
+  it has no search, no history and no "newest"; the information icon beside its title says so, and the page
+  names the block, the chain and the node it was read through. Each listing is the Inventory's card
+  (`AssetCard`'s third mode, `listed`): name, the host's price string, holder, what it was remixed from, and
+  the host's standing. A listing that cannot be bought — void, or held in place by nesting (ADR-065) — is
+  drawn where it falls with the host's reason and no Buy; the viewer's own carries Withdraw, and a void one
+  the viewer holds carries Clear. Filter (everyone's, others', yours) and order (cheapest, dearest, by
+  number) are the host's three each, and both go to the host; pages go by the host's window. When the walk
+  stops at its bound, and when a listing's asset cannot be read, the page says so. **Buy is the existing
+  purchase**: the host reads the asset again (`drc369_sale`) and `BuyDialog` opens on that, so the price and
+  fingerprint sent with `drc369_buy` are the host's fresh ones, and a price that moved since the list was read
+  is said. After a purchase or a withdrawal the Market is read again, not adjusted.
+  `node scripts/check-market-view.mjs` passes **127 checks** (2026-10-02) against a fixture whose prices do
+  not follow from their Sparks, whose counts do not follow from the cards on the page, and whose purchase
+  breakdown is not a split of the card's price. Proven against 24 faults planted in the view one at a time
+  (2026-10-02), and **every one failed the check**: the view sorting the listings itself; formatting the
+  price from Sparks; Buy offered on a listing held in place; unbuyable listings hidden; a void listing's
+  reason hidden; the truncation notice dropped when anything was unreadable; the matching count and the
+  yours count worked out from the page; a new filter keeping the old page; Buy opening the dialog on the card
+  without asking the host; an older answer drawn over a newer one; an error shown only in the friendly line;
+  Clear offered on a void listing someone else holds; Next and Previous moving by the cards drawn rather than
+  the window; no re-read after a withdrawal or after a purchase; the information icon not saying where the
+  list comes from; unreadable listings not mentioned; a failed read saying nothing is listed; the viewer not
+  sent; the moved price not said; the order asked for not the one sent; the block and node not named. Nine
+  of the 24 were caught by a wait timing out (the run stops at the line that is wrong and exits non-zero)
+  rather than by a named check. **Not covered:** the jump back to the last page when the window is past the
+  end (after the last listing on the last page goes), and the Refresh button's spinner. The host side has
+  a live test that signs (`a_listing_made_here_is_read_back_by_the_market`: mint, list, read back as the
+  seller's own and as someone else's to buy, then withdraw), **not yet run**, and a read-only one
+  (`the_market_reads_whatever_the_node_holds`), run against a `spec_version` 6 development node on
+  2026-10-02: 2 listings, read and decoded at block 861. With the Market in place, four of the Inventory
+  check's assertions that the menu, the listing form and "Buy an asset" said "no storefront" or "nobody
+  browses to it" now hold them to naming the Market and saying it has no search, which is what is true; the
+  Inventory check's count is unchanged at 238.
 - **The description is a second screen, and publishes nothing**: a title, a kind and that kind's questions,
   taken from the host's table (`src-tauri/src/listings.rs`) rather than a second copy in the view, saved on
   this machine only, and it says so before anything is typed. The chain holds a listing's price and nothing
-  else, so until an indexer and a storefront exist (M5.4) there is nowhere public for a description to go.
+  else, so the Market shows a price and no description, and until an indexer exists (M5.4) there is nowhere
+  public for a description to go.
   **These blocks run after the trade block, so they use an asset the trade did not send away**; the first
   version used the traded one and passed silently, because the click that opens the menu used `?.` and a
   missing card made it a no-op. Those clicks do not use `?.`, and the new blocks wait for what they are about
   to read (`until`) rather than for a length of time.
 - **Every run of text is readable as it is painted**, on every screen — the Gate's three states, its unlock
   screen with Windows Hello on and just cancelled, a checked recovery phrase, and all
-  ten surfaces on the rail (Settings with its Windows Hello panel), plus an asset's menu, a trade, its warning, a file's diff, the discard question
+  eleven surfaces on the rail (the Market since 2026-10-02, with a listing of each standing and both its notices; Settings with its Windows Hello panel), plus an asset's menu, a trade, its warning, a file's diff, the discard question
   and what the guard holds back — in every theme,
   with the backdrop off and with a hostile white backdrop in the canvas's exact place:
-  `node scripts/check-readability.mjs`, 341 checks over 14,500 runs of text, all AA (2026-10-01). It measures each run twice, from two screenshots: its declared colour
+  `node scripts/check-readability.mjs`, 361 checks over 16,750 runs of text, all AA (2026-10-02; 341 over 14,500 before the Market). It measures each run twice, from two screenshots: its declared colour
   over the background actually behind it, and its glyphs as actually drawn, so an overlay or a stacking
   mistake is caught as well as a weak colour. It was written because the launcher was unreadable with the
   backdrop live — the scrim was painted over the interface — while every other check passed; it failed on
