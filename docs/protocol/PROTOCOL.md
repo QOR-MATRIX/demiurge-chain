@@ -156,9 +156,10 @@ transactions in blocks (D-008).
 `pallet-nfts` is the ownership ledger (ADR-025), mounted as `Nfts` at index 7. `pallet-drc369`, mounted as `Drc369` at
 index 8, makes an item a DRC-369 asset (ADR-047, ADR-052). `pallet-utility`, mounted as `Utility` at index 9, puts
 several calls in one transaction (ADR-053). `pallet-drc369-royalties`, mounted as `Drc369Royalties` at index 10, holds
-royalty terms and settles sales in CGT (ADR-061). `spec_version` is 5 since 1 October 2026, when `Drc369::nest` and
-`unnest` were added; `transaction_version` is 2, since 29 September 2026, when `Drc369::mint` gained its
-`derived_from` argument. No existing call's encoding changed on 1 October.
+royalty terms and settles sales in CGT (ADR-061). `spec_version` is 6 since 2 October 2026, when
+`Drc369Royalties::buy_exact` and the runtime API `Drc369RoyaltiesApi` were added (5 on 1 October, for `Drc369::nest`
+and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369::mint` gained its
+`derived_from` argument. No existing call's encoding changed on 1 or 2 October.
 
 - **An asset is `(collection, item)`**, two `u32`s. Each creator has one **singles collection**, created by their first
   mint; they own it, pay its deposit and administer it.
@@ -256,6 +257,20 @@ royalty terms and settles sales in CGT (ADR-061). `spec_version` is 5 since 1 Oc
   The parts sum to exactly the price. It then transfers the asset to the buyer and removes the listing. If any
   payment cannot be made — the buyer cannot pay it, or it would leave a recipient without an account below the
   existential deposit (`PaymentCannotBeReceived`) — nothing moves. No platform share and no fee are taken.
+- **Buying the work that was looked at** (`spec_version` 6). **`buy_exact(collection, item, max_price, content)`**
+  is `buy` with one more condition: `content` is the content reference the buyer expects, and if the asset's
+  `current` reference is any other — its holder revised it after the buyer looked — the sale is refused whole with
+  `ContentChanged` and nothing moves. `max_price` already held the price; this holds the work. `buy` keeps its call
+  index and encoding, and so `transaction_version` stays 2; a client that sends `buy` still works and is not
+  protected. The launcher sends `buy_exact`.
+- **Asking what a sale would pay.** The runtime API **`Drc369RoyaltiesApi::sale_preview(collection, item, price,
+  buyer)`** answers, for any asset someone holds, listed or not: its source, each remix and royalty payment, the
+  holder and what the holder would receive (the parts sum to `price`), and `refusal`, the error the sale would fail
+  with, if any. The parts come from the same function `buy` uses. **With a buyer**, the whole settlement is run and
+  rolled back, so `refusal` is what that buyer's transaction would get. **Without one**, only what would stop every
+  buyer is checked: a zero price, a part its recipient cannot receive, and an asset held in place by nesting
+  (`ItemLocked`). `None` if it is not a DRC-369 asset. It moves nothing. **No client uses it yet**: the launcher
+  still computes its preview with its own copy of the split.
 - **Royalty events:** `TermsSet`, `Listed`, `Unlisted` and `Sold { collection, item, from, to, price, source, remix,
   royalties, seller_received }`, where `remix` and `royalties` list each payment as `(account, amount)`.
 - **Weights are placeholders** (ADR-052 decision 8, ADR-061), owed to M7.2. No fee is charged anyway.

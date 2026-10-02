@@ -18,7 +18,7 @@ depend on this runtime, and the first end-to-end use of its finality.
 
 | Piece | State |
 | --- | --- |
-| `runtime/` (`demiurge-runtime`) | System, timestamp, Aura (ADR-019), GRANDPA (ADR-018), balances, session and the validator set (ADR-020), `pallet-nfts` as the asset ledger (ADR-025), `pallet-drc369`, `pallet-utility` for the atomic batch a trade needs (ADR-053), `pallet-drc369-royalties` (ADR-061), and `pallet-sudo` behind a feature (ADR-037). `spec_version` 5, `transaction_version` 2 |
+| `runtime/` (`demiurge-runtime`) | System, timestamp, Aura (ADR-019), GRANDPA (ADR-018), balances, session and the validator set (ADR-020), `pallet-nfts` as the asset ledger (ADR-025), `pallet-drc369`, `pallet-utility` for the atomic batch a trade needs (ADR-053), `pallet-drc369-royalties` (ADR-061), and `pallet-sudo` behind a feature (ADR-037). `spec_version` 6, `transaction_version` 2 |
 | `node/` (`demiurge-node`) | Runs. Aura authoring, GRANDPA voting, standard RPC, `dev` and `local` chain specifications |
 | `pallets/validator-set` (`pallet-validator-set`) | **Mounted.** A governance-chosen set acting as `pallet-session`'s session manager (ADR-020). Its own tests cover every governance path and the three guards against a halted chain. The chain's validators come from it, verified by reading `Session::Validators` from a running node |
 | `pallets/drc369` (`pallet-drc369`) | **Mounted, M4.1 only** (2026-09-22). The content reference (ADR-047's 41 bytes), the pinned commit, revision and the one-way switch to permanent, one singles collection per creator, owner enumeration and the `Drc369Api` runtime API. Every config value's source is in `runtime/src/assets.rs` and ADR-052; the deposits are placeholders (U-14) and the weights are placeholders owed to M7.2. Since 2026-09-29 it also records remix provenance at mint — `derived_from` and `remix_depth`, bounded at 16 (ADR-061). **Since 2026-10-01 it nests** (M4.2's nesting, M4.5's requirement R-2): `nest` and `unnest`, only by the owner of both assets, a cycle refused by a walk of at most eight steps, at most eight levels and sixty-four assets held (ADR-047 decision 13 row 7), and it is `pallet-nfts`'s `Locker`, so a nested asset and the asset holding it cannot be transferred, sold or burned until it is taken out. No deposit of its own. State and XP and physics are not started |
@@ -135,9 +135,10 @@ the development runtime's metadata is **98,230 bytes** and contains `Sudo`; the 
 and does not (measured after ADR-062 added `Drc369::RemixCount`). Both contain `Nfts`, `Drc369`, `Utility` and `Drc369Royalties`. `TransactionPayment` is absent from
 both, because fees are OPEN-4.
 
-**Not re-measured since.** Nesting (`spec_version` 5, 2026-10-01) added two calls, two storage items, two events,
-seven errors and two constants to `Drc369`, so both numbers above are now too small. They are left as the last
-measurement rather than estimated; the next session that restarts a node on the new runtime measures them.
+**Half re-measured since.** Nesting (`spec_version` 5, 2026-10-01) and `buy_exact` with the runtime API
+`Drc369RoyaltiesApi` (`spec_version` 6, 2026-10-02) grew both. On **2026-10-02** a release node built without the
+`sudo` feature, at `spec_version` 6, served **99,901 bytes** of metadata with no `Sudo` in it: that is the mainnet
+shape. **The development shape (`--features sudo`) was not re-measured**; its last measurement is the 98,230 above.
 
 On 2026-09-22, after M4.6 added `pallet-utility` (`spec_version` 3), they were 92,323 and 90,417. Earlier that day, after M4.1 added `pallet-nfts` and `pallet-drc369` (`spec_version` 2), they were
 86,259 and 84,316 — and a node still carrying that runtime served exactly 86,259 bytes when it was restarted

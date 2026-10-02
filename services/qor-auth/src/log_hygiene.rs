@@ -388,6 +388,37 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         StatusCode::OK
     );
 
+    // A refresh, which writes to the session that it was used, and the list that shows it. Both
+    // tokens it mints are secrets too. A refused refresh handles a token as well.
+    let refresh = r.json()["refresh_token"]
+        .as_str()
+        .expect("refresh token")
+        .to_string();
+    let r = client
+        .json(
+            "/api/v1/auth/refresh",
+            json!({ "refresh_token": refresh }),
+            None,
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    for minted in ["access_token", "refresh_token"] {
+        secrets.push(r.json()[minted].as_str().expect("a token").to_string());
+    }
+    let r = client.get("/api/v1/profile/sessions", Some(&access)).await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    assert!(r.json()["sessions"][0]["last_used_at"].is_string());
+    let forged = format!("{refresh}x");
+    secrets.push(forged.clone());
+    let r = client
+        .json(
+            "/api/v1/auth/refresh",
+            json!({ "refresh_token": forged }),
+            None,
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::UNAUTHORIZED, "{}", r.body);
+
     // A change of address: a notice to the old one, a link to the new one, confirmed as a page.
     sqlx::query("UPDATE users SET email_verification_sent_at = NOW() - INTERVAL '10 minutes' WHERE username = $1")
         .bind(username)
@@ -682,6 +713,8 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         "Email not sent, because the address is marked undeliverable",
         "/api/v1/auth/challenge",
         "/api/v1/auth/keypair-register",
+        "/api/v1/auth/refresh",
+        "/api/v1/profile/sessions",
     ] {
         assert!(
             log.contains(expected),

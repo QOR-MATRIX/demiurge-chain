@@ -215,6 +215,33 @@ impl SessionService {
         }
     }
 
+    /// Record that a session was used just now, when its refresh token mints new tokens.
+    ///
+    /// Returns false when the session no longer exists, and then writes nothing: `XX` sets the key
+    /// only if it is still there, so a session revoked a moment ago is not brought back. `KEEPTTL`
+    /// leaves its expiry as it was, so using a session never lengthens its life. Both need Redis 6
+    /// or later.
+    ///
+    /// This is one write for each refresh, which a client makes about once per access token's
+    /// lifetime. It is deliberately not done for every authenticated request.
+    pub async fn record_use(&self, session: &Session) -> AppResult<bool> {
+        let mut used = session.clone();
+        used.last_activity = Utc::now();
+        let session_json = serde_json::to_string(&used)
+            .map_err(|e| AppError::InternalError(anyhow::anyhow!("Serialization failed: {}", e)))?;
+
+        let mut conn = self.redis.get().await?;
+        let written: Option<String> = deadpool_redis::redis::cmd("SET")
+            .arg(format!("session:{}", session.session_id))
+            .arg(&session_json)
+            .arg("XX")
+            .arg("KEEPTTL")
+            .query_async(&mut conn)
+            .await
+            .map_err(|e| AppError::InternalError(anyhow::anyhow!("Redis error: {}", e)))?;
+        Ok(written.is_some())
+    }
+
     /// List a user's live sessions, oldest first.
     ///
     /// The user's session set can still name sessions that expired or were deleted. Those ids are
@@ -531,5 +558,121 @@ mod tests {
 
         service.delete_all_sessions(user).await.unwrap();
         service.delete_all_sessions(other).await.unwrap();
+    }
+
+    async fn seconds_left(pool: &RedisPool, session_id: Uuid) -> i64 {
+        let mut conn = pool.get().await.unwrap();
+        deadpool_redis::redis::cmd("TTL")
+            .arg(format!("session:{session_id}"))
+            .query_async(&mut conn)
+            .await
+            .unwrap()
+    }
+
+    fn redis_for_tests() -> RedisPool {
+        let url = std::env::var("QOR_AUTH_TEST_REDIS_URL").expect("QOR_AUTH_TEST_REDIS_URL");
+        deadpool_redis::Config::from_url(url)
+            .create_pool(Some(deadpool_redis::Runtime::Tokio1))
+            .expect("redis pool")
+    }
+
+    /// A session as it would be an hour after sign-in: created and last used then, with eleven
+    /// minutes left to live.
+    async fn an_hour_old_session(service: &SessionService, user: Uuid) -> Session {
+        let then = Utc::now() - Duration::hours(1);
+        let session = Session {
+            created_at: then,
+            last_activity: then,
+            expires_at: Utc::now() + Duration::seconds(660),
+            ..session_for(user, Duration::zero())
+        };
+        service.store_session(&session).await.unwrap();
+        session
+    }
+
+    #[tokio::test]
+    #[ignore = "needs a Redis at QOR_AUTH_TEST_REDIS_URL"]
+    async fn using_a_session_records_when_and_changes_nothing_else() {
+        let pool = redis_for_tests();
+        let service = SessionService::new(pool.clone(), test_jwt());
+        let user = Uuid::new_v4();
+        let session = an_hour_old_session(&service, user).await;
+
+        let before = Utc::now();
+        assert!(service.record_use(&session).await.unwrap());
+        let after = Utc::now();
+
+        let stored = service
+            .get_session(session.session_id)
+            .await
+            .unwrap()
+            .expect("still there");
+        assert!(
+            stored.last_activity >= before && stored.last_activity <= after,
+            "last used is now, not {}",
+            stored.last_activity
+        );
+        // Everything else is as it was. Redis keeps the times as text, so compare what it holds.
+        let expected = Session {
+            last_activity: stored.last_activity,
+            ..session.clone()
+        };
+        assert_eq!(
+            serde_json::to_value(&stored).unwrap(),
+            serde_json::to_value(&expected).unwrap()
+        );
+        // It is still listed, once.
+        let listed = service.list_sessions(user).await.unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].last_activity, stored.last_activity);
+
+        service.delete_all_sessions(user).await.unwrap();
+    }
+
+    #[tokio::test]
+    #[ignore = "needs a Redis at QOR_AUTH_TEST_REDIS_URL"]
+    async fn using_a_session_never_lengthens_its_life() {
+        let pool = redis_for_tests();
+        let service = SessionService::new(pool.clone(), test_jwt());
+        let user = Uuid::new_v4();
+        let session = an_hour_old_session(&service, user).await;
+
+        let left = seconds_left(&pool, session.session_id).await;
+        assert!((1..=660).contains(&left), "{left} seconds left before");
+        assert!(service.record_use(&session).await.unwrap());
+        let left_after = seconds_left(&pool, session.session_id).await;
+        // -1 is Redis for "never expires", which is what a plain SET would leave.
+        assert!(
+            (1..=left).contains(&left_after),
+            "{left_after} seconds left after use, {left} before"
+        );
+
+        service.delete_all_sessions(user).await.unwrap();
+    }
+
+    #[tokio::test]
+    #[ignore = "needs a Redis at QOR_AUTH_TEST_REDIS_URL"]
+    async fn using_a_revoked_session_does_not_bring_it_back() {
+        let pool = redis_for_tests();
+        let service = SessionService::new(pool.clone(), test_jwt());
+        let user = Uuid::new_v4();
+        // Read by a refresh, then revoked before the refresh records its use.
+        let session = an_hour_old_session(&service, user).await;
+        assert!(
+            service
+                .revoke_session(user, session.session_id)
+                .await
+                .unwrap()
+        );
+
+        assert!(!service.record_use(&session).await.unwrap());
+        assert!(
+            service
+                .get_session(session.session_id)
+                .await
+                .unwrap()
+                .is_none()
+        );
+        assert!(service.list_sessions(user).await.unwrap().is_empty());
     }
 }

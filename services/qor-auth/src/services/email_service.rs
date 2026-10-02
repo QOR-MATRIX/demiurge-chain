@@ -73,12 +73,18 @@ impl EmailConfig {
     }
 }
 
-/// Whether the API base is on this machine, where a test's stand-in for Resend listens.
-#[cfg(test)]
+/// Whether the API base is on this machine, where a stand-in for Resend listens.
 fn on_this_machine(url: &str) -> bool {
     reqwest::Url::parse(url).is_ok_and(|parsed| {
         parsed.scheme() == "http" && matches!(parsed.host_str(), Some("127.0.0.1" | "localhost"))
     })
+}
+
+/// Whether a service that `sends` through `api_url` puts mail on the network: it sends at all, and
+/// not to a stand-in on this machine. Anything that is not plainly this machine counts as leaving,
+/// so a URL this cannot read is never reported as safe.
+fn mail_leaves_this_machine(sends: bool, api_url: &str) -> bool {
+    sends && !on_this_machine(api_url)
 }
 
 /// Whether messages may be sent to this API base: HTTPS anywhere, or plain HTTP only to this
@@ -532,6 +538,16 @@ impl EmailService {
     pub fn is_configured(&self) -> bool {
         self.http.is_some()
     }
+
+    /// Whether a message sent by this service leaves this machine, for a real inbox. False when
+    /// nothing is sent, and when it goes to a stand-in for Resend on this machine.
+    ///
+    /// `/health` reports it, so the end-to-end scripts, which register addresses nobody holds, can
+    /// refuse to run against a service that would send them as real mail. It is one boolean, and
+    /// says nothing of the key, the sender or where the links point.
+    pub fn leaves_this_machine(&self) -> bool {
+        mail_leaves_this_machine(self.http.is_some(), &self.config.api_url)
+    }
 }
 
 #[cfg(test)]
@@ -929,6 +945,39 @@ mod tests {
             outside[0].starts_with("main.rs:"),
             "only main builds the email service from the environment; found {callers:?}"
         );
+    }
+
+    /// The end-to-end scripts run only against a service that reports false here, so a wrong
+    /// "false" is real mail to addresses nobody holds. A test build cannot hold a service that sends
+    /// elsewhere (the guard above), so the rule is checked on its own.
+    #[test]
+    fn mail_leaves_this_machine_unless_nothing_is_sent_or_it_goes_to_a_stand_in() {
+        for elsewhere in [
+            RESEND_API_URL,
+            "https://api.resend.com/",
+            "https://mail.example",
+            "https://127.0.0.1:4000",
+            "http://127.0.0.1.elsewhere.example",
+            "http://localhost:@elsewhere.example",
+            "not a url",
+        ] {
+            assert!(
+                mail_leaves_this_machine(true, elsewhere),
+                "{elsewhere} is not this machine"
+            );
+            assert!(
+                !mail_leaves_this_machine(false, elsewhere),
+                "a service that sends nothing sends nothing through {elsewhere}"
+            );
+        }
+        for stand_in in ["http://127.0.0.1:59925", "http://localhost:59925/"] {
+            assert!(!mail_leaves_this_machine(true, stand_in), "{stand_in}");
+        }
+
+        // As the service reports it: unconfigured, and configured for a stand-in.
+        assert!(!EmailService::new(EmailConfig::unconfigured()).leaves_this_machine());
+        let stand_in = EmailService::new(configured("http://127.0.0.1:9".into()));
+        assert!(stand_in.is_configured() && !stand_in.leaves_this_machine());
     }
 
     #[test]

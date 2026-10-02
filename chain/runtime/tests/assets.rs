@@ -10,14 +10,16 @@
 //! their sources, the placeholder deposits and the arithmetic behind them, and
 //! the runtime API.
 
+use codec::Encode;
 use demiurge_runtime::{
     assets::{deposits, AssetCallFilter, NftsDepositPerByte},
     denomination::{CGT, EXISTENTIAL_DEPOSIT},
     AccountId, Balance, Balances, Block, Drc369, Drc369Royalties, Nfts, Runtime, RuntimeCall,
-    RuntimeOrigin, System,
+    RuntimeOrigin, System, VERSION,
 };
 use pallet_drc369::runtime_api::runtime_decl_for_drc_369_api::Drc369ApiV1;
 use pallet_drc369::{CommitId, ContentRef, HashAlgo};
+use pallet_drc369_royalties::runtime_api::runtime_decl_for_drc_369_royalties_api::Drc369RoyaltiesApiV1;
 use polkadot_sdk::*;
 
 use frame_support::{
@@ -53,6 +55,12 @@ fn content(seed: u8) -> ContentRef {
         root: H256::repeat_byte(seed),
         size: 512,
     }
+}
+
+fn refusal(call: RuntimeCall, who: &AccountId) -> sp_runtime::DispatchError {
+    call.dispatch(RuntimeOrigin::signed(who.clone()))
+        .expect_err("the call is refused")
+        .error
 }
 
 fn name(bytes: &[u8]) -> BoundedVec<u8, <Runtime as pallet_nfts::Config>::StringLimit> {
@@ -632,12 +640,6 @@ fn unnest_of(item: u32) -> RuntimeCall {
     })
 }
 
-fn refusal(call: RuntimeCall, who: &AccountId) -> sp_runtime::DispatchError {
-    call.dispatch(RuntimeOrigin::signed(who.clone()))
-        .expect_err("the call is refused")
-        .error
-}
-
 /// In this runtime `pallet-drc369` is `pallet-nfts`'s `Locker` (ADR-025), so the
 /// transfer the call filter lets through cannot take a nested asset out of its
 /// parent, or move the parent from under it, for the owner or for an account the
@@ -803,5 +805,187 @@ fn a_nested_asset_cannot_be_sold() {
             1_000 * CGT
         ));
         assert_eq!(Nfts::owner(0, 1), Some(bob));
+    });
+}
+
+// ---------------------------------------------------------------------------
+// The work a buyer agreed to, and asking before paying
+// ---------------------------------------------------------------------------
+
+/// `buy_exact` is a new call beside `buy`, not a change to it: `buy` keeps its
+/// index and its bytes, so a client built against the earlier runtime still
+/// sends a call this one accepts, and `transaction_version` has no reason to
+/// move. Through the filter and the dispatcher, `buy_exact` refuses an asset
+/// revised after the buyer looked, and nothing moves.
+#[test]
+fn buy_exact_is_a_new_call_and_buy_keeps_its_encoding() {
+    let buy = RuntimeCall::Drc369Royalties(pallet_drc369_royalties::Call::buy {
+        collection: 1,
+        item: 2,
+        max_price: 3,
+    });
+    // Pallet 10, call 3, then two `u32`s and a `u128`, little-endian.
+    let mut bytes = vec![10u8, 3];
+    bytes.extend(1u32.to_le_bytes());
+    bytes.extend(2u32.to_le_bytes());
+    bytes.extend(3u128.to_le_bytes());
+    assert_eq!(buy.encode(), bytes);
+    assert_eq!(VERSION.transaction_version, 2);
+
+    let exact = |item: u32, max_price: Balance, seed: u8| {
+        RuntimeCall::Drc369Royalties(pallet_drc369_royalties::Call::buy_exact {
+            collection: 0,
+            item,
+            max_price,
+            content: content(seed),
+        })
+    };
+    // Call 4: the same arguments, then the 41-byte content reference.
+    let mut bytes = vec![10u8, 4];
+    bytes.extend(0u32.to_le_bytes());
+    bytes.extend(2u32.to_le_bytes());
+    bytes.extend(3u128.to_le_bytes());
+    bytes.push(0);
+    bytes.extend([1u8; 32]);
+    bytes.extend(512u64.to_le_bytes());
+    assert_eq!(exact(2, 3, 1).encode(), bytes);
+    assert!(AssetCallFilter::contains(&exact(2, 3, 1)));
+
+    let alice = account(1);
+    let bob = account(2);
+    chain_with(vec![
+        (alice.clone(), 10_000 * CGT),
+        (bob.clone(), 10_000 * CGT),
+    ])
+    .execute_with(|| {
+        mint(&alice, b"song");
+        assert_ok!(Drc369Royalties::list(
+            RuntimeOrigin::signed(alice.clone()),
+            0,
+            0,
+            1_000 * CGT
+        ));
+        assert_ok!(Drc369::revise(
+            RuntimeOrigin::signed(alice.clone()),
+            0,
+            0,
+            content(2),
+            None
+        ));
+
+        let alice_before = Balances::free_balance(&alice);
+        let bob_before = Balances::free_balance(&bob);
+        assert_eq!(
+            refusal(exact(0, 1_000 * CGT, 1), &bob),
+            pallet_drc369_royalties::Error::<Runtime>::ContentChanged.into()
+        );
+        assert_eq!(Balances::free_balance(&alice), alice_before);
+        assert_eq!(Balances::free_balance(&bob), bob_before);
+        assert_eq!(Nfts::owner(0, 0), Some(alice.clone()));
+
+        assert_ok!(exact(0, 1_000 * CGT, 2).dispatch(RuntimeOrigin::signed(bob.clone())));
+        assert_eq!(Balances::free_balance(&alice) - alice_before, 1_000 * CGT);
+        assert_eq!(Nfts::owner(0, 0), Some(bob));
+    });
+}
+
+/// The runtime API answers what a sale would pay and whether it could settle,
+/// at this runtime's existential deposit and with this runtime's `Locker`: a
+/// part below the existential deposit for an account that does not exist, and
+/// an asset held in place by nesting, are both reported, and asking moves
+/// nothing.
+#[test]
+fn the_runtime_api_previews_what_a_sale_would_pay() {
+    let alice = account(1);
+    let bob = account(2);
+    let dave = account(4);
+    // Holds nothing, so has no account.
+    let eve = account(5);
+    chain_with(vec![
+        (alice.clone(), 10_000 * CGT),
+        (bob.clone(), 10_000 * CGT),
+        (dave.clone(), 10_000 * CGT),
+    ])
+    .execute_with(|| {
+        let preview = |item: u32, price: Balance, buyer: Option<&AccountId>| {
+            <Runtime as Drc369RoyaltiesApiV1<Block, AccountId>>::sale_preview(
+                0,
+                item,
+                price,
+                buyer.cloned(),
+            )
+        };
+        assert_eq!(preview(0, 1_000 * CGT, None), None);
+
+        mint(&alice, b"song");
+        let terms = |who: &AccountId| -> BoundedVec<_, _> {
+            vec![(who.clone(), sp_runtime::Permill::from_percent(10))]
+                .try_into()
+                .unwrap()
+        };
+        assert_ok!(Drc369Royalties::set_terms(
+            RuntimeOrigin::signed(alice.clone()),
+            0,
+            0,
+            terms(&dave),
+            sp_runtime::Permill::zero(),
+        ));
+
+        let balances = || [&alice, &bob, &dave].map(Balances::free_balance);
+        let before = balances();
+        for buyer in [None, Some(&bob)] {
+            let answer = preview(0, 1_000 * CGT, buyer).expect("the asset exists");
+            assert_eq!(answer.source, None);
+            assert!(answer.remix.is_empty());
+            assert_eq!(answer.royalties, vec![(dave.clone(), 100 * CGT)]);
+            assert_eq!(answer.seller, alice);
+            assert_eq!(answer.seller_receives, 900 * CGT);
+            assert_eq!(answer.refusal, None);
+        }
+        assert_eq!(balances(), before);
+        assert_eq!(Nfts::owner(0, 0), Some(alice.clone()));
+        // The buyer named is the buyer tried: the holder cannot buy from
+        // themselves, which only an answer for that account can say.
+        assert_eq!(
+            preview(0, 1_000 * CGT, Some(&alice)).unwrap().refusal,
+            Some(pallet_drc369_royalties::Error::<Runtime>::OwnListing.into())
+        );
+
+        // Eve has no account, and 10% of 500 CGT is 50 CGT, half this
+        // runtime's existential deposit: no buyer can make that sale settle.
+        assert_ok!(Drc369Royalties::set_terms(
+            RuntimeOrigin::signed(alice.clone()),
+            0,
+            0,
+            terms(&eve),
+            sp_runtime::Permill::zero(),
+        ));
+        assert_eq!(EXISTENTIAL_DEPOSIT, 100 * CGT);
+        let unreceivable: sp_runtime::DispatchError =
+            pallet_drc369_royalties::Error::<Runtime>::PaymentCannotBeReceived.into();
+        for buyer in [None, Some(&bob)] {
+            let answer = preview(0, 500 * CGT, buyer).expect("the asset exists");
+            assert_eq!(answer.royalties, vec![(eve.clone(), 50 * CGT)]);
+            assert_eq!(answer.refusal, Some(unreceivable));
+            assert_eq!(preview(0, 1_000 * CGT, buyer).unwrap().refusal, None);
+        }
+
+        // A nested asset and the asset holding it: the ledger would refuse the
+        // handover, and the preview says so before anyone pays.
+        mint(&alice, b"chest");
+        mint(&alice, b"sword");
+        assert_eq!(preview(2, 1_000 * CGT, None).unwrap().refusal, None);
+        assert_ok!(nest_of(2, 1).dispatch(RuntimeOrigin::signed(alice.clone())));
+        let locked: sp_runtime::DispatchError = pallet_nfts::Error::<Runtime>::ItemLocked.into();
+        // The two mints held deposits; the previews after them move nothing.
+        let before = balances();
+        for item in [1, 2] {
+            for buyer in [None, Some(&bob)] {
+                let answer = preview(item, 1_000 * CGT, buyer).expect("the asset exists");
+                assert_eq!(answer.seller_receives, 1_000 * CGT);
+                assert_eq!(answer.refusal, Some(locked));
+            }
+        }
+        assert_eq!(balances(), before);
     });
 }

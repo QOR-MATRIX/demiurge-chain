@@ -268,6 +268,9 @@ async fn record_sign_in(db: &sqlx::PgPool, user_id: uuid::Uuid, method: &str) ->
 }
 
 /// Refresh access token
+/// POST /api/v1/auth/refresh
+///
+/// Mints new tokens for a session that still exists, and records on the session that it was used.
 pub async fn refresh_token(
     State(state): State<Arc<AppState>>,
     Json(req): Json<crate::models::RefreshRequest>,
@@ -287,6 +290,12 @@ pub async fn refresh_token(
 
     if session.is_expired() {
         return Err(AppError::TokenExpired);
+    }
+
+    // The session was used now, which its owner sees in the list of sessions. A session revoked
+    // since it was read above is not written back, and mints nothing.
+    if !session_service.record_use(&session).await? {
+        return Err(AppError::InvalidToken);
     }
 
     // Generate new tokens

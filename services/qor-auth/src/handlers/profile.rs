@@ -112,9 +112,11 @@ pub async fn upload_avatar(State(_state): State<Arc<AppState>>) -> AppResult<Jso
 /// List the caller's live sessions
 /// GET /api/v1/profile/sessions
 ///
-/// Only fields that are true today are listed. A session's IP address is not yet
-/// taken from the request, and its last activity is never updated, so neither is
-/// shown.
+/// Only fields that are true today are listed. `last_used_at` is when the session
+/// was signed in to or last minted new tokens with its refresh token, whichever is
+/// later. It is not moved by every request, so it trails real use by up to one
+/// access token's lifetime. A session's IP address is not taken from the request,
+/// so it is not shown.
 pub async fn list_sessions(
     State(state): State<Arc<AppState>>,
     Extension(user_id): Extension<Uuid>,
@@ -130,6 +132,7 @@ pub async fn list_sessions(
                 "session_id": session.session_id,
                 "device_id": session.device_id,
                 "created_at": session.created_at,
+                "last_used_at": session.last_activity,
                 "expires_at": session.expires_at,
                 "current": session.session_id == current.0,
             })
@@ -990,5 +993,197 @@ mod backup_code_regeneration_tests {
             stored == sets[0] || stored == sets[1],
             "the stored codes are one response's set"
         );
+    }
+}
+
+#[cfg(test)]
+mod session_use_tests {
+    use super::*;
+    use crate::config::AppConfig;
+    use crate::services::{EmailConfig, EmailService};
+    use axum::body::Body;
+    use axum::http::Request;
+    use chrono::{DateTime, Utc};
+    use sqlx::PgPool;
+    use tower::ServiceExt;
+
+    const PASSWORD: &str = "correct horse battery staple";
+
+    /// The whole service, as it is served. Sessions live in Redis, so these need one at
+    /// `QOR_AUTH_TEST_REDIS_URL`; CI provides it and runs them with `--include-ignored`.
+    fn service(db: PgPool) -> axum::Router {
+        let url = std::env::var("QOR_AUTH_TEST_REDIS_URL").expect("QOR_AUTH_TEST_REDIS_URL");
+        let redis = deadpool_redis::Config::from_url(url)
+            .create_pool(Some(deadpool_redis::Runtime::Tokio1))
+            .expect("redis pool");
+        crate::router(Arc::new(AppState::new(
+            AppConfig::default(),
+            db,
+            redis,
+            EmailService::new(EmailConfig::unconfigured()),
+        )))
+    }
+
+    async fn call(
+        app: &axum::Router,
+        request: axum::http::request::Builder,
+        bearer: Option<&str>,
+        body: Option<Value>,
+    ) -> (StatusCode, Value) {
+        let mut request = request.header("content-type", "application/json");
+        if let Some(bearer) = bearer {
+            request = request.header("authorization", format!("Bearer {bearer}"));
+        }
+        let body = body.map_or_else(Body::empty, |body| Body::from(body.to_string()));
+        let response = app
+            .clone()
+            .oneshot(request.body(body).expect("request"))
+            .await
+            .expect("response");
+        let status = response.status();
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("body");
+        (
+            status,
+            serde_json::from_slice(&bytes).unwrap_or(Value::Null),
+        )
+    }
+
+    async fn sign_in(app: &axum::Router) -> Value {
+        let (status, tokens) = call(
+            app,
+            Request::post("/api/v1/auth/login"),
+            None,
+            Some(json!({ "identifier": "lastused", "password": PASSWORD })),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{tokens}");
+        tokens
+    }
+
+    async fn refresh(app: &axum::Router, tokens: &Value) -> (StatusCode, Value) {
+        call(
+            app,
+            Request::post("/api/v1/auth/refresh"),
+            None,
+            Some(json!({ "refresh_token": tokens["refresh_token"] })),
+        )
+        .await
+    }
+
+    /// The caller's sessions, oldest first, as the route lists them.
+    async fn sessions(app: &axum::Router, tokens: &Value) -> Vec<Value> {
+        let (status, body) = call(
+            app,
+            Request::get("/api/v1/profile/sessions"),
+            tokens["access_token"].as_str(),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+        body["sessions"].as_array().expect("sessions").clone()
+    }
+
+    fn time(session: &Value, field: &str) -> DateTime<Utc> {
+        session[field]
+            .as_str()
+            .and_then(|text| text.parse().ok())
+            .unwrap_or_else(|| panic!("{field} should be a time, in {session}"))
+    }
+
+    #[sqlx::test]
+    #[ignore = "needs a Redis at QOR_AUTH_TEST_REDIS_URL"]
+    async fn a_refresh_moves_last_used_on_that_session_only_and_its_owner_sees_it(db: PgPool) {
+        let app = service(db);
+        let (status, body) = call(
+            &app,
+            Request::post("/api/v1/auth/register"),
+            None,
+            Some(json!({ "username": "lastused", "password": PASSWORD })),
+        )
+        .await;
+        assert_eq!(status, StatusCode::CREATED, "{body}");
+        let first = sign_in(&app).await;
+        let second = sign_in(&app).await;
+
+        // At sign-in a session was last used when it was created.
+        let listed = sessions(&app, &first).await;
+        assert_eq!(listed.len(), 2);
+        for session in &listed {
+            assert_eq!(
+                time(session, "last_used_at"),
+                time(session, "created_at"),
+                "{session}"
+            );
+        }
+
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        let before = Utc::now();
+        let (status, refreshed) = refresh(&app, &first).await;
+        assert_eq!(status, StatusCode::OK, "{refreshed}");
+        let after = Utc::now();
+
+        // The new access token belongs to the same session, and lists both.
+        let listed = sessions(&app, &refreshed).await;
+        assert_eq!(listed.len(), 2);
+        let (used, untouched) = if listed[0]["current"] == json!(true) {
+            (&listed[0], &listed[1])
+        } else {
+            (&listed[1], &listed[0])
+        };
+        assert_eq!(used["current"], json!(true));
+        assert_eq!(untouched["current"], json!(false));
+        let last_used = time(used, "last_used_at");
+        assert!(
+            last_used >= before && last_used <= after,
+            "the refreshed session was last used at the refresh: {used}"
+        );
+        assert!(last_used > time(used, "created_at"));
+        assert_eq!(
+            time(untouched, "last_used_at"),
+            time(untouched, "created_at"),
+            "the other session was not used: {untouched}"
+        );
+
+        // What is listed is these fields and no others: no address, no user agent (neither is
+        // recorded), and nothing of a token.
+        for session in &listed {
+            let mut keys: Vec<&str> = session
+                .as_object()
+                .expect("an object")
+                .keys()
+                .map(String::as_str)
+                .collect();
+            keys.sort_unstable();
+            assert_eq!(
+                keys,
+                [
+                    "created_at",
+                    "current",
+                    "device_id",
+                    "expires_at",
+                    "last_used_at",
+                    "session_id"
+                ]
+            );
+        }
+
+        // A revoked session's refresh token mints nothing, and does not bring the session back.
+        let revoked = untouched["session_id"].as_str().expect("id");
+        let (status, _) = call(
+            &app,
+            Request::delete(format!("/api/v1/profile/sessions/{revoked}")),
+            refreshed["access_token"].as_str(),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::NO_CONTENT);
+        let (status, body) = refresh(&app, &second).await;
+        assert_eq!(status, StatusCode::UNAUTHORIZED, "{body}");
+        assert!(body["access_token"].is_null());
+        let listed = sessions(&app, &refreshed).await;
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0]["session_id"], used["session_id"]);
     }
 }

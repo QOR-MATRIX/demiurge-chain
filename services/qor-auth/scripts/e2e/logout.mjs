@@ -6,8 +6,10 @@
 // restarts a Docker container; it runs only when REDIS_CONTAINER names the Redis container this
 // service uses, and is reported as SKIP otherwise, never as a pass. Exits non-zero if any check fails.
 import { execSync } from 'node:child_process';
+import { refuseRealEmail } from './_guard.mjs';
 
 const BASE = process.argv[2] ?? 'http://127.0.0.1:3100';
+await refuseRealEmail(BASE);
 let passed = 0;
 let failed = 0;
 

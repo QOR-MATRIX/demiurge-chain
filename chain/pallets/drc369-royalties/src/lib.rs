@@ -36,6 +36,26 @@
 //! hand-written `a * b / c` (AGENTS.md §5, ADR-035), and the test
 //! `the_largest_intermediate_cannot_overflow` pins that `p = u128::MAX` is safe.
 //!
+//! # What a buyer agrees to
+//!
+//! A buyer agrees to a price and to a work. `max_price` holds the price: a
+//! listing repriced after they looked cannot take more. Nothing held the work:
+//! `pallet-drc369`'s `revise` may change a listed asset's content reference, so
+//! a revision landing between the buyer's confirmation and the block sold them
+//! something they had not looked at. [`Pallet::buy_exact`] closes that. It is
+//! `buy` with one more argument, the content reference the buyer expects, and it
+//! refuses the sale whole if the asset carries any other. `buy` keeps its
+//! encoding and its behaviour, so a client that still sends it is not broken; it
+//! is also not protected.
+//!
+//! # Asking before paying
+//!
+//! [`Pallet::sale_preview`], served as the runtime API
+//! [`runtime_api::Drc369RoyaltiesApi`], answers what a sale of an asset at a
+//! price would pay, part by part, and whether it could settle. The parts come
+//! from [`split`] through the same function `buy` uses, so a client has no
+//! reason to carry a copy of the arithmetic. It moves nothing.
+//!
 //! # One level of remix, by design
 //!
 //! A sale pays its direct source only, never the source's source. Paying the
@@ -60,7 +80,9 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
+use codec::{Decode, Encode};
 use polkadot_sdk::*;
+use scale_info::TypeInfo;
 use sp_arithmetic::{
     helpers_128bit::multiply_by_rational_with_rounding, per_things::Rounding, PerThing, Permill,
 };
@@ -74,7 +96,7 @@ mod mock;
 mod tests;
 pub mod weights;
 
-pub use pallet_drc369::{CollectionId, ItemId};
+pub use pallet_drc369::{CollectionId, ContentRef, ItemId};
 
 /// An amount of CGT, in Sparks (AGENTS.md §5): the runtime's balance type.
 pub type Balance = u128;
@@ -147,14 +169,38 @@ pub fn split<AccountId: Clone>(
     }
 }
 
+/// What a sale of one asset at one price would pay, and whether it could
+/// settle: the answer [`Pallet::sale_preview`] gives. Nothing is moved to
+/// produce it.
+#[derive(Clone, PartialEq, Eq, Debug, Encode, Decode, TypeInfo)]
+pub struct SalePreview<AccountId> {
+    /// The asset this one was derived from, if it is a remix.
+    pub source: Option<(CollectionId, ItemId)>,
+    /// What each of the source's recipients would receive, in the order paid.
+    pub remix: Vec<(AccountId, Balance)>,
+    /// What each of the asset's own recipients would receive, in the order paid.
+    pub royalties: Vec<(AccountId, Balance)>,
+    /// Who holds the asset, and so who would sell it.
+    pub seller: AccountId,
+    /// What the seller would receive: everything else, rounding included.
+    /// `remix`, `royalties` and this sum to the price.
+    pub seller_receives: Balance,
+    /// Why the sale could not settle, as the error the transaction itself
+    /// would report; `None` if nothing found stops it. See
+    /// [`Pallet::sale_preview`] for what is checked with and without a buyer.
+    pub refusal: Option<sp_runtime::DispatchError>,
+}
+
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
     use frame_support::{
         pallet_prelude::*,
+        storage::{with_transaction, TransactionOutcome},
         traits::{
             fungible::{Inspect, Mutate},
             tokens::{nonfungibles_v2::Transfer, DepositConsequence, Preservation, Provenance},
+            Locker,
         },
         CloneNoBound, DebugNoBound, EqNoBound, PartialEqNoBound,
     };
@@ -318,6 +364,9 @@ pub mod pallet {
         /// the existential deposit and their account does not exist yet. The
         /// whole sale is refused rather than paying anyone else their part.
         PaymentCannotBeReceived,
+        /// The asset no longer carries the content the buyer agreed to buy: it
+        /// was revised after they looked. Nothing moves.
+        ContentChanged,
     }
 
     #[pallet::call]
@@ -467,54 +516,28 @@ pub mod pallet {
             max_price: Balance,
         ) -> DispatchResult {
             let buyer = ensure_signed(origin)?;
-            let listing = Listings::<T>::get(collection, item).ok_or(Error::<T>::NotListed)?;
-            let asset = Self::ensure_asset(collection, item)?;
-            ensure!(
-                Self::holder(collection, item).as_ref() == Some(&listing.seller),
-                Error::<T>::ListingStale
-            );
-            ensure!(buyer != listing.seller, Error::<T>::OwnListing);
-            ensure!(listing.price <= max_price, Error::<T>::PriceAboveLimit);
+            Self::do_buy(buyer, collection, item, max_price, None)
+        }
 
-            let source_terms = asset
-                .derived_from
-                .and_then(|(c, i)| RoyaltyTerms::<T>::get(c, i));
-            let own_terms = RoyaltyTerms::<T>::get(collection, item);
-            let split = split(
-                listing.price,
-                source_terms
-                    .as_ref()
-                    .map(|terms| (terms.remix, &terms.recipients[..])),
-                own_terms
-                    .as_ref()
-                    .map(|terms| &terms.recipients[..])
-                    .unwrap_or(&[]),
-            );
-
-            for (to, amount) in split.remix.iter().chain(split.royalties.iter()) {
-                Self::pay(&buyer, to, *amount)?;
-            }
-            Self::pay(&buyer, &listing.seller, split.seller)?;
-
-            <pallet_nfts::Pallet<T> as Transfer<T::AccountId>>::transfer(
-                &collection,
-                &item,
-                &buyer,
-            )?;
-            Listings::<T>::remove(collection, item);
-
-            Self::deposit_event(Event::Sold {
-                collection,
-                item,
-                from: listing.seller,
-                to: buyer,
-                price: listing.price,
-                source: asset.derived_from,
-                remix: split.remix,
-                royalties: split.royalties,
-                seller_received: split.seller,
-            });
-            Ok(())
+        /// Buy a listed asset, and only if it is still the work the buyer looked
+        /// at. `buy` with one more condition: `content` is the content reference
+        /// the buyer expects the asset to carry, and if it carries any other —
+        /// its owner revised it after the buyer looked — the sale is refused
+        /// whole with [`Error::ContentChanged`] and nothing moves.
+        ///
+        /// A separate call, not a new argument to `buy`, so that `buy` keeps its
+        /// encoding and a client that sends it keeps working.
+        #[pallet::call_index(4)]
+        #[pallet::weight(<T as Config>::WeightInfo::buy_exact())]
+        pub fn buy_exact(
+            origin: OriginFor<T>,
+            collection: CollectionId,
+            item: ItemId,
+            max_price: Balance,
+            content: ContentRef,
+        ) -> DispatchResult {
+            let buyer = ensure_signed(origin)?;
+            Self::do_buy(buyer, collection, item, max_price, Some(content))
         }
     }
 
@@ -531,6 +554,111 @@ pub mod pallet {
             pallet_nfts::Pallet::<T>::owner(collection, item)
         }
 
+        /// `buy` and `buy_exact`: what must hold before a sale is settled.
+        /// `expected` is the content the buyer agreed to, if they named it.
+        fn do_buy(
+            buyer: T::AccountId,
+            collection: CollectionId,
+            item: ItemId,
+            max_price: Balance,
+            expected: Option<ContentRef>,
+        ) -> DispatchResult {
+            let listing = Listings::<T>::get(collection, item).ok_or(Error::<T>::NotListed)?;
+            let asset = Self::ensure_asset(collection, item)?;
+            ensure!(
+                Self::holder(collection, item).as_ref() == Some(&listing.seller),
+                Error::<T>::ListingStale
+            );
+            ensure!(buyer != listing.seller, Error::<T>::OwnListing);
+            ensure!(listing.price <= max_price, Error::<T>::PriceAboveLimit);
+            if let Some(content) = expected {
+                // `current`, not `origin`: what the asset is now is what is sold.
+                ensure!(asset.current == content, Error::<T>::ContentChanged);
+            }
+
+            Self::settle(
+                &buyer,
+                &listing.seller,
+                collection,
+                item,
+                &asset,
+                listing.price,
+            )
+        }
+
+        /// How a sale of this asset at `price` is divided: [`split`], given the
+        /// source's terms and the asset's own. The one place they are read for
+        /// a sale, so a preview and a sale cannot disagree.
+        fn parts(
+            collection: CollectionId,
+            item: ItemId,
+            asset: &pallet_drc369::Asset,
+            price: Balance,
+        ) -> Split<T::AccountId> {
+            let source_terms = asset
+                .derived_from
+                .and_then(|(c, i)| RoyaltyTerms::<T>::get(c, i));
+            let own_terms = RoyaltyTerms::<T>::get(collection, item);
+            split(
+                price,
+                source_terms
+                    .as_ref()
+                    .map(|terms| (terms.remix, &terms.recipients[..])),
+                own_terms
+                    .as_ref()
+                    .map(|terms| &terms.recipients[..])
+                    .unwrap_or(&[]),
+            )
+        }
+
+        /// Settle an agreed sale: pay the remix share upstream, then the
+        /// royalties, then the seller, hand the asset over and clear its
+        /// listing. Any part failing fails all of it.
+        fn settle(
+            buyer: &T::AccountId,
+            seller: &T::AccountId,
+            collection: CollectionId,
+            item: ItemId,
+            asset: &pallet_drc369::Asset,
+            price: Balance,
+        ) -> DispatchResult {
+            let split = Self::parts(collection, item, asset, price);
+
+            for (to, amount) in split.remix.iter().chain(split.royalties.iter()) {
+                Self::pay(buyer, to, *amount)?;
+            }
+            Self::pay(buyer, seller, split.seller)?;
+
+            <pallet_nfts::Pallet<T> as Transfer<T::AccountId>>::transfer(
+                &collection,
+                &item,
+                buyer,
+            )?;
+            Listings::<T>::remove(collection, item);
+
+            Self::deposit_event(Event::Sold {
+                collection,
+                item,
+                from: seller.clone(),
+                to: buyer.clone(),
+                price,
+                source: asset.derived_from,
+                remix: split.remix,
+                royalties: split.royalties,
+                seller_received: split.seller,
+            });
+            Ok(())
+        }
+
+        /// Whether `to` can be paid `amount`: the check `pay` makes.
+        fn can_receive(to: &T::AccountId, amount: Balance) -> bool {
+            <<T as Config>::Currency as Inspect<T::AccountId>>::can_deposit(
+                to,
+                amount,
+                Provenance::Extant,
+            ) == DepositConsequence::Success
+        }
+
         /// Move `amount` from the buyer, who must keep their account alive. A
         /// payment to the buyer themselves, or of nothing, moves nothing.
         fn pay(buyer: &T::AccountId, to: &T::AccountId, amount: Balance) -> DispatchResult {
@@ -538,11 +666,7 @@ pub mod pallet {
                 return Ok(());
             }
             ensure!(
-                <<T as Config>::Currency as Inspect<T::AccountId>>::can_deposit(
-                    to,
-                    amount,
-                    Provenance::Extant
-                ) == DepositConsequence::Success,
+                Self::can_receive(to, amount),
                 Error::<T>::PaymentCannotBeReceived
             );
             <<T as Config>::Currency as Mutate<T::AccountId>>::transfer(
@@ -562,6 +686,123 @@ pub mod pallet {
         /// An asset's listing, if it is offered for sale.
         pub fn listing(collection: CollectionId, item: ItemId) -> Option<Listing<T::AccountId>> {
             Listings::<T>::get(collection, item)
+        }
+
+        /// What a sale of this asset at `price` would pay, and whether it could
+        /// settle. `None` if it is not a DRC-369 asset anyone holds. The asset
+        /// need not be listed: a seller asks before choosing a price, a buyer
+        /// before paying one. Nothing is moved.
+        ///
+        /// The parts are [`split`]'s, read through the function `buy` uses.
+        /// `refusal` is found in one of two ways:
+        ///
+        /// - **With a buyer**, the sale itself is run — every payment and the
+        ///   handover — and then undone, so the answer is the one the
+        ///   transaction would get: a buyer who cannot pay, a part that cannot
+        ///   be received, an asset held in place by nesting, or the holder
+        ///   buying from themselves.
+        /// - **Without one**, only what would stop every buyer is reported: a
+        ///   part that cannot be received, and an asset held in place.
+        ///
+        /// A price of nothing is refused either way, as `list` refuses it.
+        /// Whether the asset is listed, at what price, and what content a
+        /// buyer expects are not part of the question and are not checked.
+        pub fn sale_preview(
+            collection: CollectionId,
+            item: ItemId,
+            price: Balance,
+            buyer: Option<T::AccountId>,
+        ) -> Option<SalePreview<T::AccountId>> {
+            let asset = pallet_drc369::Pallet::<T>::asset(collection, item)?;
+            let seller = Self::holder(collection, item)?;
+            let parts = Self::parts(collection, item, &asset, price);
+            let refusal = Self::would_settle(
+                buyer.as_ref(),
+                &seller,
+                collection,
+                item,
+                &asset,
+                price,
+                &parts,
+            )
+            .err();
+            Some(SalePreview {
+                source: asset.derived_from,
+                remix: parts.remix,
+                royalties: parts.royalties,
+                seller,
+                seller_receives: parts.seller,
+                refusal,
+            })
+        }
+
+        /// The first reason a sale at `price` would be refused, if any. See
+        /// [`Pallet::sale_preview`].
+        fn would_settle(
+            buyer: Option<&T::AccountId>,
+            seller: &T::AccountId,
+            collection: CollectionId,
+            item: ItemId,
+            asset: &pallet_drc369::Asset,
+            price: Balance,
+            parts: &Split<T::AccountId>,
+        ) -> DispatchResult {
+            ensure!(price > 0, Error::<T>::ZeroPrice);
+            let Some(buyer) = buyer else {
+                // An account a part of this sale has already reached exists by
+                // the time the next part arrives, so only its first is checked.
+                let mut reached: Vec<&T::AccountId> = Vec::new();
+                let seller_part = (seller.clone(), parts.seller);
+                for (to, amount) in parts
+                    .remix
+                    .iter()
+                    .chain(parts.royalties.iter())
+                    .chain(core::iter::once(&seller_part))
+                {
+                    if *amount == 0 || reached.contains(&to) {
+                        continue;
+                    }
+                    ensure!(
+                        Self::can_receive(to, *amount),
+                        Error::<T>::PaymentCannotBeReceived
+                    );
+                    reached.push(to);
+                }
+                // What `pallet-nfts` asks before the transfer a sale ends with.
+                ensure!(
+                    !<T as pallet_nfts::Config>::Locker::is_locked(collection, item),
+                    pallet_nfts::Error::<T>::ItemLocked
+                );
+                return Ok(());
+            };
+
+            ensure!(buyer != seller, Error::<T>::OwnListing);
+            // The real settlement, undone whatever it returns.
+            with_transaction(|| {
+                TransactionOutcome::Rollback(Self::settle(
+                    buyer, seller, collection, item, asset, price,
+                ))
+            })
+        }
+    }
+}
+
+/// The runtime API a client asks about a sale through, besides raw storage.
+pub mod runtime_api {
+    use super::*;
+
+    sp_api::decl_runtime_apis! {
+        /// DRC-369 sales, asked of chain state. Nothing here moves anything.
+        pub trait Drc369RoyaltiesApi<AccountId> where AccountId: codec::Codec {
+            /// What a sale of `(collection, item)` at `price` would pay, and
+            /// whether it could settle; `None` if it is not a DRC-369 asset.
+            /// With `buyer`, the sale is tried for that account and undone.
+            fn sale_preview(
+                collection: CollectionId,
+                item: ItemId,
+                price: Balance,
+                buyer: Option<AccountId>,
+            ) -> Option<SalePreview<AccountId>>;
         }
     }
 }

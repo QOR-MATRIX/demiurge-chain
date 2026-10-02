@@ -3,7 +3,9 @@
 //   node scripts/e2e/sessions.mjs [base url, default http://127.0.0.1:3100]
 //
 // Needs qor-auth running against Postgres and Redis, and Node 22+. Exits non-zero if any check fails.
+import { refuseRealEmail } from './_guard.mjs';
 const BASE = process.argv[2] ?? 'http://127.0.0.1:3100';
+await refuseRealEmail(BASE);
 let passed = 0;
 let failed = 0;
 function check(name, ok, detail) {
@@ -54,6 +56,27 @@ const current = (r.json?.sessions ?? []).filter((s) => s.current).map((s) => s.s
 check('exactly the calling session is marked current', current.length === 1 && current[0] === sidOf(A1.access_token), current.join(','));
 check("bob's session is not in alice's list", !ids(r).includes(sidOf(B1.access_token)), 'checked');
 check('no token material in the list', !JSON.stringify(r.json ?? {}).includes(A1.access_token.slice(0, 20)), 'checked');
+
+// Last used: set at sign-in, moved by a refresh, and only on the session that refreshed
+const byId = (res, sid) => (res.json?.sessions ?? []).find((s) => s.session_id === sid);
+const mine = byId(r, sidOf(A1.access_token));
+check('a session just signed in to was last used when it was created',
+  !!mine?.last_used_at && mine.last_used_at === mine.created_at, `${mine?.last_used_at} / ${mine?.created_at}`);
+check('the list holds no address and no user agent',
+  (r.json?.sessions ?? []).every((s) => !('ip_address' in s) && !('user_agent' in s)), Object.keys(mine ?? {}).join(','));
+await new Promise((resolve) => setTimeout(resolve, 1100));
+const beforeRefresh = Date.now();
+r = await call('POST', '/api/v1/auth/refresh', { body: { refresh_token: A1.refresh_token } });
+check('alice refreshes her first session', r.status === 200 && sidOf(r.json?.access_token ?? A2.access_token) === sidOf(A1.access_token), r.status);
+r = await call('GET', '/api/v1/profile/sessions', { token: A1.access_token });
+const used = byId(r, sidOf(A1.access_token));
+const other = byId(r, sidOf(A2.access_token));
+check('the refresh moved last used on that session, to the time of the refresh',
+  Date.parse(used?.last_used_at) >= beforeRefresh - 1000 && Date.parse(used?.last_used_at) > Date.parse(used?.created_at) + 1000 && Date.parse(used?.last_used_at) <= Date.now() + 1000,
+  `${used?.last_used_at}, created ${used?.created_at}`);
+check('and left when it was created and when it expires alone',
+  used?.created_at === mine?.created_at && used?.expires_at === mine?.expires_at, `${used?.created_at} / ${used?.expires_at}`);
+check("her other session's last used did not move", !!other && other.last_used_at === other.created_at, `${other?.last_used_at} / ${other?.created_at}`);
 
 // Revoking another of one's own sessions
 r = await call('DELETE', `/api/v1/profile/sessions/${sidOf(A2.access_token)}`, { token: A1.access_token });

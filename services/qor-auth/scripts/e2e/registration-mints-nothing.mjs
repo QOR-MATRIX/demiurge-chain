@@ -9,8 +9,10 @@
 //
 // Needs qor-auth running against Postgres and Redis, and Node 22+. Exits non-zero if any check fails.
 import { createServer } from 'node:http';
+import { refuseRealEmail } from './_guard.mjs';
 
 const BASE = process.argv[2] ?? 'http://127.0.0.1:3100';
+await refuseRealEmail(BASE);
 const seen = [];
 
 function fakeNode(port) {

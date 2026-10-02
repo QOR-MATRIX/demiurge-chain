@@ -84,6 +84,37 @@ impl From<&ContentRef> for ContentRefArg {
     }
 }
 
+impl TryFrom<&ContentView> for ContentRefArg {
+    type Error = QorError;
+
+    /// The reference a person was shown, sent back to the chain as it was read
+    /// (`Drc369RoyaltiesApi`'s `buy_exact` holds a purchase to it). Refused
+    /// rather than guessed if the view is not one this client produced.
+    fn try_from(view: &ContentView) -> QorResult<Self> {
+        let algo = match view.algo.as_str() {
+            "BLAKE3-256" => HashAlgoArg::Blake3_256,
+            "SHA-256" => HashAlgoArg::Sha2_256,
+            "BLAKE2-256" => HashAlgoArg::Blake2_256,
+            other => {
+                return Err(QorError::Internal(format!(
+                    "an asset's content is hashed with {other}, which this launcher cannot name"
+                )))
+            }
+        };
+        let root: [u8; 32] = hex::decode(&view.root)
+            .ok()
+            .and_then(|bytes| bytes.try_into().ok())
+            .ok_or_else(|| {
+                QorError::Internal("an asset's content root is not 32 bytes of hex".into())
+            })?;
+        Ok(Self {
+            algo,
+            root: H256(root),
+            size: view.size,
+        })
+    }
+}
+
 #[derive(EncodeAsType)]
 pub(super) enum CommitIdArg {
     Sha1([u8; 20]),
@@ -103,21 +134,21 @@ impl From<&CommitId> for CommitIdArg {
 
 #[derive(Debug, DecodeAsType)]
 #[allow(non_camel_case_types)]
-enum HashAlgoRead {
+pub(super) enum HashAlgoRead {
     Blake3_256,
     Sha2_256,
     Blake2_256,
 }
 
 #[derive(Debug, DecodeAsType)]
-struct ContentRefRead {
+pub(super) struct ContentRefRead {
     algo: HashAlgoRead,
     root: H256,
     size: u64,
 }
 
 #[derive(Debug, DecodeAsType)]
-enum CommitIdRead {
+pub(super) enum CommitIdRead {
     Sha1([u8; 20]),
     Sha256([u8; 32]),
 }
@@ -131,8 +162,8 @@ struct AssetRead {
 }
 
 #[derive(Debug, DecodeAsType)]
-struct ItemMetadataRead {
-    data: Vec<u8>,
+pub(super) struct ItemMetadataRead {
+    pub(super) data: Vec<u8>,
 }
 
 #[derive(Debug, DecodeAsType)]
@@ -996,6 +1027,45 @@ mod tests {
     use crate::testing::Scripted;
 
     const NOWHERE: &str = "ws://127.0.0.1:1";
+
+    /// What a buyer was shown goes back to the chain unchanged for `buy_exact`,
+    /// and a view this client could not have produced is refused, not guessed.
+    #[test]
+    fn the_content_a_buyer_saw_goes_back_to_the_chain_as_it_was_read() {
+        let reference = ContentRef {
+            algo: HashAlgo::Blake3_256,
+            root: [0xab; 32],
+            size: 4_096,
+        };
+        let view = ContentView::from(&reference);
+        let arg = ContentRefArg::try_from(&view).unwrap();
+        assert!(matches!(arg.algo, HashAlgoArg::Blake3_256));
+        assert_eq!((arg.root, arg.size), (H256([0xab; 32]), 4_096));
+
+        // Upper-case hex is still the same root.
+        let upper = ContentView {
+            root: view.root.to_uppercase(),
+            ..view.clone()
+        };
+        assert_eq!(ContentRefArg::try_from(&upper).unwrap().root, arg.root);
+
+        for broken in [
+            ContentView {
+                algo: "MD5".into(),
+                ..view.clone()
+            },
+            ContentView {
+                root: "abcd".into(),
+                ..view.clone()
+            },
+            ContentView {
+                root: "zz".repeat(32),
+                ..view.clone()
+            },
+        ] {
+            assert!(ContentRefArg::try_from(&broken).is_err(), "{broken:?}");
+        }
+    }
 
     fn request() -> MintRequest {
         MintRequest {

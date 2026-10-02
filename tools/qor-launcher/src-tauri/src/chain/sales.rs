@@ -65,7 +65,7 @@ use crate::vault::derive::address_of;
 use crate::vault::{normalise_address, Vault};
 use crate::{Confirm, Prompt};
 
-use super::assets::{OwnedAsset, TradeItem};
+use super::assets::{ContentRefArg, OwnedAsset, TradeItem};
 use super::{ChainClient, Connection};
 
 /// An account, as the chain keys it.
@@ -431,6 +431,9 @@ struct SaleState {
     own_terms: Option<TermsRead>,
     source_terms: Option<TermsRead>,
     listing: Option<ListingRead>,
+    /// Why the chain will not move this asset, when it is nested or holds
+    /// nested assets (ADR-065). A sale of it fails with `ItemLocked`.
+    held_in_place: Option<String>,
     existential_deposit: u128,
     /// The free balance of every account a sale of this asset could pay.
     free: Vec<(Account, u128)>,
@@ -590,6 +593,13 @@ impl SaleState {
             );
         }
 
+        // A nested asset, or one holding nested assets, can be listed, and the
+        // chain refuses its sale (`ItemLocked`, ADR-065). Said before anyone
+        // is asked.
+        if let Some(reason) = &self.held_in_place {
+            return Some(reason.clone());
+        }
+
         let breakdown = self.breakdown(listing.price, Some(buyer));
         if let Some(blocked) = breakdown.blocked {
             return Some(blocked);
@@ -687,6 +697,29 @@ impl SaleState {
     }
 }
 
+/// Why the chain will not move an asset, in words: it is nested inside another,
+/// or it holds nested assets (`pallet-drc369`'s `is_held_in_place`, ADR-065).
+/// `None` when it stands free. One sentence for the Market and for a purchase,
+/// so the two cannot say different things about the same asset.
+pub(super) fn held_in_place(parent: Option<(u32, u32)>, children: u32) -> Option<String> {
+    match (parent, children) {
+        (Some((collection, item)), _) => Some(format!(
+            "This asset is nested inside asset {collection}/{item}, and the chain does not move \
+             a nested asset. It cannot be bought until its holder takes it out."
+        )),
+        (None, 0) => None,
+        (None, 1) => Some(
+            "This asset holds another asset nested inside it, and the chain does not move an \
+             asset that holds others. It cannot be bought until its holder takes that out."
+                .into(),
+        ),
+        (None, count) => Some(format!(
+            "This asset holds {count} assets nested inside it, and the chain does not move an \
+             asset that holds others. It cannot be bought until its holder takes them out."
+        )),
+    }
+}
+
 fn no_such_asset(collection: u32, item: u32) -> QorError {
     QorError::Qontrol(format!(
         "There is no DRC-369 asset {collection}/{item} on this chain. Check the number with \
@@ -717,6 +750,12 @@ pub(super) fn in_words(error: QorError) -> QorError {
     } else if text.contains("PaymentCannotBeReceived") {
         "One of the accounts this sale pays cannot receive its part, so the chain refused the \
          whole sale and nothing moved."
+    } else if text.contains("ContentChanged") {
+        "The seller revised this asset before your purchase settled, so it no longer holds \
+         the content you looked at. Nothing moved. Look the asset up again."
+    } else if text.contains("ItemLocked") {
+        "This asset is nested inside another, or holds nested assets, so the chain would not \
+         move it and nothing moved."
     } else if text.contains("NotOwner") {
         "This account does not hold that asset any more, so nothing changed."
     } else if text.contains("ZeroPrice") {
@@ -861,6 +900,35 @@ impl ChainClient {
                 None => None,
             };
 
+        let held_in_place = {
+            let parent = storage
+                .try_fetch(
+                    dynamic::storage::<(u32, u32), (u32, u32)>("Drc369", "ParentOf"),
+                    (collection, item),
+                )
+                .await
+                .map_err(|e| QorError::Rpc(format!("could not read the asset's nesting: {e}")))?
+                .map(|value| value.decode())
+                .transpose()
+                .map_err(|e| {
+                    QorError::Rpc(format!("the asset's nesting could not be decoded: {e}"))
+                })?;
+            let children = storage
+                .try_fetch(
+                    dynamic::storage::<(u32, u32), u32>("Drc369", "ChildCount"),
+                    (collection, item),
+                )
+                .await
+                .map_err(|e| QorError::Rpc(format!("could not read the asset's nesting: {e}")))?
+                .map(|value| value.decode())
+                .transpose()
+                .map_err(|e| {
+                    QorError::Rpc(format!("the asset's nesting could not be decoded: {e}"))
+                })?
+                .unwrap_or(0);
+            held_in_place(parent, children)
+        };
+
         let existential_deposit = at
             .constants()
             .entry(dynamic::constant::<u128>("Balances", "ExistentialDeposit"))
@@ -914,6 +982,7 @@ impl ChainClient {
             own_terms,
             source_terms,
             listing,
+            held_in_place,
             existential_deposit,
             free,
             viewer,
@@ -1140,8 +1209,15 @@ impl ChainClient {
             .ok_or_else(|| QorError::Internal("a sale without a listing".into()))?;
 
         let breakdown = state.breakdown(listing.price, Some(&buyer));
-        let call =
-            dynamic::transaction("Drc369Royalties", "buy", (collection, item, listing.price));
+        // `buy_exact`, not `buy`: the content the buyer was shown goes with the
+        // price, so a revision that lands after this point is refused by the
+        // chain (`ContentChanged`) and not only by the check above.
+        let content = ContentRefArg::try_from(&state.asset.current)?;
+        let call = dynamic::transaction(
+            "Drc369Royalties",
+            "buy_exact",
+            (collection, item, listing.price, content),
+        );
         let finalised = self
             .sign_and_finalise(
                 &connection,
@@ -1573,6 +1649,7 @@ mod tests {
                 seller: AccountId32(SELLER),
                 price,
             }),
+            held_in_place: None,
             existential_deposit: ED,
             free: vec![(SELLER, 500 * SPARKS_PER_CGT), (CREATOR, ED), (SOURCE, ED)],
             viewer: Some((BUYER, rich())),
@@ -1766,6 +1843,42 @@ mod tests {
             ..short
         };
         assert_eq!(listed.cannot_buy(&BUYER, &enough), None);
+    }
+
+    /// A nested asset, or one holding nested assets, can be listed and cannot be
+    /// sold (`ItemLocked`, ADR-065): the buyer is told so before anyone is asked,
+    /// and its own seller is still told it is their listing.
+    #[test]
+    fn an_asset_held_in_place_cannot_be_bought_and_says_why() {
+        let mut state = remix_listed_at(1_000 * SPARKS_PER_CGT);
+        assert_eq!(held_in_place(None, 0), None);
+
+        state.held_in_place = held_in_place(Some((4, 9)), 0);
+        let refused = state.cannot_buy(&BUYER, &rich()).unwrap();
+        assert!(refused.contains("nested inside asset 4/9"), "{refused}");
+        let root = state.asset.current.root.clone();
+        assert_eq!(
+            state.refuses(
+                &BUYER,
+                &rich(),
+                Seen {
+                    price_sparks: 1_000 * SPARKS_PER_CGT,
+                    root: &root
+                }
+            ),
+            Some(refused)
+        );
+        assert!(state
+            .cannot_buy(&SELLER, &rich())
+            .unwrap()
+            .contains("your own listing"));
+
+        state.held_in_place = held_in_place(None, 1);
+        assert!(state
+            .cannot_buy(&BUYER, &rich())
+            .unwrap()
+            .contains("holds another asset"));
+        assert!(held_in_place(None, 3).unwrap().contains("holds 3 assets"));
     }
 
     /// Nobody is asked to approve a price they did not see, or bytes they did not
@@ -2123,6 +2236,11 @@ mod tests {
             ("OwnListing", "your own listing"),
             ("PaymentCannotBeReceived", "cannot receive its part"),
             ("NotOwner", "does not hold that asset"),
+            ("ItemLocked", "nested inside another"),
+            (
+                "ContentChanged",
+                "no longer holds the content you looked at",
+            ),
         ] {
             let words = failed(error);
             assert!(words.contains(expected), "{error}: {words}");

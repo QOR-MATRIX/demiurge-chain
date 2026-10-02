@@ -352,6 +352,11 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   buyer looked is refused before anyone is asked, a void listing can be cleared by anyone, and the chain's
   own `PriceAboveLimit` is put in words. The test sends `set_terms` and a remix mint itself, because the
   launcher has no surface for either. All four live tests passed together on 2026-10-01 (377 s).
+- **A purchase is held to the work the buyer saw, on chain** (2026-10-02). Buy sends
+  `Drc369Royalties::buy_exact` with the price and the content reference that were on screen, so a revision
+  landing between the dialog and the block is refused by the chain (`ContentChanged`, put in words) and not only
+  by the host's check before signing. It needs a node at `spec_version` 6 or later. The five live tests passed
+  against one on 2026-10-02 (377 s), the sale among them.
 - **What a sale pays is the chain's arithmetic, not the launcher's.** `src-tauri/src/chain/sales.rs` carries
   the pallet's `split`, line for line, on `sp-arithmetic` at the version the pinned SDK release uses
   (`=28.0.1`, ADR-033 rule 1): `Permill::mul_floor` and `multiply_by_rational_with_rounding`, no float and no

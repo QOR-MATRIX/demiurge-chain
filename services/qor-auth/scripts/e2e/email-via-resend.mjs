@@ -18,8 +18,10 @@
 // Exits non-zero if any check fails.
 import { execSync } from 'node:child_process';
 import { createServer } from 'node:http';
+import { refuseRealEmail } from './_guard.mjs';
 
 const BASE = process.argv[2] ?? 'http://127.0.0.1:3100';
+await refuseRealEmail(BASE);
 const PORT = Number(process.env.FAKE_RESEND_PORT ?? 59925);
 const KEY = process.env.RESEND_API_KEY ?? 're_e2e_key';
 const FROM = process.env.EMAIL_FROM ?? 'Demiurge-Cloud <noreply@example.invalid>';

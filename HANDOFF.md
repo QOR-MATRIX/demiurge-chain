@@ -1,6 +1,8 @@
 # Handoff
 
-**Last session:** 13 to 30 September 2026. **The newest work is §4 item 32 (29 and 30 September), HALF DONE: the code is
+**Newest: §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
+verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
+the e2e email guard). Uncommitted.** **Last session before it:** 13 to 30 September 2026. **The newest work is §4 item 32 (29 and 30 September), HALF DONE: the code is
 public as `ALaustrup/demiurge-chain` (no history), CI is back on GitHub Actions, and QOR ID is moving to Railway. The
 owner's three steps were still not done on 30 September, so the assistant's five could not start; that day's work was
 the independent items listed at the end of item 32. `id.qorsync.dev` is DOWN (530) since the PC's Docker Desktop is
@@ -1235,6 +1237,15 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
         - **Traps, to move to §5:** a view check waiting for "the chain was asked again" passes on an unrelated
           re-read (Inventory reloads when the active account object is replaced, which may also flicker in the
           real app); `cargo test --lib chain::live -- --ignored` also runs `vault::keychain::live`.
+      - **A devnet plan exists, undecided: `docs/architecture/DEVNET_PLAN.md`** (an agent's research, 1 October). It
+        recommends Railway with two validators and a separate RPC node, which needs an ADR superseding ADR-015 for
+        the nodes; cost is NOT measured (an illustration of about $11-22 a month from Railway's unit prices).
+        **Missing in `chain/node/`, read in the code:** no specification without the well-known Alice/Bob keys, no
+        `key` subcommand mounted, no container image for `chain/` (the root `Dockerfile` and `fly.toml` still
+        describe the deleted `framework/`), no first-boot key script. **The hard question is the owner's:** a
+        non-dev genesis with no CGT means nobody can mint and the sudo key cannot sign (it needs the existential
+        deposit), and AGENTS §5 forbids creating CGT outside `--dev`. Two validators also stop finalising whenever
+        either restarts. Nine owner decisions are listed in the plan.
       - **Launcher 0.1.5 built, on the owner's instruction** (was 0.1.0 everywhere, the installed copy included):
         `package.json`, `package-lock.json`, `src-tauri/Cargo.toml`, `Cargo.lock` and `tauri.conf.json`.
         `npm run app:build` produced `src-tauri/target/release/bundle/msi/QOR Launcher_0.1.5_x64_en-US.msi` and
@@ -1248,6 +1259,55 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       **Trap for later:** nothing pins these files' line endings, so a Windows build and a Linux build of QOR ID
       cannot share a database; a `.gitattributes` `eol=lf` on `services/qor-auth/migrations/*.sql` would end it, and
       would in turn need the same checksum correction on the launcher's local database (`qor-local-pg`).
+
+33. **2 October 2026: unrecorded, half-finished work found in the tree, finished and verified. UNCOMMITTED.** The
+    owner said "proceed". The working tree held a previous session's changes in three areas that `HANDOFF.md` did not
+    mention, cut off mid-work. What they are, what was wrong, and what was run:
+    - **Chain, `spec_version` 6.** `Drc369Royalties::buy_exact(collection, item, max_price, content)`, call index 4:
+      `buy` that also refuses with `ContentChanged` if the asset's `current` reference is not `content`. `buy` keeps
+      its index and encoding (pinned in `runtime/tests/assets.rs`), so `transaction_version` stays 2. And the runtime
+      API `Drc369RoyaltiesApi::sale_preview(collection, item, price, buyer)` — the parts through the same function
+      `buy` uses, and `refusal`: with a buyer the real settlement is run inside `with_transaction` and rolled back;
+      without one, zero price, unreceivable parts and `ItemLocked` only. **Wrong when found:** one clippy error in
+      `runtime/tests/assets.rs` (redundant closure). **Run:** `cargo fmt --check`, `clippy --workspace --all-targets
+      -D warnings`, **`cargo test --workspace` 118 passed** without `SKIP_WASM_BUILD` (was 109: royalties 26, runtime
+      asset tests 16). Release node rebuilt (no `sudo` feature) and **running now** as `--dev --tmp` (pid 33028 at
+      the time, log `%LOCALAPPDATA%\qor-ops\node-spec6.log`); it reports `spec_version` 6 and serves **99,901
+      bytes** of metadata without `Sudo` (the mainnet shape; the `sudo` shape was not re-measured). `PROTOCOL.md`
+      and `chain/README.md` updated.
+    - **Launcher.** `chain/market.rs` (787 lines) and the command `drc369_market`: every listing read by walking
+      `Drc369Royalties::Listings` at the finalised block, paged, bounded, details only for the window asked
+      (L7.2's host half). Buy now knows nesting (`Drc369::ParentOf` / `ChildCount`; `ItemLocked` in words).
+      **Wrong when found:** `market.rs` never formatted, and **four user-facing sentences in `sales.rs` broken** — a
+      lost `\` continuation left a run of spaces inside each string. Likely cause: **a heredoc through the Bash tool
+      turns `\` + newline into nothing**; it happened again in this session and was fixed with Edit. Trap for §5:
+      never write Rust string continuations through a shell heredoc. **Added this session:** Buy sends **`buy_exact`**
+      with the content reference that was on screen (`ContentRefArg::try_from(&ContentView)` in `assets.rs`, refusing
+      an unknown algorithm or a root that is not 32 bytes), and `ContentChanged` is put in words; this closes the
+      "revision landing between the dialog and the block" weakness in item 32. **Run:** fmt, clippy `-D warnings`,
+      **193 host tests** (was 182), and **the five live tests against the spec-6 node, all passed (377 s,
+      `%LOCALAPPDATA%\qor-ops\integration-spec6.log`)**, the sale through `buy_exact`. A launcher now needs a node at
+      spec 6 or later to buy. **Not done:** no Market screen (no `.tsx` change, nothing in `ipc.ts`);
+      `drc369_market` has never run against a node; the host still carries its own copy of `split` instead of
+      calling `sale_preview`; `npm run check` was not run (no view changed).
+    - **QOR ID.** Sessions record `last_activity` at each refresh (`SessionService::record_use`, Redis `SET … XX
+      KEEPTTL`, so a revoked session is not revived and expiry never moves; refresh refuses if the session is gone),
+      shown as `last_used_at`; `GET /health` gains `email_leaves_this_machine`; every e2e script imports
+      `scripts/e2e/_guard.mjs` and exits 2 unless that field is exactly `false`; `start-local.ps1` gained an email
+      stand-in mode. The refresh and the session list joined the log check (AGENTS §9). **Wrong when found:**
+      `mail_leaves_this_machine` was a stub returning `false` — the unsafe answer, which would have let every e2e
+      script run against a real-mail service — with its test failing and `on_this_machine` unused. Implemented as
+      `sends && !on_this_machine(api_url)`. **Run** against throwaway `qa1002-pg` (Postgres 16, port 55435) and
+      `qa1002-redis` (7.4, 56381), both `--rm`: fmt, clippy `-D warnings`, **136 passed with `--include-ignored`**
+      (was 130). **Not run:** the e2e scripts themselves, including the five new `sessions.mjs` checks.
+    - **Owner's decisions owed (AGENTS §8, names):** the call `buy_exact`, the error `ContentChanged`, the runtime
+      API `Drc369RoyaltiesApi` / `sale_preview`, the launcher module `chain/market.rs` and command `drc369_market`,
+      the health field `email_leaves_this_machine`. Also: `/health` now tells anyone one bit of configuration
+      (whether a deployment sends real mail); the code comment argues it is already inferable from `forgot-password`.
+    - **Documents:** `PROTOCOL.md`, `chain/README.md`, the launcher README, `SYSTEMS.md`, `OWNER.md`. `DIRECTION.md`
+      not changed: no roadmap item is ticked by this.
+    - **Next:** the launcher's preview through `sale_preview` (removes the host copy of `split`), then the Market
+      screen; then CI and the devnet (item 32's `DEVNET_PLAN.md`, waiting on the owner's nine answers).
 
 ## 5. Traps, so nobody re-learns them
 

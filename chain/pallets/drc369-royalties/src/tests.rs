@@ -619,3 +619,331 @@ fn a_part_that_cannot_be_received_refuses_the_whole_sale() {
         assert_eq!(holder(work), Some(account(CAROL)));
     });
 }
+
+// ---------------------------------------------------------------------------
+// The work a buyer agreed to
+// ---------------------------------------------------------------------------
+
+#[test]
+fn buy_exact_refuses_an_asset_revised_after_the_buyer_looked() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        assert_ok!(set_terms(
+            ALICE,
+            work,
+            &[(DAVE, percent(10))],
+            Permill::zero()
+        ));
+        assert_ok!(Royalties::list(signed(ALICE), work.0, work.1, 1_000));
+
+        // Carol looks at content 1. Before her purchase lands, Alice points the
+        // asset at something else. The price has not moved.
+        assert_ok!(Drc369::revise(
+            signed(ALICE),
+            work.0,
+            work.1,
+            content(2),
+            None
+        ));
+        let before = snapshot(&[ALICE, CAROL, DAVE]);
+        assert_noop!(
+            Royalties::buy_exact(signed(CAROL), work.0, work.1, 1_000, content(1)),
+            Error::<Test>::ContentChanged
+        );
+        assert_eq!(changes(&before), vec![(ALICE, 0), (CAROL, 0), (DAVE, 0)]);
+        assert_eq!(holder(work), Some(account(ALICE)));
+        assert!(Royalties::listing(work.0, work.1).is_some());
+
+        // It is the reference the asset carries now that is sold, not the one
+        // it was minted with: agreeing to the revision buys it.
+        assert_ok!(Royalties::buy_exact(
+            signed(CAROL),
+            work.0,
+            work.1,
+            1_000,
+            content(2)
+        ));
+        assert_eq!(
+            changes(&before),
+            vec![(ALICE, 900), (CAROL, -1_000), (DAVE, 100)]
+        );
+        assert_eq!(holder(work), Some(account(CAROL)));
+        assert_eq!(Royalties::listing(work.0, work.1), None);
+    });
+}
+
+#[test]
+fn buy_exact_keeps_every_rule_buy_has() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        assert_noop!(
+            Royalties::buy_exact(signed(CAROL), work.0, work.1, 1_000, content(1)),
+            Error::<Test>::NotListed
+        );
+        assert_ok!(Royalties::list(signed(ALICE), work.0, work.1, 1_000));
+        assert_noop!(
+            Royalties::buy_exact(signed(CAROL), work.0, work.1, 999, content(1)),
+            Error::<Test>::PriceAboveLimit
+        );
+        assert_noop!(
+            Royalties::buy_exact(signed(ALICE), work.0, work.1, 1_000, content(1)),
+            Error::<Test>::OwnListing
+        );
+        assert_noop!(
+            Royalties::buy_exact(RuntimeOrigin::none(), work.0, work.1, 1_000, content(1)),
+            DispatchError::BadOrigin
+        );
+        assert_ok!(Nfts::transfer(signed(ALICE), work.0, work.1, account(BOB)));
+        assert_noop!(
+            Royalties::buy_exact(signed(CAROL), work.0, work.1, 1_000, content(1)),
+            Error::<Test>::ListingStale
+        );
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Asking before paying
+// ---------------------------------------------------------------------------
+
+/// A remix of Alice's work, minted by Bob, with terms on both. Returns the
+/// original and the remix.
+fn a_remix_with_terms() -> ((CollectionId, ItemId), (CollectionId, ItemId)) {
+    let original = mint(ALICE, 1, None);
+    assert_ok!(set_terms(
+        ALICE,
+        original,
+        &[(ALICE, percent(30)), (DAVE, percent(10))],
+        percent(20)
+    ));
+    let remix = mint(BOB, 2, Some(original));
+    assert_ok!(set_terms(
+        BOB,
+        remix,
+        &[(BOB, percent(50))],
+        Permill::zero()
+    ));
+    (original, remix)
+}
+
+#[test]
+fn a_preview_names_the_parts_a_sale_then_pays() {
+    new_test_ext().execute_with(|| {
+        assert_eq!(Royalties::sale_preview(0, 0, 1_000, None), None);
+
+        let (original, remix) = a_remix_with_terms();
+        let expected = SalePreview {
+            source: Some(original),
+            remix: vec![(account(ALICE), 1_500), (account(DAVE), 500)],
+            royalties: vec![(account(BOB), 4_000)],
+            seller: account(BOB),
+            seller_receives: 4_000,
+            refusal: None,
+        };
+        // Asked before it is listed, with and without a buyer.
+        assert_eq!(
+            Royalties::sale_preview(remix.0, remix.1, 10_000, None),
+            Some(expected.clone())
+        );
+        assert_eq!(
+            Royalties::sale_preview(remix.0, remix.1, 10_000, Some(account(CAROL))),
+            Some(expected.clone())
+        );
+
+        // The sale pays exactly what the preview said.
+        assert_ok!(Royalties::list(signed(BOB), remix.0, remix.1, 10_000));
+        assert_ok!(Royalties::buy(signed(CAROL), remix.0, remix.1, 10_000));
+        match events().last() {
+            Some(Event::Sold {
+                source,
+                remix: upstream,
+                royalties,
+                seller_received,
+                from,
+                ..
+            }) => {
+                assert_eq!(*source, expected.source);
+                assert_eq!(*upstream, expected.remix);
+                assert_eq!(*royalties, expected.royalties);
+                assert_eq!(*seller_received, expected.seller_receives);
+                assert_eq!(*from, expected.seller);
+            }
+            other => panic!("expected Sold, got {other:?}"),
+        }
+    });
+}
+
+#[test]
+fn a_preview_with_a_buyer_moves_nothing() {
+    new_test_ext().execute_with(|| {
+        let (_, remix) = a_remix_with_terms();
+        assert_ok!(Royalties::list(signed(BOB), remix.0, remix.1, 10_000));
+        let before = snapshot(&[ALICE, BOB, CAROL, DAVE]);
+        let events_before = System::events().len();
+
+        let preview = Royalties::sale_preview(remix.0, remix.1, 10_000, Some(account(CAROL)));
+        assert_eq!(preview.unwrap().refusal, None);
+
+        assert_eq!(
+            changes(&before),
+            vec![(ALICE, 0), (BOB, 0), (CAROL, 0), (DAVE, 0)]
+        );
+        assert_eq!(holder(remix), Some(account(BOB)));
+        assert!(Royalties::listing(remix.0, remix.1).is_some());
+        assert_eq!(System::events().len(), events_before);
+    });
+}
+
+#[test]
+fn a_preview_says_why_a_sale_could_not_settle() {
+    new_test_ext().execute_with(|| {
+        let refusal = |asset: (CollectionId, ItemId), price, buyer: Option<u8>| {
+            Royalties::sale_preview(asset.0, asset.1, price, buyer.map(account))
+                .unwrap()
+                .refusal
+        };
+        let work = mint(ALICE, 1, None);
+        // NOBODY has no account, and 1% of 500 is 5, below the existential
+        // deposit of 10: the part cannot be received, whoever buys.
+        assert_ok!(set_terms(
+            ALICE,
+            work,
+            &[(NOBODY, percent(1))],
+            Permill::zero()
+        ));
+        let unreceivable: DispatchError = Error::<Test>::PaymentCannotBeReceived.into();
+        assert_eq!(refusal(work, 500, None), Some(unreceivable));
+        assert_eq!(refusal(work, 500, Some(CAROL)), Some(unreceivable));
+        // And the sale itself agrees.
+        assert_ok!(Royalties::list(signed(ALICE), work.0, work.1, 500));
+        assert_noop!(
+            Royalties::buy(signed(CAROL), work.0, work.1, 500),
+            Error::<Test>::PaymentCannotBeReceived
+        );
+        // At a price where the part reaches the existential deposit, nothing
+        // stops it.
+        assert_eq!(refusal(work, 1_000, None), None);
+        assert_eq!(refusal(work, 1_000, Some(CAROL)), None);
+
+        // A price of nothing, the holder buying from themselves, and a buyer
+        // without the money.
+        assert_eq!(
+            refusal(work, 0, None),
+            Some(Error::<Test>::ZeroPrice.into())
+        );
+        assert_eq!(
+            refusal(work, 0, Some(CAROL)),
+            Some(Error::<Test>::ZeroPrice.into())
+        );
+        assert_eq!(
+            refusal(work, 1_000, Some(ALICE)),
+            Some(Error::<Test>::OwnListing.into())
+        );
+        assert_eq!(
+            refusal(work, 2 * START, Some(CAROL)),
+            Some(TokenError::FundsUnavailable.into())
+        );
+        // Without a buyer, nobody's funds are in question.
+        assert_eq!(refusal(work, 2 * START, None), None);
+    });
+}
+
+#[test]
+fn a_preview_knows_an_earlier_part_opens_the_account_a_later_one_reaches() {
+    new_test_ext().execute_with(|| {
+        // NOBODY is owed twice by one sale: 500 as the source's recipient,
+        // which opens their account, then 5 as the remix's own, which alone
+        // would be below the existential deposit.
+        let original = mint(ALICE, 1, None);
+        assert_ok!(set_terms(
+            ALICE,
+            original,
+            &[(NOBODY, percent(10))],
+            percent(50)
+        ));
+        let remix = mint(BOB, 2, Some(original));
+        assert_ok!(set_terms(
+            BOB,
+            remix,
+            &[(NOBODY, percent(1))],
+            Permill::zero()
+        ));
+
+        let preview = Royalties::sale_preview(remix.0, remix.1, 1_000, None).unwrap();
+        assert_eq!(preview.remix, vec![(account(NOBODY), 500)]);
+        assert_eq!(preview.royalties, vec![(account(NOBODY), 5)]);
+        assert_eq!(preview.refusal, None);
+        assert_eq!(
+            Royalties::sale_preview(remix.0, remix.1, 1_000, Some(account(CAROL)))
+                .unwrap()
+                .refusal,
+            None
+        );
+
+        // The sale agrees: it settles, and pays both parts.
+        assert_ok!(Royalties::list(signed(BOB), remix.0, remix.1, 1_000));
+        assert_ok!(Royalties::buy(signed(CAROL), remix.0, remix.1, 1_000));
+        assert_eq!(free(NOBODY), 505);
+    });
+}
+
+/// AGENTS.md §5 for the preview: it forms no intermediate of its own. At the
+/// largest price a `u128` carries, with every share at its most, the parts come
+/// from `split` unchanged and still sum to the price, and trying the sale for a
+/// buyer is refused as the sale itself is, not ended by an overflow.
+#[test]
+fn a_preview_at_the_largest_price_cannot_overflow() {
+    new_test_ext().execute_with(|| {
+        let original = mint(ALICE, 1, None);
+        assert_ok!(set_terms(
+            ALICE,
+            original,
+            &[(ALICE, ppm(999_999)), (DAVE, ppm(1))],
+            Permill::one()
+        ));
+        let remix = mint(BOB, 2, Some(original));
+        assert_ok!(set_terms(
+            BOB,
+            remix,
+            &[(DAVE, Permill::one())],
+            Permill::zero()
+        ));
+
+        for price in [10u128.pow(32), u128::MAX - 1, u128::MAX] {
+            let preview = Royalties::sale_preview(remix.0, remix.1, price, None).unwrap();
+            let expected = split(
+                price,
+                Some((
+                    Permill::one(),
+                    &[(account(ALICE), ppm(999_999)), (account(DAVE), ppm(1))][..],
+                )),
+                &[(account(DAVE), Permill::one())],
+            );
+            assert_eq!(preview.remix, expected.remix);
+            assert_eq!(preview.royalties, expected.royalties);
+            assert_eq!(preview.seller_receives, expected.seller);
+            let total = preview
+                .remix
+                .iter()
+                .chain(preview.royalties.iter())
+                .map(|(_, amount)| *amount)
+                .sum::<u128>()
+                + preview.seller_receives;
+            assert_eq!(total, price);
+
+            // Tried for a buyer, it is refused in the words the sale itself
+            // uses, whatever those are at this size, and moves nothing.
+            let before = snapshot(&[ALICE, BOB, CAROL, DAVE]);
+            let tried = Royalties::sale_preview(remix.0, remix.1, price, Some(account(CAROL)))
+                .unwrap()
+                .refusal;
+            assert_ok!(Royalties::list(signed(BOB), remix.0, remix.1, price));
+            let sale = Royalties::buy(signed(CAROL), remix.0, remix.1, price);
+            assert_eq!(tried, sale.err());
+            assert!(tried.is_some());
+            assert_eq!(
+                changes(&before),
+                vec![(ALICE, 0), (BOB, 0), (CAROL, 0), (DAVE, 0)]
+            );
+        }
+    });
+}

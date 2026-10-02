@@ -14,18 +14,41 @@
   - QOR ID runs from services/qor-auth/target/release, built first if missing.
     Its JWT secrets are generated once into %LOCALAPPDATA%\qor-local\secrets.env,
     outside the repository, and never printed.
+  - QOR ID sends no real email, whatever this computer's environment holds. The
+    script takes RESEND_API_KEY, EMAIL_FROM, BASE_URL and RESEND_WEBHOOK_SECRET
+    away from the process it starts, and points RESEND_API_URL at this machine
+    (127.0.0.1:59925, where the end-to-end scripts' stand-in for Resend
+    listens), so even a key supplied some other way cannot reach Resend. This is
+    the default because the end-to-end scripts register addresses nobody holds,
+    and sent for real they bounce and count against the sending domain.
+      -EmailStandIn   email is on, and goes to that stand-in: what
+                      services/qor-auth/scripts/e2e/email-via-resend.mjs needs.
+      -SendRealEmail  the process inherits the environment's email settings and
+                      sends real mail through Resend. Do not run the end-to-end
+                      scripts against it; they refuse.
+    Once QOR ID answers, the script asks it whether its mail leaves this
+    machine, and stops it if the answer is yes without -SendRealEmail.
   - The chain runs `demiurge-node --dev --tmp`: a fresh chain on every start.
   - Logs go to %LOCALAPPDATA%\qor-local\logs.
 
 .EXAMPLE
   powershell -File tools/qor-launcher/scripts/start-local.ps1
   powershell -File tools/qor-launcher/scripts/start-local.ps1 -NoChain
+  powershell -File tools/qor-launcher/scripts/start-local.ps1 -NoChain -EmailStandIn
+  powershell -File tools/qor-launcher/scripts/start-local.ps1 -SendRealEmail
   powershell -File tools/qor-launcher/scripts/start-local.ps1 -Stop
 #>
 param(
   [switch]$Stop,
-  [switch]$NoChain
+  [switch]$NoChain,
+  # Email on, to the stand-in for Resend on this machine. Nothing leaves it.
+  [switch]$EmailStandIn,
+  # QOR ID inherits the environment's email settings and sends real mail.
+  [switch]$SendRealEmail
 )
+if ($EmailStandIn -and $SendRealEmail) {
+  throw 'Choose one of -EmailStandIn and -SendRealEmail. Without either, QOR ID sends no email.'
+}
 
 # Native tools (docker) write routine notices to stderr, which Windows PowerShell
 # 5 turns into errors; this script stops only on its own checks, by throwing.
@@ -120,13 +143,40 @@ $authEnv = @{
   JWT_ACCESS_SECRET = $env_['JWT_ACCESS_SECRET']
   JWT_REFRESH_SECRET = $env_['JWT_REFRESH_SECRET']
 }
-foreach ($k in $authEnv.Keys) { Set-Item "env:$k" $authEnv[$k] }
+
+# Email. This computer's environment may hold a real Resend key, and the child
+# inherits whatever this session has. Unless real mail was asked for by name,
+# every email variable is taken out of the session while the child starts, and
+# RESEND_API_URL is set to this machine. That last one is not redundant: QOR ID
+# also reads a .env file, which cannot replace a variable that is already set,
+# so a key arriving that way still has nowhere to send but here. Values are
+# held only to put this session back as it was, and are never written out.
+$standIn = 'http://127.0.0.1:59925'
+$emailNames = 'RESEND_API_KEY', 'EMAIL_FROM', 'BASE_URL', 'RESEND_API_URL', 'RESEND_WEBHOOK_SECRET'
+$emailWas = @{}
+if (-not $SendRealEmail) {
+  foreach ($k in $emailNames) {
+    if (Test-Path "env:$k") { $emailWas[$k] = (Get-Item "env:$k").Value }
+  }
+  $authEnv['RESEND_API_URL'] = $standIn
+  if ($EmailStandIn) {
+    # The values services/qor-auth/scripts/e2e/email-via-resend.mjs expects. The
+    # key is a placeholder that only the stand-in ever sees.
+    $authEnv['RESEND_API_KEY'] = 're_e2e_key'
+    $authEnv['EMAIL_FROM'] = 'Demiurge-Cloud <noreply@example.invalid>'
+    $authEnv['BASE_URL'] = 'http://127.0.0.1:8080'
+  }
+}
+
 $authLog = Join-Path $logs 'qor-auth.log'
 try {
+  foreach ($k in $emailWas.Keys) { Remove-Item "env:$k" -ErrorAction SilentlyContinue }
+  foreach ($k in $authEnv.Keys) { Set-Item "env:$k" $authEnv[$k] }
   $authProc = Start-Process -FilePath $authExe -WorkingDirectory $auth -WindowStyle Hidden -PassThru `
     -RedirectStandardOutput $authLog -RedirectStandardError "$authLog.err"
 } finally {
   foreach ($k in $authEnv.Keys) { Remove-Item "env:$k" -ErrorAction SilentlyContinue }
+  foreach ($k in $emailWas.Keys) { Set-Item "env:$k" $emailWas[$k] }
 }
 $pids += $authProc.Id
 
@@ -145,13 +195,38 @@ if (-not $NoChain) {
 $pids | Set-Content $pidFile
 
 # --- ready? ---------------------------------------------------------------
+$health = $null
 for ($i = 0; $i -lt 60; $i++) {
   try {
-    Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8080/health' -TimeoutSec 2 | Out-Null
+    $health = (Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8080/health' -TimeoutSec 2).Content |
+      ConvertFrom-Json
     Write-Host 'QOR ID is up at http://127.0.0.1:8080/api/v1'
     break
   } catch { Start-Sleep -Seconds 1 }
   if ($authProc.HasExited) { throw "QOR ID stopped. See $authLog.err" }
+}
+
+# --- does its mail leave this machine? -------------------------------------
+# Asked of the running service rather than assumed from what was set above: the
+# process that answers on 8080 is the one the end-to-end scripts will reach.
+if ($health) {
+  $leaves = $health.email_leaves_this_machine
+  if ($SendRealEmail) {
+    if ($leaves -eq $true) {
+      Write-Host 'Email: REAL. QOR ID sends through Resend. The end-to-end scripts refuse to run against it.'
+    } else {
+      Write-Host 'Email: none. -SendRealEmail was given, but the environment does not configure email.'
+    }
+  } elseif ($leaves -eq $true) {
+    Stop-Local
+    throw 'QOR ID was about to send real email, though none was asked for, so everything was stopped. Something other than this script configures its email (a .env file in services/qor-auth, or another QOR ID already on port 8080).'
+  } elseif ($null -eq $leaves) {
+    Write-Host 'Email: unknown. This build of QOR ID is older than the check and does not say; it was started without email settings. Rebuild it (cargo build --release in services/qor-auth); until then the end-to-end scripts refuse to run against it.'
+  } elseif ($EmailStandIn) {
+    Write-Host "Email: to the stand-in at $standIn only. Nothing leaves this machine."
+  } else {
+    Write-Host 'Email: off. Nothing is sent. Use -EmailStandIn for the end-to-end email script.'
+  }
 }
 if (-not $NoChain -and $chainProc) { Write-Host 'Chain node starting at ws://127.0.0.1:9944 (a fresh chain).' }
 Write-Host "Logs: $logs. Stop everything with: start-local.ps1 -Stop"

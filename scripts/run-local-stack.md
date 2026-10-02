@@ -147,7 +147,21 @@ Check it:
 
 ```bash
 curl -s http://127.0.0.1:8080/health
+# {"status":"healthy","service":"qor-auth","version":"…","email_leaves_this_machine":false}
 ```
+
+`email_leaves_this_machine` must be `false` before any end-to-end script is pointed at the service; see
+**Email** under Notes. On Windows, `tools/qor-launcher/scripts/start-local.ps1` does all of this section
+(Postgres, Redis, QOR ID on 8080 and a development chain) and starts QOR ID with email off:
+
+```powershell
+powershell -File tools/qor-launcher/scripts/start-local.ps1 -NoChain                 # email off
+powershell -File tools/qor-launcher/scripts/start-local.ps1 -NoChain -EmailStandIn   # email to a stand-in on this machine
+node services/qor-auth/scripts/e2e/sessions.mjs http://127.0.0.1:8080
+```
+
+Sessions are held in Redis, not Postgres, and `SessionService::record_use` needs **Redis 6 or later**
+(`SET … XX KEEPTTL`).
 
 ## 5. The launcher
 
@@ -181,11 +195,28 @@ cargo build --manifest-path tools/qor-launcher/qontrol-git/Cargo.toml
   Resend) and `BASE_URL` (where the links point). Without the first two, `forgot-password` answers 503 and
   registration sends no verification email. No email content is ever logged.
   **`cargo test` never sends mail, whatever the environment holds**: no test reads these variables, and a
-  test build refuses any API base that is not on this machine. A *running* service does read them, so
-  before pointing an end-to-end script (`services/qor-auth/scripts/e2e/`) at one, start it with
-  `RESEND_API_URL` set to the script's stand-in, or with `RESEND_API_KEY` unset. Started with a real key
-  and no `RESEND_API_URL`, it sends the scripts' `@example.invalid` registrations as real mail, and they
-  bounce.
+  test build refuses any API base that is not on this machine. A *running* service does read them, from
+  the environment it inherits and from a `.env` file beside it. Three things keep a local one from
+  sending real mail by accident:
+  - **`tools/qor-launcher/scripts/start-local.ps1` starts QOR ID with email off.** It takes
+    `RESEND_API_KEY`, `EMAIL_FROM`, `BASE_URL` and `RESEND_WEBHOOK_SECRET` away from the process it starts
+    and sets `RESEND_API_URL` to `http://127.0.0.1:59925`, so a key that arrives some other way still has
+    nowhere to send but this machine. `-EmailStandIn` turns email on, to that address only, with the
+    placeholder key and sender `scripts/e2e/email-via-resend.mjs` expects and links pointing at
+    `http://127.0.0.1:8080`. **Real mail has to be asked for by name: `-SendRealEmail`**, which lets the
+    process inherit the environment's settings. The script then asks the running service, and stops it if
+    it would send real mail that was not asked for.
+  - **`GET /health` says `email_leaves_this_machine`.** It is `true` only for a service that sends through
+    Resend itself, and `false` when email is off or goes to a stand-in on the same machine. It says nothing
+    else about configuration.
+  - **Every end-to-end script (`services/qor-auth/scripts/e2e/`) reads that first and refuses to run**
+    unless it is exactly `false` (`_guard.mjs`): it registers `@example.invalid` addresses, which sent for
+    real bounce and count against the sending domain. A service that does not say, such as a binary built
+    before 1 October 2026, is refused too. There is no switch to run anyway. Rebuild
+    (`cargo build --release`) and start it as above.
+
+  Starting the service by hand (§4) inherits whatever the shell holds. Unset `RESEND_API_KEY`, or set
+  `RESEND_API_URL=http://127.0.0.1:59925`, first; the scripts refuse otherwise.
 - **Admin routes** need an account whose role is `god`. Locally, set it in the database
   (`UPDATE users SET role = 'god' WHERE username = '...'`) and sign in again.
 - **After moving the repository**, the launcher's build cache holds absolute paths to the old location

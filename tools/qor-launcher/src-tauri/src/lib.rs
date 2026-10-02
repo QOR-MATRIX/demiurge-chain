@@ -823,6 +823,34 @@ async fn drc369_buy(
         .await
 }
 
+// ───────────────────────────── the Market (L7.2) ────────────────────────────
+
+/// Every asset offered for sale on the chain, as the connected node holds it
+/// at its latest finalised block: arranged, and one window of it in detail.
+/// There is no indexer (ADR-028), so this walks the chain's listing storage,
+/// paged and bounded (`chain/market.rs`). It reads and signs nothing; buying
+/// from it goes through `drc369_buy` like every other purchase.
+#[tauri::command]
+async fn drc369_market(
+    state: tauri::State<'_, AppState>,
+    viewer: Option<String>,
+    show: Option<chain::market::Show>,
+    order: Option<chain::market::Order>,
+    offset: Option<usize>,
+    limit: Option<usize>,
+) -> Result<chain::market::MarketPage, QorError> {
+    state
+        .chain
+        .market(
+            viewer.as_deref(),
+            show.unwrap_or_default(),
+            order.unwrap_or_default(),
+            offset.unwrap_or(0),
+            limit.unwrap_or(chain::market::PAGE),
+        )
+        .await
+}
+
 // ─────────────────── listing drafts, on this machine only ───────────────────
 
 /// The categories a listing can have, and what each one asks. One table, in the
@@ -1180,6 +1208,7 @@ pub fn run() {
             drc369_list,
             drc369_unlist,
             drc369_buy,
+            drc369_market,
             trade_partners,
             listing_vocabulary,
             listing_save,

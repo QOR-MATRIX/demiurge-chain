@@ -164,7 +164,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // moved to 2. 5: nesting (M4.2, M4.5, R-2): `Drc369::nest` and `unnest`
     // are new calls and `pallet-drc369` became `pallet-nfts`'s `Locker`.
     // Existing calls kept their encoding, so `transaction_version` stays.
-    spec_version: 5,
+    // 6: `Drc369Royalties::buy_exact`, a new call, and the runtime API
+    // `Drc369RoyaltiesApi`. `buy` kept its index and its encoding, which
+    // `tests/assets.rs` pins, so `transaction_version` stays again.
+    spec_version: 6,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -501,6 +504,17 @@ impl_runtime_apis! {
             item: pallet_drc369::ItemId,
         ) -> Option<pallet_drc369::Asset> {
             Drc369::asset(collection, item)
+        }
+    }
+
+    impl pallet_drc369_royalties::runtime_api::Drc369RoyaltiesApi<Block, AccountId> for Runtime {
+        fn sale_preview(
+            collection: pallet_drc369::CollectionId,
+            item: pallet_drc369::ItemId,
+            price: Balance,
+            buyer: Option<AccountId>,
+        ) -> Option<pallet_drc369_royalties::SalePreview<AccountId>> {
+            Drc369Royalties::sale_preview(collection, item, price, buyer)
         }
     }
 

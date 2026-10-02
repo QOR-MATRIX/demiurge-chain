@@ -18,6 +18,7 @@ pub trait WeightInfo {
     fn list() -> Weight;
     fn unlist() -> Weight;
     fn buy() -> Weight;
+    fn buy_exact() -> Weight;
 }
 
 /// The placeholder the runtime uses until M7.2.
@@ -53,6 +54,12 @@ impl<T: crate::Config> WeightInfo for PlaceholderWeight<T> {
             .saturating_add(T::DbWeight::get().reads_writes(5, 1))
             .saturating_add(T::DbWeight::get().reads_writes(2, 2).saturating_mul(payees))
     }
+
+    /// `buy`, and one comparison against the asset's record, which `buy`
+    /// already reads. A placeholder as `buy`'s is, owed to M7.2 with it.
+    fn buy_exact() -> Weight {
+        Self::buy()
+    }
 }
 
 /// For tests.
@@ -67,6 +74,9 @@ impl WeightInfo for () {
         Weight::zero()
     }
     fn buy() -> Weight {
+        Weight::zero()
+    }
+    fn buy_exact() -> Weight {
         Weight::zero()
     }
 }

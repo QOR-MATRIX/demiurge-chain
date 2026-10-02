@@ -9,8 +9,10 @@
 // otherwise it is reported as SKIP, never as a pass. Timing is measured on this machine, so the
 // bound is generous. Exits non-zero if any check fails.
 import { execSync } from 'node:child_process';
+import { refuseRealEmail } from './_guard.mjs';
 
 const BASE = process.argv[2] ?? 'http://127.0.0.1:3100';
+await refuseRealEmail(BASE);
 const { PG_CONTAINER, PG_DATABASE, PG_USER = 'qor' } = process.env;
 let passed = 0;
 let failed = 0;
