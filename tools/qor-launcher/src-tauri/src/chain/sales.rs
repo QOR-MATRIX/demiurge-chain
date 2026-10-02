@@ -24,26 +24,29 @@
 //!
 //! # The arithmetic is the chain's, and so is the last word
 //!
-//! Before anyone signs, the dialog says who a sale pays and how much. Those
-//! amounts come from [`split`], which is the pallet's own `split` run on the
-//! terms read from the chain, with the SDK's own helpers at the pinned version:
-//! `Permill::mul_floor` and `multiply_by_rational_with_rounding`. No float, and
-//! no hand-written `a * b / c` (AGENTS.md §5, ADR-035). The tests below pin it
-//! to the pallet's own vectors, and the live test holds it to the `Sold` event
-//! of a real sale, part for part.
+//! Before anyone signs, the dialog says who a sale pays and how much. The
+//! launcher does not work that out. It asks the chain, through the runtime API
+//! `Drc369RoyaltiesApi::sale_preview` (spec_version 6 onwards), at the same
+//! finalised block as every other read here, and shows the chain's answer: the
+//! parts, who receives each, and whether the sale could settle. There is no
+//! copy of the pallet's arithmetic in the launcher, so there is nothing to keep
+//! in step with it. A node whose runtime does not serve that API is refused in
+//! words rather than guessed at.
 //!
-//! What is shown **before** a sale is this module's reading of the chain; what
-//! is reported **after** one is the chain's `Sold` event and nothing else.
+//! What is shown **before** a sale is the chain's preview; what is reported
+//! **after** one is the chain's `Sold` event and nothing else.
 //!
 //! # What is refused before anyone is asked
 //!
-//! A person should not be asked to approve what the chain would refuse. So a
-//! listing that is void, a price that changed since it was looked at, a
-//! fingerprint that changed since it was looked at, a balance that cannot cover
-//! the price and still keep the account open, and a part that its recipient
-//! could not receive are each said in words, before the dialog. The chain still
-//! checks every one of them again, and [`in_words`] turns its refusal into the
-//! same sentences when something changes in between.
+//! A person should not be asked to approve what the chain would refuse. With a
+//! buyer, the chain's preview runs the sale itself and undoes it, so its
+//! refusal is the one the transaction would get: a balance that cannot cover
+//! the price and keep the account open, a part its recipient could not
+//! receive, an asset held in place by nesting. Each is said in words, with the
+//! same sentences [`in_words`] gives a refused transaction. The launcher adds
+//! only what the chain is not asked: a listing that is void, and a price or a
+//! fingerprint that changed since the buyer looked. The chain still checks
+//! everything again when the transaction arrives.
 //!
 //! # Nothing is taken that the chain does not take
 //!
@@ -53,10 +56,8 @@
 
 use scale_decode::DecodeAsType;
 use serde::Serialize;
-use sp_arithmetic::{
-    helpers_128bit::multiply_by_rational_with_rounding, per_things::Rounding, Permill,
-};
-use subxt::dynamic;
+use subxt::dynamic::{self, Value};
+use subxt::ext::scale_value::{Composite, ValueDef};
 use subxt::utils::AccountId32;
 
 use crate::cgt;
@@ -71,79 +72,24 @@ use super::{ChainClient, Connection};
 /// An account, as the chain keys it.
 type Account = [u8; 32];
 
-// ── The arithmetic ───────────────────────────────────────────────────────────
-
-/// How one sale's price is divided: `pallet-drc369-royalties`'s `Split`.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Split<A> {
-    /// What the source's recipients receive, if the asset is a remix.
-    pub remix: Vec<(A, u128)>,
-    /// What the asset's own recipients receive.
-    pub royalties: Vec<(A, u128)>,
-    /// What the seller receives: everything else.
-    pub seller: u128,
-}
-
-/// Divide `price` between a remix's source, the asset's own recipients and the
-/// seller.
-///
-/// **This is `pallet_drc369_royalties::split`, line for line**, so that what the
-/// dialog shows before a sale is what the chain pays in it. The pool is the
-/// source's remix share of the price, rounded down, divided between the source's
-/// recipients in proportion to their shares; each of the asset's own recipients
-/// receives their share of what is left; the seller receives the rest, rounding
-/// included. The parts always sum to `price`.
-pub(crate) fn split<A: Clone>(
-    price: u128,
-    upstream: Option<(Permill, &[(A, Permill)])>,
-    own: &[(A, Permill)],
-) -> Split<A> {
-    let mut remix = Vec::new();
-    let mut paid_upstream: u128 = 0;
-    if let Some((share, recipients)) = upstream {
-        let pool = share.mul_floor(price);
-        let weights: u128 = recipients
-            .iter()
-            .map(|(_, part)| u128::from(part.deconstruct()))
-            .sum();
-        if weights > 0 {
-            for (who, part) in recipients {
-                // `part <= weights`, so the result is at most `pool` and the
-                // helper cannot report an overflow.
-                let amount = multiply_by_rational_with_rounding(
-                    pool,
-                    u128::from(part.deconstruct()),
-                    weights,
-                    Rounding::Down,
-                )
-                .unwrap_or(0);
-                paid_upstream = paid_upstream.saturating_add(amount);
-                remix.push((who.clone(), amount));
-            }
-        }
-    }
-
-    // `paid_upstream <= pool <= price`.
-    let rest = price.saturating_sub(paid_upstream);
-    let mut paid_own: u128 = 0;
-    let royalties = own
-        .iter()
-        .map(|(who, share)| {
-            let amount = share.mul_floor(rest);
-            paid_own = paid_own.saturating_add(amount);
-            (who.clone(), amount)
-        })
-        .collect();
-
-    // Stored shares sum to at most one whole, so `paid_own <= rest`.
-    Split {
-        remix,
-        royalties,
-        seller: rest.saturating_sub(paid_own),
-    }
-}
-
 // ── What the launcher reads, decoded by name ─────────────────────────────────
+
+/// The runtime API that says what a sale would pay (spec_version 6 onwards).
+const PREVIEW_API: &str = "Drc369RoyaltiesApi";
+const PREVIEW_METHOD: &str = "sale_preview";
+
+/// `pallet_drc369_royalties::SalePreview`: the chain's own answer to what a
+/// sale of one asset at one price would pay. The refusal is a `DispatchError`,
+/// read as a value and named through the node's metadata ([`refusal_of`]).
+#[derive(Debug, Clone, DecodeAsType)]
+struct PreviewRead {
+    source: Option<(u32, u32)>,
+    remix: Vec<(AccountId32, u128)>,
+    royalties: Vec<(AccountId32, u128)>,
+    seller: AccountId32,
+    seller_receives: u128,
+    refusal: Option<Value>,
+}
 
 /// `Drc369Royalties::RoyaltyTerms`. A share is a `Permill`: parts per million.
 #[derive(Debug, Clone, DecodeAsType)]
@@ -439,14 +385,204 @@ struct SaleState {
     free: Vec<(Account, u128)>,
     /// The account asking, and what it holds.
     viewer: Option<(Account, Funds)>,
+    /// The chain's answer to what a sale would pay, read at the same block:
+    /// at the price asked, or at the listed price. `None` when nothing was
+    /// asked.
+    preview: Option<Preview>,
 }
 
-fn shares(terms: &TermsRead) -> Vec<(Account, Permill)> {
-    terms
-        .recipients
-        .iter()
-        .map(|(who, parts)| (who.0, Permill::from_parts(*parts)))
-        .collect()
+/// What [`ChainClient::sale_state`] asks the chain a sale would pay at.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Ask {
+    /// Nothing: the caller needs no sale's parts.
+    Nothing,
+    /// The listed price, if the listing is live.
+    Listed,
+    /// A price someone is thinking of listing at.
+    At(u128),
+}
+
+/// Why the chain would refuse a sale, as its metadata names it: a pallet's
+/// error (`Drc369Royalties`, `PaymentCannotBeReceived`), or one of the
+/// runtime's own (`Token`, `FundsUnavailable`; or `BadOrigin`, with no name).
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Refusal {
+    within: String,
+    name: String,
+}
+
+impl Refusal {
+    fn is(&self, within: &str, name: &str) -> bool {
+        self.within == within && self.name == name
+    }
+
+    /// The buyer's balance could not cover the price and keep the account open.
+    fn is_funds(&self) -> bool {
+        matches!(
+            self.name.as_str(),
+            "FundsUnavailable" | "InsufficientBalance" | "NotExpendable"
+        )
+    }
+
+    /// A part of the sale could not be received: this stops every buyer.
+    fn is_unreceivable(&self) -> bool {
+        self.is("Drc369Royalties", "PaymentCannotBeReceived")
+    }
+}
+
+impl std::fmt::Display for Refusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.name.is_empty() {
+            write!(f, "{}", self.within)
+        } else {
+            write!(f, "{}::{}", self.within, self.name)
+        }
+    }
+}
+
+/// A named field of a struct-like value.
+fn field<'a>(value: &'a Value, name: &str) -> Option<&'a Value> {
+    match &value.value {
+        ValueDef::Composite(Composite::Named(fields)) => fields
+            .iter()
+            .find(|(known, _)| known == name)
+            .map(|(_, value)| value),
+        _ => None,
+    }
+}
+
+/// The first element of a tuple- or array-like value.
+fn first(value: &Value) -> Option<&Value> {
+    match &value.value {
+        ValueDef::Composite(composite) => composite.values().next(),
+        _ => None,
+    }
+}
+
+/// Name a `DispatchError`. A pallet's error carries only the pallet's index
+/// and the error's; `module` turns those into names through the node's
+/// metadata, so a refusal is named as the runtime that gave it names it.
+fn refusal_of(value: &Value, module: impl Fn(u8, u8) -> Option<(String, String)>) -> Refusal {
+    let ValueDef::Variant(variant) = &value.value else {
+        return Refusal {
+            within: "an error the launcher cannot read".into(),
+            name: String::new(),
+        };
+    };
+    let fields: Vec<&Value> = variant.values.values().collect();
+    if variant.name == "Module" {
+        // `Module(ModuleError { index, error })`: the error's own index is the
+        // first byte of `error`.
+        let inner = fields.first().copied();
+        let index = inner
+            .and_then(|error| field(error, "index"))
+            .and_then(Value::as_u128)
+            .and_then(|index| u8::try_from(index).ok());
+        let error = inner
+            .and_then(|error| field(error, "error"))
+            .and_then(first)
+            .and_then(Value::as_u128)
+            .and_then(|error| u8::try_from(error).ok());
+        return match (index, error) {
+            (Some(index), Some(error)) => match module(index, error) {
+                Some((within, name)) => Refusal { within, name },
+                None => Refusal {
+                    within: format!("pallet {index}"),
+                    name: format!("error {error}"),
+                },
+            },
+            _ => Refusal {
+                within: "Module".into(),
+                name: String::new(),
+            },
+        };
+    }
+    // `Token(FundsUnavailable)`, `Arithmetic(Underflow)`, or a bare `BadOrigin`.
+    let name = match fields.as_slice() {
+        [inner] => match &inner.value {
+            ValueDef::Variant(detail) => detail.name.clone(),
+            _ => String::new(),
+        },
+        _ => String::new(),
+    };
+    Refusal {
+        within: variant.name.clone(),
+        name,
+    }
+}
+
+/// The chain's answer to what a sale of one asset at one price would pay,
+/// as the launcher holds it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Preview {
+    /// The price the chain was asked about.
+    price: u128,
+    /// The buyer it was asked about, if any. With one, the chain ran the sale
+    /// for that account and undid it.
+    buyer: Option<Account>,
+    source: Option<(u32, u32)>,
+    remix: Vec<(Account, u128)>,
+    royalties: Vec<(Account, u128)>,
+    seller: Account,
+    seller_receives: u128,
+    refusal: Option<Refusal>,
+}
+
+impl Preview {
+    /// The chain's answer, decoded, with its refusal named through `module`.
+    /// The parts are the price, or the answer is not used: a part that does
+    /// not add up is a misreading, and nobody is shown one.
+    fn from_read(
+        read: PreviewRead,
+        price: u128,
+        buyer: Option<Account>,
+        module: impl Fn(u8, u8) -> Option<(String, String)>,
+    ) -> QorResult<Self> {
+        let preview = Preview {
+            price,
+            buyer,
+            source: read.source,
+            remix: read.remix.into_iter().map(|(who, a)| (who.0, a)).collect(),
+            royalties: read
+                .royalties
+                .into_iter()
+                .map(|(who, a)| (who.0, a))
+                .collect(),
+            seller: read.seller.0,
+            seller_receives: read.seller_receives,
+            refusal: read.refusal.as_ref().map(|value| refusal_of(value, module)),
+        };
+        let total = preview
+            .parts()
+            .try_fold(0u128, |sum, (_, amount)| sum.checked_add(amount));
+        if total != Some(price) {
+            return Err(QorError::Rpc(format!(
+                "the chain's answer to what a sale at {} pays does not add up to the price",
+                with_symbol(price)
+            )));
+        }
+        Ok(preview)
+    }
+
+    /// Every part, in the order the chain pays it: the source's recipients,
+    /// the asset's own, then the seller.
+    fn parts(&self) -> impl Iterator<Item = (Account, u128)> + '_ {
+        self.remix
+            .iter()
+            .chain(self.royalties.iter())
+            .copied()
+            .chain(std::iter::once((self.seller, self.seller_receives)))
+    }
+}
+
+/// What is said when the connected node's runtime cannot answer what a sale
+/// would pay. The launcher has no arithmetic of its own to fall back on.
+fn cannot_preview(spec_version: u32) -> QorError {
+    QorError::Qontrol(format!(
+        "This node runs spec version {spec_version} of the chain, which cannot say what a sale \
+         would pay: that needs spec version 6 or later. The launcher does not work it out on its \
+         own, so selling and buying wait until the node is upgraded."
+    ))
 }
 
 /// A `Permill` as a person reads it, exactly: `100000` is `10%`, `25000` is
@@ -486,93 +622,161 @@ impl SaleState {
             .unwrap_or(0)
     }
 
-    /// What a sale at `price` pays, to whom, with `buyer` buying.
-    fn breakdown(&self, price: u128, buyer: Option<&Account>) -> Breakdown {
-        let upstream = self.source_terms.as_ref().map(shares);
-        let own = self.own_terms.as_ref().map(shares).unwrap_or_default();
-        let source_share = self
-            .source_terms
-            .as_ref()
-            .map(|terms| Permill::from_parts(terms.remix));
-        let parts = split(price, source_share.zip(upstream.as_deref()), &own);
-
+    /// What a sale pays, to whom, as the chain answered it. `None` when the
+    /// chain was not asked.
+    ///
+    /// The amounts, their order, the seller and the source are the chain's.
+    /// What the launcher adds is only what a person reads alongside them: each
+    /// royalty recipient's share, from the terms read at the same block, and
+    /// which part is the viewer's own.
+    fn breakdown(&self) -> Option<Breakdown> {
+        let preview = self.preview.as_ref()?;
+        let viewer = self.viewer.as_ref().map(|(account, _)| account);
         let payout = |kind, who: &Account, share: Option<String>, amount: u128| Payout {
             kind,
             address: address_of(who),
             share,
             amount_sparks: amount.to_string(),
             amount_cgt: cgt_of(amount),
-            to_buyer: buyer == Some(who),
+            to_buyer: viewer == Some(who),
         };
 
         let mut payouts = Vec::new();
-        for (who, amount) in &parts.remix {
+        for (who, amount) in &preview.remix {
             payouts.push(payout(PayoutKind::Source, who, None, *amount));
         }
-        for ((who, amount), (_, share)) in parts.royalties.iter().zip(own.iter()) {
-            payouts.push(payout(
-                PayoutKind::Royalty,
-                who,
-                Some(percent(share.deconstruct())),
-                *amount,
-            ));
+        // The chain pays the asset's recipients in the order its terms name
+        // them. A share is said only where the terms name the same account in
+        // the same place, so a share is never put beside someone else's part.
+        let named = self
+            .own_terms
+            .as_ref()
+            .map(|terms| terms.recipients.as_slice())
+            .unwrap_or_default();
+        for (at, (who, amount)) in preview.royalties.iter().enumerate() {
+            let share = named
+                .get(at)
+                .filter(|(recipient, _)| recipient.0 == *who)
+                .map(|(_, parts)| percent(*parts));
+            payouts.push(payout(PayoutKind::Royalty, who, share, *amount));
         }
-        payouts.push(payout(PayoutKind::Seller, &self.holder, None, parts.seller));
+        payouts.push(payout(
+            PayoutKind::Seller,
+            &preview.seller,
+            None,
+            preview.seller_receives,
+        ));
 
-        // The chain pays each part in turn and refuses the whole sale at the
-        // first its recipient cannot receive (`PaymentCannotBeReceived`): an
-        // account that would be left holding less than the existential deposit.
-        // A part of nothing, and a part to the buyer, move nothing. Walked in
-        // the chain's order, because an account paid twice has its first part
-        // by the time its second arrives.
+        // A source is named when a sale owes it something: it is a remix, and
+        // the work it was remixed from has terms.
+        let source_terms = self
+            .source_terms
+            .as_ref()
+            .filter(|_| preview.source.is_some());
+        Some(Breakdown {
+            price_sparks: preview.price.to_string(),
+            price_cgt: cgt_of(preview.price),
+            source: source_terms
+                .and(preview.source)
+                .map(|(collection, item)| TradeItem { collection, item }),
+            source_share: source_terms.map(|terms| percent(terms.remix)),
+            payouts,
+            // Only what stops every buyer: what stops one buyer is theirs to
+            // read in `cannot_buy`, and a seller may list an asset that is
+            // nested, as the chain lets them.
+            blocked: preview
+                .refusal
+                .as_ref()
+                .filter(|refusal| refusal.is_unreceivable())
+                .map(|refusal| self.refusal_in_words(preview, refusal)),
+        })
+    }
+
+    /// The chain's refusal of a sale, in the words a person is owed.
+    ///
+    /// The chain decides; these sentences only explain. Where the launcher can
+    /// say more from what it read at the same block — which account cannot
+    /// receive its part, how far the buyer is short, why the asset is held in
+    /// place — it does. Otherwise it is the sentence [`in_words`] gives the
+    /// same refusal of a transaction.
+    fn refusal_in_words(&self, preview: &Preview, refusal: &Refusal) -> String {
+        let explained = if refusal.is_unreceivable() {
+            self.unreceivable(preview)
+        } else if refusal.name == "ItemLocked" {
+            self.held_in_place.clone()
+        } else if refusal.is_funds() {
+            self.short_of_funds(preview)
+        } else {
+            None
+        };
+        explained
+            .or_else(|| reason(&refusal.to_string()).map(str::to_string))
+            .unwrap_or_else(|| format!("The chain would refuse this sale: {refusal}."))
+    }
+
+    /// Which part of a sale its recipient cannot receive, from the balances
+    /// read at the same block, once the chain has said one cannot.
+    ///
+    /// The chain refuses the whole sale at the first part its recipient cannot
+    /// receive: an account that would be left holding less than the existential
+    /// deposit. A part of nothing, and a part to the buyer, move nothing. An
+    /// account paid twice has its first part by the time its second arrives.
+    fn unreceivable(&self, preview: &Preview) -> Option<String> {
         let mut held: Vec<(Account, u128)> = Vec::new();
-        let mut blocked = None;
-        for (who, amount) in parts
-            .remix
-            .iter()
-            .chain(parts.royalties.iter())
-            .chain(std::iter::once(&(self.holder, parts.seller)))
-        {
-            if *amount == 0 || buyer == Some(who) {
+        for (who, amount) in preview.parts() {
+            if amount == 0 || preview.buyer == Some(who) {
                 continue;
             }
-            let at = match held.iter().position(|(known, _)| known == who) {
+            let at = match held.iter().position(|(known, _)| *known == who) {
                 Some(at) => at,
                 None => {
-                    held.push((*who, self.free_of(who)));
+                    held.push((who, self.free_of(&who)));
                     held.len() - 1
                 }
             };
-            let after = held[at].1.saturating_add(*amount);
+            let after = held[at].1.saturating_add(amount);
             if after < self.existential_deposit {
-                blocked = Some(format!(
+                return Some(format!(
                     "A sale at this price cannot settle as things stand. {} is owed {} from it, \
                      and that account holds too little to stay open on that: an account needs \
                      {} to exist. The chain refuses the whole sale rather than paying everyone \
                      else. A higher price clears it, or that account receiving CGT first.",
-                    address_of(who),
-                    with_symbol(*amount),
+                    address_of(&who),
+                    with_symbol(amount),
                     with_symbol(self.existential_deposit),
                 ));
-                break;
             }
             held[at].1 = after;
         }
-
-        Breakdown {
-            price_sparks: price.to_string(),
-            price_cgt: cgt_of(price),
-            source: source_share
-                .and(self.derived_from)
-                .map(|(collection, item)| TradeItem { collection, item }),
-            source_share: source_share.map(|share| percent(share.deconstruct())),
-            payouts,
-            blocked,
-        }
+        None
     }
 
-    /// Why `buyer` cannot buy this asset now, in words. `None` when they can.
-    fn cannot_buy(&self, buyer: &Account, funds: &Funds) -> Option<String> {
+    /// How far the buyer is short, once the chain has said they cannot pay.
+    /// A part owed to the buyer themselves never leaves their account.
+    fn short_of_funds(&self, preview: &Preview) -> Option<String> {
+        let (buyer, funds) = self.viewer.as_ref()?;
+        let stays = preview
+            .parts()
+            .filter(|(who, _)| who == buyer)
+            .fold(0u128, |sum, (_, amount)| sum.saturating_add(amount));
+        let leaves = preview.price.saturating_sub(stays);
+        let spendable = funds.spendable(self.existential_deposit);
+        (leaves > spendable).then(|| {
+            format!(
+                "This account cannot cover it. Buying takes {} and the account has {} it can \
+                 spend: it holds {}, and {} of that has to stay for the account to remain open.",
+                with_symbol(leaves),
+                with_symbol(spendable),
+                with_symbol(funds.free),
+                with_symbol(funds.free.saturating_sub(spendable)),
+            )
+        })
+    }
+
+    /// Why the account asking cannot buy this asset now, in words. `None` when
+    /// it can, or when nobody is asking.
+    fn cannot_buy(&self) -> Option<String> {
+        let (buyer, _) = self.viewer.as_ref()?;
         let Some(listing) = self.listing.as_ref() else {
             return Some("This asset is not listed for sale.".into());
         };
@@ -593,46 +797,31 @@ impl SaleState {
             );
         }
 
-        // A nested asset, or one holding nested assets, can be listed, and the
-        // chain refuses its sale (`ItemLocked`, ADR-065). Said before anyone
-        // is asked.
-        if let Some(reason) = &self.held_in_place {
-            return Some(reason.clone());
-        }
-
-        let breakdown = self.breakdown(listing.price, Some(buyer));
-        if let Some(blocked) = breakdown.blocked {
-            return Some(blocked);
-        }
-
-        // A part owed to the buyer themselves never leaves their account.
-        let stays: u128 = breakdown
-            .payouts
-            .iter()
-            .filter(|payout| payout.to_buyer)
-            .filter_map(|payout| payout.amount_sparks.parse::<u128>().ok())
-            .fold(0u128, u128::saturating_add);
-        let leaves = listing.price.saturating_sub(stays);
-        let spendable = funds.spendable(self.existential_deposit);
-        if leaves > spendable {
-            return Some(format!(
-                "This account cannot cover it. Buying takes {} and the account has {} it can \
-                 spend: it holds {}, and {} of that has to stay for the account to remain open.",
-                with_symbol(leaves),
-                with_symbol(spendable),
-                with_symbol(funds.free),
-                with_symbol(funds.free.saturating_sub(spendable)),
-            ));
-        }
-        None
+        // Everything else is the chain's to say: it ran this purchase for this
+        // buyer at this price, and undid it.
+        let Some(preview) = self
+            .preview
+            .as_ref()
+            .filter(|preview| preview.buyer == Some(*buyer) && preview.price == listing.price)
+        else {
+            return Some(
+                "The launcher could not ask the chain what this purchase would do, so it is not \
+                 offered. Look the asset up again."
+                    .into(),
+            );
+        };
+        preview
+            .refusal
+            .as_ref()
+            .map(|refusal| self.refusal_in_words(preview, refusal))
     }
 
-    /// Why this purchase must not be put to `buyer`, given what they were
-    /// shown. Everything in [`Self::cannot_buy`], and then the two things only a
-    /// purchase can get wrong: a price, or a fingerprint, that is no longer the
-    /// one that was on their screen.
-    fn refuses(&self, buyer: &Account, funds: &Funds, seen: Seen<'_>) -> Option<String> {
-        if let Some(reason) = self.cannot_buy(buyer, funds) {
+    /// Why this purchase must not be put to the account asking, given what
+    /// they were shown. Everything in [`Self::cannot_buy`], and then the two
+    /// things only a purchase can get wrong: a price, or a fingerprint, that is
+    /// no longer the one that was on their screen.
+    fn refuses(&self, seen: Seen<'_>) -> Option<String> {
+        if let Some(reason) = self.cannot_buy() {
             return Some(reason);
         }
         let price = self.live_listing().map(|listing| listing.price)?;
@@ -668,13 +857,8 @@ impl SaleState {
         };
 
         let buyer = self.viewer.as_ref().map(|(account, _)| account);
-        let breakdown = self
-            .live_listing()
-            .map(|listing| self.breakdown(listing.price, buyer));
-        let cannot_buy = self
-            .viewer
-            .as_ref()
-            .and_then(|(account, funds)| self.cannot_buy(account, funds));
+        let breakdown = self.live_listing().and_then(|_| self.breakdown());
+        let cannot_buy = self.cannot_buy();
 
         SaleView {
             holder: address_of(&self.holder),
@@ -738,7 +922,24 @@ pub(super) fn in_words(error: QorError) -> QorError {
     let QorError::Rpc(text) = &error else {
         return error;
     };
-    let reason = if text.contains("PriceAboveLimit") {
+    let Some(reason) = reason(text) else {
+        return error;
+    };
+    // "the purchase 0x… was finalised in 0x… but failed: …" names the
+    // transaction before its first colon.
+    let which = text
+        .split_once(" was finalised")
+        .map(|(what, _)| format!(" ({what})"))
+        .unwrap_or_default();
+    QorError::Qontrol(format!("{reason}{which}"))
+}
+
+/// The sentence for one of the chain's refusals named in `text`, if it is one a
+/// person is owed words for. One table for a refused transaction and for a
+/// refusal the chain's preview foresees, so the two cannot say different
+/// things about the same refusal.
+fn reason(text: &str) -> Option<&'static str> {
+    Some(if text.contains("PriceAboveLimit") {
         "The price was raised before your purchase settled, so nothing moved. Look the asset up \
          again to see what it costs now."
     } else if text.contains("NotListed") {
@@ -760,18 +961,15 @@ pub(super) fn in_words(error: QorError) -> QorError {
         "This account does not hold that asset any more, so nothing changed."
     } else if text.contains("ZeroPrice") {
         "A price of nothing is a gift, and a gift is a trade, not a sale."
-    } else if text.contains("FundsUnavailable") || text.contains("Funds are unavailable") {
+    } else if text.contains("FundsUnavailable")
+        || text.contains("Funds are unavailable")
+        || text.contains("InsufficientBalance")
+        || text.contains("NotExpendable")
+    {
         "This account could not cover the price and stay open, so nothing moved."
     } else {
-        return error;
-    };
-    // "the purchase 0x… was finalised in 0x… but failed: …" names the
-    // transaction before its first colon.
-    let which = text
-        .split_once(" was finalised")
-        .map(|(what, _)| format!(" ({what})"))
-        .unwrap_or_default();
-    QorError::Qontrol(format!("{reason}{which}"))
+        return None;
+    })
 }
 
 impl ChainClient {
@@ -809,14 +1007,20 @@ impl ChainClient {
         }))
     }
 
-    /// Everything a sale of one asset depends on, read from chain storage.
-    /// `None` when no DRC-369 asset has that number.
+    /// Everything a sale of one asset depends on, read from chain storage, and
+    /// the chain's own answer to what a sale would pay at the price `ask`
+    /// names, all at one finalised block. `None` when no DRC-369 asset has
+    /// that number.
+    ///
+    /// The chain is asked for `viewer` as the buyer unless they hold the
+    /// asset, so its refusal is the one their purchase would get.
     async fn sale_state(
         &self,
         connection: &Connection,
         collection: u32,
         item: u32,
         viewer: Option<Account>,
+        ask: Ask,
     ) -> QorResult<Option<SaleState>> {
         let at = match connection.api.at_current_block().await {
             Ok(at) => at,
@@ -975,6 +1179,57 @@ impl ChainClient {
             None => None,
         };
 
+        let price = match ask {
+            Ask::Nothing => None,
+            Ask::Listed => listing
+                .as_ref()
+                .filter(|listing| listing.seller.0 == holder)
+                .map(|listing| listing.price),
+            Ask::At(price) => Some(price),
+        };
+        let preview = match price {
+            None => None,
+            Some(price) => {
+                let metadata = at.metadata_ref();
+                // A runtime before spec_version 6 has no such API. Its absence
+                // is said in words; nothing is worked out instead.
+                if metadata
+                    .runtime_api_trait_by_name(PREVIEW_API)
+                    .and_then(|api| api.method_by_name(PREVIEW_METHOD))
+                    .is_none()
+                {
+                    return Err(cannot_preview(at.spec_version()));
+                }
+                let buyer = viewer
+                    .map(|(account, _)| account)
+                    .filter(|account| *account != holder);
+                let read = at
+                    .runtime_apis()
+                    .call(dynamic::runtime_api_call::<_, Option<PreviewRead>>(
+                        PREVIEW_API,
+                        PREVIEW_METHOD,
+                        (collection, item, price, buyer.map(AccountId32)),
+                    ))
+                    .await
+                    .map_err(|e| {
+                        QorError::Rpc(format!(
+                            "could not ask the chain what a sale would pay: {e}"
+                        ))
+                    })?
+                    .ok_or_else(|| {
+                        QorError::Rpc(format!(
+                            "the chain's preview says {collection}/{item} is not a DRC-369 asset, \
+                             though its storage holds one"
+                        ))
+                    })?;
+                Some(Preview::from_read(read, price, buyer, |pallet, error| {
+                    let pallet = metadata.pallet_by_error_index(pallet)?;
+                    let error = pallet.error_variant_by_index(error)?;
+                    Some((pallet.name().to_string(), error.name.clone()))
+                })?)
+            }
+        };
+
         Ok(Some(SaleState {
             holder,
             asset,
@@ -986,6 +1241,7 @@ impl ChainClient {
             existential_deposit,
             free,
             viewer,
+            preview,
         }))
     }
 
@@ -998,13 +1254,14 @@ impl ChainClient {
         let viewer = viewer.map(normalise_address).transpose()?;
         let connection = self.connected().await?;
         let state = self
-            .sale_state(&connection, id.collection, id.item, viewer)
+            .sale_state(&connection, id.collection, id.item, viewer, Ask::Listed)
             .await?
             .ok_or_else(|| no_such_asset(id.collection, id.item))?;
         Ok(state.view(pasted_root.as_deref()))
     }
 
-    /// What a sale of an asset at `price_sparks` would pay, before it is listed.
+    /// What a sale of an asset at `price_sparks` would pay, before it is listed:
+    /// the chain's answer, for no buyer in particular.
     pub async fn sale_preview(
         &self,
         collection: u32,
@@ -1016,10 +1273,10 @@ impl ChainClient {
         }
         let connection = self.connected().await?;
         let state = self
-            .sale_state(&connection, collection, item, None)
+            .sale_state(&connection, collection, item, None, Ask::At(price_sparks))
             .await?
             .ok_or_else(|| no_such_asset(collection, item))?;
-        Ok(state.breakdown(price_sparks, None))
+        state.breakdown().ok_or_else(not_asked)
     }
 
     /// Offer an asset for sale at a price in CGT, or change the price it is
@@ -1044,7 +1301,7 @@ impl ChainClient {
 
         let connection = self.connected().await?;
         let state = self
-            .sale_state(&connection, collection, item, None)
+            .sale_state(&connection, collection, item, None, Ask::At(price_sparks))
             .await?
             .filter(|state| state.holder == seller)
             .ok_or_else(|| {
@@ -1062,7 +1319,7 @@ impl ChainClient {
                 with_symbol(price_sparks)
             )));
         }
-        let breakdown = state.breakdown(price_sparks, None);
+        let breakdown = state.breakdown().ok_or_else(not_asked)?;
         if let Some(blocked) = &breakdown.blocked {
             return Err(QorError::Qontrol(blocked.clone()));
         }
@@ -1122,7 +1379,7 @@ impl ChainClient {
         let who = normalise_address(from)?;
         let connection = self.connected().await?;
         let state = self
-            .sale_state(&connection, collection, item, None)
+            .sale_state(&connection, collection, item, None, Ask::Nothing)
             .await?
             .ok_or_else(|| no_such_asset(collection, item))?;
         let Some(listing) = state.listing.as_ref() else {
@@ -1192,23 +1449,19 @@ impl ChainClient {
         let buyer = normalise_address(from)?;
         let connection = self.connected().await?;
         let state = self
-            .sale_state(&connection, collection, item, Some(buyer))
+            .sale_state(&connection, collection, item, Some(buyer), Ask::Listed)
             .await?
             .ok_or_else(|| no_such_asset(collection, item))?;
 
-        let funds = state
-            .viewer
-            .as_ref()
-            .map(|(_, funds)| *funds)
-            .ok_or_else(|| QorError::Internal("the buyer's balance was not read".into()))?;
-        if let Some(reason) = state.refuses(&buyer, &funds, seen) {
+        if let Some(reason) = state.refuses(seen) {
             return Err(QorError::Qontrol(reason));
         }
         let listing = state
             .live_listing()
             .ok_or_else(|| QorError::Internal("a sale without a listing".into()))?;
 
-        let breakdown = state.breakdown(listing.price, Some(&buyer));
+        // What the chain said this purchase would pay, for this buyer.
+        let breakdown = state.breakdown().ok_or_else(not_asked)?;
         // `buy_exact`, not `buy`: the content the buyer was shown goes with the
         // price, so a revision that lands after this point is refused by the
         // chain (`ContentChanged`) and not only by the check above.
@@ -1295,6 +1548,12 @@ impl ChainClient {
             block_hash: finalised.block_hash,
         })
     }
+}
+
+/// A sale's parts were wanted and the chain was not asked for them: a fault in
+/// the launcher, never something a person did.
+fn not_asked() -> QorError {
+    QorError::Internal("the chain was not asked what this sale would pay".into())
 }
 
 fn zero_price() -> QorError {
@@ -1505,100 +1764,16 @@ mod tests {
     const NOWHERE: &str = "ws://127.0.0.1:1";
     const ED: u128 = 100 * SPARKS_PER_CGT;
 
-    fn ppm(parts: u32) -> Permill {
-        Permill::from_parts(parts)
-    }
-
-    fn percent_of(value: u32) -> Permill {
-        Permill::from_percent(value)
-    }
-
-    // ── The arithmetic, on the pallet's own vectors ─────────────────────────
-    //
-    // These four are `chain/pallets/drc369-royalties/src/tests.rs`'s tests of
-    // `split`, with the same inputs and the same expected parts. If the pallet's
-    // rule changes, its tests change, and these must change with them.
-
-    #[test]
-    fn a_split_always_sums_to_the_price() {
-        let source = [(1u8, ppm(333_333)), (2, ppm(1)), (3, ppm(250_000))];
-        let own = [(4u8, ppm(123_457)), (5, ppm(876_543))];
-        for price in [0u128, 1, 7, 999, 1_000_001, 10u128.pow(20), 10u128.pow(32)] {
-            for remix in [Permill::zero(), ppm(1), percent_of(17), Permill::one()] {
-                let parts = split(price, Some((remix, &source[..])), &own);
-                let total: u128 = parts
-                    .remix
-                    .iter()
-                    .chain(parts.royalties.iter())
-                    .map(|(_, amount)| *amount)
-                    .sum::<u128>()
-                    + parts.seller;
-                assert_eq!(total, price, "price {price}, remix {remix:?}");
-            }
-        }
-    }
-
-    #[test]
-    fn the_remix_pool_is_divided_in_proportion_to_the_sources_shares() {
-        // A 20% remix share of 10,000 is a pool of 2,000; shares of 30% and 10%
-        // divide it three to one. The remix's own 50% is of the 8,000 left.
-        let parts = split(
-            10_000,
-            Some((
-                percent_of(20),
-                &[(1u8, percent_of(30)), (2, percent_of(10))][..],
-            )),
-            &[(3u8, percent_of(50))],
-        );
-        assert_eq!(parts.remix, vec![(1, 1_500), (2, 500)]);
-        assert_eq!(parts.royalties, vec![(3, 4_000)]);
-        assert_eq!(parts.seller, 4_000);
-    }
-
-    #[test]
-    fn rounding_goes_to_the_seller_and_never_above_a_share() {
-        // 1% of 99 is 0.99: rounded down to nothing, and the seller keeps it.
-        let parts = split(99, None, &[(1u8, percent_of(1))]);
-        assert_eq!(parts.royalties, vec![(1, 0)]);
-        assert_eq!(parts.seller, 99);
-
-        // A pool of 10 divided three ways gets 3 each; the 1 left is the seller's.
-        let thirds = [(1u8, ppm(1)), (2, ppm(1)), (3, ppm(1))];
-        let parts = split(100, Some((percent_of(10), &thirds[..])), &[]);
-        assert_eq!(parts.remix, vec![(1, 3), (2, 3), (3, 3)]);
-        assert_eq!(parts.seller, 91);
-    }
-
-    /// AGENTS.md §5: every path that forms a money intermediate pins the largest
-    /// one. `split` forms `share × price` inside `Permill::mul_floor` and
-    /// `pool × part` inside `multiply_by_rational_with_rounding`, both of which
-    /// widen internally; here both run at the largest price a `u128` can carry,
-    /// with every share at its most, and nothing overflows or panics.
-    #[test]
-    fn the_largest_intermediate_cannot_overflow() {
-        let full_supply = 10u128.pow(32);
-        for price in [full_supply, u128::MAX, u128::MAX - 1] {
-            let parts = split(
-                price,
-                Some((Permill::one(), &[(1u8, ppm(999_999)), (2, ppm(1))][..])),
-                &[(3u8, Permill::one())],
-            );
-            let upstream: u128 = parts.remix.iter().map(|(_, a)| *a).sum();
-            assert!(upstream <= price);
-            // A 100% remix share leaves at most the rounding for the rest.
-            assert!(price - upstream < 2);
-            let total =
-                upstream + parts.royalties.iter().map(|(_, a)| *a).sum::<u128>() + parts.seller;
-            assert_eq!(total, price);
-        }
-
-        // And a whole-price royalty with no remix pays the whole price.
-        let parts = split(u128::MAX, None, &[(1u8, Permill::one())]);
-        assert_eq!(parts.royalties, vec![(1, u128::MAX)]);
-        assert_eq!(parts.seller, 0);
+    /// An amount in whole CGT.
+    fn c(whole: u128) -> u128 {
+        whole * SPARKS_PER_CGT
     }
 
     // ── What follows from what was read ─────────────────────────────────────
+    //
+    // Every amount below is written out as the chain's answer, never worked out
+    // here: the launcher has no arithmetic of its own to check it against, and
+    // these tests hold it to showing what the chain said and nothing else.
 
     const SELLER: Account = [0x11; 32];
     const BUYER: Account = [0x22; 32];
@@ -1630,15 +1805,45 @@ mod tests {
 
     fn rich() -> Funds {
         Funds {
-            free: 10_000 * SPARKS_PER_CGT,
+            free: c(10_000),
             reserved: 0,
             frozen: 0,
         }
     }
 
-    /// A remix held by SELLER, listed at `price`: its source owes SOURCE a 5%
-    /// remix share, and its own terms pay CREATOR 10%.
-    fn remix_listed_at(price: u128) -> SaleState {
+    fn refused(within: &str, name: &str) -> Option<Refusal> {
+        Some(Refusal {
+            within: within.into(),
+            name: name.into(),
+        })
+    }
+
+    /// What the chain answers about a sale of the remix 7/2, derived from 3/1,
+    /// held by SELLER.
+    fn chain_says(
+        price: u128,
+        buyer: Option<Account>,
+        remix: &[(Account, u128)],
+        royalties: &[(Account, u128)],
+        seller_receives: u128,
+        refusal: Option<Refusal>,
+    ) -> Preview {
+        Preview {
+            price,
+            buyer,
+            source: Some((3, 1)),
+            remix: remix.to_vec(),
+            royalties: royalties.to_vec(),
+            seller: SELLER,
+            seller_receives,
+            refusal,
+        }
+    }
+
+    /// A remix held by SELLER and listed at 3,000 CGT: its source owes SOURCE a
+    /// 5% remix share, and its own terms pay CREATOR 10%. BUYER is looking, and
+    /// the chain was asked what BUYER's purchase would pay.
+    fn listed() -> SaleState {
         SaleState {
             holder: SELLER,
             asset: asset(7, 2, "a-remix"),
@@ -1647,12 +1852,32 @@ mod tests {
             source_terms: Some(terms(&[(SOURCE, 200_000)], 50_000)),
             listing: Some(ListingRead {
                 seller: AccountId32(SELLER),
-                price,
+                price: c(3_000),
             }),
             held_in_place: None,
             existential_deposit: ED,
-            free: vec![(SELLER, 500 * SPARKS_PER_CGT), (CREATOR, ED), (SOURCE, ED)],
+            free: vec![(SELLER, c(500)), (CREATOR, ED), (SOURCE, ED)],
             viewer: Some((BUYER, rich())),
+            preview: Some(chain_says(
+                c(3_000),
+                Some(BUYER),
+                &[(SOURCE, c(150))],
+                &[(CREATOR, c(285))],
+                c(2_565),
+                None,
+            )),
+        }
+    }
+
+    /// The same remix, listed at `price`, with the chain's answer for BUYER.
+    fn listed_at(price: u128, answer: Preview) -> SaleState {
+        SaleState {
+            listing: Some(ListingRead {
+                seller: AccountId32(SELLER),
+                price,
+            }),
+            preview: Some(answer),
+            ..listed()
         }
     }
 
@@ -1664,14 +1889,15 @@ mod tests {
             .collect()
     }
 
-    /// The breakdown is the chain's order — source, royalties, seller — in CGT a
-    /// person can read, and its parts are the price.
+    /// The breakdown is the chain's answer, in the chain's order — source,
+    /// royalties, seller — in CGT a person can read.
     #[test]
-    fn a_breakdown_names_every_part_of_the_price_in_the_chains_order() {
-        let state = remix_listed_at(3_000 * SPARKS_PER_CGT);
-        let breakdown = state.breakdown(3_000 * SPARKS_PER_CGT, Some(&BUYER));
+    fn a_breakdown_is_the_chains_answer_in_the_chains_order() {
+        let state = listed();
+        let breakdown = state.breakdown().expect("the chain was asked");
 
         assert_eq!(breakdown.price_cgt, "3,000.00");
+        assert_eq!(breakdown.price_sparks, c(3_000).to_string());
         assert_eq!(
             breakdown.source,
             Some(TradeItem {
@@ -1680,7 +1906,6 @@ mod tests {
             })
         );
         assert_eq!(breakdown.source_share.as_deref(), Some("5%"));
-        // 5% of 3,000 is 150 upstream; 10% of the 2,850 left is 285; the rest.
         assert_eq!(
             amounts(&breakdown),
             vec![
@@ -1689,29 +1914,73 @@ mod tests {
                 (PayoutKind::Seller, address_of(&SELLER), "2,565.00".into()),
             ]
         );
+        assert_eq!(breakdown.payouts[0].share, None);
         assert_eq!(breakdown.payouts[1].share.as_deref(), Some("10%"));
         assert_eq!(breakdown.payouts[2].share, None);
-        let total: u128 = breakdown
-            .payouts
-            .iter()
-            .map(|p| p.amount_sparks.parse::<u128>().unwrap())
-            .sum();
-        assert_eq!(total, 3_000 * SPARKS_PER_CGT);
+        assert!(breakdown.payouts.iter().all(|p| !p.to_buyer));
         assert_eq!(breakdown.blocked, None);
+
+        // Whatever the chain says is what is shown, even where it is not what
+        // the terms alone would suggest: the launcher does not check the
+        // chain's arithmetic against arithmetic of its own, because it has none.
+        let odd = listed_at(
+            c(3_000),
+            chain_says(
+                c(3_000),
+                Some(BUYER),
+                &[(SOURCE, c(151))],
+                &[(CREATOR, c(284))],
+                c(2_565),
+                None,
+            ),
+        );
+        assert_eq!(
+            amounts(&odd.breakdown().unwrap()),
+            vec![
+                (PayoutKind::Source, address_of(&SOURCE), "151.00".into()),
+                (PayoutKind::Royalty, address_of(&CREATOR), "284.00".into()),
+                (PayoutKind::Seller, address_of(&SELLER), "2,565.00".into()),
+            ]
+        );
+
+        // The seller is whoever the chain names.
+        let named = listed_at(
+            c(3_000),
+            Preview {
+                seller: CREATOR,
+                ..state.preview.clone().unwrap()
+            },
+        );
+        assert_eq!(
+            named.breakdown().unwrap().payouts[2].address,
+            address_of(&CREATOR)
+        );
 
         // An asset with no terms and no source pays its seller everything.
         let plain = SaleState {
             derived_from: None,
             own_terms: None,
             source_terms: None,
+            preview: Some(Preview {
+                source: None,
+                ..chain_says(SPARKS_PER_CGT / 2, None, &[], &[], SPARKS_PER_CGT / 2, None)
+            }),
             ..state
         };
-        let breakdown = plain.breakdown(SPARKS_PER_CGT / 2, None);
+        let breakdown = plain.breakdown().unwrap();
         assert_eq!(
             amounts(&breakdown),
             vec![(PayoutKind::Seller, address_of(&SELLER), "0.50".into())]
         );
         assert_eq!(breakdown.source, None);
+        assert_eq!(breakdown.source_share, None);
+
+        // Nothing asked, nothing to show.
+        let unasked = SaleState {
+            preview: None,
+            ..listed()
+        };
+        assert!(unasked.breakdown().is_none());
     }
 
     /// A source with no terms is owed nothing, and is not named as if it were.
@@ -1719,9 +1988,19 @@ mod tests {
     fn a_remix_of_a_source_without_terms_names_no_source() {
         let state = SaleState {
             source_terms: None,
-            ..remix_listed_at(1_000 * SPARKS_PER_CGT)
+            ..listed_at(
+                c(1_000),
+                chain_says(
+                    c(1_000),
+                    Some(BUYER),
+                    &[],
+                    &[(CREATOR, c(100))],
+                    c(900),
+                    None,
+                ),
+            )
         };
-        let breakdown = state.breakdown(1_000 * SPARKS_PER_CGT, None);
+        let breakdown = state.breakdown().unwrap();
         assert_eq!(breakdown.source, None);
         assert_eq!(breakdown.source_share, None);
         assert_eq!(breakdown.payouts.len(), 2);
@@ -1729,92 +2008,411 @@ mod tests {
         assert_eq!(breakdown.payouts[1].amount_cgt, "900.00");
     }
 
-    /// The chain refuses a sale whose part would leave its recipient below the
-    /// existential deposit; the launcher says so before anyone is asked, and
-    /// names the account and the amount.
+    /// A royalty recipient's share is read from the terms, and put beside a
+    /// part only where the terms name the same account in the same place, so
+    /// nobody's share is shown beside somebody else's part.
+    #[test]
+    fn a_share_is_said_only_beside_the_account_the_terms_name() {
+        let both = terms(&[(CREATOR, 100_000), (SOURCE, 50_000)], 0);
+        let answer = |royalties: &[(Account, u128)]| {
+            let paid: u128 = royalties.iter().map(|(_, amount)| amount).sum();
+            chain_says(c(1_000), Some(BUYER), &[], royalties, c(1_000) - paid, None)
+        };
+        let shares = |royalties: &[(Account, u128)]| -> Vec<Option<String>> {
+            SaleState {
+                own_terms: Some(both.clone()),
+                source_terms: None,
+                ..listed_at(c(1_000), answer(royalties))
+            }
+            .breakdown()
+            .unwrap()
+            .payouts
+            .into_iter()
+            .filter(|p| p.kind == PayoutKind::Royalty)
+            .map(|p| p.share)
+            .collect()
+        };
+
+        assert_eq!(
+            shares(&[(CREATOR, c(100)), (SOURCE, c(45))]),
+            vec![Some("10%".to_string()), Some("5%".to_string())]
+        );
+        // The chain's order is not the terms' order: no share is guessed.
+        assert_eq!(
+            shares(&[(SOURCE, c(45)), (CREATOR, c(100))]),
+            vec![None, None]
+        );
+        // A part the terms read at this block do not name at all.
+        assert_eq!(
+            shares(&[(CREATOR, c(100)), (SOURCE, c(45)), (BUYER, c(1))]),
+            vec![Some("10%".to_string()), Some("5%".to_string()), None]
+        );
+    }
+
+    /// A refusal is named as the runtime names it: a pallet's error through the
+    /// node's metadata, and the runtime's own errors by their variants.
+    #[test]
+    fn a_refusal_is_named_as_the_runtime_names_it() {
+        let module = |index: u128, error: u128| {
+            Value::unnamed_variant(
+                "Module",
+                [Value::named_composite([
+                    ("index", Value::u128(index)),
+                    (
+                        "error",
+                        Value::unnamed_composite([
+                            Value::u128(error),
+                            Value::u128(0),
+                            Value::u128(0),
+                            Value::u128(0),
+                        ]),
+                    ),
+                ])],
+            )
+        };
+        // Pallet 9's error 3, and nothing else, is the one this metadata names.
+        let metadata = |pallet: u8, error: u8| {
+            (pallet == 9 && error == 3).then(|| {
+                (
+                    "Drc369Royalties".to_string(),
+                    "PaymentCannotBeReceived".to_string(),
+                )
+            })
+        };
+
+        let named = refusal_of(&module(9, 3), metadata);
+        assert_eq!(
+            named,
+            refused("Drc369Royalties", "PaymentCannotBeReceived").unwrap()
+        );
+        assert!(named.is_unreceivable());
+        assert_eq!(
+            named.to_string(),
+            "Drc369Royalties::PaymentCannotBeReceived"
+        );
+
+        // An error this metadata does not name is still said, by its numbers,
+        // and is not mistaken for one it does.
+        let unknown = refusal_of(&module(9, 4), metadata);
+        assert_eq!(unknown.to_string(), "pallet 9::error 4");
+        assert!(!unknown.is_unreceivable());
+        assert_eq!(
+            refusal_of(&module(3, 9), metadata).to_string(),
+            "pallet 3::error 9"
+        );
+        // An index that is not a byte is not one.
+        assert_eq!(refusal_of(&module(265, 3), metadata).to_string(), "Module");
+
+        let funds = refusal_of(
+            &Value::unnamed_variant("Token", [Value::unnamed_variant("FundsUnavailable", [])]),
+            metadata,
+        );
+        assert_eq!(funds.to_string(), "Token::FundsUnavailable");
+        assert!(funds.is_funds());
+        assert!(!funds.is_unreceivable());
+
+        assert_eq!(
+            refusal_of(&Value::unnamed_variant("BadOrigin", []), metadata).to_string(),
+            "BadOrigin"
+        );
+        assert_eq!(
+            refusal_of(&Value::u128(1), metadata).to_string(),
+            "an error the launcher cannot read"
+        );
+    }
+
+    /// The chain's answer is decoded by name, and used only when its parts are
+    /// the price. AGENTS.md §5: the one money intermediate the launcher forms
+    /// here is that sum, and it is checked, so the largest answer a `u128` can
+    /// carry is read and one past it is refused, never wrapped or panicked on.
+    #[test]
+    fn the_chains_answer_is_used_only_when_its_parts_are_the_price() {
+        let read = |remix: u128, royalty: u128, seller: u128| PreviewRead {
+            source: Some((3, 1)),
+            remix: vec![(AccountId32(SOURCE), remix)],
+            royalties: vec![(AccountId32(CREATOR), royalty)],
+            seller: AccountId32(SELLER),
+            seller_receives: seller,
+            refusal: Some(Value::unnamed_variant(
+                "Token",
+                [Value::unnamed_variant("FundsUnavailable", [])],
+            )),
+        };
+        let nothing_named = |_: u8, _: u8| None;
+
+        let preview = Preview::from_read(
+            read(c(150), c(285), c(2_565)),
+            c(3_000),
+            Some(BUYER),
+            nothing_named,
+        )
+        .unwrap();
+        assert_eq!(
+            preview,
+            Preview {
+                price: c(3_000),
+                buyer: Some(BUYER),
+                source: Some((3, 1)),
+                remix: vec![(SOURCE, c(150))],
+                royalties: vec![(CREATOR, c(285))],
+                seller: SELLER,
+                seller_receives: c(2_565),
+                refusal: refused("Token", "FundsUnavailable"),
+            }
+        );
+        assert_eq!(
+            preview.parts().collect::<Vec<_>>(),
+            vec![(SOURCE, c(150)), (CREATOR, c(285)), (SELLER, c(2_565))],
+            "the chain's order"
+        );
+
+        // A Spark out either way is a misreading, and nobody is shown it.
+        for price in [c(3_000) - 1, c(3_000) + 1] {
+            let error =
+                Preview::from_read(read(c(150), c(285), c(2_565)), price, None, nothing_named)
+                    .unwrap_err();
+            assert_eq!(error.kind(), "rpc");
+            assert!(error.to_string().contains("does not add up"), "{error}");
+        }
+
+        // The largest price there is, all of it to one part, reads; parts that
+        // sum past it are refused rather than wrapped.
+        assert!(Preview::from_read(read(u128::MAX, 0, 0), u128::MAX, None, nothing_named).is_ok());
+        assert!(Preview::from_read(read(0, 0, u128::MAX), u128::MAX, None, nothing_named).is_ok());
+        let past = Preview::from_read(read(u128::MAX, 1, 0), u128::MAX, None, nothing_named);
+        assert_eq!(past.unwrap_err().kind(), "rpc");
+        let wrapped = Preview::from_read(read(u128::MAX, 1, 0), 0, None, nothing_named);
+        assert_eq!(wrapped.unwrap_err().kind(), "rpc");
+    }
+
+    /// A part its recipient cannot receive stops every buyer. The chain says
+    /// so; the launcher names the account and the amount from the balances it
+    /// read at the same block, and blocks the sale before anyone is asked.
     #[test]
     fn a_part_its_recipient_cannot_receive_blocks_the_sale_in_words() {
-        // CREATOR does not exist, and 10% of 500 is 50, below 100.
-        let mut state = remix_listed_at(500 * SPARKS_PER_CGT);
-        state.source_terms = None;
-        state.free = vec![(SELLER, 500 * SPARKS_PER_CGT)];
+        // CREATOR does not exist, and is owed 50 from a sale at 500.
+        let unreceivable = || refused("Drc369Royalties", "PaymentCannotBeReceived");
+        let mut state = SaleState {
+            source_terms: None,
+            free: vec![(SELLER, c(500))],
+            ..listed_at(
+                c(500),
+                chain_says(
+                    c(500),
+                    Some(BUYER),
+                    &[],
+                    &[(CREATOR, c(50))],
+                    c(450),
+                    unreceivable(),
+                ),
+            )
+        };
 
         let blocked = state
-            .breakdown(500 * SPARKS_PER_CGT, Some(&BUYER))
+            .breakdown()
+            .unwrap()
             .blocked
             .expect("a part that cannot be received");
         assert!(blocked.contains(&address_of(&CREATOR)), "{blocked}");
         assert!(blocked.contains("50.00 CGT"), "{blocked}");
         assert!(blocked.contains("100.00 CGT"), "{blocked}");
-        assert_eq!(state.cannot_buy(&BUYER, &rich()), Some(blocked));
+        assert_eq!(state.cannot_buy(), Some(blocked));
 
-        // At a price where the part reaches the existential deposit, it clears.
-        assert_eq!(
-            state
-                .breakdown(1_000 * SPARKS_PER_CGT, Some(&BUYER))
-                .blocked,
-            None
-        );
-        // A part of nothing moves nothing, so it blocks nothing.
-        let dust = state.breakdown(9, Some(&BUYER));
-        assert_eq!(dust.payouts[0].amount_sparks, "0");
-        assert_eq!(dust.blocked, None);
+        // The chain says so and the balances read do not show who: the chain
+        // is still believed, in the words a refused transaction gets.
+        state.free = vec![(SELLER, c(500)), (CREATOR, ED)];
+        let blocked = state.breakdown().unwrap().blocked.unwrap();
+        assert!(blocked.contains("cannot receive its part"), "{blocked}");
+
+        // The chain sees nothing wrong: nothing is blocked, whatever the
+        // balances read suggest.
+        state.free = vec![(SELLER, c(500))];
+        state.preview.as_mut().unwrap().refusal = None;
+        assert_eq!(state.breakdown().unwrap().blocked, None);
+        assert_eq!(state.cannot_buy(), None);
 
         // An account paid twice has its first part when its second arrives, as
         // on chain: CREATOR, who does not exist, is opened by 150 from the
         // source's terms, and the 28.5 its own royalty adds is then fine.
-        state.source_terms = Some(terms(&[(CREATOR, 200_000)], 500_000));
-        state.own_terms = Some(terms(&[(CREATOR, 190_000)], 0));
-        let twice = state.breakdown(300 * SPARKS_PER_CGT, Some(&BUYER));
-        assert_eq!(twice.payouts[0].amount_cgt, "150.00");
-        assert_eq!(twice.payouts[1].amount_cgt, "28.50");
-        assert_eq!(twice.blocked, None);
+        let twice = chain_says(
+            c(300),
+            Some(BUYER),
+            &[(CREATOR, c(150))],
+            &[(CREATOR, c(28) + SPARKS_PER_CGT / 2)],
+            c(121) + SPARKS_PER_CGT / 2,
+            unreceivable(),
+        );
+        assert_eq!(state.unreceivable(&twice), None);
+        // A part of nothing moves nothing, and a part to the buyer stays put.
+        let dust = chain_says(9, Some(BUYER), &[], &[(CREATOR, 0)], 9, unreceivable());
+        assert_eq!(
+            SaleState {
+                free: vec![(SELLER, c(500))],
+                ..state.clone()
+            }
+            .unreceivable(&dust),
+            None
+        );
+        let to_buyer = chain_says(
+            c(500),
+            Some(CREATOR),
+            &[],
+            &[(CREATOR, c(50))],
+            c(450),
+            unreceivable(),
+        );
+        assert_eq!(state.unreceivable(&to_buyer), None);
+    }
+
+    /// The chain's other refusals are the buyer's to read, not the sale's: a
+    /// seller may list an asset that is nested, as the chain lets them, and a
+    /// buyer who cannot pay does not stop anyone else.
+    #[test]
+    fn only_what_stops_every_buyer_blocks_the_sale() {
+        for refusal in [
+            refused("Nfts", "ItemLocked"),
+            refused("Token", "FundsUnavailable"),
+            refused("BadOrigin", ""),
+        ] {
+            let state = listed_at(
+                c(3_000),
+                Preview {
+                    refusal: refusal.clone(),
+                    ..listed().preview.unwrap()
+                },
+            );
+            assert_eq!(state.breakdown().unwrap().blocked, None, "{refusal:?}");
+            assert!(state.cannot_buy().is_some(), "{refusal:?}");
+        }
+    }
+
+    /// What the chain refuses a buyer is said in words: the launcher's fuller
+    /// sentence where what it read explains it, the sentence a refused
+    /// transaction gets where it does not, and the chain's own name for
+    /// anything else.
+    #[test]
+    fn the_chains_refusal_of_a_buyer_is_said_in_words() {
+        let refusing = |refusal: Option<Refusal>, funds: Funds| SaleState {
+            viewer: Some((BUYER, funds)),
+            ..listed_at(
+                c(1_000),
+                chain_says(
+                    c(1_000),
+                    Some(BUYER),
+                    &[(SOURCE, c(50))],
+                    &[(CREATOR, c(95))],
+                    c(855),
+                    refusal,
+                ),
+            )
+        };
+
+        // Short of the price, and the existential deposit on top of it.
+        let short = Funds {
+            free: c(1_050),
+            reserved: 0,
+            frozen: 0,
+        };
+        for name in ["FundsUnavailable", "InsufficientBalance", "NotExpendable"] {
+            let words = refusing(refused("Token", name), short)
+                .cannot_buy()
+                .unwrap();
+            assert!(words.contains("cannot cover it"), "{name}: {words}");
+            assert!(words.contains("1,000.00 CGT"), "{words}");
+            assert!(words.contains("950.00 CGT"), "{words}");
+            assert!(words.contains("100.00 CGT"), "{words}");
+        }
+        // The chain says the buyer cannot pay, and the balance read says they
+        // can: the chain is believed, in a refused transaction's words.
+        let words = refusing(refused("Token", "FundsUnavailable"), rich())
+            .cannot_buy()
+            .unwrap();
+        assert!(words.contains("could not cover the price"), "{words}");
+        // And the balance read says they cannot, but the chain says they can:
+        // the chain is believed again.
+        assert_eq!(refusing(None, short).cannot_buy(), None);
+
+        // Held in place by nesting: the launcher's sentence names the parent.
+        let mut nested = refusing(refused("Nfts", "ItemLocked"), rich());
+        nested.held_in_place = held_in_place(Some((4, 9)), 0);
+        let words = nested.cannot_buy().unwrap();
+        assert!(words.contains("nested inside asset 4/9"), "{words}");
+        nested.held_in_place = None;
+        let words = nested.cannot_buy().unwrap();
+        assert!(words.contains("nested inside another"), "{words}");
+
+        // Anything the launcher has no words for is said by the chain's name.
+        let words = refusing(refused("BadOrigin", ""), rich())
+            .cannot_buy()
+            .unwrap();
+        assert_eq!(words, "The chain would refuse this sale: BadOrigin.");
+        let words = refusing(refused("pallet 9", "error 4"), rich())
+            .cannot_buy()
+            .unwrap();
+        assert!(words.contains("pallet 9::error 4"), "{words}");
     }
 
     /// A part owed to the buyer themselves never leaves their account, so it is
-    /// marked, it cannot block the sale, and it is not counted against them.
+    /// marked, and it is not counted against them when the chain says they are
+    /// short.
     #[test]
     fn a_part_owed_to_the_buyer_stays_with_them() {
-        let mut state = remix_listed_at(1_000 * SPARKS_PER_CGT);
-        state.source_terms = None;
-        let breakdown = state.breakdown(1_000 * SPARKS_PER_CGT, Some(&CREATOR));
+        let owed = |buyer: Account, funds: Funds| SaleState {
+            source_terms: None,
+            viewer: Some((buyer, funds)),
+            ..listed_at(
+                c(1_000),
+                chain_says(
+                    c(1_000),
+                    Some(buyer),
+                    &[],
+                    &[(CREATOR, c(100))],
+                    c(900),
+                    refused("Token", "FundsUnavailable"),
+                ),
+            )
+        };
+        let exactly = Funds {
+            free: c(1_000),
+            reserved: 0,
+            frozen: 0,
+        };
+
+        let creator = owed(CREATOR, exactly);
+        let breakdown = creator.breakdown().unwrap();
         assert!(breakdown.payouts[0].to_buyer);
         assert!(!breakdown.payouts[1].to_buyer);
 
         // 900 leaves the account, not 1,000: with 1,000 free and 100 to keep,
-        // the buyer who is owed the royalty can pay and a stranger cannot.
-        let exactly = Funds {
-            free: 1_000 * SPARKS_PER_CGT,
-            reserved: 0,
-            frozen: 0,
-        };
-        assert_eq!(state.cannot_buy(&CREATOR, &exactly), None);
-        let refused = state.cannot_buy(&BUYER, &exactly).expect("too little");
+        // the buyer who is owed the royalty is not short by the launcher's
+        // reading, and a stranger is, by 1,000.
+        assert!(creator
+            .cannot_buy()
+            .unwrap()
+            .contains("could not cover the price"));
+        let refused = owed(BUYER, exactly).cannot_buy().unwrap();
         assert!(refused.contains("1,000.00 CGT"), "{refused}");
         assert!(refused.contains("900.00 CGT"), "{refused}");
     }
 
-    /// Every reason a purchase would be refused is said in words, and the first
-    /// one that applies is the one given.
+    /// Everything the chain is not asked — whether it is listed, by whom, and
+    /// whether the listing is live — is said by the launcher, first.
     #[test]
     fn what_stops_a_purchase_is_said_in_words() {
-        let listed = remix_listed_at(1_000 * SPARKS_PER_CGT);
-
-        assert_eq!(listed.cannot_buy(&BUYER, &rich()), None);
+        let listed = listed();
+        assert_eq!(listed.cannot_buy(), None);
 
         let unlisted = SaleState {
             listing: None,
             ..listed.clone()
         };
-        assert!(unlisted
-            .cannot_buy(&BUYER, &rich())
-            .unwrap()
-            .contains("not listed"));
+        assert!(unlisted.cannot_buy().unwrap().contains("not listed"));
 
-        assert!(listed
-            .cannot_buy(&SELLER, &rich())
-            .unwrap()
-            .contains("your own listing"));
+        let own = SaleState {
+            viewer: Some((SELLER, rich())),
+            ..listed.clone()
+        };
+        assert!(own.cannot_buy().unwrap().contains("your own listing"));
 
         // Listed by SELLER, since sent to CREATOR: void for everyone.
         let void = SaleState {
@@ -1822,62 +2420,90 @@ mod tests {
             ..listed.clone()
         };
         assert!(void.live_listing().is_none());
-        assert!(void.cannot_buy(&BUYER, &rich()).unwrap().contains("void"));
-        assert!(void
-            .cannot_buy(&CREATOR, &rich())
-            .unwrap()
-            .contains("hold this asset already"));
+        assert!(void.cannot_buy().unwrap().contains("void"));
+        assert!(SaleState {
+            viewer: Some((CREATOR, rich())),
+            ..void
+        }
+        .cannot_buy()
+        .unwrap()
+        .contains("hold this asset already"));
 
-        // The price, and the existential deposit on top of it.
-        let short = Funds {
-            free: 1_050 * SPARKS_PER_CGT,
-            reserved: 0,
-            frozen: 0,
+        // An answer that is not about this purchase is not used as if it were:
+        // none at all, another buyer's, or another price's.
+        let answer = listed.preview.clone().unwrap();
+        for preview in [
+            None,
+            Some(Preview {
+                buyer: Some(CREATOR),
+                ..answer.clone()
+            }),
+            Some(Preview {
+                buyer: None,
+                ..answer.clone()
+            }),
+            Some(Preview {
+                price: c(2_000),
+                ..answer
+            }),
+        ] {
+            let state = SaleState {
+                preview,
+                ..listed.clone()
+            };
+            assert!(state
+                .cannot_buy()
+                .unwrap()
+                .contains("could not ask the chain"));
+        }
+
+        // Nobody asking: nothing is said about buying.
+        let anonymous = SaleState {
+            viewer: None,
+            ..listed
         };
-        let refused = listed.cannot_buy(&BUYER, &short).unwrap();
-        assert!(refused.contains("1,000.00 CGT"), "{refused}");
-        assert!(refused.contains("950.00 CGT"), "{refused}");
-        assert!(refused.contains("100.00 CGT"), "{refused}");
-        let enough = Funds {
-            free: 1_100 * SPARKS_PER_CGT,
-            ..short
-        };
-        assert_eq!(listed.cannot_buy(&BUYER, &enough), None);
+        assert_eq!(anonymous.cannot_buy(), None);
     }
 
     /// A nested asset, or one holding nested assets, can be listed and cannot be
-    /// sold (`ItemLocked`, ADR-065): the buyer is told so before anyone is asked,
-    /// and its own seller is still told it is their listing.
+    /// sold (`ItemLocked`, ADR-065): the chain says so, the buyer is told why
+    /// before anyone is asked, and its own seller is still told it is their
+    /// listing.
     #[test]
     fn an_asset_held_in_place_cannot_be_bought_and_says_why() {
-        let mut state = remix_listed_at(1_000 * SPARKS_PER_CGT);
         assert_eq!(held_in_place(None, 0), None);
-
+        let mut state = listed_at(
+            c(1_000),
+            chain_says(
+                c(1_000),
+                Some(BUYER),
+                &[],
+                &[],
+                c(1_000),
+                refused("Nfts", "ItemLocked"),
+            ),
+        );
         state.held_in_place = held_in_place(Some((4, 9)), 0);
-        let refused = state.cannot_buy(&BUYER, &rich()).unwrap();
+        let refused = state.cannot_buy().unwrap();
         assert!(refused.contains("nested inside asset 4/9"), "{refused}");
         let root = state.asset.current.root.clone();
         assert_eq!(
-            state.refuses(
-                &BUYER,
-                &rich(),
-                Seen {
-                    price_sparks: 1_000 * SPARKS_PER_CGT,
-                    root: &root
-                }
-            ),
+            state.refuses(Seen {
+                price_sparks: c(1_000),
+                root: &root
+            }),
             Some(refused)
         );
-        assert!(state
-            .cannot_buy(&SELLER, &rich())
-            .unwrap()
-            .contains("your own listing"));
+        assert!(SaleState {
+            viewer: Some((SELLER, rich())),
+            ..state.clone()
+        }
+        .cannot_buy()
+        .unwrap()
+        .contains("your own listing"));
 
         state.held_in_place = held_in_place(None, 1);
-        assert!(state
-            .cannot_buy(&BUYER, &rich())
-            .unwrap()
-            .contains("holds another asset"));
+        assert!(state.cannot_buy().unwrap().contains("holds another asset"));
         assert!(held_in_place(None, 3).unwrap().contains("holds 3 assets"));
     }
 
@@ -1885,16 +2511,16 @@ mod tests {
     /// see: what was on the buyer's screen is held against the chain.
     #[test]
     fn a_purchase_is_refused_when_what_was_seen_has_changed() {
-        let price = 1_000 * SPARKS_PER_CGT;
-        let state = remix_listed_at(price);
+        let price = c(3_000);
+        let state = listed();
         let root = state.asset.current.root.clone();
         fn seen(price_sparks: u128, root: &str) -> Seen<'_> {
             Seen { price_sparks, root }
         }
 
-        assert_eq!(state.refuses(&BUYER, &rich(), seen(price, &root)), None);
+        assert_eq!(state.refuses(seen(price, &root)), None);
         assert_eq!(
-            state.refuses(&BUYER, &rich(), seen(price, &root.to_uppercase())),
+            state.refuses(seen(price, &root.to_uppercase())),
             None,
             "a fingerprint is the same in either case"
         );
@@ -1902,24 +2528,40 @@ mod tests {
         // Looked while it cost half as much, and while it cost twice as much:
         // neither is the price they would be approving.
         for looked_at in [price / 2, price * 2] {
-            let refused = state
-                .refuses(&BUYER, &rich(), seen(looked_at, &root))
-                .unwrap();
-            assert!(refused.contains("The price changed since you looked"));
-            assert!(refused.contains("1,000.00 CGT"), "{refused}");
-            assert!(refused.contains(&with_symbol(looked_at)), "{refused}");
+            let words = state.refuses(seen(looked_at, &root)).unwrap();
+            assert!(words.contains("The price changed since you looked"));
+            assert!(words.contains("3,000.00 CGT"), "{words}");
+            assert!(words.contains(&with_symbol(looked_at)), "{words}");
         }
 
-        let refused = state
-            .refuses(&BUYER, &rich(), seen(price, &"0".repeat(64)))
-            .unwrap();
-        assert!(refused.contains("revised since you looked"), "{refused}");
+        let words = state.refuses(seen(price, &"0".repeat(64))).unwrap();
+        assert!(words.contains("revised since you looked"), "{words}");
 
-        // What stops any purchase is said first.
-        assert!(state
-            .refuses(&SELLER, &rich(), seen(price / 2, &root))
+        // What stops any purchase is said first, and so is the chain's refusal.
+        assert!(SaleState {
+            viewer: Some((SELLER, rich())),
+            ..state.clone()
+        }
+        .refuses(seen(price / 2, &root))
+        .unwrap()
+        .contains("your own listing"));
+        let mut locked = state.clone();
+        locked.preview.as_mut().unwrap().refusal = refused("Nfts", "ItemLocked");
+        assert!(locked
+            .refuses(seen(price / 2, &root))
             .unwrap()
-            .contains("your own listing"));
+            .contains("nested inside another"));
+    }
+
+    /// A node that cannot answer what a sale pays is refused in words that say
+    /// which runtime it runs and which it needs.
+    #[test]
+    fn a_node_without_the_preview_is_refused_in_words() {
+        let error = cannot_preview(5);
+        assert_eq!(error.kind(), "qontrol");
+        let words = error.to_string();
+        assert!(words.contains("spec version 5"), "{words}");
+        assert!(words.contains("spec version 6 or later"), "{words}");
     }
 
     /// What an account can spend is what `pallet-balances` lets a sale take:
@@ -1956,7 +2598,7 @@ mod tests {
     /// spend, and whether a pasted fingerprint is the one the asset carries.
     #[test]
     fn a_view_says_what_the_chain_holds_and_nothing_else() {
-        let state = remix_listed_at(3_000 * SPARKS_PER_CGT);
+        let state = listed();
         let root = state.asset.current.root.clone();
 
         let view = state.clone().view(Some(&root.to_uppercase()));
@@ -2052,8 +2694,21 @@ mod tests {
     /// much, that it is public, and that a sale cannot be undone.
     #[test]
     fn the_list_prompt_says_what_a_sale_would_pay() {
-        let state = remix_listed_at(1);
-        let breakdown = state.breakdown(3_000 * SPARKS_PER_CGT, None);
+        // Not listed yet: the chain was asked about 3,000 CGT for no buyer.
+        let state = SaleState {
+            listing: None,
+            viewer: None,
+            preview: Some(chain_says(
+                c(3_000),
+                None,
+                &[(SOURCE, c(150))],
+                &[(CREATOR, c(285))],
+                c(2_565),
+                None,
+            )),
+            ..listed()
+        };
+        let breakdown = state.breakdown().unwrap();
         let prompt = list_prompt(
             &state.asset,
             &breakdown,
@@ -2102,11 +2757,15 @@ mod tests {
             derived_from: None,
             own_terms: None,
             source_terms: None,
+            preview: Some(Preview {
+                source: None,
+                ..chain_says(c(1), None, &[], &[], c(1), None)
+            }),
             ..state
         };
         let prompt = list_prompt(
             &plain.asset,
-            &plain.breakdown(SPARKS_PER_CGT, None),
+            &plain.breakdown().unwrap(),
             None,
             "Demiurge Development",
             super::super::LOCAL_RPC,
@@ -2120,8 +2779,8 @@ mod tests {
     /// be taken, and that it cannot be undone.
     #[test]
     fn the_buy_prompt_says_what_is_paid_and_that_it_cannot_be_undone() {
-        let state = remix_listed_at(3_000 * SPARKS_PER_CGT);
-        let breakdown = state.breakdown(3_000 * SPARKS_PER_CGT, Some(&BUYER));
+        let state = listed();
+        let breakdown = state.breakdown().unwrap();
         let prompt = buy_prompt(
             &state.asset,
             &breakdown,
@@ -2157,7 +2816,12 @@ mod tests {
         // A part owed to the buyer is said to stay with them.
         let own = buy_prompt(
             &state.asset,
-            &state.breakdown(3_000 * SPARKS_PER_CGT, Some(&CREATOR)),
+            &SaleState {
+                viewer: Some((CREATOR, rich())),
+                ..state.clone()
+            }
+            .breakdown()
+            .unwrap(),
             &address_of(&CREATOR),
             "Demiurge Development",
             super::super::LOCAL_RPC,
@@ -2237,6 +2901,9 @@ mod tests {
             ("PaymentCannotBeReceived", "cannot receive its part"),
             ("NotOwner", "does not hold that asset"),
             ("ItemLocked", "nested inside another"),
+            ("FundsUnavailable", "could not cover the price"),
+            ("InsufficientBalance", "could not cover the price"),
+            ("NotExpendable", "could not cover the price"),
             (
                 "ContentChanged",
                 "no longer holds the content you looked at",

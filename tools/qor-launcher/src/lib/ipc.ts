@@ -457,7 +457,7 @@ export interface Payout {
 
 /**
  * What a sale at one price pays, part by part, in the order the chain pays it.
- * Worked out by the host with the chain's own arithmetic; the view only draws it.
+ * The chain's own answer, which the host asks it for; the view only draws it.
  */
 export interface Breakdown {
   price_sparks: string;

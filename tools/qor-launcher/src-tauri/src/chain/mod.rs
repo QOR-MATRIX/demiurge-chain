@@ -1683,7 +1683,8 @@ mod live {
             .contains("your own listing"));
         assert_eq!(stale.times_asked(), 0);
 
-        // 6. What the launcher says the sale will pay, before anyone signs.
+        // 6. What the launcher says the sale will pay, before anyone signs: the
+        //    chain's own answer (`Drc369RoyaltiesApi::sale_preview`), shown.
         //    20% of the price is 400 CGT and one Spark; a quarter of that,
         //    rounded down, is the creator's 100 CGT, and three quarters the
         //    collaborator's 300 CGT. Of the 1,600 CGT and seven Sparks left,
@@ -1716,6 +1717,26 @@ mod live {
             ),
             expected
         );
+        // A buyer who cannot pay is told so by the chain's own run of their
+        // purchase, undone: the collaborator holds nothing yet. The 340 CGT
+        // owed to them would stay with them, so it is not counted against them.
+        let poor = client.sale(&number, Some(&collaborator)).await.unwrap();
+        let words = poor.cannot_buy.expect("an account holding nothing");
+        assert!(words.contains("cannot cover it"), "{words}");
+        assert!(
+            words.contains(&format!(
+                "Buying takes {} CGT",
+                crate::cgt::format_cgt_grouped(PRICE - 340 * CGT)
+            )),
+            "{words}"
+        );
+        let theirs = poor.breakdown.expect("a live listing");
+        assert_eq!(parts(&theirs.payouts), expected);
+        assert_eq!(
+            theirs.blocked, None,
+            "a buyer who cannot pay stops nobody else"
+        );
+        assert!(theirs.payouts[1].to_buyer && theirs.payouts[2].to_buyer);
 
         // 7. A declined purchase moves nothing: no CGT, no asset, no nonce.
         let before = [

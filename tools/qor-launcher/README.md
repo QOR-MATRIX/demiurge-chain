@@ -323,7 +323,8 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
 
 ### Verified
 
-- 182 Rust host tests passing with no node running (2026-10-01), 39 of them Qontrol's and 7 the object
+- 195 Rust host tests passing with no node running, and 6 ignored that need a node or the OS keychain
+  (2026-10-02), 39 of them Qontrol's and 7 the object
   model's (ADR-047: the same files in any order make the same reference, one changed byte changes it, the
   reference is the 41 bytes the chain stores, and the manifest's encoding is pinned). Build the helper
   first: without it the Qontrol tests that commit skip and say so, and under
@@ -357,12 +358,26 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   landing between the dialog and the block is refused by the chain (`ContentChanged`, put in words) and not only
   by the host's check before signing. It needs a node at `spec_version` 6 or later. The five live tests passed
   against one on 2026-10-02 (377 s), the sale among them.
-- **What a sale pays is the chain's arithmetic, not the launcher's.** `src-tauri/src/chain/sales.rs` carries
-  the pallet's `split`, line for line, on `sp-arithmetic` at the version the pinned SDK release uses
-  (`=28.0.1`, ADR-033 rule 1): `Permill::mul_floor` and `multiply_by_rational_with_rounding`, no float and no
-  hand-written `a * b / c`. Its four arithmetic tests are the pallet's own vectors, the largest intermediate
-  included. After a sale, what each account received is read from the `Sold` event and nothing else.
-  Eleven faults planted in that module on 2026-10-01 each failed at least one of its 19 tests.
+- **What a sale pays is the chain's arithmetic, not the launcher's** (2026-10-02). The launcher carries no
+  copy of the pallet's `split` and no `sp-arithmetic`. `src-tauri/src/chain/sales.rs` asks the chain through
+  the runtime API `Drc369RoyaltiesApi::sale_preview`, called dynamically from the node's metadata at the same
+  finalised block as its other reads, and the Sell form, the Buy dialog and both approval dialogs show that
+  answer: every part, who receives it, and whether the sale could settle. For a buyer the chain runs the
+  purchase and undoes it, so its refusal (a balance that cannot cover the price, a part its recipient cannot
+  receive, an asset held in place by nesting) is the one the transaction would get, said in the same words
+  `in_words` gives a refused transaction, with the account and the amounts named where the launcher's reads
+  at that block show them. The launcher adds only what the chain is not asked: a void listing, and a price
+  or fingerprint that changed since the buyer looked. An answer whose parts do not sum to the price, checked
+  without overflow, is refused rather than shown. **A node whose runtime predates `spec_version` 6 has no
+  such API, and selling and buying are refused in words on it**; nothing is worked out instead. After a
+  sale, what each account received is read from the `Sold` event and nothing else. The module's tests
+  decode the chain's answer and name its refusals; eight faults planted in them on 2026-10-02 (a share put
+  beside the wrong account, the seller taken from storage rather than the answer, the parts' sum allowed to
+  wrap, every refusal treated as blocking the sale, a pallet error misread, another buyer's answer used, the
+  nesting sentence lost, a source named without terms) each failed at least one. The live sale test asserts
+  the chain's preview part for part against the `Sold` event, and that a buyer holding nothing is refused
+  by the chain's own run of their purchase; the five live tests passed together against a `spec_version` 6
+  node on 2026-10-02 (380 s).
 - The accessibility settings take effect in a real rendering engine: after `npm run build`,
   `node scripts/check-accessibility.mjs` runs 41 checks against headless Edge or Chrome (2026-09-22), seven
   of them a precondition that the page is visible. One case, "stored off, then live: the backdrop starts",

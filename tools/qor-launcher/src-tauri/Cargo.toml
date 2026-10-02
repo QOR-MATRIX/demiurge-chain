@@ -50,13 +50,9 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 # `full_crypto` is what makes `Pair::sign` available; `serde` is what makes
 # SS58 encoding and decoding available.
 sp-core          = { version = "=43.0.0", features = ["full_crypto", "serde"] }
-# The SDK's own fraction and ratio helpers, `Permill::mul_floor` and
-# `multiply_by_rational_with_rounding`, at the version the same release pins
-# (`chain/Cargo.lock`). A sale's price is divided on chain by exactly these
-# (`pallet-drc369-royalties`, ADR-061); the launcher shows what a sale would pay
-# before anyone signs, so it runs the same helpers on the terms it read from the
-# chain and never a hand-written `a * b / c` (AGENTS.md §5, ADR-035).
-sp-arithmetic    = { version = "=28.0.1" }
+# No `sp-arithmetic`: what a sale pays is asked of the chain itself, through
+# the runtime API `Drc369RoyaltiesApi::sale_preview`, and the launcher carries
+# no copy of the pallet's arithmetic (`src/chain/sales.rs`).
 
 # ── The chain client (ADR-040) ──────────────────────────────────────────────
 # subxt reads the connected node's runtime metadata and builds calls, storage
