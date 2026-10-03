@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react';
-import { Check, Loader2, RefreshCw } from 'lucide-react';
+import { Check, Hourglass, Loader2, RefreshCw } from 'lucide-react';
 
 import { chain, explain } from '../lib/ipc';
 import { useQor } from '../state/store';
@@ -15,6 +15,9 @@ const PRESETS = [
   { label: 'Devnet', url: 'wss://rpc.qorsync.dev', note: 'The public test network' },
   { label: 'Local node', url: 'ws://127.0.0.1:9944', note: 'A node running on this machine' },
 ];
+
+// Shown, never selectable: there is no mainnet yet, and no address to give it.
+const MAINNET_SOON = { label: 'Mainnet', note: 'Soon to be unveiled…' };
 
 export function ChainView() {
   const chainStatus = useQor((s) => s.chainStatus);
@@ -90,7 +93,18 @@ export function ChainView() {
         <Panel className="p-6">
           <p className="eyebrow mb-5">Endpoint</p>
 
-          <div className="mb-5 grid grid-cols-2 gap-3">
+          <div className="mb-5 grid grid-cols-3 gap-3">
+            <div
+              aria-disabled="true"
+              title="Mainnet is not live yet"
+              className="flex cursor-not-allowed items-start gap-3 border border-edge p-4 text-left opacity-70"
+            >
+              <Hourglass size={14} className="mt-0.5 flex-none text-ink-faint" aria-hidden="true" />
+              <span>
+                <span className="block text-ui font-semibold text-ink">{MAINNET_SOON.label}</span>
+                <span className="mt-1 block text-caption text-ink-muted">{MAINNET_SOON.note}</span>
+              </span>
+            </div>
             {PRESETS.map((preset) => {
               const active = chainStatus?.endpoint === preset.url;
               return (
