@@ -1,0 +1,11 @@
+# The build context of chain/Dockerfile is chain/. Cargo builds inside the image,
+# so host build artifacts are never wanted, and they are many gigabytes.
+**/target/
+**/node_modules/
+
+# A node's data directory, if one was ever made inside chain/ by hand: keys and
+# chain state must never enter an image layer.
+**/data/
+**/keystore/
+**/node-key
+**/*.log

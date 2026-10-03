@@ -19,7 +19,7 @@ depend on this runtime, and the first end-to-end use of its finality.
 | Piece | State |
 | --- | --- |
 | `runtime/` (`demiurge-runtime`) | System, timestamp, Aura (ADR-019), GRANDPA (ADR-018), balances, session and the validator set (ADR-020), `pallet-nfts` as the asset ledger (ADR-025), `pallet-drc369`, `pallet-utility` for the atomic batch a trade needs (ADR-053), `pallet-drc369-royalties` (ADR-061), and `pallet-sudo` behind a feature (ADR-037). `spec_version` 6, `transaction_version` 2 |
-| `node/` (`demiurge-node`) | Runs. Aura authoring, GRANDPA voting, standard RPC, `dev` and `local` chain specifications |
+| `node/` (`demiurge-node`) | Runs. Aura authoring, GRANDPA voting, standard RPC, `dev` and `local` chain specifications, the SDK's `key` subcommand, and `devnet_chain_spec` for the hosted devnet (not yet a built-in `--chain`: see "The devnet image") |
 | `pallets/validator-set` (`pallet-validator-set`) | **Mounted.** A governance-chosen set acting as `pallet-session`'s session manager (ADR-020). Its own tests cover every governance path and the three guards against a halted chain. The chain's validators come from it, verified by reading `Session::Validators` from a running node |
 | `pallets/drc369` (`pallet-drc369`) | **Mounted, M4.1 only** (2026-09-22). The content reference (ADR-047's 41 bytes), the pinned commit, revision and the one-way switch to permanent, one singles collection per creator, owner enumeration and the `Drc369Api` runtime API. Every config value's source is in `runtime/src/assets.rs` and ADR-052; the deposits are placeholders (U-14) and the weights are placeholders owed to M7.2. Since 2026-09-29 it also records remix provenance at mint — `derived_from` and `remix_depth`, bounded at 16 (ADR-061). **Since 2026-10-01 it nests** (M4.2's nesting, M4.5's requirement R-2): `nest` and `unnest`, only by the owner of both assets, a cycle refused by a walk of at most eight steps, at most eight levels and sixty-four assets held (ADR-047 decision 13 row 7), and it is `pallet-nfts`'s `Locker`, so a nested asset and the asset holding it cannot be transferred, sold or burned until it is taken out. No deposit of its own. State and XP and physics are not started |
 | `pallets/drc369-royalties` (`pallet-drc369-royalties`) | **Mounted as `Drc369Royalties`** (2026-09-29, M4.2's royalty half, ADR-061). Royalty terms set by an asset's creator while they hold it — up to eight recipients and a remix share that never rises once the work is remixed (ADR-062) — and a listing bought and settled in CGT that pays a remix's direct source, then the asset's recipients, then the seller, in one transaction. Every amount comes from one pure function, `split`, pinned at `u128::MAX`. No platform share, no fee, no deposit of its own; weights are placeholders owed to M7.2 |
@@ -115,6 +115,82 @@ launcher's host crate.
 ./target/release/demiurge-node --dev --tmp
 cd ../tools/qor-launcher/src-tauri && cargo test --lib chain::live -- --ignored --nocapture
 ```
+
+## Keys
+
+The node carries the SDK's standard `key` subcommand (`sc_cli::KeySubcommand`), mounted on 3 October 2026:
+
+```bash
+demiurge-node key generate --scheme sr25519            # prints a new secret phrase: never into a log
+demiurge-node key inspect --public --scheme ed25519 0x<public key hex>
+demiurge-node key insert --keystore-path <dir> --key-type aura --scheme sr25519 --suri <file holding the phrase>
+demiurge-node key generate-node-key --file <file>      # the network key; the peer id goes to stderr
+demiurge-node key inspect-node-key --file <file>       # prints the peer id
+```
+
+`--suri` and `inspect`'s URI accept a **file path**, and the file's content is used. Pass secrets that way, never
+as an argument, which a process list or a shell history shows.
+
+## The devnet image
+
+The hosted devnet is `docs/architecture/DEVNET_PLAN.md`. Host Railway, two validators and a separate RPC node,
+chain `Demiurge Devnet` (`demiurge_devnet`, type `Live`): the owner's decisions of 3 October 2026. **Nothing is
+deployed yet**, and there is no built-in `--chain demiurge_devnet`: the validators' public keys come from their
+first boot, so the specification is written after it (the plan's §1.4).
+
+| Piece | What |
+| --- | --- |
+| `node/src/chain_spec.rs`, `devnet_chain_spec(validators, sudo, faucet)` | The specification, from public keys and addresses. Genesis holds exactly two balances: the faucet's test CGT, the same marked placeholder as `DEVELOPMENT_ENDOWMENT` (1,000,000 CGT), and the sudo account's existential deposit so it can sign. Validators hold nothing. Its tests pin the name, id and type, the two balances against the runtime's own genesis build, the validators and sudo key, its refusals, and that no SDK keyring key appears in it, readable or raw |
+| `Dockerfile` | Multi-stage. The builder is CI's recipe; the runtime stage is `debian:bookworm-slim` with the binary, the boot script, `jq` and `setpriv`. Ports 9944 (RPC) and 30333 (peer-to-peer). Data at `/data` |
+| `.dockerignore` | Keeps `target/` and `node_modules/` out of the build context |
+| `docker/entrypoint.sh` | The first-boot script. Its header documents every variable |
+| `.github/workflows/devnet-image.yml` | Started by hand only. Builds the image and publishes `ghcr.io/qor-matrix/demiurge-node:sha-<short>` and `:devnet` |
+
+The build context is `chain/`, not the repository root (whose `Dockerfile` is the deleted `framework/` chain's):
+
+```bash
+docker build -f chain/Dockerfile -t demiurge-node chain
+```
+
+**One image, two roles**, set by `DEMIURGE_ROLE`:
+
+- `validator`: `--validator --force-authoring`, keystore at `/data/keystore`, RPC left on localhost.
+- `rpc`: `--rpc-external --rpc-methods safe --rpc-port 9944`, no session key, never a validator. Rate limits come
+  from `DEMIURGE_RPC_RATE_LIMIT`, `DEMIURGE_RPC_MAX_CONNECTIONS`,
+  `DEMIURGE_RPC_MAX_SUBSCRIPTIONS_PER_CONNECTION` and `DEMIURGE_RPC_MAX_BATCH_REQUEST_LEN`, each passed only when
+  set. No number is chosen yet: the plan sets them from measurement.
+
+**A public name needs `DEMIURGE_RPC_CORS=all` on the RPC node, which is not yet decided.** In the pinned
+`sc-rpc-server` 31.0.0 (`utils.rs`, `host_filtering`) any `--rpc-cors` list, the default included, also turns on a
+Host-header filter that admits only `localhost`, `127.0.0.1` and `[::1]` on the RPC port. Measured on 3 October
+2026: with the default, `GET /health/readiness` sent as `Host: rpc.qorsync.dev` answered **403**; with
+`--rpc-cors all` it answered 200. So the plan's "`--rpc-cors` left default" would refuse every request through
+the host's edge. The script passes `DEMIURGE_RPC_CORS` as `--rpc-cors` only when it is set.
+
+Both get `--base-path /data --node-key-file /data/node-key --allow-private-ip --no-telemetry`, and
+`--bootnodes` from `DEMIURGE_BOOTNODES` (space-separated). `--allow-private-ip` is there because the nodes peer only
+over the host's private network at Alpha, and a `Live` chain otherwise refuses private addresses.
+
+**First boot.** The script makes the network key and, on a validator, an Aura (Sr25519) and a GRANDPA (Ed25519)
+key, on `/data`. Every secret goes only to files on `/data` with mode 600. It prints only public values, one per
+line, beginning `DEMIURGE_PUBLIC` (`peer_id`, `aura_ss58`, `aura_hex`, `grandpa_ss58`, `grandpa_hex`); later boots
+reuse the keys and print the same values. With no specification at `DEMIURGE_CHAIN_SPEC` (default
+`/data/spec.json`) it prints those values and **waits** instead of starting a chain.
+
+**Users.** The container starts as root only to give `/data` to the user `demiurge` (uid 10001), because a Railway
+volume is mounted owned by root, and then drops to that user before any key is made. The node never runs as root,
+so a Railway service needs no `RAILWAY_RUN_UID`.
+
+**Run locally on 3 October 2026, with Docker Desktop.** The image is 236 MB. A validator's first boot on an empty
+volume printed the six `DEMIURGE_PUBLIC` lines and waited; its whole log was searched, inside a container, for
+both recovery phrases, every three-word run of them, both secret seeds and the network key: no line matched,
+and the same search found a phrase planted in a copy of the log. Files on the volume were 600 and directories
+700, owned by `demiurge`. A second boot on the same volume printed the same public values. A throwaway
+specification made by `devnet_chain_spec` from two such validators' keys then ran two validators and an RPC node
+on a Docker network: both validators authored, they agreed on the best block, GRANDPA finalised, the RPC node
+answered `system_chain` with `"Demiurge Devnet"` and `system_chainType` with `"Live"`, refused
+`author_rotateKeys` and `author_insertKey` ("RPC call is unsafe to be called externally"), and answered
+`/health/readiness` with 200. Nothing was deployed and no specification was committed.
 
 ## The two runtime configurations
 
