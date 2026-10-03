@@ -96,3 +96,7 @@ Project `demiurge`, environment `production`, beside `qor-auth`, `Postgres` and 
   owner's; faucet 1,000,000 CGT. **Ten minutes, 20:29–20:39 UTC:** finalised #55 → #155, authors validator-a 50 and
   validator-b 51, and both validators' logs reported finalized #155 `0xe42b…5407`, the RPC node's hash
   (`alpha.devnet-finality`). The launcher's read-only Market test passed against it (block 80, 0 listings).
+- **3 October 2026, the first transfer.** The owner sent 100,000 CGT from the faucet to their launcher account
+  `5DMPEXVc…qLxK` through polkadot.js Apps against `wss://rpc.qorsync.dev`. Read back after finalised #969: launcher
+  100,000, faucet 900,000, sudo 100, total issuance unchanged at 1,000,100 CGT; five accounts exist (those three and
+  the two validators' session accounts at 0).
