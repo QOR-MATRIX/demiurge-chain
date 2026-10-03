@@ -52,7 +52,7 @@ direction of the same day **superseded all three** (ADR-003, ADR-004). The econo
 | [ADR-012](decisions/ADR-012-substrate-base.md) | A purpose-built Substrate L1 as the base | **Superseded** by ADR-013 |
 | [ADR-013](decisions/ADR-013-polkadot-sdk-migration.md) | Migrate the base layer to the Polkadot SDK | Accepted. Supersedes ADR-012 and D-007. Its consequence that the vault is not rebuilt is amended by ADR-023 (key derivation changes) |
 | [ADR-014](decisions/ADR-014-agent-keys-authorised-not-created.md) | QOR ID authorises agent keys; it never creates them | Accepted. Amends ADR-010 |
-| [ADR-015](decisions/ADR-015-infrastructure-ownership.md) | Which service owns which infrastructure concern | Accepted. Single-provider risk accepted until it is revisited before mainnet. Clarified 15 September 2026: QOR ID serves its own pages on its own subdomain; Vercel serves marketing and web surfaces only; the archive node is a dependency of the public viewer (ADR-028) |
+| [ADR-015](decisions/ADR-015-infrastructure-ownership.md) | Which service owns which infrastructure concern | Accepted. Superseded for the devnet's nodes by ADR-068. Single-provider risk accepted until it is revisited before mainnet. Clarified 15 September 2026: QOR ID serves its own pages on its own subdomain; Vercel serves marketing and web surfaces only; the archive node is a dependency of the public viewer (ADR-028) |
 | [ADR-016](decisions/ADR-016-sign-in-with-unlock.md) | Unlocking the vault signs in to QOR ID without a second approval | Accepted, under the owner's delegation. Narrows roadmap item L1.4 |
 | [ADR-017](decisions/ADR-017-password-accounts-no-chain-identity-without-a-key.md) | A password-only account has no chain identity until it proves a key | Accepted. Resolves inventory Q-16; not implemented until the Substrate work |
 | [ADR-018](decisions/ADR-018-standalone-chain-grandpa-finality.md) | A standalone chain, with its own validators and GRANDPA finality | Accepted. Resolves Q-1; revisited before mainnet |
@@ -82,7 +82,7 @@ direction of the same day **superseded all three** (ADR-003, ADR-004). The econo
 
 | [ADR-042](decisions/ADR-042-two-domains.md) | Two domains: `qorsync.dev` for operations, `demiurge.cloud` for what people see | **Accepted**, 28 September 2026, by the project owner (proposed 20 September) |
 | [ADR-043](decisions/ADR-043-qor-id-as-an-identity-provider.md) | A browser frontend signs in to QOR ID by redirect, not by holding a refresh token | **Proposed**, not accepted. Needed by ADR-011's web surfaces, M5.4 at the earliest |
-| [ADR-044](decisions/ADR-044-validators-are-not-publicly-addressable.md) | Validators have no public hostname; public RPC is a separate node | **Proposed**, not accepted. Restates ADR-015's archive-node clarification |
+| [ADR-044](decisions/ADR-044-validators-are-not-publicly-addressable.md) | Validators have no public hostname; public RPC is a separate node | Accepted, 3 October 2026, by ADR-068. Restates ADR-015's archive-node clarification |
 
 | [ADR-045](decisions/ADR-045-the-ticker-returns-to-cgt.md) | The ticker returns to CGT | **Accepted**, by the owner's instruction. Supersedes ADR-034, and requirement R-4 in the migration inventory |
 
@@ -109,10 +109,11 @@ direction of the same day **superseded all three** (ADR-003, ADR-004). The econo
 | [ADR-065](decisions/ADR-065-nesting-and-the-cycle-rule.md) | Nesting in `pallet-drc369`: only the owner of both assets, depth 8 and 64 children, cycles refused by a bounded walk (R-2), and a nested asset and the asset holding it held in place | Accepted, 1 October 2026, under the delegation; choices 1, 2 and 5 confirmed by ADR-067 |
 | [ADR-066](decisions/ADR-066-buying-what-was-seen-and-the-market.md) | `buy_exact` and `ContentChanged`, the runtime API `Drc369RoyaltiesApi::sale_preview`, QOR ID's `email_leaves_this_machine`, and the Market's first slice (only the holder is offered Clear on a void listing) | Accepted, 3 October 2026, by the project owner |
 | [ADR-067](decisions/ADR-067-the-owner-confirms-the-pending-choices.md) | The owner confirms ADR-065's choices 1, 2 and 5, keeps buying by an asset's number beside the Market, and approves the readability check's measuring rule | Accepted, 3 October 2026, by the project owner |
+| [ADR-068](decisions/ADR-068-the-devnet-on-railway.md) | The devnet runs on Railway: two private validators and a public RPC node at `rpc.qorsync.dev`, `Demiurge Devnet`, and genesis holding only a sudo account and a faucet of marked test CGT | Accepted, 3 October 2026, by the project owner. Supersedes ADR-015 for the devnet's nodes; accepts ADR-044 |
 
-**ADR-042 was accepted on 28 September 2026; ADR-043 and ADR-044 are Proposed, not accepted.** They are written up in
-[`architecture/HOSTING.md`](architecture/HOSTING.md) for the owner's decision. Until their status reads
-Accepted they decide nothing, and no work depends on them.
+**ADR-042 was accepted on 28 September 2026, and ADR-044 on 3 October 2026 through ADR-068; ADR-043 is Proposed,
+not accepted.** It is written up in [`architecture/HOSTING.md`](architecture/HOSTING.md) for the owner's decision.
+Until its status reads Accepted it decides nothing, and no work depends on it.
 
 **ADR-046 to ADR-051 are the substrate decisions the six products need** before any of them grows its own
 identity, asset format, storage or payment rail, and each product's blueprint in `docs/blueprints/` builds

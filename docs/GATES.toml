@@ -615,6 +615,12 @@ type = "tightening"
 change = "check-market-view.mjs joins npm run check, which CI's launcher job runs: 127 checks that the Market screen draws what the host reads from the chain's listing storage -- each listing as a card with its holder and the host's price, the filter and order sent to the host, paging by the host's window, the truncation and unreadable notices, a listing that cannot be bought shown with its reason and no Buy, and Buy opened only on the host's fresh answer through the existing purchase dialog. check-readability.mjs grows from 341 to 361 checks (the Market in every theme and backdrop). check-inventory-view.mjs keeps 238 checks, four of its assertions re-pointed because the copy they pinned ('no storefront') became false when the Market was built. No criterion's list, kind or met condition changes."
 reason = "Twenty-four faults planted in the Market view one at a time each failed the check (tools/qor-launcher/README.md lists them). Not covered: the jump back to the last page when the window falls past the end, and the Refresh spinner."
 
+[[change_log]]
+date = "2026-10-03"
+type = "tightening"
+change = "Alpha gains alpha.devnet-finality, a check that the deployed devnet keeps finalising blocks and that both validators author, read through its public RPC node. alpha.devnet-live keeps its empty url until the endpoint answers, as this file requires; ADR-068 names it https://rpc.qorsync.dev/health/readiness. No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
+reason = "The owner's decision (ADR-068 decision 5). /health/readiness is met by a node with one peer, so a network whose finality had stalled would still pass alpha.devnet-live; the multi-validator criterion proves finality only on a local specification in CI."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1040,6 +1046,15 @@ nothing holds value."""
   kind = "http"
   url = ""
   expect_status = 200
+
+  # The deployed devnet keeps finalising, not merely answering (ADR-068 decision 5). /health/readiness
+  # is met by one peer; this needs the network's finalised head to advance while both validators run.
+  [[gates.criteria]]
+  id = "alpha.devnet-finality"
+  kind = "check"
+  says = "Read through https://rpc.qorsync.dev, the devnet's finalised block number advances over ten minutes of observation, both validators author blocks in that window, and the RPC node and both validators report the same finalised hash at a common height. Run against the deployed network, not a local specification."
+  done = false
+  evidence = ""
 
   [[gates.criteria]]
   id = "alpha.qor-id-live"

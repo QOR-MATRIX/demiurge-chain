@@ -4,6 +4,7 @@
 Clarified on 15 September 2026, at the owner's direction: QOR ID serves its own pages on its own subdomain,
 and Vercel serves marketing and the web surfaces only (below). The clarification does not change the
 decision.
+**Superseded for the devnet's nodes** by [ADR-068](ADR-068-the-devnet-on-railway.md) (Railway, 3 October 2026).
 
 ## Context
 

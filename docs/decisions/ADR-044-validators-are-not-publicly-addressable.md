@@ -1,6 +1,7 @@
 # ADR-044: Validators have no public hostname; public RPC is a separate node
 
-**Status:** **Proposed**, 20 September 2026. **Not accepted, and nothing has been deployed.** The
+**Status:** Proposed 20 September 2026; **accepted 3 October 2026 by the project owner, through
+[ADR-068](ADR-068-the-devnet-on-railway.md).** The decision below is unchanged. The
 topology behind it is [`../architecture/HOSTING.md`](../architecture/HOSTING.md) §4.
 
 **Relates to:** [ADR-015](ADR-015-infrastructure-ownership.md), which gives each devnet node a Fly app, a

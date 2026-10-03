@@ -1382,6 +1382,22 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       `{"checks":{"cache":"ok","database":"ok"},"status":"ready"}`**. Launcher bumped to **0.1.6** for an installer
       that upgrades 0.1.5.
 
+35. **3 October 2026: the devnet is decided (ADR-068), and its engineering has started.** The owner funded nothing
+    yet; their account `5DMPEXVcNq6ik8jzW4S7TracpEb1mnabmKbge76Xcd75qLxK` got 10,000 CGT on the local `--dev` chain
+    through `dev-fund.mjs` (issuance unchanged) to try launcher 0.1.6. An "Agent IQ" idea (private simulated agents in
+    the launcher) was raised and **scrapped by the owner the same day**; nothing was built. The owner then took every
+    recommended answer to `DEVNET_PLAN.md` §9:
+    - **ADR-068:** Railway; two private validators and a public RPC node (accepts ADR-044; supersedes ADR-015 for the
+      nodes); `Demiurge Devnet` / `demiurge_devnet` / `Live`; genesis holds **only** a sudo account (existential
+      deposit) and a separate faucet account (the development endowment's marked placeholder of test CGT), both the
+      owner's, addresses not yet given; `alpha.devnet-live` will read `https://rpc.qorsync.dev/health/readiness`; a
+      new **`alpha.devnet-finality`** check (tightening, logged); the assistant creates Railway services where
+      permitted, the owner clicks where not.
+    - **An agent is building, in a worktree:** the `key` subcommand, a `devnet_chain_spec` function (no raw spec until
+      first boot gives real keys), `chain/Dockerfile`, a first-boot script that prints only public values, and a
+      manual `devnet-image.yml` workflow publishing to `ghcr.io/qor-matrix/demiurge-node`, verified with three local
+      containers. **Owed by the owner:** the sudo and faucet addresses, from a browser wallet.
+
 ## 5. Traps, so nobody re-learns them
 
 **Launcher checks**

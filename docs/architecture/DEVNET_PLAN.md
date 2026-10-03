@@ -1,7 +1,8 @@
 # A public multi-validator devnet: the plan for `alpha.devnet-live`
 
-**Status:** Proposed, 1 October 2026 — not decided. Nothing here is deployed, and no cloud resource was
-created to write it. Every choice below is the owner's to accept or refuse (§9).
+**Status:** Written 1 October 2026; **decided 3 October 2026 by the owner, who chose every recommended answer in §9
+([ADR-068](../decisions/ADR-068-the-devnet-on-railway.md)).** For §7's question the owner chose a sudo account with
+the existential deposit and a separate faucet account holding marked test CGT. Nothing is deployed yet.
 
 **What it is for.** The Alpha gate has a criterion `alpha.devnet-live` (`docs/GATES.toml`): kind `http`,
 `url = ""`, `expect_status = 200`. It is unmeasurable until a URL is written there. Today the chain runs only
