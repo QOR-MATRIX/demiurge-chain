@@ -10,64 +10,52 @@ are planned on top of it, all sharing one sign-in, one asset format and one curr
 
 ## What exists and works today
 
-The code is public at `github.com/QOR-MATRIX/demiurge-chain` (your organisation). All counts below are
-from 2 October, re-run that day.
+The code is public at `github.com/QOR-MATRIX/demiurge-chain` (your organisation). Counts are from 3 October.
 
-- **The chain.** Produces blocks and finalises them — *finalise: agree a block can never be undone* —
-  holds assets, sends them, sells them for CGT with royalties, and **now nests one asset inside
-  another**, and a buyer can insist on getting exactly the work they looked at. **118 tests pass** with the runtime built. Two machines agreeing was last checked 29 September.
-- **Sign-in (QOR ID).** Accounts, email, backup codes, admin controls, and each session now shows when it was last used. **136 tests pass.** Running on
-  Railway at `id.qorsync.dev`; you are signed in to it from the launcher.
-- **The launcher.** Your keys, sign-in, sending CGT, minting from a project, an Inventory of cards,
-  sending assets, Projects, and **now selling: Sell puts a price on the chain, and Buy pays for an asset
-  you look up by its number, and a Market screen lists everything for sale.** If the seller changes the work after you look, the chain refuses your purchase and nothing moves. **195 tests pass**, plus seven against a running chain.
+- **The devnet is live** — *devnet: the chain running on servers for anyone, not on your PC* — at
+  `wss://rpc.qorsync.dev`. Two validators — *the machines that make and agree on blocks* — and a public node,
+  on Railway. Measured: 100 blocks finalised in ten minutes, both validators taking turns, all three
+  agreeing. You hold its admin key and its faucet — *the account that hands out test CGT* — in your wallet.
+- **The chain.** Makes and finalises blocks — *finalise: agree a block can never be undone* — holds assets,
+  sends, sells with royalties, nests one asset in another, and refuses a purchase if the seller changed the
+  work after you looked. **125 tests pass.**
+- **Sign-in (QOR ID)** at `id.qorsync.dev`, beside its database in Virginia. **136 tests pass.**
+- **The launcher 0.1.6.** Keys, sign-in, sending, minting, Inventory, trading, selling, buying, and a
+  **Market** of everything listed. Its next build points at the devnet by default. **195 tests pass.**
 
-**What it cannot do yet:** charge a fee, create new CGT, **search the Market**, set royalties from the launcher, or change an asset's state. The chain runs only on
-your PC: there is no public network.
+**What it cannot do yet:** charge a fee, create new CGT, search the Market, set royalties from the launcher,
+or give anyone test CGT except by you sending it from the faucet.
 
 ## What changed (2 and 3 October)
 
-- **Unfinished work from the last session was found, finished and tested.** It had been left half done:
-  four sentences in the launcher were broken, one QOR ID function was a stub that always answered "safe",
-  and nothing was recorded. All fixed; every suite passes.
-- **Buying is safer.** A purchase now carries the exact work you saw, and the chain refuses it if the
-  seller swapped the work in between. Proven on a running chain.
-- **The chain answers "what would this sale pay?"**, and the launcher now shows that answer instead of
-  doing the sum itself, so the two can never disagree.
-- **The test scripts for sign-in refuse to run** if they would send real email, so the September bounces
-  cannot happen again from a test.
-- **The Market screen** — *a list of everything for sale* — is in the launcher: filter, sort, page, and
-  Buy. It lists what this chain holds, with no search yet. Built by two agents working in parallel,
-  then everything was re-tested together.
+- **The devnet went live on Railway** (ADR-068), with both Alpha checks for it met.
+- **Buying is safer**, the launcher shows the chain's own payout sum, and the **Market screen** exists.
+- **QOR ID's test scripts can't send real email**, and sessions show when they were last used.
+- **Your choices recorded:** names (ADR-066), nesting rules and buying by number (ADR-067), the devnet (ADR-068).
 
 ## Next, in order
 
-1. **Get CI green**: fix whatever its first full runs show.
-   Then **you try the Market and selling** in the real launcher.
-2. **A public test network** — *devnet: the chain running on servers, not your PC*. The biggest thing
-   between here and Alpha. Needs your word on hosting and cost.
-3. **You try selling and the onboarding** in the real launcher.
-4. **The indexer** — *a service that reads the chain so everyone sees the same listings*.
-
-**Alpha is about a week away**, not an hour: it waits on 1 and 2, on you clicking through the launcher's
-confirmation dialogs (L1.4), and on your call about two roadmap items (M3.1, M3.2).
+1. **Fund your launcher account on the devnet** and try minting, selling and the Market there (below).
+2. **Get CI green**: tell me what its runs show.
+3. **A faucet page**, so testers can get test CGT without you sending it by hand.
+4. **The indexer** — *a service that reads the chain so the Market can search and show history*.
 
 ## What only you can do
 
-1. **Tell me how the CI runs ended** (github.com/QOR-MATRIX/demiurge-chain/actions). Railway now
-   deploys sign-in from your pushes (connected 3 October).
-2. **Try the Market and selling** in launcher 0.1.6 (QOR ID is back in Virginia beside its database, and
-   answered ready on 3 October; the agents' pending choices were all confirmed, ADR-066 and ADR-067).
-3. **Take your Resend key out of this PC's environment**: Railway holds it now, and here it lets a
-   local test send real mail.
-4. **Bounce reports**: in Resend add a webhook to `https://id.qorsync.dev/api/v1/webhooks/resend`
-   and paste its `whsec_…` secret into Railway as `RESEND_WEBHOOK_SECRET`.
+1. **Send yourself test CGT:** open
+   `https://polkadot.js.org/apps/?rpc=wss://rpc.qorsync.dev`, allow your wallet, then Accounts → **Devnet
+   faucet** → Send → to your launcher address `5DMPEX…qLxK`, e.g. 10,000. In the launcher, Chain → enter
+   `wss://rpc.qorsync.dev` (your 0.1.6 still shows the old preset) → Apply.
+2. **Tell me how the CI runs ended** (github.com/QOR-MATRIX/demiurge-chain/actions).
+3. **Take your Resend key out of this PC's environment**; Railway holds it now.
+4. **Bounce reports**: a Resend webhook to `https://id.qorsync.dev/api/v1/webhooks/resend`, its `whsec_…`
+   secret into Railway as `RESEND_WEBHOOK_SECRET`.
 5. **In Cloudflare**, delete the `ci` record and the tunnel.
 6. **Revoke the old SSH key** (`admin@pleroma`) and **rotate the nine credentials** in `SECURITY.md`.
-7. **The 15% for selling**, **deposit amounts** (U-14), **Q-19 and Q-20**, **ADR-043 and 044**, and what
-   Demiurge Exchange, QOR Wallet, relays and agentic synchronisation are.
+7. **Open economic questions**: the 15% for selling, deposit amounts (U-14), Q-19 and Q-20, ADR-043.
 
 ## What it costs per month
 
-**Railway: expected about $5–15 a month** for sign-in, its database and cache (an estimate, not an
-invoice). **No spending cap**, by your decision on 1 October. GitHub Actions is free.
+**Railway: not yet measured** for the three devnet nodes (estimated $11–22) on top of sign-in's $5–15.
+**No spending cap**, by your decision on 1 October. GitHub Actions is free. The real figure replaces these
+after a week.
