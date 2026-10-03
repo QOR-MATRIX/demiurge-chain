@@ -99,9 +99,9 @@ pub fn local_chain_spec() -> Result<ChainSpec, String> {
 /// **Not a genesis allocation.** The base supply's split is OPEN-2 and is not
 /// invented here; these are the SDK's public test accounts, whose keys everyone
 /// has, on a network that holds nothing.
-fn development_endowed_accounts() -> Vec<AccountId> {
+fn development_endowed_accounts() -> Vec<(AccountId, u128)> {
     Sr25519Keyring::well_known()
-        .map(|k| k.to_account_id())
+        .map(|k| (k.to_account_id(), DEVELOPMENT_ENDOWMENT))
         .collect()
 }
 
@@ -111,19 +111,101 @@ fn development_endowed_accounts() -> Vec<AccountId> {
 /// be useful on a network whose keys are public, and it says nothing about the
 /// base supply or its split (OPEN-2). It is far below the base supply so that
 /// no development genesis can be mistaken for a real one.
+///
+/// The devnet's faucet holds the same placeholder (`devnet_chain_spec`): the
+/// owner decided on 3 October 2026 to reuse this value rather than name a new one.
 const DEVELOPMENT_ENDOWMENT: u128 = 1_000_000 * denomination::CGT;
+
+// Until the devnet's public keys exist, nothing outside the tests calls
+// `devnet_chain_spec`: a built-in `--chain demiurge_devnet` is wired in
+// `command.rs` once they are known (the plan's §6 step 8), and these `expect`s
+// then fail the build, so they cannot outlive their reason.
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "wired once the devnet's keys exist")
+)]
+pub const DEVNET_CHAIN_ID: &str = "demiurge_devnet";
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "wired once the devnet's keys exist")
+)]
+pub const DEVNET_CHAIN_NAME: &str = "Demiurge Devnet";
+
+/// The hosted devnet (`docs/architecture/DEVNET_PLAN.md`): validators, a sudo
+/// account and a faucet account whose keys are **not** well-known.
+///
+/// Public keys and addresses only. The validators' keys are made on their own
+/// disks at first boot (`chain/docker/entrypoint.sh`) and the sudo account in the
+/// owner's wallet, so this function takes them as arguments; no built-in
+/// `--chain demiurge_devnet` exists until those public values are known (the
+/// plan's §1.4 step order).
+///
+/// Genesis, as the owner decided on 3 October 2026, and nothing else:
+///
+/// - the **faucet** holds `DEVELOPMENT_ENDOWMENT` of test CGT. **A placeholder,
+///   marked exactly as the development endowment is**: it is the same value, and
+///   it is not a genesis allocation of the base supply (OPEN-2);
+/// - the **sudo** account holds exactly the existential deposit, so that it
+///   exists and can sign (the chain charges no fees);
+/// - the validators hold nothing.
+///
+/// Built with the `sudo` feature, like every development and test network
+/// (ADR-037). Without it the sudo account is endowed but is not the root key.
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "wired once the devnet's keys exist")
+)]
+pub fn devnet_chain_spec(
+    validators: &[(AuraId, GrandpaId)],
+    sudo: AccountId,
+    faucet: AccountId,
+) -> Result<ChainSpec, String> {
+    if validators.is_empty() {
+        return Err("a devnet needs at least one validator".into());
+    }
+    for (i, (aura, _)) in validators.iter().enumerate() {
+        if validators[..i].iter().any(|(earlier, _)| earlier == aura) {
+            return Err(format!("validator {aura} is listed twice"));
+        }
+    }
+    if sudo == faucet {
+        return Err("the sudo account and the faucet account must be different accounts".into());
+    }
+
+    // The account identifies the validator (ADR-018). A validator's account is
+    // its Aura key's, as on the development chains; it holds no balance.
+    let authorities = validators
+        .iter()
+        .map(|(aura, grandpa)| {
+            let account: AccountId = aura.clone().into_inner().into();
+            (account, aura.clone(), grandpa.clone())
+        })
+        .collect();
+
+    Ok(ChainSpec::builder(
+        WASM_BINARY.ok_or_else(|| "the runtime wasm is not available".to_string())?,
+        None,
+    )
+    .with_name(DEVNET_CHAIN_NAME)
+    .with_id(DEVNET_CHAIN_ID)
+    .with_chain_type(ChainType::Live)
+    .with_properties(properties())
+    .with_genesis_config_patch(genesis(
+        authorities,
+        vec![
+            (faucet, DEVELOPMENT_ENDOWMENT),
+            (sudo.clone(), denomination::EXISTENTIAL_DEPOSIT),
+        ],
+        sudo,
+    ))
+    .build())
+}
 
 fn genesis(
     initial_authorities: Vec<(AccountId, AuraId, GrandpaId)>,
-    endowed: Vec<AccountId>,
+    balances: Vec<(AccountId, u128)>,
     root: AccountId,
 ) -> serde_json::Value {
-    let balances: Vec<_> = endowed
-        .iter()
-        .cloned()
-        .map(|a| (a, DEVELOPMENT_ENDOWMENT))
-        .collect();
-
     // Aura and GRANDPA take their authorities from `pallet-session`, which takes
     // the set from `pallet-validator-set` (ADR-020). So their own genesis lists
     // stay empty: setting both would be two sources of truth for who authors.
@@ -211,6 +293,175 @@ mod tests {
             "development genesis hands out {handed_out} Sparks, too close to the base supply to be \
              obviously not a genesis allocation"
         );
+    }
+
+    // ---- The devnet --------------------------------------------------------
+
+    use sc_service::ChainSpec as _;
+    use sp_core::{ed25519, sr25519, Pair};
+
+    /// Validators made from fixed seeds that no keyring uses, so these tests are
+    /// deterministic and their keys are not well-known.
+    fn test_validators() -> Vec<(AuraId, GrandpaId)> {
+        [[0x11u8; 32], [0x22u8; 32]]
+            .iter()
+            .map(|seed| {
+                (
+                    sr25519::Pair::from_seed(seed).public().into(),
+                    ed25519::Pair::from_seed(seed).public().into(),
+                )
+            })
+            .collect()
+    }
+
+    fn test_sudo() -> AccountId {
+        AccountId::new([0x5d; 32])
+    }
+
+    fn test_faucet() -> AccountId {
+        AccountId::new([0xfa; 32])
+    }
+
+    fn test_devnet() -> ChainSpec {
+        devnet_chain_spec(&test_validators(), test_sudo(), test_faucet())
+            .expect("the devnet spec builds")
+    }
+
+    /// The genesis patch the specification carries, as JSON.
+    fn patch_of(spec: &ChainSpec) -> serde_json::Value {
+        let json: serde_json::Value =
+            serde_json::from_str(&spec.as_json(false).expect("the spec serialises"))
+                .expect("the spec is JSON");
+        json["genesis"]["runtimeGenesis"]["patch"].clone()
+    }
+
+    /// `Balances::TotalIssuance` as the runtime's genesis build writes it.
+    fn total_issuance_at_genesis(spec: &ChainSpec) -> u128 {
+        use sp_runtime::BuildStorage;
+        let storage = spec.build_storage().expect("the devnet genesis builds");
+        let key = [
+            sp_io::hashing::twox_128(b"Balances"),
+            sp_io::hashing::twox_128(b"TotalIssuance"),
+        ]
+        .concat();
+        let raw = storage
+            .top
+            .get(&key)
+            .expect("total issuance is written at genesis");
+        u128::from_le_bytes(raw[..].try_into().expect("a u128"))
+    }
+
+    /// The name, id and type the owner approved on 3 October 2026. `system_chain`
+    /// answers with the name, and `Live` keeps `dev-fund.mjs` from treating it as
+    /// a development chain.
+    #[test]
+    fn the_devnet_says_which_chain_it_is() {
+        let spec = test_devnet();
+        assert_eq!(spec.name(), "Demiurge Devnet");
+        assert_eq!(spec.id(), "demiurge_devnet");
+        assert_eq!(spec.chain_type(), ChainType::Live);
+    }
+
+    /// Exactly two balances: the faucet's placeholder and the sudo account's
+    /// existential deposit. Nothing else holds CGT, and the runtime's own genesis
+    /// build agrees on the total.
+    #[test]
+    fn the_devnet_endows_the_faucet_and_the_sudo_account_and_nothing_else() {
+        let spec = test_devnet();
+        assert_eq!(
+            patch_of(&spec)["balances"]["balances"],
+            serde_json::json!([
+                [serde_json::json!(test_faucet()), DEVELOPMENT_ENDOWMENT],
+                [
+                    serde_json::json!(test_sudo()),
+                    denomination::EXISTENTIAL_DEPOSIT
+                ],
+            ])
+        );
+        assert_eq!(
+            total_issuance_at_genesis(&spec),
+            DEVELOPMENT_ENDOWMENT + denomination::EXISTENTIAL_DEPOSIT
+        );
+    }
+
+    /// The validators are the keys passed in, in order, each identified by its
+    /// Aura key's account; the sudo key is the account passed in.
+    #[test]
+    fn the_devnet_uses_the_validators_and_sudo_account_it_is_given() {
+        let validators = test_validators();
+        let patch = patch_of(&test_devnet());
+
+        let accounts: Vec<AccountId> = validators
+            .iter()
+            .map(|(aura, _)| aura.clone().into_inner().into())
+            .collect();
+        assert_eq!(
+            patch["validatorSet"]["validators"],
+            serde_json::json!(accounts)
+        );
+
+        let keys: Vec<_> = validators
+            .iter()
+            .zip(&accounts)
+            .map(|((aura, grandpa), account)| {
+                serde_json::json!([account, account, { "aura": aura, "grandpa": grandpa }])
+            })
+            .collect();
+        assert_eq!(patch["session"]["keys"], serde_json::Value::Array(keys));
+
+        #[cfg(feature = "sudo")]
+        assert_eq!(patch["sudo"]["key"], serde_json::json!(test_sudo()));
+        #[cfg(not(feature = "sudo"))]
+        assert!(patch.get("sudo").is_none());
+    }
+
+    #[test]
+    fn the_devnet_refuses_a_specification_it_cannot_run() {
+        let validators = test_validators();
+        assert!(devnet_chain_spec(&[], test_sudo(), test_faucet()).is_err());
+        assert!(devnet_chain_spec(
+            &[validators[0].clone(), validators[0].clone()],
+            test_sudo(),
+            test_faucet()
+        )
+        .is_err());
+        assert!(devnet_chain_spec(&validators, test_sudo(), test_sudo()).is_err());
+    }
+
+    /// A public network must not contain a key everyone has. Every SDK keyring
+    /// account, Sr25519 and Ed25519, stash accounts included, is looked for by its
+    /// address and by its public key in hex, in the readable specification and in
+    /// the raw one, whose storage keys carry account bytes.
+    #[test]
+    fn no_well_known_key_appears_in_the_devnet() {
+        let spec = test_devnet();
+        let readable = spec.as_json(false).expect("serialises");
+        let raw = spec.as_json(true).expect("serialises raw");
+
+        let sr = Sr25519Keyring::iter().map(|k| {
+            let public = k.public();
+            (format!("{k:?}"), public.to_string(), hex(public.as_ref()))
+        });
+        let ed = Ed25519Keyring::iter().map(|k| {
+            let public = k.public();
+            (format!("{k:?}"), public.to_string(), hex(public.as_ref()))
+        });
+        for (name, address, public_hex) in sr.chain(ed) {
+            for (form, text) in [("readable", &readable), ("raw", &raw)] {
+                assert!(
+                    !text.contains(&address),
+                    "{name}'s address is in the {form} devnet spec"
+                );
+                assert!(
+                    !text.contains(&public_hex),
+                    "{name}'s key is in the {form} devnet spec"
+                );
+            }
+        }
+    }
+
+    fn hex(bytes: &[u8]) -> String {
+        bytes.iter().map(|b| format!("{b:02x}")).collect()
     }
 
     #[test]

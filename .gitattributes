@@ -131,3 +131,9 @@ infra/**/*.yaml text eol=lf
 # Linux build read LF, so the two could not share a database. LF everywhere.
 # `services/qor-auth/src/migration_hygiene.rs` fails the tests on a carriage return.
 services/qor-auth/migrations/*.sql text eol=lf
+
+# The node image's boot script runs in a Linux container, built from whichever
+# checkout runs `docker build`. With core.autocrlf=true a Windows checkout would
+# copy it in with CRLF line endings and /bin/sh would refuse it. LF everywhere.
+chain/docker/*.sh text eol=lf
+chain/Dockerfile text eol=lf
