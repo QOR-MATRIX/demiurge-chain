@@ -3,7 +3,8 @@
 The record of how `Demiurge Devnet` runs on Railway (ADR-068): what exists, how it was made, and what to do
 again. The plan and its reasons are [`../docs/architecture/DEVNET_PLAN.md`](../docs/architecture/DEVNET_PLAN.md).
 
-**Status, 3 October 2026:** not deployed. The image workflow is running for the first time.
+**Status, 3 October 2026:** steps 1 to 3 done. Three nodes run on Railway, each holding its own keys and waiting
+for a chain specification. No chain is running yet and nothing is public.
 
 ## The rule for secrets
 
@@ -56,4 +57,20 @@ Project `demiurge`, environment `production`, beside `qor-auth`, `Postgres` and 
 
 ## What exists
 
-Nothing yet. Each step above is recorded here, with its date, as it is done.
+- **3 October 2026, the image.** Workflow run on `e120241` succeeded (18 m 55 s); the package was made public by the
+  owner (an organisation setting had to allow public packages first). The services are pinned to
+  `ghcr.io/qor-matrix/demiurge-node:sha-e120241`, not `:devnet`, so a later build never changes a running validator.
+- **3 October 2026, steps 1 and 2.** The three services were staged through Railway's tools (region `iad`, volume at
+  `/data` each, the variables above, no domain) and applied by the owner in the dashboard. First boot, 15:25 UTC, read
+  from each log: only the boot script's progress lines (Railway labels its standard-error lines "error"; they are not
+  errors) and these public values. No secret appeared.
+
+| Service | Railway id | Peer id | Aura (Sr25519) | GRANDPA (Ed25519) |
+| --- | --- | --- | --- | --- |
+| `devnet-validator-a` | `162cfa79-0468-4c21-b6bf-383737b5600f` | `12D3KooWGeHvkUaGNGafZHuRZt9ewY3Nhd3Bn9tDRM41m3aHqfY5` | `5GucVTnpdUsNryEyH3YE6hbp1ZBTL3kopxFot639nxFRxrDa` (`0xd63de57626c37dea0c6328254dd25053581616c50a14f9f5cc54d8a3a9257841`) | `5CWsNNyHQXkose1Fw2fu1Ne6mSCq1Dtm4kxasV2QA8jkYfLm` (`0x13f466d0baf2cca085c1b4197fe9ee324c5ed715313740bab9a995510488e78c`) |
+| `devnet-validator-b` | `b3be7f64-4be5-4fc6-a33d-be4f29a8032f` | `12D3KooWGg2UhBn1wr3nnf7mdBrG9MoBNB6J6qx9hKPohrKq47iK` | `5CPZLYtgagoUebiFHAoCu4Ush3CL9RDxq7smKtFBvixaTBgc` (`0x0e60fbf711e6a81b52a7b809a2f5ebbbae81ba9411670a2bd8b60a8581e0f074`) | `5Gxyx5psvaVw6JLbtZWo1jQsPfB4bSmgFFxjh7z5aJAq9B9D` (`0xd8cfdeb462210331996d2ae47a629f64bf6ebc0cb51116958e64d76f105f01e9`) |
+| `devnet-rpc` | `85422843-06ae-408b-9241-feaaab989d03` | `12D3KooWDwW6HjmsHmWHhqFLqJFXS8LP8FK2pP6TMfat9ToexeYc` | — | — |
+
+- **3 October 2026, step 3.** `DEMIURGE_BOOTNODES` set on `devnet-validator-b` (A) and `devnet-rpc` (A and B), with
+  deploys skipped: they take effect at the redeploy in step 5.
+- **Waiting on:** the owner's sudo and faucet addresses, for step 4.
