@@ -132,8 +132,11 @@ owner picks (§9).
   `--rpc-max-connections`, `--rpc-max-subscriptions-per-connection` and `--rpc-max-batch-request-len`
   (`sc-cli` 0.61.0, `rpc_params.rs`). **The numbers are not chosen here.** They are set from what the launcher
   actually uses, measured against the live node, and written into the deploy record.
-- **CORS.** The launcher is a native client and needs none. `--rpc-cors` stays at its default until a browser
-  client exists.
+- **CORS. Corrected 3 October 2026 by measurement:** in the pinned `sc-rpc-server` 31.0.0 any `--rpc-cors` value,
+  the default included, also turns on a Host-header filter admitting only `localhost`, `127.0.0.1` and `[::1]`, so the
+  default answered **403** to a request for `rpc.qorsync.dev`. The RPC node runs with `--rpc-cors all`
+  (`DEMIURGE_RPC_CORS=all`), which a browser wallet and polkadot.js Apps also need for the owner's upgrades;
+  `--rpc-methods safe` still refuses every method that changes the node. Validators keep the default.
 - **TLS.** `.dev` is HSTS-preloaded (`HOSTING.md` §7), so the endpoint is `wss://` and `https://` only. The
   host's edge terminates TLS. No certificate is managed by hand.
 - **The name is `rpc.qorsync.dev`**, from `HOSTING.md` §2. Its DNS record is created in Cloudflare when the

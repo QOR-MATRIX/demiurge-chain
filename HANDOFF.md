@@ -1397,6 +1397,20 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       first boot gives real keys), `chain/Dockerfile`, a first-boot script that prints only public values, and a
       manual `devnet-image.yml` workflow publishing to `ghcr.io/qor-matrix/demiurge-node`, verified with three local
       containers. **Owed by the owner:** the sudo and faucet addresses, from a browser wallet.
+    - **Merged `4366b81` (agent commit `6c9808c`).** Chain **124 tests** with the wasm built (was 118: five devnet-spec,
+      one CLI), fmt and clippy clean, eight planted faults caught. `chain/Dockerfile` (context `chain/`, image 236 MB),
+      `chain/docker/entrypoint.sh` (role from `DEMIURGE_ROLE`; drops to user `demiurge` uid 10001 with `setpriv`; keys
+      made with `umask 077`, phrases only in 600 files then in the keystore; prints `DEMIURGE_PUBLIC` lines; waits
+      without a spec at `DEMIURGE_CHAIN_SPEC`), `.github/workflows/devnet-image.yml` (manual, to
+      `ghcr.io/qor-matrix/demiurge-node:devnet` and `:sha-…`), `.gitattributes` forcing LF on both. **Local evidence:**
+      first-boot log carried peer id and both public keys and **0 of 27 secret patterns** (positive control 1); a second
+      boot reused the keys; two validators and an RPC node on a Docker network authored and finalised (best 19,
+      finalised 16), `system_chain` "Demiurge Devnet", `author_rotateKeys` and `author_insertKey` refused, readiness 200.
+      **Two departures from the plan, both measured:** `--allow-private-ip` on every node (a `Live` chain refuses
+      private addresses, and Railway's network is private), and **`--rpc-cors all` on the RPC node only** (the default
+      403s any public Host; plan §2 corrected). **Not yet tried:** the workflow, a Railway volume's ownership, libp2p
+      over Railway's private network. The root `Dockerfile`, `.dockerignore` and `fly.toml` still describe the deleted
+      chain and were left, as `DIRECTION.md` records; removing them is a separate decision.
 
 ## 5. Traps, so nobody re-learns them
 
