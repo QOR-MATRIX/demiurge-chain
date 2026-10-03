@@ -61,8 +61,7 @@ confirmation dialogs (L1.4), and on your call about two roadmap items (M3.1, M3.
    longer redeploys sign-in.
 2. **Approve or refuse three things the agents chose:** how a screen-reading check measures scrolled
    text; that a container asset cannot move until emptied (ADR-065, choices 1, 2, 5); buying by asset
-   number as the first shop; the Market's labels and that only the holder may clear a dead listing; and the names of one new chain call (`buy_exact`) and one launcher command
-   (`drc369_market`) — *names in the chain's public surface need your approval*.
+   number as the first shop. (Names and Market choices: approved 3 October, ADR-066.)
 3. **Take your Resend key out of this PC's environment**: Railway holds it now, and here it lets a
    local test send real mail.
 4. **Bounce reports**: in Resend add a webhook to `https://id.qorsync.dev/api/v1/webhooks/resend`

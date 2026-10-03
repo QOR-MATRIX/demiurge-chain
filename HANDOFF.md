@@ -1371,6 +1371,10 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       Production Redis is 8.2, so `SET … XX KEEPTTL` is supported. `sleepApplication` is off again. **The service
       moved region to `us-west2` while Postgres and Redis stay in `iad`**: every query crosses the continent. Owner's
       call whether that was meant; if not, set qor-auth's region back to `iad`.
+    - **The owner's decisions, 3 October (ADR-066):** `buy_exact`, `ContentChanged`, `Drc369RoyaltiesApi::sale_preview`
+      and `email_leaves_this_machine` approved as named; the Market's Clear on a void listing stays holder-only; its
+      labels and internal names stand. **`my-app/` deleted on the owner's word**: an untouched `create-next-app`
+      starter that appeared at 02:00 on 3 October, never committed, origin unknown.
 
 ## 5. Traps, so nobody re-learns them
 
