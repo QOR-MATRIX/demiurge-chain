@@ -864,7 +864,9 @@ L7.2; these are the steps inside them. The creator mints; Market lists. [`bluepr
 2. [ ] The installer core: content-defined chunking, per-chunk hashes, delta patches and supervised launch,
    against local manifests.
 3. [ ] Listings and the catalogue, read-only, with one listing model for games, tools, editor plugins, QFX
-   scenes, presets and themes. Depends on the indexer, M5.4.
+   scenes, presets and themes. Depends on the indexer, M5.4. **A first slice without the indexer exists since 2
+   October 2026:** the launcher's Market screen reads every DRC-369 listing from chain storage at the finalised
+   block, bounded and paged. Not ticked: it has no listing model for the six kinds and no search.
 4. [ ] Launch gated on ownership — offline too, which the owner requires, without QOR ID's attestation standing
    behind access to paid content — and downloads verified against the chain's fingerprint. Depends on M4.1.
 5. [ ] Purchase with royalty splits, through the host dialog, priced in credits over CGT settlement (ADR-007).

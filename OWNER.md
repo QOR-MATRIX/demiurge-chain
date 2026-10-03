@@ -20,30 +20,30 @@ from 2 October, re-run that day.
   Railway at `id.qorsync.dev`; you are signed in to it from the launcher.
 - **The launcher.** Your keys, sign-in, sending CGT, minting from a project, an Inventory of cards,
   sending assets, Projects, and **now selling: Sell puts a price on the chain, and Buy pays for an asset
-  you look up by its number.** If the seller changes the work after you look, the chain refuses your purchase and nothing moves. **193 tests pass**, plus five against a running chain.
+  you look up by its number, and a Market screen lists everything for sale.** If the seller changes the work after you look, the chain refuses your purchase and nothing moves. **195 tests pass**, plus seven against a running chain.
 
-**What it cannot do yet:** charge a fee, create new CGT, **show a listing to anyone who wasn't given the
-asset's number**, set royalties from the launcher, or change an asset's state. The chain runs only on
+**What it cannot do yet:** charge a fee, create new CGT, **search the Market**, set royalties from the launcher, or change an asset's state. The chain runs only on
 your PC: there is no public network.
 
-## What changed (2 October)
+## What changed (2 and 3 October)
 
 - **Unfinished work from the last session was found, finished and tested.** It had been left half done:
   four sentences in the launcher were broken, one QOR ID function was a stub that always answered "safe",
   and nothing was recorded. All fixed; every suite passes.
 - **Buying is safer.** A purchase now carries the exact work you saw, and the chain refuses it if the
   seller swapped the work in between. Proven on a running chain.
-- **The chain can now answer "what would this sale pay?"** for any program that asks. The launcher still
-  does that sum itself; switching it over is next.
+- **The chain answers "what would this sale pay?"**, and the launcher now shows that answer instead of
+  doing the sum itself, so the two can never disagree.
 - **The test scripts for sign-in refuse to run** if they would send real email, so the September bounces
   cannot happen again from a test.
-- **A Market** — *a list of everything for sale* — can now be read by the launcher's engine; no screen
-  shows it yet.
+- **The Market screen** — *a list of everything for sale* — is in the launcher: filter, sort, page, and
+  Buy. It lists what this chain holds, with no search yet. Built by two agents working in parallel,
+  then everything was re-tested together.
 
 ## Next, in order
 
 1. **Get CI green**: fix whatever its first full runs show.
-   Then the **Market screen**, and the launcher using the chain's own sale sum.
+   Then **you try the Market and selling** in the real launcher.
 2. **A public test network** — *devnet: the chain running on servers, not your PC*. The biggest thing
    between here and Alpha. Needs your word on hosting and cost.
 3. **You try selling and the onboarding** in the real launcher.
@@ -59,7 +59,7 @@ confirmation dialogs (L1.4), and on your call about two roadmap items (M3.1, M3.
    longer redeploys sign-in.
 2. **Approve or refuse three things the agents chose:** how a screen-reading check measures scrolled
    text; that a container asset cannot move until emptied (ADR-065, choices 1, 2, 5); buying by asset
-   number as the first shop; and the names of one new chain call (`buy_exact`) and one launcher command
+   number as the first shop; the Market's labels and that only the holder may clear a dead listing; and the names of one new chain call (`buy_exact`) and one launcher command
    (`drc369_market`) — *names in the chain's public surface need your approval*.
 3. **Take your Resend key out of this PC's environment**: Railway holds it now, and here it lets a
    local test send real mail.

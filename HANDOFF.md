@@ -1228,7 +1228,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
           a scrolling dialog no longer counts as visible. Logged in `GATES.toml` as evidence-rule, **NOT YET
           APPROVED**. (2) The module name `chain/sales.rs` and the five command names (AGENTS §8). (3) Buying by
           asset number as the surface.
-        - **Known weaknesses:** the payout preview is a **second copy of the pallet's `split`** in the host
+        - **Known weaknesses (the first two removed on 2 October, items 33 and 34):** the payout preview is a **second copy of the pallet's `split`** in the host
           (`sp-arithmetic =28.0.1`), pinned by the pallet's vectors and the live `Sold` event; a runtime API would
           remove it. **A revision landing between the dialog and the block is not caught**: the host compares
           fingerprints, the chain's `buy` has only `max_price`. One view check (the re-read after a purchase)
@@ -1308,6 +1308,48 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       not changed: no roadmap item is ticked by this.
     - **Next:** the launcher's preview through `sale_preview` (removes the host copy of `split`), then the Market
       screen; then CI and the devnet (item 32's `DEVNET_PLAN.md`, waiting on the owner's nine answers).
+    - **Committed `2ba0a85`** on the owner's instruction ("commit all and push and deploy when satisfactory").
+
+34. **2–3 October 2026: a sprint with two agents, on the owner's instruction. The preview from the chain, and the
+    Market screen.** Each agent worked in its own git worktree from `2ba0a85` (both worktrees were first created at
+    an unrelated commit, `7bfcec6`, and each agent reset its own to `2ba0a85`; the main tree was not touched).
+    - **`fbe447d`, the launcher asks the chain what a sale pays.** `sales.rs` calls `Drc369RoyaltiesApi_sale_preview`
+      at the finalised block and draws the breakdown from the answer; the host's copy of `split`, its four vector
+      tests and the `sp-arithmetic` dependency are gone. The answer is refused if its parts do not sum to the price
+      (checked add). A refusal is named through the metadata and put in the same words as a refused transaction. A
+      node without the API (spec_version below 6) is refused in words, with no fallback. IPC shapes unchanged.
+      Eight faults planted, each caught. **Behaviour change:** looking up a listed asset, previewing, listing and
+      buying now need spec 6; withdrawing does not.
+    - **`09ad4b5`, the Market screen (L7.2's first slice).** A `market` surface on the rail and a Nexus tile;
+      `src/views/Market.tsx`; `AssetCard` gained a `listed` mode; IPC `market.page` over `drc369_market`. Filter
+      (everyone's, others', yours), order (cheapest, dearest, by number), paging by the host's window, the truncation
+      and unreadable notices, an InfoTip saying the list is one node's view with no search, history or "newest".
+      Buy re-reads the asset and opens the existing BuyDialog; Withdraw and, for the holder, Clear void listing.
+      Copy that said "no storefront" now names the Market. **`check-market-view.mjs`, 127 checks; 24 planted faults,
+      all caught.** Two `#[ignore]` live tests. **Product choices the agent made, for the owner:** Clear offered only to
+      the holder (the chain lets anyone clear a void listing); the labels Everyone's / Others' / Yours, the eyebrow
+      "Exchange", "No search yet" on the Nexus tile; a page past the end jumps to the last page. **Not covered by the
+      check:** that jump, and the Refresh spinner.
+    - **`3de3d46` merges both** (one README conflict, the test count). Chain and QOR ID untouched by either.
+    - **Verified on the merged tree:** host fmt, clippy `-D warnings`, **195 passed, 8 ignored**. **Live, against a
+      spec-6 `--dev` node, all seven chain tests passed**: six in one run (296 s: the market read, a listing read back
+      by the Market, mint, transfer, trade, keychain) and the sale alone (305 s). **`npm ci`, `npm run build` and all nine view checks passed first time**: design 8, accessibility 41, gates 34, Projects 104, Inventory 238, Market 127, Gate 65, contrast 54, readability 361. The agent saw the accessibility case "stored off, then live" fail more often on its build (7 of 10 alone, against 3 of 8 for `2ba0a85`); cause not established, threshold not touched.
+    - **Two false failures on the way, both environmental:** the PC entered Modern Standby 15:31–01:05 during the
+      first live run (Kernel-Power 506/507), so two tests timed out on finality after 9.6 hours; and a node relaunched
+      through `Win32_Process.Create` with `cmd /c` received Ctrl+C when a shell command ended (`^C` in its log) and
+      died mid-test, which surfaced as subxt's "`chainHead_follow` emitted 'stop'". **Trap for §5:** start the
+      development node with `Start-Process -WindowStyle Hidden` (its own console), never through `cmd /c` from a tool
+      shell, and keep the PC awake during live runs.
+    - **QOR ID's end-to-end scripts, run for the first time since item 33** against throwaway Postgres 16 and Redis
+      7.4 (removed after) and the release build: **all six pass** — account-and-admin 24 (2 skipped, email off),
+      sign-in-enumeration 11 (1 skipped), sessions 26 (the last-used checks included), registration 8, logout 15 (the
+      Redis restart included), email-via-resend 50 (2 skipped) through the stand-in. **The guard was seen to refuse:**
+      started with a placeholder key and no stand-in, `/health` said `true` and `sessions.mjs` exited 2 before
+      registering anything. Trap: a Redis started with `--rm` is deleted by `logout.mjs`'s `docker stop`.
+    - **Railway, read on 3 October:** `qor-auth`'s source has **no repository connected** (root directory
+      `/services/qor-auth` only), and its live deployment is `7e154e1` (1 October). So a push redeploys nothing until
+      the service is connected to `QOR-MATRIX/demiurge-chain`, which needs Railway's GitHub app to see the
+      organisation (owner).
 
 ## 5. Traps, so nobody re-learns them
 

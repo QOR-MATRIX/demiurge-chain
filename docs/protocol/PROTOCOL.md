@@ -269,8 +269,9 @@ and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369
   with, if any. The parts come from the same function `buy` uses. **With a buyer**, the whole settlement is run and
   rolled back, so `refusal` is what that buyer's transaction would get. **Without one**, only what would stop every
   buyer is checked: a zero price, a part its recipient cannot receive, and an asset held in place by nesting
-  (`ItemLocked`). `None` if it is not a DRC-369 asset. It moves nothing. **No client uses it yet**: the launcher
-  still computes its preview with its own copy of the split.
+  (`ItemLocked`). `None` if it is not a DRC-369 asset. It moves nothing. **The launcher's sale
+  preview is this answer** (since 2 October 2026); it carries no copy of the split, and refuses in words on a node
+  without the API.
 - **Royalty events:** `TermsSet`, `Listed`, `Unlisted` and `Sold { collection, item, from, to, price, source, remix,
   royalties, seller_received }`, where `remix` and `royalties` list each payment as `(account, amount)`.
 - **Weights are placeholders** (ADR-052 decision 8, ADR-061), owed to M7.2. No fee is charged anyway.
