@@ -57,8 +57,10 @@ use config::{DemiurgeConfig, DemiurgeRpcConfig};
 /// Default endpoint. Overridable from settings.
 ///
 /// A WebSocket address: the RPC client builds a WebSocket transport and nothing
-/// else (ADR-040, finding 6). Nothing answers here yet; nothing is deployed.
-pub const DEFAULT_RPC: &str = "wss://rpc.demiurge.cloud";
+/// else (ADR-040, finding 6). The devnet's public RPC node on Railway (ADR-068),
+/// answering since 3 October 2026. A test network: it holds nothing of value
+/// and can be reset.
+pub const DEFAULT_RPC: &str = "wss://rpc.qorsync.dev";
 
 /// A local node started by the launcher listens here.
 pub const LOCAL_RPC: &str = "ws://127.0.0.1:9944";
@@ -650,7 +652,7 @@ mod tests {
             LOCAL_RPC
         );
         assert_eq!(
-            normalise_endpoint("https://rpc.demiurge.cloud").unwrap(),
+            normalise_endpoint("https://rpc.qorsync.dev").unwrap(),
             DEFAULT_RPC
         );
     }

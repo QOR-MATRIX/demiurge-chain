@@ -3,7 +3,7 @@
 The record of how `Demiurge Devnet` runs on Railway (ADR-068): what exists, how it was made, and what to do
 again. The plan and its reasons are [`../docs/architecture/DEVNET_PLAN.md`](../docs/architecture/DEVNET_PLAN.md).
 
-**Status, 3 October 2026:** steps 1 to 4 done. Three nodes run on Railway, each holding its own keys and waiting
+**Status, 3 October 2026: live.** All seven steps done; `Demiurge Devnet` answers at `wss://rpc.qorsync.dev`. Steps 1 to 4 below were done first. Three nodes run on Railway, each holding its own keys and waiting
 for a chain specification. No chain is running yet and nothing is public.
 
 ## The rule for secrets
@@ -82,5 +82,17 @@ Project `demiurge`, environment `production`, beside `qor-auth`, `Postgres` and 
   `0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a`**, sudo key the owner's, sudo 100 CGT, faucet
   1,000,000 CGT, total issuance 1,000,100 CGT, validators A and B. The image copies it to
   `/etc/demiurge/demiurge_devnet.raw.json`.
-- **Next (step 5):** the owner pushes and runs the image workflow; the three services move to the new `sha-` tag with
-  `DEMIURGE_CHAIN_SPEC=/etc/demiurge/demiurge_devnet.raw.json`.
+- **3 October 2026, the second image.** The first rerun built `e120241` again (the push had not reached GitHub);
+  after the owner pushed, the run on `f836075` published `sha-f836075`, whose labels name that commit and whose
+  `/etc/demiurge/demiurge_devnet.raw.json` has sha256 `2c7fbc90…d60d`, the committed file's.
+- **3 October 2026, step 5.** The three services' image and `DEMIURGE_CHAIN_SPEC` were staged through Railway's tools
+  and applied by the owner (20:23 UTC). All three initialised genesis `0x934e…254a`; validator-a authored #1 and
+  validator-b #2, and #1 was finalised by #3.
+- **3 October 2026, steps 6 and 7.** `rpc.qorsync.dev` attached to `devnet-rpc`, port 9944, through Railway's tools;
+  the owner added the CNAME (`rpc` → `8634ia3g.up.railway.app`, DNS only, as `id.qorsync.dev`) and the TXT
+  (`_railway-verify.rpc`) in Cloudflare; the certificate was issued. Measured publicly: `/health` 200
+  `{"peers":2,"isSyncing":false}`, `/health/readiness` 200; `system_chain` "Demiurge Devnet", `Live`, spec_version 6,
+  genesis `0x934e2caa…254a`; `author_rotateKeys` and `author_insertKey` refused (-32601, unsafe); `sudo.key` the
+  owner's; faucet 1,000,000 CGT. **Ten minutes, 20:29–20:39 UTC:** finalised #55 → #155, authors validator-a 50 and
+  validator-b 51, and both validators' logs reported finalized #155 `0xe42b…5407`, the RPC node's hash
+  (`alpha.devnet-finality`). The launcher's read-only Market test passed against it (block 80, 0 listings).

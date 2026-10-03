@@ -144,9 +144,8 @@ owner picks (§9).
 - **Peer-to-peer at Alpha is private.** All three nodes are the project's own, so they peer over the host's
   private network. No peer-to-peer port faces the internet. A public bootnode is needed only when outside
   nodes join, which is the public testnet (Beta), not Alpha.
-- **The launcher's default is `wss://rpc.demiurge.cloud`** (`tools/qor-launcher/src-tauri/src/chain/mod.rs`).
-  That name does not serve the chain. Changing the default to `wss://rpc.qorsync.dev` is a launcher change for
-  a later session, once the endpoint answers.
+- **The launcher's default is `wss://rpc.qorsync.dev` since 3 October 2026**
+  (`tools/qor-launcher/src-tauri/src/chain/mod.rs`); it was `wss://rpc.demiurge.cloud`, which served nothing.
 
 ---
 

@@ -621,6 +621,12 @@ type = "tightening"
 change = "Alpha gains alpha.devnet-finality, a check that the deployed devnet keeps finalising blocks and that both validators author, read through its public RPC node. alpha.devnet-live keeps its empty url until the endpoint answers, as this file requires; ADR-068 names it https://rpc.qorsync.dev/health/readiness. No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
 reason = "The owner's decision (ADR-068 decision 5). /health/readiness is met by a node with one peer, so a network whose finality had stalled would still pass alpha.devnet-live; the multi-validator criterion proves finality only on a local specification in CI."
 
+[[change_log]]
+date = "2026-10-03"
+type = "tightening"
+change = "alpha.devnet-live names its address: https://rpc.qorsync.dev/health/readiness, the devnet's public RPC node on Railway (ADR-068). The criterion had an empty url since it was written, because no devnet was deployed."
+reason = "It answered 200 on 2026-10-03 (and /health reported two peers, not syncing), measured. readiness is named rather than /health because /health answers 200 from a node with no peers. A unit that could not be measured can now be measured, and fail."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1044,7 +1050,7 @@ nothing holds value."""
   [[gates.criteria]]
   id = "alpha.devnet-live"
   kind = "http"
-  url = ""
+  url = "https://rpc.qorsync.dev/health/readiness"
   expect_status = 200
 
   # The deployed devnet keeps finalising, not merely answering (ADR-068 decision 5). /health/readiness
@@ -1053,8 +1059,8 @@ nothing holds value."""
   id = "alpha.devnet-finality"
   kind = "check"
   says = "Read through https://rpc.qorsync.dev, the devnet's finalised block number advances over ten minutes of observation, both validators author blocks in that window, and the RPC node and both validators report the same finalised hash at a common height. Run against the deployed network, not a local specification."
-  done = false
-  evidence = ""
+  done = true
+  evidence = "Measured 2026-10-03 20:29:05 to 20:39:05 UTC through wss://rpc.qorsync.dev: the finalised head advanced from #55 (0xdff6d1a8...d3e1) to #155 (0xe42bd7f1...5407), 100 blocks in ten minutes; of 101 new heads, validator-a (5GucVTnp...xrDa) authored 50 and validator-b (5CPZLYtg...TBgc) 51; at 20:39 both validators' own logs reported finalized #155 (0xe42b...5407), the hash the RPC node gave. Recorded in chain/DEPLOY-RAILWAY.md. A single dated run: it is evidence that the network finalises, not a standing monitor."
 
   [[gates.criteria]]
   id = "alpha.qor-id-live"

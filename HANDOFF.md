@@ -1411,6 +1411,19 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       403s any public Host; plan §2 corrected). **Not yet tried:** the workflow, a Railway volume's ownership, libp2p
       over Railway's private network. The root `Dockerfile`, `.dockerignore` and `fly.toml` still describe the deleted
       chain and were left, as `DIRECTION.md` records; removing them is a separate decision.
+    - **THE DEVNET IS LIVE, 3 October 2026 (record: `chain/DEPLOY-RAILWAY.md`).** Owner's sudo
+      `5HN6PZA4…Zadn` and faucet `5GuugU7t…4T9` (polkadot{.js} extension); genesis `0x934e2caa…254a` from
+      `chain/specs/demiurge_devnet.raw.json` (`f836075`, 125 chain tests), baked into `sha-f836075`; three Railway
+      services in `iad` with volumes; `rpc.qorsync.dev` on `devnet-rpc` only. **Measured:** readiness 200, two peers,
+      unsafe methods refused, ten minutes finalising #55 → #155 with authors 50/51 and all three nodes agreeing on
+      #155. **`alpha.devnet-live` has its URL and `alpha.devnet-finality` is done (tightening + evidence, logged).**
+      The launcher's default endpoint is now `wss://rpc.qorsync.dev` and its chain preset "Mainnet" (a dead address)
+      became "Devnet"; 195 host tests, and the read-only Market live test passed against the devnet. **Traps, for
+      §5:** Railway labels every standard-error line "error"; an image's `sha-` tag is the short commit, so a workflow
+      run before a push builds the old commit (it happened once); the organisation had to allow public packages
+      before the image could be made public. **Not done:** no faucet page (the owner sends test CGT by hand from
+      polkadot.js Apps); the launcher's signing paths have not run against the devnet; RPC rate limits unset
+      (unmeasured); a week's cost not yet read.
 
 ## 5. Traps, so nobody re-learns them
 

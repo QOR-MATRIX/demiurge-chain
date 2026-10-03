@@ -12,7 +12,7 @@ import { Field, Panel, Stat, ViewHeader } from './parts';
 // WebSocket addresses: the chain client speaks WebSocket and nothing else
 // (ADR-040).
 const PRESETS = [
-  { label: 'Mainnet', url: 'wss://rpc.demiurge.cloud', note: 'The public endpoint' },
+  { label: 'Devnet', url: 'wss://rpc.qorsync.dev', note: 'The public test network' },
   { label: 'Local node', url: 'ws://127.0.0.1:9944', note: 'A node running on this machine' },
 ];
 
