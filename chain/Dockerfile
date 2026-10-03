@@ -65,6 +65,12 @@ RUN groupadd --system --gid 10001 demiurge \
 
 COPY --from=builder /out/demiurge-node /usr/local/bin/demiurge-node
 COPY docker/entrypoint.sh /usr/local/bin/demiurge-entrypoint
+# The devnet's raw chain specification (ADR-068), built once from the validators'
+# first-boot keys and the owner's two addresses and committed. Every node starts
+# from this one file, so every node shares one genesis. Railway points
+# DEMIURGE_CHAIN_SPEC here; without that variable a node still waits for
+# /data/spec.json, as on first boot.
+COPY specs/demiurge_devnet.raw.json /etc/demiurge/demiurge_devnet.raw.json
 RUN chmod 0755 /usr/local/bin/demiurge-entrypoint \
     && /usr/local/bin/demiurge-node --version
 

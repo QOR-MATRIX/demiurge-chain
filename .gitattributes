@@ -137,3 +137,6 @@ services/qor-auth/migrations/*.sql text eol=lf
 # copy it in with CRLF line endings and /bin/sh would refuse it. LF everywhere.
 chain/docker/*.sh text eol=lf
 chain/Dockerfile text eol=lf
+
+# The devnet's raw chain specification is committed byte for byte as it was built and verified.
+chain/specs/*.json -text

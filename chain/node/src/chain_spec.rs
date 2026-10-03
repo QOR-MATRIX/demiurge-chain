@@ -116,19 +116,7 @@ fn development_endowed_accounts() -> Vec<(AccountId, u128)> {
 /// owner decided on 3 October 2026 to reuse this value rather than name a new one.
 const DEVELOPMENT_ENDOWMENT: u128 = 1_000_000 * denomination::CGT;
 
-// Until the devnet's public keys exist, nothing outside the tests calls
-// `devnet_chain_spec`: a built-in `--chain demiurge_devnet` is wired in
-// `command.rs` once they are known (the plan's §6 step 8), and these `expect`s
-// then fail the build, so they cannot outlive their reason.
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "wired once the devnet's keys exist")
-)]
 pub const DEVNET_CHAIN_ID: &str = "demiurge_devnet";
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "wired once the devnet's keys exist")
-)]
 pub const DEVNET_CHAIN_NAME: &str = "Demiurge Devnet";
 
 /// The hosted devnet (`docs/architecture/DEVNET_PLAN.md`): validators, a sudo
@@ -151,10 +139,6 @@ pub const DEVNET_CHAIN_NAME: &str = "Demiurge Devnet";
 ///
 /// Built with the `sudo` feature, like every development and test network
 /// (ADR-037). Without it the sudo account is endowed but is not the root key.
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "wired once the devnet's keys exist")
-)]
 pub fn devnet_chain_spec(
     validators: &[(AuraId, GrandpaId)],
     sudo: AccountId,
@@ -199,6 +183,57 @@ pub fn devnet_chain_spec(
         sudo,
     ))
     .build())
+}
+
+/// The hosted devnet's public values (ADR-068, `chain/DEPLOY-RAILWAY.md`).
+///
+/// The validators' keys were made on their own Railway volumes at first boot on
+/// 3 October 2026 and read from their logs; the sudo and faucet addresses are the
+/// owner's, made in their own wallet the same day. Public values only: every
+/// secret behind them stays where it was made.
+pub mod devnet {
+    /// `devnet-validator-a` and `devnet-validator-b`: Aura (Sr25519), then
+    /// GRANDPA (Ed25519), as SS58.
+    pub const VALIDATORS: [(&str, &str); 2] = [
+        (
+            "5GucVTnpdUsNryEyH3YE6hbp1ZBTL3kopxFot639nxFRxrDa",
+            "5CWsNNyHQXkose1Fw2fu1Ne6mSCq1Dtm4kxasV2QA8jkYfLm",
+        ),
+        (
+            "5CPZLYtgagoUebiFHAoCu4Ush3CL9RDxq7smKtFBvixaTBgc",
+            "5Gxyx5psvaVw6JLbtZWo1jQsPfB4bSmgFFxjh7z5aJAq9B9D",
+        ),
+    ];
+    /// The owner's sudo account: the root key, holding the existential deposit.
+    pub const SUDO: &str = "5HN6PZA4zkAMeump3zs9beg66kdPiAqaXbwBHKYxtEaXZadn";
+    /// The owner's faucet account: holds the marked placeholder of test CGT.
+    pub const FAUCET: &str = "5GuugU7trpXPfx1kfDza8zS146jYwvmHHkrgTFEnRgZh34T9";
+}
+
+/// The hosted devnet with its real public values: what `--chain
+/// demiurge_devnet` loads, and what the committed raw specification was built
+/// from. Every node of the network starts from that raw file, not from this
+/// function, so a later runtime build cannot change the genesis they share.
+pub fn devnet_built_in() -> Result<ChainSpec, String> {
+    use sp_core::crypto::Ss58Codec;
+    let account = |ss58: &str| {
+        AccountId::from_ss58check(ss58).map_err(|e| format!("{ss58} is not an address: {e:?}"))
+    };
+    let validators = devnet::VALIDATORS
+        .iter()
+        .map(|(aura, grandpa)| {
+            let aura = sp_core::sr25519::Public::from_ss58check(aura)
+                .map_err(|e| format!("{aura} is not an Sr25519 key: {e:?}"))?;
+            let grandpa = sp_core::ed25519::Public::from_ss58check(grandpa)
+                .map_err(|e| format!("{grandpa} is not an Ed25519 key: {e:?}"))?;
+            Ok((aura.into(), grandpa.into()))
+        })
+        .collect::<Result<Vec<(AuraId, GrandpaId)>, String>>()?;
+    devnet_chain_spec(
+        &validators,
+        account(devnet::SUDO)?,
+        account(devnet::FAUCET)?,
+    )
 }
 
 fn genesis(
@@ -432,6 +467,58 @@ mod tests {
     /// account, Sr25519 and Ed25519, stash accounts included, is looked for by its
     /// address and by its public key in hex, in the readable specification and in
     /// the raw one, whose storage keys carry account bytes.
+    /// The built-in devnet carries exactly the public values read from the
+    /// validators' first-boot logs and the owner's two addresses. The keys are
+    /// checked against the hex the logs printed beside the SS58, so a slip in
+    /// copying either form fails here, not on a network that will not start.
+    #[test]
+    fn the_built_in_devnet_carries_the_values_read_from_first_boot() {
+        use sp_core::crypto::Ss58Codec;
+        let spec = devnet_built_in().expect("the built-in devnet builds");
+        assert_eq!(spec.id(), DEVNET_CHAIN_ID);
+        let patch = patch_of(&spec);
+
+        let logged = [
+            (
+                "d63de57626c37dea0c6328254dd25053581616c50a14f9f5cc54d8a3a9257841",
+                "13f466d0baf2cca085c1b4197fe9ee324c5ed715313740bab9a995510488e78c",
+            ),
+            (
+                "0e60fbf711e6a81b52a7b809a2f5ebbbae81ba9411670a2bd8b60a8581e0f074",
+                "d8cfdeb462210331996d2ae47a629f64bf6ebc0cb51116958e64d76f105f01e9",
+            ),
+        ];
+        let keys = patch["session"]["keys"].as_array().expect("session keys");
+        assert_eq!(keys.len(), logged.len());
+        for ((aura_hex, grandpa_hex), (aura_ss58, grandpa_ss58), key) in logged
+            .iter()
+            .zip(devnet::VALIDATORS.iter())
+            .zip(keys)
+            .map(|((l, v), k)| (l, v, k))
+        {
+            let aura = sp_core::sr25519::Public::from_ss58check(aura_ss58).unwrap();
+            let grandpa = sp_core::ed25519::Public::from_ss58check(grandpa_ss58).unwrap();
+            assert_eq!(hex(aura.as_ref()), *aura_hex);
+            assert_eq!(hex(grandpa.as_ref()), *grandpa_hex);
+            let aura_id: AuraId = aura.into();
+            let grandpa_id: GrandpaId = grandpa.into();
+            assert_eq!(key[2]["aura"], serde_json::json!(aura_id));
+            assert_eq!(key[2]["grandpa"], serde_json::json!(grandpa_id));
+        }
+
+        let sudo = AccountId::from_ss58check(devnet::SUDO).unwrap();
+        let faucet = AccountId::from_ss58check(devnet::FAUCET).unwrap();
+        assert_eq!(
+            patch["balances"]["balances"],
+            serde_json::json!([
+                [serde_json::json!(faucet), DEVELOPMENT_ENDOWMENT],
+                [serde_json::json!(sudo), denomination::EXISTENTIAL_DEPOSIT],
+            ])
+        );
+        #[cfg(feature = "sudo")]
+        assert_eq!(patch["sudo"]["key"], serde_json::json!(sudo));
+    }
+
     #[test]
     fn no_well_known_key_appears_in_the_devnet() {
         let spec = test_devnet();

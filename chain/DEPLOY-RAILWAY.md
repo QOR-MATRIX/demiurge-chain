@@ -3,7 +3,7 @@
 The record of how `Demiurge Devnet` runs on Railway (ADR-068): what exists, how it was made, and what to do
 again. The plan and its reasons are [`../docs/architecture/DEVNET_PLAN.md`](../docs/architecture/DEVNET_PLAN.md).
 
-**Status, 3 October 2026:** steps 1 to 3 done. Three nodes run on Railway, each holding its own keys and waiting
+**Status, 3 October 2026:** steps 1 to 4 done. Three nodes run on Railway, each holding its own keys and waiting
 for a chain specification. No chain is running yet and nothing is public.
 
 ## The rule for secrets
@@ -73,4 +73,14 @@ Project `demiurge`, environment `production`, beside `qor-auth`, `Postgres` and 
 
 - **3 October 2026, step 3.** `DEMIURGE_BOOTNODES` set on `devnet-validator-b` (A) and `devnet-rpc` (A and B), with
   deploys skipped: they take effect at the redeploy in step 5.
-- **Waiting on:** the owner's sudo and faucet addresses, for step 4.
+- **3 October 2026, step 4.** The owner made two accounts in the polkadot{.js} extension: sudo
+  `5HN6PZA4zkAMeump3zs9beg66kdPiAqaXbwBHKYxtEaXZadn`, faucet `5GuugU7trpXPfx1kfDza8zS146jYwvmHHkrgTFEnRgZh34T9`.
+  `chain_spec::devnet` holds those and the four validator keys; `--chain demiurge_devnet` loads them; a test checks
+  every key against the hex the boot logs printed (a swap of the two GRANDPA keys was planted and caught). The raw
+  specification `chain/specs/demiurge_devnet.raw.json` (5.2 MB) was built with the `sudo` feature and **read back from
+  a node started on it**: chain "Demiurge Devnet", `Live`, spec_version 6, **genesis
+  `0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a`**, sudo key the owner's, sudo 100 CGT, faucet
+  1,000,000 CGT, total issuance 1,000,100 CGT, validators A and B. The image copies it to
+  `/etc/demiurge/demiurge_devnet.raw.json`.
+- **Next (step 5):** the owner pushes and runs the image workflow; the three services move to the new `sha-` tag with
+  `DEMIURGE_CHAIN_SPEC=/etc/demiurge/demiurge_devnet.raw.json`.
