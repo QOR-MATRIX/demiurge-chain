@@ -1375,6 +1375,12 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       and `email_leaves_this_machine` approved as named; the Market's Clear on a void listing stays holder-only; its
       labels and internal names stand. **`my-app/` deleted on the owner's word**: an untouched `create-next-app`
       starter that appeared at 02:00 on 3 October, never committed, origin unknown.
+    - **The owner took every recommended option (ADR-067):** ADR-065 choices 1, 2 and 5 confirmed; buying by number
+      kept beside the Market; the readability measuring rule approved (`GATES.toml` `approved_by`). **qor-auth moved
+      back to `iad`** through Railway's `update-service` on the owner's word; the classifier then refused even
+      read-only checks of the live service ("Production Deploy"), and **the owner confirmed `/ready` answered
+      `{"checks":{"cache":"ok","database":"ok"},"status":"ready"}`**. Launcher bumped to **0.1.6** for an installer
+      that upgrades 0.1.5.
 
 ## 5. Traps, so nobody re-learns them
 

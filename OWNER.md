@@ -54,13 +54,10 @@ confirmation dialogs (L1.4), and on your call about two roadmap items (M3.1, M3.
 
 ## What only you can do
 
-0. **QOR ID's region**: it moved to Oregon on 3 October while its database stayed in Virginia, so every
-   sign-in is slower. If that wasn't meant: Railway → qor-auth → Settings → Regions → back to `iad`.
 1. **Tell me how the CI runs ended** (github.com/QOR-MATRIX/demiurge-chain/actions). Railway now
    deploys sign-in from your pushes (connected 3 October).
-2. **Approve or refuse three things the agents chose:** how a screen-reading check measures scrolled
-   text; that a container asset cannot move until emptied (ADR-065, choices 1, 2, 5); buying by asset
-   number as the first shop. (Names and Market choices: approved 3 October, ADR-066.)
+2. **Try the Market and selling** in launcher 0.1.6 (QOR ID is back in Virginia beside its database, and
+   answered ready on 3 October; the agents' pending choices were all confirmed, ADR-066 and ADR-067).
 3. **Take your Resend key out of this PC's environment**: Railway holds it now, and here it lets a
    local test send real mail.
 4. **Bounce reports**: in Resend add a webhook to `https://id.qorsync.dev/api/v1/webhooks/resend`

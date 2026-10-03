@@ -600,7 +600,7 @@ reason = "alpha.pallets' own comment: tests are listed once they exist, and alph
 date = "2026-10-01"
 type = "evidence-rule"
 change = "check-readability.mjs no longer counts text scrolled out of an overflowing ancestor's box as visible, and measures a scrolling dialog scrolled to its end. Before, a scrolling dialog's clipped text was measured against the modal overlay it sat behind and read 1:1. The check grows from 251 to 341 checks (five new screens per theme and backdrop, for selling and buying). check-inventory-view.mjs grows from 127 to 238, with two assertions rewritten because the behaviour they pinned changed (Sell now publishes)."
-approved_by = "NOT YET APPROVED: submitted to the owner on 2026-10-01"
+approved_by = "owner, 2026-10-03 (ADR-067)"
 note = "A change to what a check measures is the owner's decision under this file's rule, and this one was made by an agent building the selling surface. Compared on one theme with the old and new scripts on the same build: 58 common screens, 52 with identical counts of measured text, 6 with more, none with fewer. If the owner refuses it, the rule reverts and the new dialogs must be made to fit without scrolling."
 
 [[change_log]]
