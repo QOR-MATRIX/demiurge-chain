@@ -1350,6 +1350,20 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       `/services/qor-auth` only), and its live deployment is `7e154e1` (1 October). So a push redeploys nothing until
       the service is connected to `QOR-MATRIX/demiurge-chain`, which needs Railway's GitHub app to see the
       organisation (owner).
+    - **Committed `26e3636`. The push was refused** by Claude Code's classifier (`git push matrix public-main:main`),
+      and on 3 October so was `git fetch matrix`: the owner pushes. `matrix/main` was `34f21c1`, an ancestor, so the
+      push is a fast-forward.
+    - **Railway, read again on 3 October:** the owner redeployed `qor-auth` at 09:09 UTC, but it rebuilt the same
+      `7e154e1` (no repository is connected), and **`sleepApplication: true` is now set** on the service, so QOR ID
+      sleeps when idle and the first request wakes it. `/ready` and `/health` answered 200 (0.44 s, 0.27 s); `/health`
+      has no `email_leaves_this_machine`, so the new code is not live. Whether sleeping suits "nothing may block on
+      QOR ID" (ADR-056) is the owner's call; the launcher already does not wait on it.
+    - **GATES.toml tightened** (two `change_log` entries, 3 October): six chain tests and one QOR ID test join the
+      Alpha criteria, each seen to fail against a planted fault first, and the Market check joins `npm run check`'s
+      record. Planting showed **the pallet's mock has no `Locker`**, so a preview that ignored nesting passed every
+      pallet test and failed only the runtime's. Not listed, not yet seen failing: `buy_exact_keeps_every_rule_buy_has`,
+      `a_preview_at_the_largest_price_cannot_overflow`, `buy_exact_is_a_new_call_and_buy_keeps_its_encoding`, and QOR
+      ID's health and session last-used tests. The launcher's 15 gates tests pass against the new file.
 
 ## 5. Traps, so nobody re-learns them
 

@@ -603,6 +603,18 @@ change = "check-readability.mjs no longer counts text scrolled out of an overflo
 approved_by = "NOT YET APPROVED: submitted to the owner on 2026-10-01"
 note = "A change to what a check measures is the owner's decision under this file's rule, and this one was made by an agent building the selling surface. Compared on one theme with the old and new scripts on the same build: 58 common screens, 52 with identical counts of measured text, 6 with more, none with fewer. If the owner refuses it, the rule reverts and the new dialogs must be made to fit without scrolling."
 
+[[change_log]]
+date = "2026-10-03"
+type = "tightening"
+change = "alpha.pallets requires five more tests of pallet-drc369-royalties (buy_exact's refusal of revised content, and four on sale_preview: the parts it names, a buyer's trial moving nothing, the refusal it reports, an account opened by an earlier part), alpha.chain-tests one more of the runtime's (the preview through Drc369RoyaltiesApi, nesting included), and alpha.qor-auth-tests one more (whether mail leaves the machine, which the end-to-end scripts' guard reads). No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
+reason = "Each was seen to fail against a planted fault first. In the pallet, on 2026-10-03: the content check removed (1 test failed), the preview's trial committed instead of rolled back (4), the earlier-part rule dropped (1), the seller's part off by one Spark (1). Ignoring the nesting lock in the preview failed no pallet test, because the mock's Locker is (), and failed the runtime test, which is why that test is listed. The QOR ID test was seen failing against a stub that always answered false, on 2026-10-02. Not listed, because not yet seen to fail: buy_exact_keeps_every_rule_buy_has, a_preview_at_the_largest_price_cannot_overflow, buy_exact_is_a_new_call_and_buy_keeps_its_encoding, and QOR ID's health and session last-used tests."
+
+[[change_log]]
+date = "2026-10-03"
+type = "tightening"
+change = "check-market-view.mjs joins npm run check, which CI's launcher job runs: 127 checks that the Market screen draws what the host reads from the chain's listing storage -- each listing as a card with its holder and the host's price, the filter and order sent to the host, paging by the host's window, the truncation and unreadable notices, a listing that cannot be bought shown with its reason and no Buy, and Buy opened only on the host's fresh answer through the existing purchase dialog. check-readability.mjs grows from 341 to 361 checks (the Market in every theme and backdrop). check-inventory-view.mjs keeps 238 checks, four of its assertions re-pointed because the copy they pinned ('no storefront') became false when the Market was built. No criterion's list, kind or met condition changes."
+reason = "Twenty-four faults planted in the Market view one at a time each failed the check (tools/qor-launcher/README.md lists them). Not covered: the jump back to the last page when the window falls past the end, and the Refresh spinner."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -833,6 +845,13 @@ nothing holds value."""
     "a_parent_holds_no_more_than_the_bound",
     "a_nested_asset_and_the_asset_holding_it_cannot_be_transferred",
     "an_asset_is_in_one_place_at_a_time_and_only_assets_nest",
+    # A purchase held to the work seen, and a preview that moves nothing
+    # (spec_version 6); each shown to fail against a planted fault on 2026-10-03.
+    "buy_exact_refuses_an_asset_revised_after_the_buyer_looked",
+    "a_preview_names_the_parts_a_sale_then_pays",
+    "a_preview_with_a_buyer_moves_nothing",
+    "a_preview_says_why_a_sale_could_not_settle",
+    "a_preview_knows_an_earlier_part_opens_the_account_a_later_one_reaches",
   ]
 
   [[gates.criteria]]
@@ -912,6 +931,9 @@ nothing holds value."""
     "a_nested_asset_cannot_be_transferred_in_this_runtime",
     "a_batch_cannot_move_a_nested_asset",
     "a_nested_asset_cannot_be_sold",
+    # The preview through the runtime API, nesting included: the pallet's mock
+    # has no Locker, so only this test catches a preview that ignores it.
+    "the_runtime_api_previews_what_a_sale_would_pay",
   ]
 
   [[gates.criteria]]
@@ -952,7 +974,9 @@ nothing holds value."""
              "a_carriage_return_is_found_and_a_file_without_one_passes",
              # No test can send real mail, whatever the machine's environment holds.
              "a_test_build_sends_only_to_a_stand_in_on_this_machine",
-             "only_main_builds_the_email_service_from_the_environment"]
+             "only_main_builds_the_email_service_from_the_environment",
+             # The end-to-end scripts' guard reads this answer; a wrong "false" is real mail.
+             "mail_leaves_this_machine_unless_nothing_is_sent_or_it_goes_to_a_stand_in"]
 
   # No token, key, secret, password, link or address reaches a log, at any level. The test drives
   # every flow that handles one through the real router and captures everything logged; CI also scans
