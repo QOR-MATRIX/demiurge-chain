@@ -34,6 +34,7 @@ including from git history (D-012).
 | [`docs/architecture/ADDRESS_TYPE.md`](architecture/ADDRESS_TYPE.md) | The runtime's address type, `IdentityLookup` or `AccountIdLookup`: what each costs, what breaks if it changes after M5.1, and the recommendation (Q-17, F-Q10). **Decided 2026-09-20 (ADR-041); kept as the record of the proposal, with one cost estimate corrected** |
 | [`docs/architecture/PLATFORM_REALIGNMENT.md`](architecture/PLATFORM_REALIGNMENT.md) | The September 2026 audit: what was wrong and why. A record, not a plan |
 | [`chain/README.md`](../chain/README.md) | The Substrate L1: what is mounted, how to build and run it, and the pin. **The only chain** |
+| [`chain/DEPLOY-RAILWAY.md`](../chain/DEPLOY-RAILWAY.md) | The devnet on Railway (ADR-068): the image, the three services and their variables, the order of first boot, and what exists |
 | [`scripts/run-local-stack.md`](../scripts/run-local-stack.md) | How to run a development node, a multi-validator devnet, the identity service and the launcher |
 | [`tools/qor-launcher/README.md`](../tools/qor-launcher/README.md) | Launcher architecture and security design |
 | [`docs/design/DESIGN_SYSTEM.md`](design/DESIGN_SYSTEM.md) | How every surface looks and behaves: tokens, themes, type and spacing scales, components, motion, accessibility settings, what is ruled out |
