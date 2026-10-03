@@ -1364,6 +1364,13 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       pallet test and failed only the runtime's. Not listed, not yet seen failing: `buy_exact_keeps_every_rule_buy_has`,
       `a_preview_at_the_largest_price_cannot_overflow`, `buy_exact_is_a_new_call_and_buy_keeps_its_encoding`, and QOR
       ID's health and session last-used tests. The launcher's 15 gates tests pass against the new file.
+    - **Deployed, 3 October, by the owner:** pushed to `matrix` and connected `qor-auth` to `QOR-MATRIX/demiurge-chain`
+      (branch `main`, root `/services/qor-auth`). Deployment `ca92e0f4` of `342b6c5` **SUCCESS** at 09:53 UTC.
+      Measured: `/health` 200 with `email_leaves_this_machine: true` (right for production: it sends real mail, so the
+      e2e scripts refuse it), `/ready` 200 with database and cache ok (~0.35 s from here), a forged refresh token 401.
+      Production Redis is 8.2, so `SET … XX KEEPTTL` is supported. `sleepApplication` is off again. **The service
+      moved region to `us-west2` while Postgres and Redis stay in `iad`**: every query crosses the continent. Owner's
+      call whether that was meant; if not, set qor-auth's region back to `iad`.
 
 ## 5. Traps, so nobody re-learns them
 

@@ -54,6 +54,8 @@ confirmation dialogs (L1.4), and on your call about two roadmap items (M3.1, M3.
 
 ## What only you can do
 
+0. **QOR ID's region**: it moved to Oregon on 3 October while its database stayed in Virginia, so every
+   sign-in is slower. If that wasn't meant: Railway → qor-auth → Settings → Regions → back to `iad`.
 1. **Tell me how the CI run ended** (github.com/QOR-MATRIX/demiurge-chain/actions), and **let Railway
    see the organisation** (Railway → Account → Integrations → GitHub → add QOR-MATRIX), or a push no
    longer redeploys sign-in.
