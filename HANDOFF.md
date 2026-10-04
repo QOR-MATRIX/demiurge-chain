@@ -1446,6 +1446,11 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     `"Creator God Token"` (`chain/runtime/src/denomination.rs:55`) where every record writes Creator-God Token;
     changing it changes the chain's properties, so it is the owner's call. **P7.2 (read-only devnet reads in the
     arcade) can start today**; everything else in P7 waits on ADR-069.
+    **Later the same day the owner accepted ADR-069 and ADR-043 as written** ("I accept ADR-069 and ADR-043 as
+    written"); a first, one-word "yes" was not recorded, because the assistant's tooling refused to mark decisions on
+    so little. ADR-069's three further choices (design, hosting, name) and U-16 stay open. ADR-043's items 1 to 3
+    (redirect sign-in, rotating browser tokens, per-client sessions) may now start; item 4 was already done. Both
+    `arqade.decisions` units are met.
 
 ## 5. Traps, so nobody re-learns them
 

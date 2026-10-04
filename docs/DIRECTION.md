@@ -895,7 +895,7 @@ M8. [`blueprints/stream.md`](blueprints/stream.md).
 
 The gaming platform, named by the owner on 4 October 2026: games played with a QOR ID, every owned collectible a
 DRC-369 asset, CGT the only currency, and a developer SDK. Its starting point is an existing arcade on OpenAI Sites,
-outside this repository. [`blueprints/arqade.md`](blueprints/arqade.md); its decisions are ADR-069 (Proposed). No item
+outside this repository. [`blueprints/arqade.md`](blueprints/arqade.md); its decisions are ADR-069, accepted on 4 October 2026. No item
 here sets an economic value; payouts are U-16.
 
 1. [ ] Baseline: the arcade's source in `products/arqade/` with its tests in CI, an integration inventory of every

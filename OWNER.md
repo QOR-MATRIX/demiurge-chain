@@ -32,8 +32,8 @@ or give anyone test CGT except by you sending it from the faucet.
 - **Buying is safer**, the launcher shows the chain's own payout sum, and the **Market screen** exists.
 - **ARQADE, your gaming platform, is written into the plan** (4 October) — *a website where people play games
   with their QOR ID, win assets and pay in CGT*. Your handoff was checked against the code and corrected:
-  `docs/blueprints/arqade.md`, its steps P7.1 to P7.10, and **ADR-069** — *a written decision awaiting your
-  yes or no*. Nothing was built and the arcade website was not touched.
+  `docs/blueprints/arqade.md`, its steps P7.1 to P7.10, and **ADR-069** — *a written decision* — which **you
+  accepted**, with **ADR-043** (*how a website signs people in to QOR ID*). The arcade website was not touched.
 
 ## Next, in order
 
@@ -49,15 +49,15 @@ or give anyone test CGT except by you sending it from the faucet.
 1. **Send yourself test CGT:** open `https://polkadot.js.org/apps/?rpc=wss://rpc.qorsync.dev`, allow your wallet,
    then Accounts → **Devnet faucet** → Send → to your launcher address `5DMPEX…qLxK`.
 2. **Tell me how the CI runs ended** (github.com/QOR-MATRIX/demiurge-chain/actions).
-3. **Say yes or no to ADR-069 (ARQADE)** and **ADR-043** — *how a website signs people in to QOR ID*. Without
-   them ARQADE cannot sign anyone in or take a payment. Also yours: its look (your design rules forbid glow and
-   neon), where it is hosted, and **U-16** — *whether paid games may pay out prizes, and from whose money*.
+3. **ARQADE's three open choices** (you accepted ADR-069 and ADR-043 on 4 October): its look (your design rules
+   forbid glow and neon), where it is hosted, and **U-16** — *whether paid games may pay out prizes, and from
+   whose money*.
 4. **Take your Resend key out of this PC's environment**; Railway holds it now.
 5. **Bounce reports**: a Resend webhook to `https://id.qorsync.dev/api/v1/webhooks/resend`, its `whsec_…`
    secret into Railway as `RESEND_WEBHOOK_SECRET`.
 6. **In Cloudflare**, delete the `ci` record and the tunnel.
 7. **Revoke the old SSH key** (`admin@pleroma`) and **rotate the nine credentials** in `SECURITY.md`.
-8. **Open economic questions**: the 15% for selling, deposit amounts (U-14), Q-19 and Q-20, ADR-043, U-16.
+8. **Open economic questions**: the 15% for selling, deposit amounts (U-14), Q-19 and Q-20, U-16.
 
 ## What it costs per month
 

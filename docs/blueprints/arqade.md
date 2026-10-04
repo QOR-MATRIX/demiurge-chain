@@ -4,7 +4,7 @@
 2026, reconciled the same day with the code and the accepted decisions. It is a blueprint (`ECOSYSTEM.md` §8): the
 design and the brief for whoever implements it. **It is not a roadmap**: ARQADE's steps are P7 in
 [`../DIRECTION.md`](../DIRECTION.md), and its decisions are [ADR-069](../decisions/ADR-069-arqade-the-gaming-platform.md)
-(Proposed). Read [`ECOSYSTEM.md`](ECOSYSTEM.md) first.
+(accepted by the owner on 4 October 2026, with ADR-043). Read [`ECOSYSTEM.md`](ECOSYSTEM.md) first.
 
 **Status:** planned. The existing arcade runs on OpenAI Sites and its source is outside this repository. Nothing in
 this repository implements ARQADE yet.

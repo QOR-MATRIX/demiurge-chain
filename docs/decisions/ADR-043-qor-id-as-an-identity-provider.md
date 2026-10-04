@@ -1,7 +1,10 @@
 # ADR-043: A browser frontend signs in to QOR ID by redirect, not by holding a refresh token
 
-**Status:** **Proposed**, 20 September 2026. **Not accepted, and no code was changed.** The assessment
-behind it is [`../architecture/HOSTING.md`](../architecture/HOSTING.md) §3.
+**Status:** **Accepted**, 4 October 2026, by the project owner ("I accept ADR-069 and ADR-043 as written"),
+with [ADR-069](ADR-069-arqade-the-gaming-platform.md): ARQADE is the browser frontend decision 6 waited for, so
+items 1 to 3 may now start. Proposed 20 September 2026. **Item 4 was done before acceptance**: QOR ID answers
+cross-origin requests only from `allowed_origins` (`services/qor-auth/src/main.rs:201-230`). Nothing else is built.
+The assessment behind it is [`../architecture/HOSTING.md`](../architecture/HOSTING.md) §3.
 
 **Relates to:** [ADR-042](ADR-042-two-domains.md), which puts frontends and QOR ID on different domains;
 [ADR-016](ADR-016-sign-in-with-unlock.md), which is about the launcher and is not changed by this;

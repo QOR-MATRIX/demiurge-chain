@@ -1,13 +1,14 @@
 # ADR-069: ARQADE, the gaming platform: a product under ADR-050, a third web surface, and the decisions it needs
 
-**Status:** **Proposed**, 4 October 2026. **The direction in decision 1 is the owner's**, given on 4 October 2026
-with the ARQADE handoff, and is recorded rather than proposed. **Decisions 2 to 9 are the assistant's
-recommendations and are not accepted.** Nothing is built or deployed on their basis until this record says
-Accepted (`decisions/README.md`). The design is [`../blueprints/arqade.md`](../blueprints/arqade.md); the steps are
+**Status:** **Accepted**, 4 October 2026, by the project owner, who wrote "I accept ADR-069 and ADR-043 as written".
+Proposed the same day. Decision 1 is the owner's direction; decisions 2 to 9 were the assistant's recommendations and
+are accepted as written. **The three further choices listed after decision 9 (design, hosting, name) are not decided
+by this acceptance**: the record says so itself. **Amends:** [ADR-011](ADR-011-web-surface.md) (decision 3). **Accepted
+with:** [ADR-043](ADR-043-qor-id-as-an-identity-provider.md). The design is [`../blueprints/arqade.md`](../blueprints/arqade.md); the steps are
 P7 in [`../DIRECTION.md`](../DIRECTION.md).
 
-**Relates to:** [ADR-011](ADR-011-web-surface.md) (two web surfaces), which decision 3 would amend;
-[ADR-043](ADR-043-qor-id-as-an-identity-provider.md) (browser sign-in, Proposed), which decision 4 needs;
+**Relates to:** [ADR-011](ADR-011-web-surface.md) (two web surfaces), which decision 3 amends;
+[ADR-043](ADR-043-qor-id-as-an-identity-provider.md) (browser sign-in), accepted with this record, which decision 4 needs;
 [ADR-046](ADR-046-the-launcher-is-an-app-host.md) and [ADR-010](ADR-010-agent-rails.md) /
 [ADR-026](ADR-026-agent-delegation-with-pallet-proxy.md), the two signing paths decision 5 chooses between;
 [ADR-050](ADR-050-where-the-products-live.md), whose form decision 2 follows; [ADR-002](ADR-002-value-from-spending.md),

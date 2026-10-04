@@ -49,7 +49,7 @@ of the earlier decisions they supersede.
 | [ADR-041](ADR-041-multiaddress-and-accountidlookup.md) | The runtime looks accounts up with `AccountIdLookup`, and an address is a `MultiAddress` | Accepted. Resolves Q-17, closes F-Q10; amends ADR-040 decision 3, which set the launcher's address type from the runtime's old one |
 
 | [ADR-042](ADR-042-two-domains.md) | Two domains: `qorsync.dev` for operations, `demiurge.cloud` for what people see | **Accepted**, 28 September 2026, by the project owner (proposed 20 September) |
-| [ADR-043](ADR-043-qor-id-as-an-identity-provider.md) | A browser frontend signs in to QOR ID by redirect, not by holding a refresh token | **Proposed**, not accepted. Needed by ADR-011's web surfaces, M5.4 at the earliest |
+| [ADR-043](ADR-043-qor-id-as-an-identity-provider.md) | A browser frontend signs in to QOR ID by redirect, not by holding a refresh token | **Accepted**, 4 October 2026, by the project owner, with ADR-069, whose web surface needs it (proposed 20 September). Item 4, the CORS allowlist, was already done |
 | [ADR-044](ADR-044-validators-are-not-publicly-addressable.md) | Validators have no public hostname; public RPC is a separate node | Accepted, 3 October 2026, by ADR-068. Restates ADR-015's archive-node clarification |
 
 | [ADR-045](ADR-045-the-ticker-returns-to-cgt.md) | The ticker returns to CGT | **Accepted**, by the owner's instruction. Supersedes ADR-034, and requirement R-4 in the migration inventory |
@@ -77,12 +77,12 @@ of the earlier decisions they supersede.
 | [ADR-066](ADR-066-buying-what-was-seen-and-the-market.md) | `buy_exact` and `ContentChanged`, the runtime API `Drc369RoyaltiesApi::sale_preview`, QOR ID's `email_leaves_this_machine`, and the Market's first slice (only the holder is offered Clear on a void listing) | Accepted, 3 October 2026, by the project owner |
 | [ADR-067](ADR-067-the-owner-confirms-the-pending-choices.md) | The owner confirms ADR-065's choices 1, 2 and 5, keeps buying by an asset's number beside the Market, and approves the readability check's measuring rule | Accepted, 3 October 2026, by the project owner |
 | [ADR-068](ADR-068-the-devnet-on-railway.md) | The devnet runs on Railway: two private validators and a public RPC node at `rpc.qorsync.dev`, `Demiurge Devnet`, and genesis holding only a sudo account and a faucet of marked test CGT | Accepted, 3 October 2026, by the project owner. Supersedes ADR-015 for the devnet's nodes; accepts ADR-044 |
-| [ADR-069](ADR-069-arqade-the-gaming-platform.md) | ARQADE, the gaming platform: a product under ADR-050 (P7, gate `arqade`), a third web surface amending ADR-011, sign-in by ADR-043, signing by delegated keys with a bridge of its own record, one devnet and one faucet, U-16 for payouts, and gaps G-14 to G-16 | **Proposed**, 4 October 2026. Decision 1 is the owner's direction; decisions 2 to 9 await the owner |
+| [ADR-069](ADR-069-arqade-the-gaming-platform.md) | ARQADE, the gaming platform: a product under ADR-050 (P7, gate `arqade`), a third web surface amending ADR-011, sign-in by ADR-043, signing by delegated keys with a bridge of its own record, one devnet and one faucet, U-16 for payouts, and gaps G-14 to G-16 | **Accepted**, 4 October 2026, by the project owner, the day it was proposed. Amends ADR-011; accepted with ADR-043 |
 
 A record is never edited to change its decision. A later record supersedes it and both say so.
 
-**Proposed records are not decisions.** ADR-043 and ADR-069 are written up for the owner and have not
-been accepted; ADR-042 was accepted on 28 September 2026, and ADR-044 on 3 October 2026 through ADR-068. ADR-047 and ADR-051 were accepted on 22 September 2026, and ADR-046 and ADR-048 to ADR-050 on 28 September 2026. Nothing may be built or deployed on their basis until their status says
+**Proposed records are not decisions.** None is Proposed today: ADR-043 and ADR-069 were accepted on 4 October 2026,
+ADR-042 on 28 September 2026, and ADR-044 on 3 October 2026 through ADR-068. ADR-047 and ADR-051 were accepted on 22 September 2026, and ADR-046 and ADR-048 to ADR-050 on 28 September 2026. Nothing may be built or deployed on their basis until their status says
 Accepted. Two things in the tree already run ahead of ADR-046 and ADR-051, because the owner asked for them
 to be built first: Qontrol's Projects surface with its helper, and QFX layer one. Each record says how the
 tree differs from it.

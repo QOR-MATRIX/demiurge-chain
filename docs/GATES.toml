@@ -1579,7 +1579,7 @@ DRC-369 asset, CGT the only cost and payout currency, signed from the \
 player's own Vault, and a developer SDK with which others publish games."""
 
   # ADR-069 defines ARQADE; ADR-043 is browser sign-in, which it cannot do
-  # without. Both are Proposed, so both units are not_met.
+  # without. Both accepted by the owner on 4 October 2026.
   [[gates.criteria]]
   id = "arqade.decisions"
   kind = "adr"

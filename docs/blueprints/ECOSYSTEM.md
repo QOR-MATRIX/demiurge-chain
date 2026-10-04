@@ -18,7 +18,7 @@ published to other developers — crates, pallets, calls, events, storage, SDK a
 plain names under ADR-032 and needs the owner's approval (`AGENTS.md` §8).
 
 **A seventh product, 4 October 2026.** The owner named **ARQADE**, the gaming platform, after this document was
-written: [`arqade.md`](arqade.md), track P7, gate `arqade`, ADR-069 (Proposed). It uses the same five things in §1 and
+written: [`arqade.md`](arqade.md), track P7, gate `arqade`, ADR-069 (accepted 4 October 2026). It uses the same five things in §1 and
 fills none of them locally. It found three substrate gaps none of the six had hit (G-14 to G-16, below).
 
 ---
@@ -125,7 +125,7 @@ named here so that no product fills it locally.
 | **G-5** | **No entitlement format, and no offline proof.** The launcher cannot ask the chain "does this user own this" | Library and Stream need the same primitive. The obvious offline answer puts QOR ID's attestation behind access to value — exactly what ADR-017 and R-3 exist to prevent | **M8.2**, plus a recorded decision on offline launch |
 | **G-6** | **No settlement above a balance transfer.** No transaction payment, no treasury, no issuance | Every product that charges for anything | **M6**, gated on **OPEN-1**, **OPEN-2**, **OPEN-4**. No rate, split or share may be invented to get moving |
 | **G-7** | **U-6 is unanswered: what a seeder proves, to whom, how often** | The Mesh pays for unverifiable claims without it. **Stream has no play counting at all** unless U-6's answer produces one | **U-6**. If it is answered with signed client receipts a seeder redeems, Stream gets counting for free; if with a storage proof, Stream needs its own decision and probably should not exist yet |
-| **G-8** | **No per-client identity in QOR ID.** A session records nothing about what created it, so "revoke this product's access" is inexpressible | The app host: six products sharing one session share one revocation switch | **ADR-043 §3**, currently *Proposed*, undecided |
+| **G-8** | **No per-client identity in QOR ID.** A session records nothing about what created it, so "revoke this product's access" is inexpressible | The app host: six products sharing one session share one revocation switch | **ADR-043 §3**, accepted on 4 October 2026 with ADR-069; not built |
 | **G-9** | **No exclusive-lock primitive.** Nothing holds a short-lived, identity-scoped claim over a path | Qontrol — and it is the feature creators on binary files actually want. QOR ID authenticates the claimant; nothing stores the claim | Undecided. Chain state is the wrong shape and latency, and there is no fee class to pay for it (OPEN-4). **Do not build a lock server with its own accounts** |
 | **G-10** | **Exported files carry no Demiurge identity.** A `.glb` or `.flac` that leaves says nothing about who made it or where royalties settle | All six, at the moment a creator leaves | A **single C2PA assertion shape**, decided once for all six, not per product |
 | **G-11** | **The provenance / royalty / entitlement graph has no format.** C2PA does origin, not economics | All six. If Demiurge publishes none, "a creator can leave" means abandoning the graph | **This is the one place where inventing a format is correct** (ADR-001: innovate where failure is loud). The specification can be drafted long before M4/M6/M8 can implement it |
