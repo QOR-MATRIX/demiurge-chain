@@ -1,0 +1,46 @@
+# ARQADE SDK
+
+**For developers building games on ARQADE**, the gaming platform on Demiurge. It lets a game use QOR ID players, pay
+and charge in CGT, and award DRC-369 assets, without the game ever holding a player's key.
+
+> **Status: started 4 October 2026, unpublished.** It is published only after the DRC-369 wire format is frozen
+> (ADR-009, `beta.wire-format-frozen`), and its package and command names are placeholders until the project owner
+> approves them (AGENTS.md §8). The design is ADR-069 decision 9 and P7.8 in `docs/DIRECTION.md`. Its chain-facing half
+> moves to `platform/` when the ecosystem SDK (M5.1) exists; this directory keeps the game layer.
+
+## What exists today
+
+| Module | What it does | Tests |
+| --- | --- | --- |
+| [`src/amount.ts`](src/amount.ts) | CGT as integer Sparks (`bigint`, `1 CGT = 10^18 Sparks`): `parseCgt`, `formatCgt`, `sparksFromJson`, the existential deposit (100 CGT, ADR-036). Refuses excess precision, signs, exponents and anything past `u128`; never rounds, never uses floating point | `tests/sdk.test.mjs` |
+| [`src/vault-policy.ts`](src/vault-policy.ts) | A Game Vault's payout policy: `validatePolicy` names every problem before the governor signs it, against the bounds the runtime reports; `loosens` says which changes must wait the delay | `tests/sdk.test.mjs` |
+| `../lib/chain.ts` (the app's, for now) | Reads Demiurge Devnet read-only, refusing any chain whose genesis is not the devnet's | `../tests/chain.test.mjs` |
+
+Run them from `products/arqade`: `npm test`.
+
+## Guides
+
+- [**Game Vaults**](docs/game-vaults.md): paying players CGT from a keyless account that belongs to your game alone,
+  and how to unlock one ("ignition"). **Designed (ADR-070, Proposed), not built.**
+
+## What is proposed, and waits on what
+
+| Surface | Waits on |
+| --- | --- |
+| Player sign-in (browser) | ADR-043's redirect flow in QOR ID (accepted, not built) and a way for a game server to verify a token |
+| Signing a player's payment | The signing path of ADR-069 decision 5, each with its own record |
+| Game Vaults: `vault ignite`, `payouts.award`, rounds, claims | ADR-070 accepted and its pallet built |
+| Trophies | An issuer account minting and transferring today; account-bound ones wait on G-16 |
+| Cards, sets, packs | G-15 (editions) and G-14 (randomness) |
+| Evolving assets | M4.2's state and XP |
+| Game manifest, sessions, outcomes, leaderboards | P7.8, with the three reference games |
+
+## Rules this SDK keeps
+
+- **No key in a browser, and no player key anywhere.** A browser entry point can read and request; only a server entry
+  point holds a game's payout authority, and only the player's own Vault signs for the player.
+- **Integer Sparks end to end.** Decimal strings in JSON, `bigint` in code.
+- **Finality, not inclusion.** An operation resolves at finality with its event, or reports itself unresolved; it is
+  never blindly resent.
+- **No value talk.** CGT pays for play, work and licensing; nothing here describes it as appreciating (ADR-008). On the
+  devnet it is test CGT, and the SDK says which network every time value moves.

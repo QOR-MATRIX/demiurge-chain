@@ -639,6 +639,12 @@ type = "tightening"
 change = "ARQADE enters active scope by ADR-050 decision 10, ADR-069 having been accepted: products/arqade exists, [suites.arqade] runs npm test there, the arqade gate gains arqade.tests, and [ci].quality_gates gains the arqade job (install, type check, tests, production build). Its lint is listed under [ci].reports and fails nothing. No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
 reason = "A product's code enters with its suite and its CI job in the same change (ADR-050 decision 10). Lint is reported rather than gated because the 13 errors it finds were in the code as imported, and making it a gate on arrival would make every run fail on code nobody has yet changed; leaving it out entirely would hide them."
 
+[[change_log]]
+date = "2026-10-04"
+type = "tightening"
+change = "arqade.decisions counts ADR-070 (Game Vaults, Proposed) and arqade.roadmap counts P7.11, both added the same day on the owner's direction that each game pays from a dedicated payout account. Two units, both not_met. No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
+reason = "ARQADE is not finished while the way it pays players is undecided and unbuilt."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1596,12 +1602,12 @@ player's own Vault, and a developer SDK with which others publish games."""
   [[gates.criteria]]
   id = "arqade.decisions"
   kind = "adr"
-  adrs = ["ADR-069", "ADR-043"]
+  adrs = ["ADR-069", "ADR-043", "ADR-070"]
 
   [[gates.criteria]]
   id = "arqade.roadmap"
   kind = "roadmap"
-  items = ["P7.1", "P7.2", "P7.3", "P7.4", "P7.5", "P7.6", "P7.7", "P7.8", "P7.9", "P7.10"]
+  items = ["P7.1", "P7.2", "P7.3", "P7.4", "P7.5", "P7.6", "P7.7", "P7.8", "P7.9", "P7.10", "P7.11"]
 
   # The chain, SDK and listing items its own track names: state and XP, the
   # SDK, delegated keys with caps, the indexer, sponsorship, and Market's

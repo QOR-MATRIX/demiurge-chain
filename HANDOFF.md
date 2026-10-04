@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 37 (4 October 2026): ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 38 (4 October 2026): Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1469,6 +1469,21 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     ticked:** the integration inventory is unwritten and the CI job has not yet run. Not done: the ARQADE rebrand,
     the lint errors, balance and inventory reads (the rest of P7.2), and the arcade site on OpenAI Sites still serves
     the old copy, because its deploy needs the owner's Sites tooling.
+
+38. **4 October 2026: Game Vaults designed, and the ARQADE SDK started. On `session/arqade-2026-10-04`.** The owner:
+    games pay CGT rewards from a specialised wallet per game project, available to developers through the SDK, with
+    an innovative way to unlock it. **ADR-070 (Proposed)**: a keyless account per game (`PalletId` sub-account, no
+    key to leak) in a pallet of its own (placeholder `pallet-game-vaults`; ADR-026's proxies were weighed and
+    rejected, because a proxy filter cannot see amounts and a pure proxy's spawner holds an `Any` proxy); the game's
+    build minted as a DRC-369 **Cartridge**, whose holder governs the Vault; a payout authority key bounded by an
+    on-chain policy; outcome ids paid once; loosening and withdrawals delayed, tightening instant; prizes held before
+    paid rounds open; payouts below the existential deposit accrued; and "ignition", the SDK's unlock walk ending in a
+    finalised devnet payout. U-16's "what funds a prize" now records the owner's answer; its bounds and paid entry stay
+    open. **Written:** the ADR, `products/arqade/sdk/` (README, `docs/game-vaults.md`, `src/amount.ts`,
+    `src/vault-policy.ts`, 4 tests), P7.11, the gate's two new units (a tightening, logged), the indexes. `npm test`
+    16 of 16; `tsc` clean; two planted faults (excess precision truncated instead of refused; a shorter epoch read as
+    tightening) each failed a test. **Nothing of the pallet is built**, and no number is set: every cap is the
+    developer's, every bound U-16's.
 
 ## 5. Traps, so nobody re-learns them
 

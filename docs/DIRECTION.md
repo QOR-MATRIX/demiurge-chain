@@ -910,7 +910,7 @@ here sets an economic value; payouts are U-16.
    ARQADE. Depends on the signing path ADR-069 decision 5 chooses, with its own record, and for production on M5.2.
 5. [ ] Paid play on the devnet: a test-CGT entry finalised, one session authorised, the result validated by the
    server, and one DRC-369 trophy and one funded test-CGT payout delivered exactly once, surviving reload and retry.
-   Depends on P7.3 and P7.4.
+   Depends on P7.3 and P7.4; the payout comes from the game's Game Vault once P7.11 exists.
 6. [ ] Card universes: cards as DRC-369 assets with declared sets, decks from finalised ownership, sales through
    `buy_exact` with the chain's royalties, and packs. Depends on P7.4; packs and editions on G-14 and G-15.
 7. [ ] An owned asset that evolves through verified play, keeping its identity and history. Depends on M4.2's state
@@ -921,6 +921,12 @@ here sets an economic value; payouts are U-16.
 9. [ ] Third-party games released through Market's listing model, played in an isolated origin, with game and rule
    versions pinned for every paid session. Depends on P5.3, P7.8 and a record for third-party sign-in.
 10. [ ] Production payouts and any paid prize. Depends on U-16 decided and the owner's legal review.
+11. [ ] Game Vaults: one keyless payout account per published game, derived from its DRC-369 Cartridge and governed by
+    whoever holds it, paying only within a policy on chain, each outcome once, with loosening and withdrawals delayed,
+    prizes reserved before paid rounds open, and payouts below the existential deposit accrued; "ignition" in the SDK.
+    The owner's direction of 4 October 2026; the design is ADR-070 (Proposed) and
+    [`products/arqade/sdk/docs/game-vaults.md`](../products/arqade/sdk/docs/game-vaults.md). Depends on ADR-070
+    accepted, a pallet the owner names, and U-16's bounds.
 
 ## 8. Scope
 

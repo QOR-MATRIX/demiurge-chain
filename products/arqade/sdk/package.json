@@ -1,0 +1,10 @@
+{
+  "name": "arqade-sdk-unpublished",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ARQADE SDK. Unpublished until the DRC-369 wire format is frozen; the name is a placeholder awaiting the owner (AGENTS.md section 8).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
