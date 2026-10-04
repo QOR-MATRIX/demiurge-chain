@@ -627,6 +627,12 @@ type = "tightening"
 change = "alpha.devnet-live names its address: https://rpc.qorsync.dev/health/readiness, the devnet's public RPC node on Railway (ADR-068). The criterion had an empty url since it was written, because no devnet was deployed."
 reason = "It answered 200 on 2026-10-03 (and /health reported two peers, not syncing), measured. readiness is named rather than /health because /health answers 200 from a node with no peers. A unit that could not be measured can now be measured, and fail."
 
+[[change_log]]
+date = "2026-10-04"
+type = "tightening"
+change = "A seventh product gate, arqade, appended after stream in ADR-050's form (decision 7): ARQADE's two records (ADR-069, ADR-043), its track P7.1 to P7.10, the six items it depends on (M4.2, M4.4, M5.1, M5.2, M5.4, P5.3) and two open questions (U-16, opened the same day, and U-4). No tests criterion until products/arqade exists. Nothing in Alpha, Beta or Public Release changes; no kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
+reason = "The owner named ARQADE as the gaming platform on 4 October 2026. A product with a track and no gate would be counted by nothing, which this file's change log records as a failure twice."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1563,3 +1569,41 @@ half does not exist at all unless U-6 produces a delivery receipt."""
 
   # No tests criterion: Stream has no code, and its blueprint argues none should
   # be written before M8.
+
+[[gates]]
+id = "arqade"
+name = "ARQADE"
+means = """
+The gaming platform: games played with a QOR ID, every owned collectible a \
+DRC-369 asset, CGT the only cost and payout currency, signed from the \
+player's own Vault, and a developer SDK with which others publish games."""
+
+  # ADR-069 defines ARQADE; ADR-043 is browser sign-in, which it cannot do
+  # without. Both are Proposed, so both units are not_met.
+  [[gates.criteria]]
+  id = "arqade.decisions"
+  kind = "adr"
+  adrs = ["ADR-069", "ADR-043"]
+
+  [[gates.criteria]]
+  id = "arqade.roadmap"
+  kind = "roadmap"
+  items = ["P7.1", "P7.2", "P7.3", "P7.4", "P7.5", "P7.6", "P7.7", "P7.8", "P7.9", "P7.10"]
+
+  # The chain, SDK and listing items its own track names: state and XP, the
+  # SDK, delegated keys with caps, the indexer, sponsorship, and Market's
+  # listing model.
+  [[gates.criteria]]
+  id = "arqade.depends"
+  kind = "roadmap"
+  items = ["M4.2", "M4.4", "M5.1", "M5.2", "M5.4", "P5.3"]
+
+  # U-16, whether paid play may pay out and what funds it. U-4, sponsorship,
+  # which carries a new player's existential deposit (ADR-029).
+  [[gates.criteria]]
+  id = "arqade.questions"
+  kind = "open_question"
+  questions = ["U-16", "U-4"]
+
+  # No tests criterion until products/arqade exists. Its tests join this gate
+  # in the change that imports the arcade's source.

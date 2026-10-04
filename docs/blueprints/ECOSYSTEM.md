@@ -17,6 +17,10 @@ particular is a placeholder used so the music-distribution product has something
 published to other developers — crates, pallets, calls, events, storage, SDK and RPC surfaces — takes
 plain names under ADR-032 and needs the owner's approval (`AGENTS.md` §8).
 
+**A seventh product, 4 October 2026.** The owner named **ARQADE**, the gaming platform, after this document was
+written: [`arqade.md`](arqade.md), track P7, gate `arqade`, ADR-069 (Proposed). It uses the same five things in §1 and
+fills none of them locally. It found three substrate gaps none of the six had hit (G-14 to G-16, below).
+
 ---
 
 ## 1. One substrate, six apps
@@ -127,6 +131,9 @@ named here so that no product fills it locally.
 | **G-11** | **The provenance / royalty / entitlement graph has no format.** C2PA does origin, not economics | All six. If Demiurge publishes none, "a creator can leave" means abandoning the graph | **This is the one place where inventing a format is correct** (ADR-001: innovate where failure is loud). The specification can be drafted long before M4/M6/M8 can implement it |
 | **G-12** | **No signed update channel and no installers** | Nothing can be installed, patched or verified — Library included | **L6** |
 | **G-13** | **Four of the six products are not defined anywhere**, not even as names | Qontrol, GNOSIS, QFX, Stream | An entry each in `SYSTEMS.md` and a number in `DIRECTION.md`, **before any code**. **Closed on 21 September 2026** by P1 to P6 and a `SYSTEMS.md` entry each — after Qontrol's and QFX's first code, not before. A defining record for each is still missing |
+| **G-14** | **No randomness source.** Aura has no VRF and no randomness pallet is mounted, so nothing on chain can make an allocation verifiable | ARQADE: card packs, any chance mechanic. Any product that ever draws | **An ADR of its own** (added 4 October 2026, ADR-069). Commit-and-reveal by a game authority still needs withholding and timeout rules. No pack is sold for CGT before it |
+| **G-15** | **No creator-set collections and no enforced editions.** `Drc369::mint` mints to the signer, in the signer's one singles collection, and no supply cap can be set | ARQADE's card universes and sets; any limited edition in Market | **An ADR of its own** (ADR-069). Until then a set is declared in the manifest and no product claims a cap the chain does not enforce |
+| **G-16** | **No account-bound asset.** The runtime's call filter lets `Nfts::transfer` through and nothing locks one item's transfer | ARQADE's trophies, if they are to stay with the player who earned them | **An ADR of its own** (ADR-069). Until then trophies are transferable and say so |
 
 ### The three to decide first
 

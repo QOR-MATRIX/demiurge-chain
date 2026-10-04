@@ -244,6 +244,22 @@ some jurisdictions: a legal question, not an engineering one, and the owner's to
 Nothing is blocked on an answer today. The royalty pallet (M4.2), the indexer (M5.4) and a listing settled in CGT
 (P5.5) are the work in front of it, and each is needed whatever the answer is.
 
+### U-16: paid play, prizes, and who funds a game's payouts
+
+Opened on 4 October 2026 by ADR-069, when the owner named ARQADE as the gaming platform, with CGT as the only cost
+and payout currency. A paid game entry is access gating (ADR-006). A prize paid to a player is not: it is neither
+payment for work nor licensing (ADR-008), and it fails the spend test (ADR-002) unless whatever funds it is itself
+demand to spend. Three things are undecided, and none has a value:
+
+- **Whether a paid entry may lead to a CGT or asset prize at all**, and under which rules — skill only, or chance as
+  well. Paid chance with a transferable prize is a legal question in many jurisdictions before it is an economic one.
+- **What funds a prize**: entries pooled per round, a creator's own funds, or something else. No treasury exists
+  (OPEN-2, M6.5) and nothing may create CGT (OPEN-1), so a pot cannot come from either.
+- **Caps, and any platform share** of entries (which joins U-15's question).
+
+On the devnet ARQADE builds and tests the whole loop with test CGT and values marked as placeholders. In production
+nothing is paid out until this item is decided and removed.
+
 ### Settled, and recorded elsewhere
 
 **U-13, the currency's ticker.** Decided on 17 September 2026 and no longer open: the ticker is `CGT` and the name

@@ -12,7 +12,8 @@ run, because it did not change. Updated on 30 September: the launcher's gates da
 repository by name, its default QOR ID address is `id.qorsync.dev`, and the PC stack was found down; the launcher's
 tests and the chain's were run again. Checked on 1 October: on Railway, Postgres and Redis are online and hold the
 owner's restored account, and QOR ID is deployed and running there (its log shows the migrations accepted and both
-stores connected), answering at `https://id.qorsync.dev` (`/ready` 200, measured), with email not configured.
+stores connected), answering at `https://id.qorsync.dev` (`/ready` 200, measured), with email not configured. **Updated on 4 October 2026** with one row, ARQADE (planned, P7, ADR-069), checked against the
+arcade's source, the runtime and QOR ID that day; no other row was re-measured.
 
 **How to read the status column.** These words mean exactly one thing each:
 
@@ -94,6 +95,7 @@ product yet**; two have a first slice inside the launcher.
 | **GNOSIS** | Music production where a song is a folder of small text files two people can edit and merge | **planned** — P4. Nothing written | [blueprint](blueprints/gnosis.md) · P4 |
 | **Market and Library** | Listing and buying work in the currency; downloading, verifying, installing, patching and launching it. One listing model for games, tools, plugins, scenes, presets and themes | **planned** — P5, carrying L7.1 and L7.2. Library is a placeholder page; Market's first slice exists (the row above) | [blueprint](blueprints/market.md) · P5 |
 | **Stream** *(placeholder name)* | A music listening service first, with licensing, over the Mesh; a work's royalty split applied when it is paid for | **planned** — P6. Its first item is a decision, deferred to M6; nothing else before M8 | [blueprint](blueprints/stream.md) · P6 |
+| **ARQADE** | The gaming platform the owner named on 4 October 2026: games played with a QOR ID, every owned collectible a DRC-369 asset, CGT the only currency, and a developer SDK. Its starting point is an arcade on OpenAI Sites (Cloudflare Workers and D1), outside this repository: four solo games and two server-checked multiplayer arenas, with browser-local scores, a practice alias instead of QOR ID, and a call to the deleted chain | **planned** — P7. Nothing in this repository; ADR-069 is Proposed, and sign-in (ADR-043), signing, randomness, editions and account-bound assets are all missing | [blueprint](blueprints/arqade.md) · ADR-069 · P7 |
 
 ---
 

@@ -224,7 +224,7 @@ Ordered by dependency. A chain milestone (M) is not started until the one before
 of track run alongside the chain milestones rather than after them:
 - the **security track** (§7.1), which does not depend on the chain;
 - the **launcher track** (L), where each milestone names the chain milestone it depends on;
-- the **product tracks** (P1 to P6), one per product, where each item names what it depends on.
+- the **product tracks** (P1 to P7), one per product, where each item names what it depends on.
 
 Release gates are defined in [`GATES.toml`](GATES.toml).
 
@@ -890,6 +890,37 @@ M8. [`blueprints/stream.md`](blueprints/stream.md).
 4. [ ] Metered listening, creators paid automatically once per period — per-play payment on chain is ruled
    out for now — and a listener needs no chain key. Depends on U-6 producing a delivery receipt, and on M6
    for the payout mechanism; whatever funds or forfeits anything is OPEN-1, OPEN-2 or OPEN-4.
+
+#### P7: ARQADE (P7.2 depends on nothing)
+
+The gaming platform, named by the owner on 4 October 2026: games played with a QOR ID, every owned collectible a
+DRC-369 asset, CGT the only currency, and a developer SDK. Its starting point is an existing arcade on OpenAI Sites,
+outside this repository. [`blueprints/arqade.md`](blueprints/arqade.md); its decisions are ADR-069 (Proposed). No item
+here sets an economic value; payouts are U-16.
+
+1. [ ] Baseline: the arcade's source in `products/arqade/` with its tests in CI, an integration inventory of every
+   control, and the false claims removed (CRGT, DMRG, USD prices for Energy, the deleted chain's
+   `chain_getBlockNumber`). Depends on ADR-069 accepted (ADR-050 decision 10).
+2. [ ] Live reads from Demiurge Devnet, read-only: the genesis hash checked, the finalised head, an account's CGT
+   balance in integer Sparks, and its DRC-369 inventory from finalised state, shown stale rather than zero on loss.
+3. [ ] Verified QOR sign-in in the browser, bound to the account's `sub`, with the practice alias migrated only on
+   proof of both identities. Depends on ADR-043 accepted and built, and on a way for ARQADE's server to verify a
+   token without QOR ID's secret (ADR-069 decision 4).
+4. [ ] A player approves a CGT payment from their own Vault, previewed and finalised, never with a key held by
+   ARQADE. Depends on the signing path ADR-069 decision 5 chooses, with its own record, and for production on M5.2.
+5. [ ] Paid play on the devnet: a test-CGT entry finalised, one session authorised, the result validated by the
+   server, and one DRC-369 trophy and one funded test-CGT payout delivered exactly once, surviving reload and retry.
+   Depends on P7.3 and P7.4.
+6. [ ] Card universes: cards as DRC-369 assets with declared sets, decks from finalised ownership, sales through
+   `buy_exact` with the chain's royalties, and packs. Depends on P7.4; packs and editions on G-14 and G-15.
+7. [ ] An owned asset that evolves through verified play, keeping its identity and history. Depends on M4.2's state
+   and XP.
+8. [ ] The developer kit: a typed game SDK over M5.1, Demiurge Devnet and a local node documented for developers,
+   test CGT from the ecosystem's faucet, and three reference games (a trophy game, a card game, an evolving asset).
+   Depends on M5.1, P7.5 to P7.7; published only after `beta.wire-format-frozen`.
+9. [ ] Third-party games released through Market's listing model, played in an isolated origin, with game and rule
+   versions pinned for every paid session. Depends on P5.3, P7.8 and a record for third-party sign-in.
+10. [ ] Production payouts and any paid prize. Depends on U-16 decided and the owner's legal review.
 
 ## 8. Scope
 

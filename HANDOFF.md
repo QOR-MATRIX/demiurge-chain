@@ -1,6 +1,8 @@
 # Handoff
 
-**Newest: §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
+**Newest: §4 item 36 (4 October 2026): ARQADE, the gaming platform the owner named, reconciled with the tree — a
+corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
+Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
 the e2e email guard). Uncommitted.** **Last session before it:** 13 to 30 September 2026. **The newest work is §4 item 32 (29 and 30 September), HALF DONE: the code is
 public as `ALaustrup/demiurge-chain` (no history), CI is back on GitHub Actions, and QOR ID is moving to Railway. The
@@ -1424,6 +1426,26 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       before the image could be made public. **Not done:** no faucet page (the owner sends test CGT by hand from
       polkadot.js Apps); the launcher's signing paths have not run against the devnet; RPC rate limits unset
       (unmeasured); a week's cost not yet read.
+
+36. **4 October 2026: ARQADE reconciled with the tree. Documents only.** The owner handed over a master implementation
+    prompt for **ARQADE**, the ecosystem's future gaming platform (QOR ID, DRC-369 only, CGT only, a developer SDK),
+    starting from an existing arcade on OpenAI Sites, and asked for whatever did not fit the ecosystem to be corrected.
+    Three read-only audits, each with file and line evidence: the arcade's source (its claims held: four solo games, two
+    server-checked arenas, `localStorage` Energy and tokens, a `qor_id` column nothing writes, `chain_getBlockNumber` at
+    `rpc.demiurge.cloud`; and it shows USD prices for Energy and names CRGT and DMRG), the chain, and QOR ID with the
+    launcher. **What the prompt got wrong**, all recorded in `docs/blueprints/arqade.md` §0: QOR ID has no browser
+    sign-in (ADR-043 Proposed) and **no way for another server to verify a token** (HS256, shared secret, no
+    introspection); nothing connects a browser to the vault, and ADR-011 says web surfaces sign with delegated keys
+    (M5.2, unbuilt; no `pallet-proxy`); ADR-011 allows two web surfaces; `DESIGN_SYSTEM.md` rules ARQADE's look out on
+    every surface; the chain has **no randomness, no account-bound asset and no enforced editions** (new gaps G-14 to
+    G-16 in `ECOSYSTEM.md`); state and XP are M4.2; one faucet, one indexer, the SDK is M5.1 and unpublished before the
+    freeze; third-party games list through Market (P5.3); prize funding has no source (new **U-16**). **Written:**
+    the brief, ADR-069 (decision 1 is the owner's direction; 2 to 9 await the owner), P7.1 to P7.10, the `arqade` gate
+    (a tightening, logged), and the indexes. The owner's copy of the prompt (`Downloads/ARQADE.txt`) was replaced by
+    the corrected brief, the original kept beside it. **Found, not fixed:** the runtime's `TOKEN_NAME` is
+    `"Creator God Token"` (`chain/runtime/src/denomination.rs:55`) where every record writes Creator-God Token;
+    changing it changes the chain's properties, so it is the owner's call. **P7.2 (read-only devnet reads in the
+    arcade) can start today**; everything else in P7 waits on ADR-069.
 
 ## 5. Traps, so nobody re-learns them
 
