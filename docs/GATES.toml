@@ -633,6 +633,12 @@ type = "tightening"
 change = "A seventh product gate, arqade, appended after stream in ADR-050's form (decision 7): ARQADE's two records (ADR-069, ADR-043), its track P7.1 to P7.10, the six items it depends on (M4.2, M4.4, M5.1, M5.2, M5.4, P5.3) and two open questions (U-16, opened the same day, and U-4). No tests criterion until products/arqade exists. Nothing in Alpha, Beta or Public Release changes; no kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
 reason = "The owner named ARQADE as the gaming platform on 4 October 2026. A product with a track and no gate would be counted by nothing, which this file's change log records as a failure twice."
 
+[[change_log]]
+date = "2026-10-04"
+type = "tightening"
+change = "ARQADE enters active scope by ADR-050 decision 10, ADR-069 having been accepted: products/arqade exists, [suites.arqade] runs npm test there, the arqade gate gains arqade.tests, and [ci].quality_gates gains the arqade job (install, type check, tests, production build). Its lint is listed under [ci].reports and fails nothing. No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
+reason = "A product's code enters with its suite and its CI job in the same change (ADR-050 decision 10). Lint is reported rather than gated because the 13 errors it finds were in the code as imported, and making it a gate on arrival would make every run fail on code nobody has yet changed; leaving it out entirely would hide them."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -686,11 +692,13 @@ quality_gates = [
   "no credentials committed in configuration files",
   "no log call in services/qor-auth/src interpolates a token, key, secret, password, link or address, and no request span records the URI",
   "no [patch] section in any tracked manifest, and no reference to a personal Substrate fork anywhere tracked, excluding only ci.yml itself and HANDOFF.md",
+  "products/arqade: npm ci, tsc --noEmit, npm test (node --test tests/*.test.mjs) and npm run build",
 ]
 not_in_ci_yet = [
   "tools/qor-launcher chain::live: it needs a running development node. Worth adding once the chain job's build time in CI is known.",
 ]
 reports = [
+  "products/arqade lint: npm run lint runs and does not fail the run. The arcade arrived on 2026-10-04 with 13 errors and 6 warnings, all React Compiler rules (setState inside an effect, refs read during render) in minified code whose fix changes behaviour. NO criterion reads it. It moves to quality_gates in the change that fixes them.",
   "coverage: cargo-llvm-cov line coverage for the pallets listed in beta.value-pallet-coverage, uploaded as the \"coverage\" artifact. It does not fail the run; the coverage kind compares it with the threshold.",
   "cargo audit of chain/: runs and does not fail the run, so a new advisory is visible without an exemption file hiding the known ones. NO criterion reads it, and it is not a quality gate. Its 10 vulnerabilities were measured one by one on 2026-09-20: four are compiled, six are not, and every one of the four is held by a version the pinned SDK dictates, which ADR-033 rule 1 does not override. Each is named with what blocks it and what would close it in SECURITY.md, \"Dependency advisories in chain/\". Making it a gate is a decision for when those four can close.",
 ]
@@ -754,6 +762,11 @@ needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH fo
 dir = "tools/qor-launcher"
 command = "node scripts/check-accessibility.mjs"
 needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places)"
+
+[suites.arqade]
+dir = "products/arqade"
+command = "npm test"
+needs = "npm ci first (Node 24). No network and no devnet: the devnet reader is tested against a scripted node"
 
 [suites.qor_engine]
 dir = ""  # products/qor-engine does not exist
@@ -1605,5 +1618,10 @@ player's own Vault, and a developer SDK with which others publish games."""
   kind = "open_question"
   questions = ["U-16", "U-4"]
 
-  # No tests criterion until products/arqade exists. Its tests join this gate
-  # in the change that imports the arcade's source.
+  # The arcade's own suite since it was imported (P7.1, 2026-10-04): the arenas'
+  # rules against SQLite and the devnet reader's network and genesis checks.
+  [[gates.criteria]]
+  id = "arqade.tests"
+  kind = "tests"
+  suite = "arqade"
+  require = []

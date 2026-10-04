@@ -1,4 +1,17 @@
-export const dynamic='force-dynamic';
-// Source: Astra-Matrix/DEMIURGE-PROTOCOL/sdk/src/client.ts, chain_getBlockNumber.
-// Fixed read-only endpoint: callers cannot choose a host, method, or params.
-export async function GET(){try{const response=await fetch('https://rpc.demiurge.cloud',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'chain_getBlockNumber',params:[]}),signal:AbortSignal.timeout(7000)});if(!response.ok)throw Error('RPC unavailable');const data=await response.json() as {result?:unknown;error?:unknown};if(data.error||typeof data.result!=='number'||!Number.isSafeInteger(data.result)||data.result<0)throw Error('Invalid chain response');return Response.json({block:data.result,mode:'read-only',observedAt:new Date().toISOString()},{headers:{'Cache-Control':'private, max-age=15'}})}catch{return Response.json({error:'The public Demiurge RPC could not be verified. Try again later.'},{status:503,headers:{'Cache-Control':'no-store'}})}}
+import { httpRpc, readChain } from '@/lib/chain';
+
+export const dynamic = 'force-dynamic';
+
+// Fixed, read-only: callers cannot choose a host, method or params. Demiurge Devnet only (ADR-068, ADR-069).
+export async function GET() {
+  try {
+    const snapshot = await readChain(httpRpc());
+    return Response.json({ ...snapshot, mode: 'read-only' }, { headers: { 'Cache-Control': 'private, max-age=6' } });
+  } catch (e) {
+    const wrongNetwork = e instanceof Error && e.message.startsWith('Wrong network');
+    return Response.json(
+      { error: wrongNetwork ? e.message : 'Demiurge Devnet could not be read. Try again later.' },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+}

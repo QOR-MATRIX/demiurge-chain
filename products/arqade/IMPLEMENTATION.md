@@ -1,4 +1,6 @@
-# Demiurge Arcade — implementation state
+# ARQADE (formerly Demiurge Arcade) — implementation state
+
+Imported into the Demiurge repository on 4 October 2026 from the arcade checkout at `4f02baf` (P7.1, ADR-069). The design and the steps are `docs/blueprints/arqade.md` and P7 in `docs/DIRECTION.md`; where this file and those disagree, those win.
 
 ## Working
 
@@ -16,10 +18,10 @@
 - Orbital: timed capture arcs, increasing orbital speed, ten locks and three misses.
 - Optional synthesized audio, pause controls, local best scores and completion results.
 - Device-local energy, complimentary refills, session ledger and unbiased Web Crypto collectible draws (0–3, 25% each).
-- Proposed Energy package storefront. Package details explicitly say checkout is inactive.
+- Practice Energy storefront: free packages, no cash prices. Paid play will be priced in CGT only (ADR-069).
 - Browser terminal with history, completion and navigation/game commands.
 - Configurable local game creator, saved draft, source view, sandboxed preview and standalone HTML export.
-- Read-only fixed-origin `chain_getBlockNumber` adapter; returns 503 when the public RPC cannot be verified.
+- Read-only Demiurge Devnet reader (`lib/chain.ts`, `/api/chain`): standard Substrate JSON-RPC at the fixed `https://rpc.qorsync.dev`, refusing any chain whose genesis is not `0x934e2caa…254a`; returns the finalized and best block numbers, or 503.
 - WebMCP read-local-state and navigate tools. No purchases, signing, or reward mutations exposed.
 
 ## Not implemented or activated
@@ -31,7 +33,7 @@ This is a private playable explorer build, not a live gambling, payment, AI-gene
 - Automated report triage or an operator moderation dashboard; reports are persisted in the reports table. Message reads show up to 60 nondeleted messages from the last seven days; this is a display window, not a data-deletion retention policy.
 - AI model/provider integration. The creator currently uses a local configurable template and says so.
 - Real Energy purchases, payment webhooks, paid entitlements, refunds, and durable server ledger.
-- CRGT prize issuance, DMRG conversion, redemption threshold, transaction signing and confirmation.
+- CGT payouts, transaction signing and confirmation. CGT is the only currency; Energy and practice tokens are never convertible to it.
 - Final Terms of Service, official promotion rules, operator identity, jurisdiction/age eligibility, purchase-free entry, and approved prize economy.
 - Native installed CLI. The available CLI is a browser command console.
 
@@ -39,12 +41,9 @@ Do not connect client-local scores, energy, reward draws or storage to real valu
 
 ## Protocol references
 
-The public repository documents CGT, while the product request uses CRGT and DMRG. No equivalence or conversion is assumed.
-
-- https://github.com/Astra-Matrix/DEMIURGE-PROTOCOL
-- https://github.com/Astra-Matrix/DEMIURGE-PROTOCOL/blob/main/sdk/src/client.ts
-
-The chain reader uses the documented public RPC origin https://rpc.demiurge.cloud and verified source method `chain_getBlockNumber`. Documentation availability is not proof the RPC or authentication service is operational.
+- The chain is `chain/` in `QOR-MATRIX/demiurge-chain`, a Substrate L1; the reader uses only standard Substrate RPC methods.
+- Demiurge Devnet: `wss://rpc.qorsync.dev` (HTTP JSON-RPC on the same host), genesis `0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a` (`chain/DEPLOY-RAILWAY.md`). Its CGT is test CGT.
+- The earlier `chain_getBlockNumber` adapter at `rpc.demiurge.cloud` named a method of the deleted custom chain and an address that never served this one; it is gone.
 
 ## Verification
 

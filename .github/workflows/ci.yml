@@ -308,6 +308,44 @@ jobs:
         working-directory: ./tools/qor-launcher/src-tauri
         run: cargo test --locked --features qontrol-no-skips
 
+  arqade:
+    name: "ARQADE (products/arqade): install, type check, tests, build; lint reported"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: products/arqade/package-lock.json
+
+      - name: Install
+        working-directory: ./products/arqade
+        run: npm ci --include=dev --include=optional --no-audit --no-fund
+
+      - name: Type check
+        working-directory: ./products/arqade
+        run: npm run typecheck
+
+      # The arenas' rules against SQLite, and the devnet reader against a scripted
+      # node. No network: nothing here reads the live devnet.
+      - name: Tests
+        working-directory: ./products/arqade
+        run: npm test
+
+      - name: Production build
+        working-directory: ./products/arqade
+        run: npm run build
+
+      # Reported, not a gate: the imported code carried 13 React Compiler errors on
+      # 2026-10-04 (GATES.toml [ci].reports). It becomes a gate in the change that
+      # fixes them.
+      - name: Lint (reported)
+        working-directory: ./products/arqade
+        continue-on-error: true
+        run: npm run lint
+
   coverage:
     # Produces the report the "coverage" kind in docs/GATES.toml reads. It does
     # not fail the run: the gate compares each pallet against the threshold.

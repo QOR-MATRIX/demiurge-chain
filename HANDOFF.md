@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 36 (4 October 2026): ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 37 (4 October 2026): ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1451,6 +1451,24 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     so little. ADR-069's three further choices (design, hosting, name) and U-16 stay open. ADR-043's items 1 to 3
     (redirect sign-in, rotating browser tokens, per-client sessions) may now start; item 4 was already done. Both
     `arqade.decisions` units are met.
+
+37. **4 October 2026: ARQADE enters active scope (P7.1 started, P7.2's first read). On branch
+    `session/arqade-2026-10-04`.** With ADR-069 accepted, the arcade's tracked tree at `4f02baf` was imported verbatim
+    into `products/arqade/` (`f647c82`; 114 files, `tsconfig.tsbuildinfo` left out; its two vendored files MIT, from
+    OpenAI and shadcn; no credentials). **Baseline before any change:** 7 of 7 tests, `tsc` clean, build succeeds,
+    lint fails with 13 errors and 6 warnings already present (React Compiler rules in minified code). **Then:** the
+    deleted chain's `chain_getBlockNumber` at `rpc.demiurge.cloud` is replaced by `lib/chain.ts`, a read-only reader of
+    Demiurge Devnet over standard Substrate RPC at the fixed `https://rpc.qorsync.dev`, which refuses any chain whose
+    genesis or name is not the devnet's and reports finalized and best blocks (`/api/chain`; the QOR panel shows the
+    finalized number). Five new tests against a scripted node; two planted faults (genesis check removed, finalized
+    past best allowed) each failed one. Read live: finalized #12,028, genesis matched. CRGT, DMRG, the USD prices and the
+    "Energy Tokens → DMRG" panel are gone from the copy; Energy is labelled practice and never CGT. `npm test` (12 pass)
+    and `npm run typecheck` scripts added. **Scope (ADR-050 decision 10):** `AGENTS.md` §4 and `DIRECTION.md` §8 list
+    `products/arqade/`; `[suites.arqade]`, `arqade.tests`, and an `arqade` CI job (install, type check, tests, build)
+    in `[ci].quality_gates`; lint under `[ci].reports`, not failing the run — all logged as a tightening. **P7.1 is not
+    ticked:** the integration inventory is unwritten and the CI job has not yet run. Not done: the ARQADE rebrand,
+    the lint errors, balance and inventory reads (the rest of P7.2), and the arcade site on OpenAI Sites still serves
+    the old copy, because its deploy needs the owner's Sites tooling.
 
 ## 5. Traps, so nobody re-learns them
 

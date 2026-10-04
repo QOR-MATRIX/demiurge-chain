@@ -33,7 +33,8 @@ or give anyone test CGT except by you sending it from the faucet.
 - **ARQADE, your gaming platform, is written into the plan** (4 October) — *a website where people play games
   with their QOR ID, win assets and pay in CGT*. Your handoff was checked against the code and corrected:
   `docs/blueprints/arqade.md`, its steps P7.1 to P7.10, and **ADR-069** — *a written decision* — which **you
-  accepted**, with **ADR-043** (*how a website signs people in to QOR ID*). The arcade website was not touched.
+  accepted**, with **ADR-043** (*how a website signs people in to QOR ID*). Its code is now in the repository (`products/arqade/`), reads the live devnet, and no longer
+  mentions dollars, CRGT or DMRG. **The website itself still shows the old version** until it is redeployed.
 
 ## Next, in order
 
@@ -41,8 +42,8 @@ or give anyone test CGT except by you sending it from the faucet.
 2. **Get CI green**: tell me what its runs show.
 3. **A faucet page**, so testers can get test CGT without you sending it by hand.
 4. **The indexer** — *a service that reads the chain so the Market can search and show history*.
-5. **ARQADE's first step that needs nothing from you (P7.2):** the arcade shows the devnet's real blocks,
-   balances and assets, read-only.
+5. **ARQADE:** finish P7.2 (balances and assets, read-only), write its control-by-control inventory, rename it
+   ARQADE on screen, and fix its 13 lint errors.
 
 ## What only you can do
 

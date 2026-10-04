@@ -929,9 +929,11 @@ here sets an economic value; payouts are U-16.
 - `chain/`: the Substrate L1, and **the only chain in this repository** (ADR-013; located and named by
   ADR-032, which decided Q-15).
 - `services/qor-auth/` and `tools/qor-launcher/`.
+- `products/arqade/`: ARQADE, the first product to enter active scope by ADR-050's decision 10 (ADR-069, accepted
+  4 October 2026). TypeScript, not a Cargo workspace; its CI job type checks, tests and builds it.
 - `tools/qor-installer/`, when M8 reaches it.
 
-The product tracks (§7) are planned, not active scope. Qontrol's Projects surface, its `qontrol-git`
+The other product tracks (§7) are planned, not active scope. Qontrol's Projects surface, its `qontrol-git`
 helper and QFX layer one are part of `tools/qor-launcher/`. A product gets a directory under `products/`
 only by ADR-050's decision 10, once its defining record is accepted.
 
