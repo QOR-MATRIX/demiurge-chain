@@ -927,6 +927,20 @@ here sets an economic value; payouts are U-16.
     The owner's direction of 4 October 2026; the design is ADR-070 (Proposed) and
     [`products/arqade/sdk/docs/game-vaults.md`](../products/arqade/sdk/docs/game-vaults.md). Depends on ADR-070
     accepted, a pallet the owner names, and U-16's bounds.
+12. [ ] Self-publishing: a project submitted at any stage becomes its DRC-369 Cartridge, whose profile manifest is the
+    store page and whose revisions are the devlog; four stages (concept, prototype, early access, released) publish
+    themselves once the SDK's `checkReadiness` finds nothing missing; a game priced free or up to 10,000 CGT (the
+    owner's ceiling) and bought as a DRC-369 licence. ADR-071 (Proposed). The profile, its checks and the price check
+    exist in `products/arqade/sdk/`; the rest depends on ADR-070 and ADR-071 accepted, P7.4, and an interim content
+    store (G-3).
+13. [ ] In-game purchases as non-fungible DRC-369 items declared in the profile, resold under the chain's royalties.
+    Depends on G-17 (primary sale) for selling copies; until then, items minted ahead and listed.
+14. [ ] Backing in CGT: all-or-nothing campaigns held in a keyless Campaign Vault with milestone release, memberships,
+    and tips; backers receive DRC-369 rewards and never proceeds. Devnet first. Depends on ADR-071, ADR-070's pallet
+    family, U-17 and the owner's legal review; recurring memberships on M5.2.
+15. [ ] Agentic creation: ARQADE's tools on ADR-010's MCP server, used by an external LLM under an agent key the
+    developer authorised; the model prepares, the developer signs what is public or moves CGT. Depends on M5.3, and on
+    M5.2 for capped agent signing.
 
 ## 8. Scope
 

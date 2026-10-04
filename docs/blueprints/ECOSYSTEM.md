@@ -19,7 +19,7 @@ plain names under ADR-032 and needs the owner's approval (`AGENTS.md` §8).
 
 **A seventh product, 4 October 2026.** The owner named **ARQADE**, the gaming platform, after this document was
 written: [`arqade.md`](arqade.md), track P7, gate `arqade`, ADR-069 (accepted 4 October 2026). It uses the same five things in §1 and
-fills none of them locally. It found three substrate gaps none of the six had hit (G-14 to G-16, below).
+fills none of them locally. It found four substrate gaps none of the six had hit (G-14 to G-17, below), and its store pages hit G-3.
 
 ---
 
@@ -134,6 +134,7 @@ named here so that no product fills it locally.
 | **G-14** | **No randomness source.** Aura has no VRF and no randomness pallet is mounted, so nothing on chain can make an allocation verifiable | ARQADE: card packs, any chance mechanic. Any product that ever draws | **An ADR of its own** (added 4 October 2026, ADR-069). Commit-and-reveal by a game authority still needs withholding and timeout rules. No pack is sold for CGT before it |
 | **G-15** | **No creator-set collections and no enforced editions.** `Drc369::mint` mints to the signer, in the signer's one singles collection, and no supply cap can be set | ARQADE's card universes and sets; any limited edition in Market | **An ADR of its own** (ADR-069). Until then a set is declared in the manifest and no product claims a cap the chain does not enforce |
 | **G-16** | **No account-bound asset.** The runtime's call filter lets `Nfts::transfer` through and nothing locks one item's transfer | ARQADE's trophies, if they are to stay with the player who earned them | **An ADR of its own** (ADR-069). Until then trophies are transferable and say so |
+| **G-17** | **No primary sale.** `Drc369Royalties::buy` sells an asset that already exists and is listed; nothing mints a copy per buyer or enforces an edition at sale | ARQADE: game licences and in-game items sold to many players; any Market storefront | **An ADR of its own** (added 4 October 2026, ADR-071). Until then copies are minted ahead and listed one by one |
 
 ### The three to decide first
 

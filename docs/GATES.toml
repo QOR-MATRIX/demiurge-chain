@@ -645,6 +645,12 @@ type = "tightening"
 change = "arqade.decisions counts ADR-070 (Game Vaults, Proposed) and arqade.roadmap counts P7.11, both added the same day on the owner's direction that each game pays from a dedicated payout account. Two units, both not_met. No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
 reason = "ARQADE is not finished while the way it pays players is undecided and unbuilt."
 
+[[change_log]]
+date = "2026-10-04"
+type = "tightening"
+change = "The arqade gate counts ADR-071 (self-publishing, Proposed), P7.12 to P7.15, M5.3 (the MCP server its agentic creation uses) and U-17 (backing), all from the owner's direction of that day. Seven units, all not_met. No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
+reason = "Self-publishing, item sales, backing and agentic creation are now part of what ARQADE is, so the gate cannot pass without them."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1602,12 +1608,12 @@ player's own Vault, and a developer SDK with which others publish games."""
   [[gates.criteria]]
   id = "arqade.decisions"
   kind = "adr"
-  adrs = ["ADR-069", "ADR-043", "ADR-070"]
+  adrs = ["ADR-069", "ADR-043", "ADR-070", "ADR-071"]
 
   [[gates.criteria]]
   id = "arqade.roadmap"
   kind = "roadmap"
-  items = ["P7.1", "P7.2", "P7.3", "P7.4", "P7.5", "P7.6", "P7.7", "P7.8", "P7.9", "P7.10", "P7.11"]
+  items = ["P7.1", "P7.2", "P7.3", "P7.4", "P7.5", "P7.6", "P7.7", "P7.8", "P7.9", "P7.10", "P7.11", "P7.12", "P7.13", "P7.14", "P7.15"]
 
   # The chain, SDK and listing items its own track names: state and XP, the
   # SDK, delegated keys with caps, the indexer, sponsorship, and Market's
@@ -1615,14 +1621,14 @@ player's own Vault, and a developer SDK with which others publish games."""
   [[gates.criteria]]
   id = "arqade.depends"
   kind = "roadmap"
-  items = ["M4.2", "M4.4", "M5.1", "M5.2", "M5.4", "P5.3"]
+  items = ["M4.2", "M4.4", "M5.1", "M5.2", "M5.3", "M5.4", "P5.3"]
 
   # U-16, whether paid play may pay out and what funds it. U-4, sponsorship,
   # which carries a new player's existential deposit (ADR-029).
   [[gates.criteria]]
   id = "arqade.questions"
   kind = "open_question"
-  questions = ["U-16", "U-4"]
+  questions = ["U-16", "U-4", "U-17"]
 
   # The arcade's own suite since it was imported (P7.1, 2026-10-04): the arenas'
   # rules against SQLite and the devnet reader's network and genesis checks.

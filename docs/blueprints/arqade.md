@@ -238,6 +238,16 @@ fake activity, no coercive streaks, no deceptive odds.
   validated message bridge, and pin their game and rule versions for every paid session. Developer sign-in for third
   parties needs its own record (ADR-043 excludes it).
 
+## 11a. Self-publishing, backing and agents
+
+The owner's direction of 4 October 2026, designed in ADR-071 (Proposed): developers self-publish once a stage's
+requirements are met, the Cartridge's profile is the store page and its history the devlog, a game is free or up to
+10,000 CGT, in-game purchases are non-fungible DRC-369 items, backers support projects in CGT and receive the work and
+never its proceeds, and an external LLM builds through ADR-010's MCP server while the developer signs. The developer
+guides are [`publishing.md`](../../products/arqade/sdk/docs/publishing.md),
+[`backing.md`](../../products/arqade/sdk/docs/backing.md) and
+[`building-with-agents.md`](../../products/arqade/sdk/docs/building-with-agents.md).
+
 ## 12. Console and creator
 
 Every dashboard and terminal read uses the same services as the interface. Commands that spend, sign, publish, delete

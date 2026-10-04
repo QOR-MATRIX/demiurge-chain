@@ -14,6 +14,7 @@ and charge in CGT, and award DRC-369 assets, without the game ever holding a pla
 | --- | --- | --- |
 | [`src/amount.ts`](src/amount.ts) | CGT as integer Sparks (`bigint`, `1 CGT = 10^18 Sparks`): `parseCgt`, `formatCgt`, `sparksFromJson`, the existential deposit (100 CGT, ADR-036). Refuses excess precision, signs, exponents and anything past `u128`; never rounds, never uses floating point | `tests/sdk.test.mjs` |
 | [`src/vault-policy.ts`](src/vault-policy.ts) | A Game Vault's payout policy: `validatePolicy` names every problem before the governor signs it, against the bounds the runtime reports; `loosens` says which changes must wait the delay | `tests/sdk.test.mjs` |
+| [`src/profile.ts`](src/profile.ts) and [`templates/arqade-project.json`](templates/arqade-project.json) | The project profile that becomes a store page; `checkReadiness` and `readyStage` for the four stages; `priceProblem` with the owner's 10,000 CGT ceiling | `tests/profile.test.mjs` |
 | `../lib/chain.ts` (the app's, for now) | Reads Demiurge Devnet read-only, refusing any chain whose genesis is not the devnet's | `../tests/chain.test.mjs` |
 
 Run them from `products/arqade`: `npm test`.
@@ -22,6 +23,11 @@ Run them from `products/arqade`: `npm test`.
 
 - [**Game Vaults**](docs/game-vaults.md): paying players CGT from a keyless account that belongs to your game alone,
   and how to unlock one ("ignition"). **Designed (ADR-070, Proposed), not built.**
+- [**Publishing**](docs/publishing.md): the four stages, the profile, prices up to 10,000 CGT, in-game items.
+  **The checks are built; the rest is designed (ADR-071, Proposed).**
+- [**Backing**](docs/backing.md): campaigns, memberships and tips in CGT, rewards and never proceeds. **Designed.**
+- [**Building with your own LLM**](docs/building-with-agents.md): the MCP connection and what a model may do alone.
+  **Designed.**
 
 ## What is proposed, and waits on what
 

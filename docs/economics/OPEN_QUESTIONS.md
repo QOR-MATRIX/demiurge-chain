@@ -263,6 +263,19 @@ demand to spend. Three things are undecided, and none has a value:
 On the devnet ARQADE builds and tests the whole loop with test CGT and values marked as placeholders. In production
 nothing is paid out until this item is decided and removed.
 
+### U-17: backing a game in CGT
+
+Opened on 4 October 2026 by ADR-071, when the owner asked for backers to support ARQADE projects in CGT, as on
+Kickstarter and Patreon. Backers receive the work (DRC-369 rewards), never its proceeds, which is settled; what is not:
+
+- **The threshold** above which a campaign is reviewed by a person before it opens.
+- **A missed milestone**: whether the remaining funds return to backers, and on what terms.
+- **How long a pledge may be held** before a campaign must settle.
+- **Any platform share** of pledges, memberships or tips (which joins U-15).
+
+Crowdfunding and donations are regulated in many places, so production also waits on the owner's legal review. On the
+devnet it is built and tested with test CGT and values marked as placeholders.
+
 ### Settled, and recorded elsewhere
 
 **U-13, the currency's ticker.** Decided on 17 September 2026 and no longer open: the ticker is `CGT` and the name

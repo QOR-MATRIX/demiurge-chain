@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 38 (4 October 2026): Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 39 (4 October 2026): ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1484,6 +1484,22 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     16 of 16; `tsc` clean; two planted faults (excess precision truncated instead of refused; a shorter epoch read as
     tightening) each failed a test. **Nothing of the pallet is built**, and no number is set: every cap is the
     developer's, every bound U-16's.
+
+39. **4 October 2026: ARQADE as a self-publishing store (ADR-071, Proposed). On `session/arqade-2026-10-04`.** The
+    owner: an app-store-like process where developers self-publish once requirements are met, a project profile from a
+    template as each game's store page, onboarding at any stage to build interest, CGT support from backers (Kickstarter
+    and Patreon), **a price of up to 10,000 CGT per game** (the owner's number, recorded as decided), in-game purchases
+    as DRC-369 assets, and agentic, "vibe coded" creation through an external LLM. **ADR-071:** the Cartridge's profile
+    manifest is the store page and its revisions the devlog; four stages that publish themselves when the SDK's checks
+    find nothing missing, people only for payouts, large campaigns and reports; licences and in-game items as DRC-369
+    (non-fungible only, ADR-031); backing gives the work and never its proceeds, with all-or-nothing Campaign Vaults and
+    milestone release, memberships per period until M5.2; agents through ADR-010's MCP server under an agent key, the
+    developer signing anything public or costing CGT; all code sandboxed by build hash; and one interim content store
+    for the ecosystem rather than ARQADE's own (ADR-050 decision 11). **New:** gap G-17 (no primary sale), U-17
+    (backing), P7.12 to P7.15, seven gate units (a tightening, logged). **Built and tested:** `sdk/src/profile.ts`
+    (`checkReadiness`, `readyStage`, `priceProblem`), the template, 5 tests; the first run caught a real gap (the
+    template's all-zero QOR id passed) and two planted faults (ceiling doubled; sandbox not tied to the build) each
+    failed a test. `npm test` 21 of 21, `tsc` clean. **Legal review now covers backing as well as paid chance.**
 
 ## 5. Traps, so nobody re-learns them
 

@@ -30,15 +30,13 @@ or give anyone test CGT except by you sending it from the faucet.
 
 - **The devnet went live on Railway** (ADR-068), with both Alpha checks for it met.
 - **Buying is safer**, the launcher shows the chain's own payout sum, and the **Market screen** exists.
-- **ARQADE, your gaming platform, is written into the plan** (4 October) — *a website where people play games
-  with their QOR ID, win assets and pay in CGT*. Your handoff was checked against the code and corrected:
-  `docs/blueprints/arqade.md`, its steps P7.1 to P7.10, and **ADR-069** — *a written decision* — which **you
-  accepted**, with **ADR-043** (*how a website signs people in to QOR ID*). Its code is now in the repository (`products/arqade/`), reads the live devnet, and no longer
-  mentions dollars, CRGT or DMRG. **The website itself still shows the old version** until it is redeployed.
-
-- **Game Vaults designed** (ADR-070, waiting on you) — *each game gets its own payout account that has no
-  password or key at all; the game can only pay players within limits written on the chain*. The SDK's guide
-  for developers is `products/arqade/sdk/docs/game-vaults.md`.
+- **ARQADE, your gaming platform** — *a website where people play games with their QOR ID, own assets and pay
+  in CGT*. You accepted **ADR-069** and **ADR-043** (*how a website signs people in to QOR ID*). Its code is in the
+  repository (`products/arqade/`), reads the live devnet, and no longer mentions dollars, CRGT or DMRG; **the
+  website itself still shows the old version** until redeployed. Waiting on you: **ADR-070, Game Vaults** — *each
+  game's own payout account, with no key at all, paying only within limits on the chain* — and **ADR-071, the app
+  store** — *developers publish themselves once a checklist is met, games up to 10,000 CGT, backers who never get a
+  share of sales, a developer's own AI building the game*. Guides: `products/arqade/sdk/docs/`.
 
 ## Next, in order
 
@@ -54,7 +52,8 @@ or give anyone test CGT except by you sending it from the faucet.
 1. **Send yourself test CGT:** open `https://polkadot.js.org/apps/?rpc=wss://rpc.qorsync.dev`, allow your wallet,
    then Accounts → **Devnet faucet** → Send → to your launcher address `5DMPEX…qLxK`.
 2. **Tell me how the CI runs ended** (github.com/QOR-MATRIX/demiurge-chain/actions).
-3. **Say yes or no to ADR-070 (Game Vaults)**, and name its chain module. Still open for ARQADE: its look, where
+3. **Say yes or no to ADR-070 (Game Vaults) and ADR-071 (the app store)**, and name the Game Vault chain module.
+   **Get a legal opinion** on backing (crowdfunding) and on paid games with prizes before either goes live. Still open for ARQADE: its look, where
    it is hosted, and the rest of **U-16** — *whether paying to enter may win a prize, and the platform's minimum
    waiting times on a Game Vault*.
 4. **Take your Resend key out of this PC's environment**; Railway holds it now.

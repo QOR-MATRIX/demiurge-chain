@@ -1,0 +1,15 @@
+{
+  "schema": "arqade.project/1",
+  "name": "Your game's name",
+  "slug": "your-game",
+  "pitch": "One sentence a stranger would repeat to a friend.",
+  "description": "What the player does, why it is fun, and what makes it yours. At least eighty characters; this is the top of your store page.",
+  "genres": ["arcade"],
+  "creator": { "qorSub": "00000000-0000-0000-0000-000000000000", "displayName": "Your display name" },
+  "stage": "concept",
+  "art": {
+    "direction": "Palette, mood and references, in a sentence or two.",
+    "screenshots": []
+  },
+  "items": []
+}
