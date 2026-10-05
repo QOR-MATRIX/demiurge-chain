@@ -35,6 +35,7 @@ Migrations run at startup, from inside the binary.
 | `QOR_AUTH__SECURITY__PASSWORD_MIN_LENGTH` | `12` |
 | `QOR_AUTH__CHAIN__SS58_PREFIX` | `42` |
 | `QOR_AUTH__DATABASE__MAX_CONNECTIONS` | `10` |
+| `QOR_OAUTH_CLIENTS` | The apps that may sign people in through QOR ID's page (ADR-073), a JSON array: `[{"id":"arqade","name":"ARQADE","redirect_uris":["https://…/api/auth/callback"],"secret_sha256":"<64 hex>"}]`. Only the **hash** of an app's secret is set here; the secret itself lives with the app. Unset means no app can sign anyone in, which is safe |
 | `RUST_LOG` | `qor_auth=info,tower_http=info` |
 | `QOR_AUTH__JWT__ACCESS_SECRET` | **Secret.** At least 32 characters. Pasted in the dashboard by the owner |
 | `QOR_AUTH__JWT__REFRESH_SECRET` | **Secret.** Different from the access secret. Pasted in the dashboard by the owner |

@@ -24,6 +24,7 @@ Imported into the Demiurge repository on 4 October 2026 from the arcade checkout
 - Browser terminal with history, completion and navigation/game commands.
 - Configurable local game creator, saved draft, source view, sandboxed preview and standalone HTML export.
 - Read-only Demiurge Devnet reader (`lib/chain.ts`, `/api/chain`): standard Substrate JSON-RPC at the fixed `https://rpc.qorsync.dev`, refusing any chain whose genesis is not `0x934e2caa…254a`; returns the finalized and best block numbers, or 503.
+- QOR ID sign-in (`lib/qor-session.ts`, `/api/auth/*`, the QOR Identity card; ADR-073): QOR ID's own page, a server-side session behind one HttpOnly cookie, `userinfo` on every check, sign-out that revokes at QOR ID; a host-signed-in explorer bound to the QOR identity on proof of both. Needs `QOR_CLIENT_ID`, `QOR_CLIENT_SECRET`, `QOR_REDIRECT_URI` (and `QOR_ID_URL` off the default) in the host's environment. (P7.3.)
 - Account lookup (`lib/account.ts`, `/api/chain/account?address=`, the QOR Identity screen): any address's test CGT (free, reserved, frozen, spendable while keeping the account open) and DRC-369 assets at the finalized block, decoded from the runtime's own encoding; a refused address returns 400, an unreadable chain 503; the last answer stays on screen marked stale. (P7.2.)
 - WebMCP read-local-state and navigate tools. No purchases, signing, or reward mutations exposed.
 
@@ -32,7 +33,6 @@ Imported into the Demiurge repository on 4 October 2026 from the arcade checkout
 
 This is a private playable explorer build, not a live gambling, payment, AI-generation or blockchain settlement system.
 
-- QOR authentication/session verification and on-chain profile synchronization.
 - A QOR linking/verifier service. Until supplied, the interface clearly labels Explorer aliases. Private site access is preserved; invitations do not admit otherwise unauthorized visitors.
 - Automated report triage or an operator moderation dashboard; reports are persisted in the reports table. Message reads show up to 60 nondeleted messages from the last seven days; this is a display window, not a data-deletion retention policy.
 - AI model/provider integration. The creator currently uses a local configurable template and says so.

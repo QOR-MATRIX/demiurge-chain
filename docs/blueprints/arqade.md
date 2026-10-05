@@ -261,7 +261,7 @@ The numbered steps are P7 in `DIRECTION.md`; this is the order and what each pro
 1. **Baseline** (P7.1): import, inventory, the false claims removed, tests run. **Done 5 October 2026.**
 2. **Live reads** (P7.2): genesis, finalised head, a balance and an account's DRC-369 inventory, read-only. **Done
    4 October 2026.**
-3. **Verified identity** (P7.3): ADR-043 and a verification path.
+3. **Verified identity** (P7.3): ADR-043 and a verification path. **Built 5 October 2026** (ADR-073); live once deployed.
 4. **Signing** (P7.4): the path ADR-069 decision 5 chooses, with its own record.
 5. **Paid play and awards on the devnet** (P7.5), exactly once, surviving reloads and retries.
 6. **Card universes** (P7.6) and **evolution** (P7.7), as G-14, G-15 and M4.2 land.

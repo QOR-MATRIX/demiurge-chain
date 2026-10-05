@@ -22,6 +22,8 @@ mod tests {
             iss: "test".into(),
             iat: 0,
             exp: 0,
+            jti: None,
+            cid: None,
         }
     }
 

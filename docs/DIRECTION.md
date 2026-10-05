@@ -920,9 +920,17 @@ here sets an economic value; payouts are U-16.
    named assets, one a remix), whose balance `@polkadot/api` decoded identically; the reader against the live devnet
    agreed with `@polkadot/api` on the owner's launcher account (100,000 test CGT, no assets); the route answered in the
    site's own worker runtime; and the panel was driven in headless Chrome: a lookup, then a refused checksum.
-3. [ ] Verified QOR sign-in in the browser, bound to the account's `sub`, with the practice alias migrated only on
+3. [x] Verified QOR sign-in in the browser, bound to the account's `sub`, with the practice alias migrated only on
    proof of both identities. Depends on ADR-043 accepted and built, and on a way for ARQADE's server to verify a
    token without QOR ID's secret (ADR-069 decision 4).
+
+   **Built 5 October 2026 (ADR-073), not yet live.** QOR ID: `/oauth/authorize` (its own sign-in page), `/oauth/token`
+   (PKCE always; rotating, single-use refresh tokens; reuse ends the session), `/oauth/userinfo`, `/oauth/revoke`, a
+   registry in `QOR_OAUTH_CLIENTS`, sessions that record their app; 7 tests and the log check over the whole flow.
+   ARQADE: a server-side session behind one HttpOnly cookie, `userinfo` on every check, sign-out that revokes at QOR ID,
+   and a player bound to a QOR identity only on proof of both; 9 tests. Driven end to end in Chrome against a local QOR
+   ID. **Live** after the owner merges (QOR ID redeploys), registers ARQADE in Railway and sets ARQADE's secret in its
+   host.
 4. [ ] A player approves a CGT payment from their own Vault, previewed and finalised, never with a key held by
    ARQADE. Depends on the signing path ADR-069 decision 5 chooses, with its own record, and for production on M5.2.
 5. [ ] Paid play on the devnet: a test-CGT entry finalised, one session authorised, the result validated by the

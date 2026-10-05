@@ -45,23 +45,25 @@ or give anyone test CGT except by you sending it from the faucet.
 3. **A faucet page**, so testers can get test CGT without you sending it by hand.
 4. **The indexer** — *a service that reads the chain so the Market can search and show history*.
 5. **Prize rounds are live on the devnet** — *a game locks a prize on the chain before anyone plays for it* — after
-   your second upgrade. The SDK finds a game's wallet and builds its payouts. **ARQADE's QOR screen now looks up any
-   account's test CGT and assets on the devnet, and the site is renamed ARQADE** (in the code; the live website
-   still shows the old version until it is redeployed from `products/arqade/`).
+   your second upgrade. The SDK finds a game's wallet and builds its payouts. **ARQADE's QOR screen looks up any account
+   on the devnet, and people can sign in with QOR ID** — *on QOR ID's own page; ARQADE never sees the password* —
+   built and tested, waiting on your go-ahead to go live (below).
 
 ## What only you can do
 
-1. **Send yourself test CGT:** open `https://polkadot.js.org/apps/?rpc=wss://rpc.qorsync.dev`, allow your wallet,
+1. **Say "merge P7.3"** when you want sign-in live. Merging redeploys QOR ID on Railway; then I'll walk you through
+   registering ARQADE there and setting its secret where the site is hosted, one step at a time.
+2. **Send yourself test CGT:** open `https://polkadot.js.org/apps/?rpc=wss://rpc.qorsync.dev`, allow your wallet,
    then Accounts → **Devnet faucet** → Send → to your launcher address `5DMPEX…qLxK`.
-2. **Get a legal opinion** on backing (crowdfunding) and on paid games with prizes before either goes live.
+3. **Get a legal opinion** on backing (crowdfunding) and on paid games with prizes before either goes live.
    Still open for ARQADE: its look, where it is hosted, and the rest of **U-16** — *whether paying to enter may win a
    prize, and the platform's minimum waiting times on an ARQ Wallet*.
-3. **Take your Resend key out of this PC's environment**; Railway holds it now.
-4. **Bounce reports**: a Resend webhook to `https://id.qorsync.dev/api/v1/webhooks/resend`, its `whsec_…`
+4. **Take your Resend key out of this PC's environment**; Railway holds it now.
+5. **Bounce reports**: a Resend webhook to `https://id.qorsync.dev/api/v1/webhooks/resend`, its `whsec_…`
    secret into Railway as `RESEND_WEBHOOK_SECRET`.
-5. **In Cloudflare**, delete the `ci` record and the tunnel.
-6. **Revoke the old SSH key** (`admin@pleroma`) and **rotate the nine credentials** in `SECURITY.md`.
-7. **Open economic questions**: the 15% for selling, deposit amounts (U-14), Q-19 and Q-20, U-16.
+6. **In Cloudflare**, delete the `ci` record and the tunnel.
+7. **Revoke the old SSH key** (`admin@pleroma`) and **rotate the nine credentials** in `SECURITY.md`.
+8. **Open economic questions**: the 15% for selling, deposit amounts (U-14), Q-19 and Q-20, U-16.
 
 ## What it costs per month
 

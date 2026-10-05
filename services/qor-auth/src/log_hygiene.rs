@@ -84,6 +84,7 @@ struct Client {
 struct Reply {
     status: StatusCode,
     body: String,
+    location: Option<String>,
 }
 
 impl Reply {
@@ -96,12 +97,18 @@ impl Client {
     async fn send(&self, request: Request<Body>) -> Reply {
         let response = self.app.clone().oneshot(request).await.expect("response");
         let status = response.status();
+        let location = response
+            .headers()
+            .get(axum::http::header::LOCATION)
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_string);
         let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
             .await
             .expect("body");
         Reply {
             status,
             body: String::from_utf8_lossy(&bytes).into_owned(),
+            location,
         }
     }
 
@@ -235,7 +242,16 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         "whsec_{}",
         base64::engine::general_purpose::STANDARD.encode(uuid::Uuid::new_v4().as_bytes())
     );
-    let config = AppConfig::default();
+    let mut config = AppConfig::default();
+    let client_secret = format!("logcheck-client-secret-{}", uuid::Uuid::new_v4().simple());
+    config.oauth.clients = vec![crate::config::OAuthClient {
+        id: "logcheck-app".into(),
+        name: "Log Check App".into(),
+        redirect_uris: vec!["https://app.logcheck.invalid/callback".into()],
+        secret_sha256: Some(hex::encode(<Sha256 as sha2::Digest>::digest(
+            client_secret.as_bytes(),
+        ))),
+    }];
     let email = EmailService::new(EmailConfig {
         resend_api_key: api_key.clone(),
         from: "Log Check <noreply@sender.logcheck.invalid>".into(),
@@ -265,6 +281,7 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
     let mut secrets: Vec<String> = vec![
         api_key.clone(),
         webhook_secret.clone(),
+        client_secret.clone(),
         password.into(),
         new_password.into(),
         "logcheck.invalid".into(),
@@ -688,6 +705,142 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         .await;
     assert_eq!(r.status, StatusCode::OK, "{}", r.body);
 
+    // Sign-in for another app by redirect (ADR-043, ADR-073): the page, a refused and an accepted
+    // password, the code, the exchange with the verifier and the app's secret, a refresh, a reused
+    // refresh token, who the token belongs to, and sign-out. Every value they carry is a secret here.
+    let verifier = format!("logcheck-verifier-{}", uuid::Uuid::new_v4().simple());
+    let challenge = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .encode(<Sha256 as sha2::Digest>::digest(verifier.as_bytes()));
+    let app_state = format!("logcheck-state-{}", uuid::Uuid::new_v4().simple());
+    secrets.extend([verifier.clone(), challenge.clone(), app_state.clone()]);
+    let page = client
+        .get(
+            &format!(
+                "/oauth/authorize?response_type=code&client_id=logcheck-app&redirect_uri={}&code_challenge={challenge}&code_challenge_method=S256&state={app_state}",
+                form_encode("https://app.logcheck.invalid/callback")
+            ),
+            None,
+        )
+        .await;
+    assert_eq!(page.status, StatusCode::OK, "{}", page.body);
+    let request: String = page
+        .body
+        .split(r#"name="request" value=""#)
+        .nth(1)
+        .expect("a request field")
+        .chars()
+        .take(64)
+        .collect();
+    secrets.push(request.clone());
+    let r = client
+        .form(
+            "/oauth/authorize",
+            &[
+                ("request", &request),
+                ("identifier", username),
+                ("password", "not the password"),
+            ],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::UNAUTHORIZED);
+    let r = client
+        .form(
+            "/oauth/authorize",
+            &[
+                ("request", &request),
+                ("identifier", username),
+                ("password", new_password),
+            ],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::SEE_OTHER, "{}", r.body);
+    let back = r.location.expect("a redirect back to the app");
+    let code: String = back
+        .split("code=")
+        .nth(1)
+        .expect("a code")
+        .chars()
+        .take_while(char::is_ascii_hexdigit)
+        .collect();
+    secrets.push(code.clone());
+    let r = client
+        .form(
+            "/oauth/token",
+            &[
+                ("grant_type", "authorization_code"),
+                ("client_id", "logcheck-app"),
+                ("client_secret", &client_secret),
+                ("code", &code),
+                ("redirect_uri", "https://app.logcheck.invalid/callback"),
+                ("code_verifier", &verifier),
+            ],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    let app_access = r.json()["access_token"]
+        .as_str()
+        .expect("access")
+        .to_string();
+    let app_refresh = r.json()["refresh_token"]
+        .as_str()
+        .expect("refresh")
+        .to_string();
+    secrets.extend([app_access.clone(), app_refresh.clone()]);
+    assert_eq!(
+        client
+            .get("/oauth/userinfo", Some(&app_access))
+            .await
+            .status,
+        StatusCode::OK
+    );
+    let r = client
+        .form(
+            "/oauth/token",
+            &[
+                ("grant_type", "refresh_token"),
+                ("client_id", "logcheck-app"),
+                ("client_secret", &client_secret),
+                ("refresh_token", &app_refresh),
+            ],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    let next_refresh = r.json()["refresh_token"]
+        .as_str()
+        .expect("refresh")
+        .to_string();
+    secrets.extend([
+        r.json()["access_token"]
+            .as_str()
+            .expect("access")
+            .to_string(),
+        next_refresh.clone(),
+    ]);
+    // The old one again: refused, and the session ends.
+    let r = client
+        .form(
+            "/oauth/token",
+            &[
+                ("grant_type", "refresh_token"),
+                ("client_id", "logcheck-app"),
+                ("client_secret", &client_secret),
+                ("refresh_token", &app_refresh),
+            ],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::BAD_REQUEST);
+    let r = client
+        .form(
+            "/oauth/revoke",
+            &[
+                ("client_id", "logcheck-app"),
+                ("client_secret", &client_secret),
+                ("token", &next_refresh),
+            ],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK);
+
     // A hash of the password is not the password, but it is still not for a log.
     let hash: String = sqlx::query_scalar("SELECT password_hash FROM users WHERE username = $1")
         .bind(username)
@@ -715,6 +868,10 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         "/api/v1/auth/keypair-register",
         "/api/v1/auth/refresh",
         "/api/v1/profile/sessions",
+        "/oauth/authorize",
+        "/oauth/token",
+        "/oauth/userinfo",
+        "/oauth/revoke",
     ] {
         assert!(
             log.contains(expected),

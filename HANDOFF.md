@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 49 (5 October 2026): P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 50 (5 October 2026): P7.3 built on a branch, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1630,6 +1630,25 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     changed. **Inventory:** `products/arqade/INTEGRATION_INVENTORY.md`, every control with its source, permission,
     persistence, failure and verification; it and `IMPLEMENTATION.md` are now in `docs/README.md`. `npm test` 31 of 31,
     type check and build clean.
+
+50. **5 October 2026: P7.3 built — QOR ID signs people in to ARQADE (ADR-043 carried out; ADR-073). On branch
+    `session/p7.3-qor-sign-in`, not merged: merging deploys QOR ID.** QOR ID: `handlers/oauth.rs` with `/oauth/authorize`
+    (its own page; unknown app or unregistered redirect answered there, never redirected), `/oauth/token` (S256 PKCE
+    always; client secret by SHA-256 hash; codes single-use in 60 s; refresh tokens rotate, reuse ends the session),
+    `/oauth/userinfo`, `/oauth/revoke`; `QOR_OAUTH_CLIENTS` registry validated at start; sessions and tokens carry the
+    app (`client_id`, `cid`, `refresh_jti`/`jti`), serde defaults so nothing stored breaks; the password check shared
+    with `/api/v1/auth/login` (`authenticate_password`); `/api/v1/auth/refresh` refuses an app's token; the sign-in page's
+    CSP `form-action` adds the app's origin, because browsers apply it to the post-submit redirect. **143 tests** (7 new)
+    against Postgres 16 and Redis 7.4 in throwaway containers `qor-p73-pg`/`qor-p73-redis`, fmt and clippy clean; four
+    planted faults caught; **the log check drives the whole flow** and caught a planted log of the code. ARQADE:
+    `lib/qor-session.ts`, `/api/auth/{login,callback,me,logout}`, migration `0001` (`qor_logins`, `qor_sessions`, the
+    session keyed by the cookie's SHA-256), `app/qor-panel.tsx` replacing the static rows; 9 tests, two planted faults
+    caught; 40 in all. **End to end in Chrome** against a local QOR ID (port 8099) and the local worker: the button, QOR
+    ID's page "Sign in to ARQADE · QOR ID", back signed in as `arqtester#0001`, `document.cookie` empty (HttpOnly),
+    sign-out revoking at QOR ID. A bug that check found: the return hash must be `#qor-identity`. **To go live:** merge;
+    set Railway's `QOR_OAUTH_CLIENTS` for ARQADE's production callback with the hash of a new secret; set
+    `QOR_CLIENT_ID`, `QOR_CLIENT_SECRET`, `QOR_REDIRECT_URI` in the site's host; apply ARQADE's migration `0001`;
+    redeploy the site.
 
 ## 5. Traps, so nobody re-learns them
 
