@@ -26,7 +26,7 @@ the same commit.
 | Sidebar views (Overview, The Arcade, Multiplayer, Leaderboard, Creation Engine, Terminal, Energy Store, Rewards & Wallet) and URL `#hash` | Code; the view is read from the hash | Anyone | The hash | Unknown hash stays on the current view | Chrome: navigation by sidebar and by hash |
 | "Your cybercade · Season Zero" | Static copy | — | — | — | Read in the code |
 | Top bar Energy count | Browser (`demiurge.local.v1`) | Visitor | Browser | Unreadable storage resets to the initial 1,000 practice Energy | `page.tsx` validates every stored field |
-| **Connect QOR ID** | Opens the QOR Identity view. **Not a sign-in**: QOR sign-in needs ADR-043's redirect flow (P7.3) | Anyone | — | — | Chrome: opens the view |
+| **Connect QOR ID** | Opens the QOR Identity view, where **Sign in with QOR ID** starts the sign-in on QOR ID's own page (P7.3) | Anyone | — | — | Chrome: opens the view |
 | Live strip ("network … online", open lobbies, Global rankings) | Arcade service (`/api/live`, polled every 2 s while visible) | Host-authenticated visitor | — | Shows "connecting" and "—" when the service is unreachable or the visitor is not signed in to the host | `tests/arena.test.mjs`; locally it shows "connecting" (no host sign-in) |
 | Sidebar panel "Demiurge Devnet · Read-only · see QOR Identity" | Static pointer. **Was "Chain connection pending", which never read anything; replaced 5 Oct** | — | — | — | Chrome |
 | "Unbound explorer · Explorer alias" | Arcade service: alias derived from the host's user id. **Not a QOR identity** | Host-authenticated visitor | Server | Unauthenticated: no alias | `tests/arena.test.mjs` (identity is server-derived) |
@@ -80,7 +80,7 @@ the same commit.
 
 | Control | Source | Permission | Persists | On failure | Verified |
 | --- | --- | --- | --- | --- | --- |
-| QOR authentication / Verified account / CGT settlement rows | Code: **Not configured / None / Not connected** | — | — | — | Chrome |
+| QOR authentication / Verified account / Chain account / CGT settlement rows; **Sign in with QOR ID**, **Sign out** (P7.3) | QOR ID, through ARQADE's server (`/api/auth/me`, which asks `/oauth/userinfo`); CGT settlement is still **Not connected** | Anyone may sign in; sign-out from this site's own pages only | Server-side session (D1, keyed by the cookie's hash), one HttpOnly cookie | Unconfigured site: "Not configured", no button. QOR ID unreachable: says so. A refused sign-in: "did not complete. Nothing was shared" | `tests/qor-session.test.mjs`; end to end in Chrome against a local QOR ID, 5 Oct |
 | **Open Demiurge portal** | Link to `demiurge.cloud` | — | — | — | — |
 | **Check chain connection** | Devnet (`/api/chain`): genesis and name checked, finalized block | Anyone | — | "Wrong network" or "could not be read" (503) | `tests/chain.test.mjs`; route in workerd |
 | Account **Look up** | Devnet (`/api/chain/account`): test CGT and DRC-369 assets at the finalized block | Anyone; read-only | — | Refused address: the reason (400). Unreadable: the last answer stays, marked stale (503) | `tests/account.test.mjs` (bytes from a real node); live devnet matched `@polkadot/api`; Chrome lookup and refusal |
@@ -101,10 +101,11 @@ the same commit.
 | --- | --- | --- | --- |
 | `GET /api/chain` | Devnet heads, genesis-checked | Anyone | Tests, workerd |
 | `GET /api/chain/account?address=` | One account's test CGT and assets | Anyone | Tests, workerd |
+| `GET /api/auth/login`, `GET /api/auth/callback`, `GET /api/auth/me`, `POST /api/auth/logout` | Start a QOR ID sign-in, finish it (state checked against the browser's cookie, code exchanged with PKCE and the site's secret), who is signed in, sign out | Anyone; logout same-origin only | Tests; Chrome against a local QOR ID |
 | `/api/live`, `/api/matches`, `/api/matches/[id]`, `/api/chat` | Arenas, standings, chat | Host-authenticated; origin checked | `tests/arena.test.mjs`, `tests/worker.smoke.mjs` (needs a running worker) |
 | WebMCP tools `read_local_arcade`, `navigate_demiurge` | Read practice state; open a section. Names kept for agents already using them | The page | Read in the code |
 
 ## What is deliberately absent
 
-No sign-in, no signing, no payment, no CGT payout, no asset award and no ranking from solo play. Each is a later P7
+No signing, no payment, no CGT payout, no asset award and no ranking from solo play. Each is a later P7
 step, named in `docs/DIRECTION.md`.

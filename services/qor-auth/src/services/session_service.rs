@@ -59,6 +59,8 @@ impl SessionService {
             created_at: now,
             last_activity: now,
             expires_at,
+            client_id: None,
+            refresh_jti: None,
         };
 
         // Store session in Redis
@@ -68,6 +70,54 @@ impl SessionService {
         let tokens = self.generate_tokens(&session, role)?;
 
         Ok((session, tokens))
+    }
+
+    /// Create a session for a registered app (ADR-043): it records the app, lives `lifetime_secs`, and
+    /// carries the id of the one refresh token that may be used next.
+    pub async fn create_app_session(
+        &self,
+        new: NewSession<'_>,
+        client_id: &str,
+        lifetime_secs: i64,
+    ) -> AppResult<Session> {
+        let now = Utc::now();
+        let session = Session {
+            session_id: Uuid::new_v4(),
+            user_id: new.user_id,
+            qor_id: new.qor_id.to_string(),
+            device_id: new.device_id.to_string(),
+            ip_address: new.ip_address.to_string(),
+            user_agent: new.user_agent.map(|s| s.to_string()),
+            scopes: new.scopes,
+            created_at: now,
+            last_activity: now,
+            expires_at: now + Duration::seconds(lifetime_secs),
+            client_id: Some(client_id.to_string()),
+            refresh_jti: Some(Uuid::new_v4().simple().to_string()),
+        };
+        self.store_session(&session).await?;
+        Ok(session)
+    }
+
+    /// Replace an app session's refresh token id, and record the use, only while the session still
+    /// exists (`XX`) and without lengthening its life (`KEEPTTL`). Returns the session as stored, or
+    /// `None` if it was revoked meanwhile.
+    pub async fn rotate_refresh(&self, session: &Session) -> AppResult<Option<Session>> {
+        let mut next = session.clone();
+        next.last_activity = Utc::now();
+        next.refresh_jti = Some(Uuid::new_v4().simple().to_string());
+        let session_json = serde_json::to_string(&next)
+            .map_err(|e| AppError::InternalError(anyhow::anyhow!("Serialization failed: {}", e)))?;
+        let mut conn = self.redis.get().await?;
+        let written: Option<String> = deadpool_redis::redis::cmd("SET")
+            .arg(format!("session:{}", session.session_id))
+            .arg(&session_json)
+            .arg("XX")
+            .arg("KEEPTTL")
+            .query_async(&mut conn)
+            .await
+            .map_err(|e| AppError::InternalError(anyhow::anyhow!("Redis error: {}", e)))?;
+        Ok(written.map(|_| next))
     }
 
     /// Generate JWT access and refresh tokens
@@ -84,6 +134,8 @@ impl SessionService {
             iss: self.jwt_config.issuer.clone(),
             iat: now.timestamp(),
             exp: (now + Duration::seconds(self.jwt_config.access_expiry_secs)).timestamp(),
+            jti: None,
+            cid: session.client_id.clone(),
         };
 
         // Refresh token claims (longer expiry, fewer claims)
@@ -95,7 +147,12 @@ impl SessionService {
             scopes: vec![], // Refresh tokens don't carry scopes
             iss: self.jwt_config.issuer.clone(),
             iat: now.timestamp(),
-            exp: (now + Duration::seconds(self.jwt_config.refresh_expiry_secs)).timestamp(),
+            // Never past the session's own end: an app's session lives shorter than the default.
+            exp: (now + Duration::seconds(self.jwt_config.refresh_expiry_secs))
+                .min(session.expires_at)
+                .timestamp(),
+            jti: session.refresh_jti.clone(),
+            cid: session.client_id.clone(),
         };
 
         let access_token = encode(
@@ -412,6 +469,8 @@ mod tests {
             created_at: now,
             last_activity: now,
             expires_at: now + expires_in,
+            client_id: None,
+            refresh_jti: None,
         }
     }
 
@@ -425,6 +484,8 @@ mod tests {
             iss: "test".into(),
             iat: 0,
             exp: 0,
+            jti: None,
+            cid: None,
         }
     }
 

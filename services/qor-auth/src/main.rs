@@ -156,6 +156,15 @@ pub(crate) fn router(state: Arc<AppState>) -> Router {
             "/forgot-password",
             post(handlers::pages::request_reset_link),
         )
+        // Sign-in for other apps by redirect (ADR-043, ADR-073): QOR ID's own page, then a code, then
+        // tokens for the app's server. Never `*` in CORS: these are page and server-to-server calls.
+        .route(
+            "/oauth/authorize",
+            get(handlers::oauth::authorize_page).post(handlers::oauth::authorize_submit),
+        )
+        .route("/oauth/token", post(handlers::oauth::token))
+        .route("/oauth/userinfo", get(handlers::oauth::userinfo))
+        .route("/oauth/revoke", post(handlers::oauth::revoke))
         // Bounce and complaint reports from Resend, accepted only with a valid signature.
         .route("/api/v1/webhooks/resend", post(handlers::webhooks::resend))
         // Health endpoints

@@ -14,6 +14,115 @@ pub struct AppConfig {
     pub jwt: JwtConfig,
     pub security: SecurityConfig,
     pub chain: ChainConfig,
+    /// The apps that may sign people in through QOR ID's own page (ADR-043).
+    #[serde(default)]
+    pub oauth: OAuthConfig,
+}
+
+/// Sign-in for other apps by redirect: OAuth 2.1 authorization code with PKCE (ADR-043).
+///
+/// Clients are registered here, by configuration, because every one is first-party: ARQADE today.
+/// Third-party sign-in is ADR-043's excluded case. The list comes from the `QOR_OAUTH_CLIENTS`
+/// variable, a JSON array, so a deployment registers an app without a code change.
+#[derive(Debug, Clone, Deserialize)]
+pub struct OAuthConfig {
+    #[serde(default)]
+    pub clients: Vec<OAuthClient>,
+    /// How long a signed-in code may wait to be exchanged. Seconds.
+    pub code_ttl_secs: u64,
+    /// How long the sign-in page stays usable once opened. Seconds.
+    pub request_ttl_secs: u64,
+    /// How long an app's session lives, refresh tokens included. ADR-043 asks for short; the number
+    /// is an engineering choice recorded in ADR-073. Seconds.
+    pub session_lifetime_secs: i64,
+}
+
+impl Default for OAuthConfig {
+    fn default() -> Self {
+        Self {
+            clients: vec![],
+            code_ttl_secs: 60,
+            request_ttl_secs: 600,
+            session_lifetime_secs: 8 * 60 * 60,
+        }
+    }
+}
+
+/// One registered app.
+#[derive(Debug, Clone, Deserialize)]
+pub struct OAuthClient {
+    /// What the app sends as `client_id`.
+    pub id: String,
+    /// What the sign-in page calls it.
+    pub name: String,
+    /// The only addresses a code is ever sent to. Compared exactly.
+    pub redirect_uris: Vec<String>,
+    /// For an app with a server (a confidential client): the SHA-256 of its secret, in hex. The secret
+    /// itself is never stored here. Absent for an app that cannot keep a secret; PKCE is required
+    /// either way.
+    #[serde(default)]
+    pub secret_sha256: Option<String>,
+}
+
+impl OAuthConfig {
+    pub fn client(&self, id: &str) -> Option<&OAuthClient> {
+        self.clients.iter().find(|c| c.id == id)
+    }
+
+    /// Refuse a registry that would send codes somewhere it should not.
+    pub fn validate(&self) -> anyhow::Result<()> {
+        let mut seen = std::collections::HashSet::new();
+        for c in &self.clients {
+            if c.id.is_empty()
+                || c.id.len() > 64
+                || !c
+                    .id
+                    .chars()
+                    .all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_')
+            {
+                anyhow::bail!("an OAuth client id must be 1 to 64 letters, digits, '-' or '_'");
+            }
+            if !seen.insert(c.id.as_str()) {
+                anyhow::bail!("OAuth client {} is registered twice", c.id);
+            }
+            if c.redirect_uris.is_empty() {
+                anyhow::bail!("OAuth client {} has no redirect URI", c.id);
+            }
+            for uri in &c.redirect_uris {
+                let url = reqwest::Url::parse(uri).map_err(|_| {
+                    anyhow::anyhow!("OAuth client {} has a redirect URI that is not a URL", c.id)
+                })?;
+                let loopback = matches!(
+                    url.host_str(),
+                    Some("127.0.0.1") | Some("localhost") | Some("[::1]")
+                );
+                if !(url.scheme() == "https" || (url.scheme() == "http" && loopback)) {
+                    anyhow::bail!(
+                        "OAuth client {} has a redirect URI that is neither https nor loopback",
+                        c.id
+                    );
+                }
+                if url.fragment().is_some() {
+                    anyhow::bail!("OAuth client {} has a redirect URI with a fragment", c.id);
+                }
+            }
+            if let Some(hash) = &c.secret_sha256
+                && (hash.len() != 64 || !hash.chars().all(|ch| ch.is_ascii_hexdigit()))
+            {
+                anyhow::bail!(
+                    "OAuth client {}: secret_sha256 must be 64 hexadecimal characters",
+                    c.id
+                );
+            }
+        }
+        if self.code_ttl_secs == 0 || self.code_ttl_secs > 600 {
+            anyhow::bail!("oauth.code_ttl_secs must be between 1 and 600");
+        }
+        if self.session_lifetime_secs <= 0 {
+            anyhow::bail!("oauth.session_lifetime_secs must be above zero");
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -169,6 +278,11 @@ impl AppConfig {
         if let Ok(v) = std::env::var("REDIS_URL") {
             cfg.redis.url = v;
         }
+        // The registered apps, as one JSON array (see `OAuthConfig`).
+        if let Ok(v) = std::env::var("QOR_OAUTH_CLIENTS") {
+            cfg.oauth.clients = serde_json::from_str(&v)
+                .map_err(|_| anyhow::anyhow!("QOR_OAUTH_CLIENTS is not a JSON array of clients"))?;
+        }
         // Railway, Heroku and most container platforms assign the port and pass
         // it as PORT. Honoured last so an explicit QOR_AUTH__SERVER__PORT can
         // still win on a host that sets PORT for its own reasons.
@@ -230,6 +344,7 @@ impl AppConfig {
             anyhow::bail!("JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must differ");
         }
 
+        self.oauth.validate()?;
         Ok(())
     }
 }
@@ -265,6 +380,7 @@ impl Default for AppConfig {
                 password_min_length: 12,
             },
             chain: ChainConfig { ss58_prefix: 42 },
+            oauth: OAuthConfig::default(),
         }
     }
 }

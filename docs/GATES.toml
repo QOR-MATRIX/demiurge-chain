@@ -676,6 +676,12 @@ type = "tightening"
 change = "ARQADE's lint is a quality gate: the arqade CI job's lint step no longer continues on error, and its entry leaves [ci].reports for [ci].quality_gates. The 13 errors the imported code carried were fixed the same day; four warnings remain and do not fail it."
 reason = "The condition the report entry named for this move was met. Every fix kept behaviour, which headless Chrome confirmed on each of the four solo games."
 
+[[change_log]]
+date = "2026-10-05"
+type = "tightening"
+change = "The arqade gate counts ADR-073 (QOR ID sign-in for apps) and a new criterion, arqade.signin-tests: five tests in the qor_auth suite, among them the log check, which now drives the whole sign-in flow for apps. No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
+reason = "P7.3 was built. The rules that keep a sign-in safe (PKCE, exact redirects, single-use codes, refresh rotation, nothing secret in a log) must not regress silently; four were seen to fail against planted faults, and the log check against a planted log of the code."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1633,7 +1639,7 @@ player's own Vault, and a developer SDK with which others publish games."""
   [[gates.criteria]]
   id = "arqade.decisions"
   kind = "adr"
-  adrs = ["ADR-069", "ADR-043", "ADR-070", "ADR-071"]
+  adrs = ["ADR-069", "ADR-043", "ADR-070", "ADR-071", "ADR-073"]
 
   [[gates.criteria]]
   id = "arqade.roadmap"
@@ -1679,6 +1685,20 @@ player's own Vault, and a developer SDK with which others publish games."""
     "a_round_that_was_never_settled_can_always_be_released",
     "a_wallet_account_is_modl_the_pallet_id_and_the_cartridge_zero_padded",
     "a_round_holds_its_prize_and_settles_through_the_runtime",
+  ]
+
+  # QOR ID signing people in to ARQADE (P7.3, ADR-073), in QOR ID's own suite: each
+  # of these failed against a planted fault first, and the log check drives the flow.
+  [[gates.criteria]]
+  id = "arqade.signin-tests"
+  kind = "tests"
+  suite = "qor_auth"
+  require = [
+    "a_person_signs_in_on_qor_id_and_the_app_learns_who_they_are",
+    "a_code_needs_its_verifier_its_app_and_its_redirect_and_dies_on_first_use",
+    "nothing_is_sent_to_an_app_or_an_address_qor_id_does_not_know",
+    "sign_out_from_the_app_ends_its_session",
+    "nothing_secret_reaches_a_log_at_any_level",
   ]
 
   # The arcade's own suite since it was imported (P7.1, 2026-10-04): the arenas'

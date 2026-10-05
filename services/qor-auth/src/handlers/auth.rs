@@ -196,20 +196,51 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
 ) -> AppResult<Json<TokenPair>> {
-    let auth_service = AuthService::new(state.db.clone());
     let session_service = SessionService::new(state.redis.clone(), state.config.jwt.clone());
+    let user = authenticate_password(&state, &req.identifier, &req.password).await?;
 
-    let user = if AuthService::is_email(&req.identifier) {
-        auth_service.find_by_email(&req.identifier).await?
+    // Create session
+    let device_id = req.device_id.unwrap_or_else(|| "unknown".to_string());
+    let (_session, tokens) = session_service
+        .create_session(crate::services::session_service::NewSession {
+            user_id: user.id,
+            qor_id: &user.qor_id(),
+            role: Some(user.role.as_str()),
+            device_id: &device_id,
+            ip_address: "0.0.0.0", // Not yet taken from the request
+            user_agent: None,
+            scopes: crate::models::Session::default_scopes(),
+        })
+        .await?;
+    record_sign_in(&state.db, user.id, "password").await?;
+
+    Ok(Json(tokens))
+}
+
+/// The account a name or address and a password sign in to, or `InvalidCredentials`.
+///
+/// Every refusal is the same answer after the same work: an unknown name is checked against a
+/// stand-in hash, and a failed attempt is counted against a real account only when it is open. Both
+/// sign-in routes use this, the JSON API and QOR ID's own page for other apps (`oauth`), so they
+/// cannot drift apart.
+pub(crate) async fn authenticate_password(
+    state: &AppState,
+    identifier: &str,
+    password: &str,
+) -> AppResult<crate::models::User> {
+    let auth_service = AuthService::new(state.db.clone());
+
+    let user = if AuthService::is_email(identifier) {
+        auth_service.find_by_email(identifier).await?
     } else {
-        auth_service.find_by_username(&req.identifier).await?
+        auth_service.find_by_username(identifier).await?
     };
 
     let password_hash = user
         .as_ref()
         .map(|u| u.password_hash.as_str())
         .unwrap_or_else(|| AuthService::stand_in_password_hash());
-    let password_ok = AuthService::verify_password(&req.password, password_hash)?;
+    let password_ok = AuthService::verify_password(password, password_hash)?;
 
     let open =
         |u: &crate::models::User| !u.is_locked() && u.status == crate::models::UserStatus::Active;
@@ -237,28 +268,16 @@ pub async fn login(
 
     // Reset login attempts on successful login
     auth_service.reset_login_attempts(user.id).await?;
-
-    // Create session
-    let device_id = req.device_id.unwrap_or_else(|| "unknown".to_string());
-    let (_session, tokens) = session_service
-        .create_session(crate::services::session_service::NewSession {
-            user_id: user.id,
-            qor_id: &user.qor_id(),
-            role: Some(user.role.as_str()),
-            device_id: &device_id,
-            ip_address: "0.0.0.0", // Not yet taken from the request
-            user_agent: None,
-            scopes: crate::models::Session::default_scopes(),
-        })
-        .await?;
-    record_sign_in(&state.db, user.id, "password").await?;
-
-    Ok(Json(tokens))
+    Ok(user)
 }
 
 /// Record a successful sign-in in the audit log. The admin statistics count these
 /// rows (`logins_24h`); nothing else writes them.
-async fn record_sign_in(db: &sqlx::PgPool, user_id: uuid::Uuid, method: &str) -> AppResult<()> {
+pub(crate) async fn record_sign_in(
+    db: &sqlx::PgPool,
+    user_id: uuid::Uuid,
+    method: &str,
+) -> AppResult<()> {
     sqlx::query("INSERT INTO audit_log (user_id, action, details) VALUES ($1, 'login', $2)")
         .bind(user_id)
         .bind(json!({ "method": method }))
@@ -290,6 +309,12 @@ pub async fn refresh_token(
 
     if session.is_expired() {
         return Err(AppError::TokenExpired);
+    }
+
+    // An app's session refreshes only through `/oauth/token`, which rotates its refresh token and
+    // detects a reused one (ADR-043 decision 2). Accepting it here would be a way around both.
+    if session.client_id.is_some() {
+        return Err(AppError::InvalidToken);
     }
 
     // The session was used now, which its owner sees in the list of sessions. A session revoked

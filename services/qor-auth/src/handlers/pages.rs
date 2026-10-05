@@ -87,6 +87,19 @@ button:focus-visible, input:focus-visible { outline: 3px solid #FF9142; outline-
 
 /// A page, with the headers every link page carries.
 fn page(status: StatusCode, title: &str, body: &str) -> Response {
+    page_sending_to(status, title, body, None)
+}
+
+/// A page whose form, once submitted, may be redirected to one other origin as well as this one:
+/// QOR ID's sign-in page for an app, which ends in a redirect to that app. Browsers apply
+/// `form-action` to the redirect after a submission too, so without the app's origin here the
+/// browser would refuse to return the person to it.
+pub(crate) fn page_sending_to(
+    status: StatusCode,
+    title: &str,
+    body: &str,
+    origin: Option<&str>,
+) -> Response {
     let title = escape(title);
     let html = format!(
         r#"<!DOCTYPE html>
@@ -129,11 +142,17 @@ fn page(status: StatusCode, title: &str, body: &str) -> Response {
         header::X_CONTENT_TYPE_OPTIONS,
         HeaderValue::from_static("nosniff"),
     );
+    let csp = format!(
+        "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'{}; frame-ancestors 'none'; base-uri 'none'",
+        origin.map(|o| format!(" {o}")).unwrap_or_default()
+    );
     headers.insert(
         header::CONTENT_SECURITY_POLICY,
-        HeaderValue::from_static(
-            "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
-        ),
+        HeaderValue::from_str(&csp).unwrap_or_else(|_| {
+            HeaderValue::from_static(
+                "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+            )
+        }),
     );
     headers.insert(
         "x-robots-tag",
