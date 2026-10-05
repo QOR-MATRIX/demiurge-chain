@@ -1,9 +1,10 @@
 # ADR-076: ARQADE hands a payment to the QOR Launcher to sign (devnet, P7.4)
 
-**Status:** **Proposed**, 5 October 2026, for the owner to accept or change. Nothing in it is built. It is the "own
+**Status:** **Accepted**, 5 October 2026, by the project owner: "I accept ADR-076. 100,000 CGT", the per-request cap
+of decision 6. Proposed the same day. Not yet built. It is the "own
 record" [ADR-069](ADR-069-arqade-the-gaming-platform.md) decision 5 requires before option A (a request handed to the
 launcher) is built, for devnet play before delegated keys (M5.2) exist. It decides no economic value: the one number it
-needs (decision 6) is marked as the owner's.
+needs, decision 6's cap, is the owner's, set on acceptance for the devnet.
 
 ## Context
 
@@ -23,7 +24,7 @@ Two hand-offs were considered: a local web server in the launcher, which ADR-069
 can reach one; and a **custom URL scheme**, which opens the launcher only when the person clicks a link and lets the
 launcher, not the page, decide what happens.
 
-## Decision (proposed)
+## Decision
 
 1. **A `qor://pay` link.** ARQADE shows **Pay with the QOR Launcher**; the link opens the launcher with one payment
    request. The launcher registers the `qor` scheme when installed. Nothing else in the browser can reach the launcher.
@@ -41,12 +42,12 @@ launcher, not the page, decide what happens.
    `system.remark` batched with the transfer); ARQADE's server watches finalised blocks for it. No reply channel from the
    launcher to the browser is needed, and a payment that did not finalise is not counted.
 6. **Devnet only, with a cap per request.** The launcher refuses a `qor://pay` request for any network but Demiurge
-   Devnet, and above a per-request cap. **The cap is the owner's to set**; until then the launcher uses a placeholder,
-   clearly marked as one, and ARQADE never asks above it.
+   Devnet, and above a per-request cap of **100,000 CGT** (100,000 x 10^18 Sparks), set by the owner on acceptance.
+   ARQADE never asks above it. The cap is for the devnet's test CGT; a cap for real CGT is decided with production.
 7. **Expiry and single use.** A request id is paid at most once (the launcher remembers the ids it has signed; the
    chain-side check of decision 5 counts one payment per id) and not after its expiry.
 
-## What it needs, if accepted
+## What it needs
 
 - The launcher: register the scheme (Tauri's deep-link plugin), parse and verify a request, the dialog, sign and
   submit, remember paid ids. ARQADE: the request signer, the link, the chain watcher, and a "waiting for payment" state.
@@ -60,7 +61,6 @@ launcher, not the page, decide what happens.
 - Every payment needs a click in the browser and an approval in the launcher. B removes that for small amounts later.
 - When B exists, `qor://pay` stays for amounts above a delegated key's caps.
 
-## For the owner
+## Not decided here
 
-Accept as written, or change: the hand-off (custom URL scheme), the devnet-only rule, and the per-request cap (decision
-6). Real CGT, paid entry with prizes (U-16) and the legal review are not decided here.
+Real CGT, paid entry with prizes (U-16) and the legal review.
