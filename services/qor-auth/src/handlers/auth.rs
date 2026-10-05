@@ -67,8 +67,9 @@ pub async fn register(
         return Err(AppError::ValidationError("Email already registered".into()));
     }
 
-    // Generate discriminator
-    let discriminator = auth_service.generate_discriminator(&username_lower).await?;
+    // One name per account (ADR-075): the discriminator is always 1, and the unique index on
+    // LOWER(username) refuses a name taken between the check above and this insert.
+    let discriminator: i16 = 1;
 
     // Hash password
     let password_hash = AuthService::hash_password(&req.password)?;
@@ -129,7 +130,14 @@ pub async fn register(
     .bind(email_verification_expires_at)
     .bind(sending_verification)
     .fetch_one(&mut *tx)
-    .await?;
+    .await
+    .map_err(|e| {
+        if matches!(&e, sqlx::Error::Database(db) if db.constraint() == Some("users_username_unique")) {
+            AppError::ValidationError("Username already taken".into())
+        } else {
+            AppError::DatabaseError(e)
+        }
+    })?;
 
     for code in &backup_codes {
         sqlx::query("INSERT INTO backup_codes (user_id, code_hash) VALUES ($1, $2)")
@@ -164,14 +172,14 @@ pub async fn register(
         };
 
         json!({
-            "qor_id": format!("{}#{:04}", username_lower, discriminator),
+            "qor_id": username_lower,
             "user_id": user_id,
             "email_verified": email_verified,
             "message": message
         })
     } else {
         json!({
-            "qor_id": format!("{}#{:04}", username_lower, discriminator),
+            "qor_id": username_lower,
             "user_id": user_id,
             "backup_codes": backup_codes,
             "email_verified": email_verified,
@@ -409,7 +417,7 @@ pub async fn verify_email(
 /// recovery routes. If another account has registered the address meanwhile, the
 /// confirmation is refused.
 async fn confirm_pending_email(state: &AppState, token: &str) -> AppResult<Json<Value>> {
-    let confirmed: Option<(String, i16)> = sqlx::query_as(
+    let confirmed: Option<String> = sqlx::query_scalar(
         r#"
         UPDATE users
         SET email = pending_email,
@@ -423,7 +431,7 @@ async fn confirm_pending_email(state: &AppState, token: &str) -> AppResult<Json<
         WHERE pending_email_token = $1
           AND pending_email_expires_at > NOW()
           AND status = 'active'
-        RETURNING username, discriminator
+        RETURNING username
         "#,
     )
     .bind(token)
@@ -439,12 +447,12 @@ async fn confirm_pending_email(state: &AppState, token: &str) -> AppResult<Json<
         }
     })?;
 
-    let (username, discriminator) = confirmed.ok_or(AppError::ValidationError(
+    let username = confirmed.ok_or(AppError::ValidationError(
         "Invalid or expired verification token".into(),
     ))?;
     Ok(Json(json!({
         "message": "Email verified successfully",
-        "qor_id": format!("{}#{:04}", username.to_lowercase(), discriminator),
+        "qor_id": username.to_lowercase(),
     })))
 }
 
@@ -1197,8 +1205,8 @@ pub async fn keypair_register(
         return Err(AppError::ValidationError("Username already taken".into()));
     }
 
-    // Generate discriminator
-    let discriminator = auth_service.generate_discriminator(&username_lower).await?;
+    // One name per account (ADR-075).
+    let discriminator: i16 = 1;
 
     // Generate a random password hash (keypair-only accounts don't need password)
     let random_password: [u8; 32] = rand::thread_rng().r#gen();
@@ -1222,7 +1230,14 @@ pub async fn keypair_register(
     .bind(&password_hash)
     .bind(account.as_bytes())
     .fetch_one(&state.db)
-    .await?;
+    .await
+    .map_err(|e| {
+        if matches!(&e, sqlx::Error::Database(db) if db.constraint() == Some("users_username_unique")) {
+            AppError::ValidationError("Username already taken".into())
+        } else {
+            AppError::DatabaseError(e)
+        }
+    })?;
 
     // Sign the new account in, exactly as keypair_login does. Registering consumed
     // the only challenge the client signed, so without tokens here the client
@@ -1253,7 +1268,7 @@ pub async fn keypair_register(
     Ok((
         StatusCode::CREATED,
         Json(json!({
-            "qor_id": format!("{}#{:04}", username_lower, discriminator),
+            "qor_id": username_lower,
             "user_id": user_id,
             "address": account.address(state.config.chain.ss58_prefix),
             "account_id": account.account_id_hex(),
@@ -1335,7 +1350,7 @@ pub(crate) async fn link_verified_key(
             auth_method = COALESCE(auth_method, 'password'),
             updated_at = NOW()
         WHERE id = $2
-        RETURNING username || '#' || lpad(discriminator::text, 4, '0')
+        RETURNING LOWER(username)
         "#,
     )
     .bind(account.as_bytes())
@@ -1393,6 +1408,41 @@ mod registration_tests {
         }
     }
 
+    /// ADR-075: a name belongs to one account, whatever its letter case, and the QOR ID is the name
+    /// alone. The database holds the rule itself, so a path that skipped the check is refused too.
+    #[sqlx::test]
+    async fn a_name_belongs_to_one_account_and_is_the_whole_qor_id(db: PgPool) {
+        let (_, Json(body)) = register(State(state(db.clone())), Json(request("Godmode", None)))
+            .await
+            .expect("registration");
+        assert_eq!(body["qor_id"], json!("godmode"), "no #0001");
+
+        for taken in ["godmode", "GODMODE", "GodMode"] {
+            let refused = register(State(state(db.clone())), Json(request(taken, None))).await;
+            assert!(
+                matches!(&refused, Err(AppError::ValidationError(m)) if m == "Username already taken"),
+                "{taken} must be refused"
+            );
+        }
+
+        let bypassed = sqlx::query(
+            "INSERT INTO users (email, username, password_hash) VALUES ('other@example.invalid', 'GodMode', 'x')",
+        )
+        .execute(&db)
+        .await;
+        assert!(
+            matches!(&bypassed, Err(sqlx::Error::Database(e)) if e.constraint() == Some("users_username_unique")),
+            "the database refuses a second account with the name"
+        );
+
+        let found = AuthService::new(db.clone())
+            .find_by_username("GODMODE")
+            .await
+            .expect("lookup")
+            .expect("the one account");
+        assert_eq!(found.qor_id(), "godmode");
+    }
+
     #[sqlx::test]
     async fn registering_with_an_email_leaves_it_unverified(db: PgPool) {
         let (status, Json(body)) = register(
@@ -1445,9 +1495,8 @@ mod registration_tests {
         .await
         .expect("verification");
         assert!(
-            body["qor_id"]
-                .as_str()
-                .is_some_and(|id| id.starts_with("toverify#"))
+            body["qor_id"].as_str().is_some_and(|id| id == "toverify"),
+            "the QOR ID is the name alone (ADR-075)"
         );
 
         let (verified, token) = stored(&db, "toverify").await;
@@ -1619,7 +1668,8 @@ mod forgot_password_tests {
         assert!(
             verified["qor_id"]
                 .as_str()
-                .is_some_and(|id| id.starts_with("verified#"))
+                .is_some_and(|id| id == "verified"),
+            "the QOR ID is the name alone (ADR-075)"
         );
         register_user(&state, "unverified", Some("unverified@example.invalid")).await;
         register_user(&state, "noemail", None).await;
@@ -2326,9 +2376,8 @@ mod resend_verification_tests {
             .await
             .expect("the new link verifies");
         assert!(
-            body["qor_id"]
-                .as_str()
-                .is_some_and(|id| id.starts_with("lapsed#"))
+            body["qor_id"].as_str().is_some_and(|id| id == "lapsed"),
+            "the QOR ID is the name alone (ADR-075)"
         );
         let verified: bool =
             sqlx::query_scalar("SELECT email_verified FROM users WHERE username = 'lapsed'")

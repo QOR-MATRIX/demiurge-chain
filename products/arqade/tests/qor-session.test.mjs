@@ -31,7 +31,7 @@ function qorId(){
     }
     if(u.pathname==='/oauth/userinfo'){
       const sub=s.access.get((init.headers?.authorization||'').replace('Bearer ',''));
-      return sub?Response.json({sub,qor_id:'player#0001',username:'player',chain_account:null}):new Response(null,{status:401});
+      return sub?Response.json({sub,qor_id:'player',username:'player',chain_account:null}):new Response(null,{status:401});
     }
     if(u.pathname==='/oauth/revoke'){s.revoked.push(form.get('token'));s.refresh.delete(form.get('token'));return new Response(null,{status:200})}
     return new Response(null,{status:404});
@@ -97,7 +97,7 @@ test('the session is stored by the hash of the cookie, never the cookie, with it
 test('who is signed in is asked of QOR ID; an expired access token is refreshed and rotated',async()=>{
   const {rows,db}=await database();const q=qorId();
   const {session}=await signedIn(db,q);
-  assert.equal((await Q.currentProfile(deps(db,q),session)).qorId,'player#0001');
+  assert.equal((await Q.currentProfile(deps(db,q),session)).qorId,'player');
   const [before]=await rows('SELECT access_token,refresh_token FROM qor_sessions');
   q.access.delete(before.access_token); // the access token expired at QOR ID
   assert.equal((await Q.currentProfile(deps(db,q),session)).username,'player');
@@ -137,9 +137,9 @@ test('the live arcade reuses the answer from QOR ID for 30 seconds, then asks ag
   let t=1_000_000;const clock=()=>t;
   const {session}=await signedIn(db,q,clock);
   q.calls.length=0;
-  assert.equal((await Q.currentProfile(deps(db,q,clock),session,Q.ARCADE_RECHECK_MS)).qorId,'player#0001');
+  assert.equal((await Q.currentProfile(deps(db,q,clock),session,Q.ARCADE_RECHECK_MS)).qorId,'player');
   assert.deepEqual(q.calls,[],'answered from the session QOR ID confirmed at sign-in');
-  assert.equal((await Q.currentProfile(deps(db,q,clock),session)).qorId,'player#0001');
+  assert.equal((await Q.currentProfile(deps(db,q,clock),session)).qorId,'player');
   assert.deepEqual(q.calls,['/oauth/userinfo'],'no allowance given: QOR ID is asked');
   q.access.clear();q.refresh.clear(); // revoked at QOR ID
   t+=Q.ARCADE_RECHECK_MS-1;q.calls.length=0;

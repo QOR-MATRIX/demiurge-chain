@@ -160,7 +160,13 @@ pub async fn register_agent(
     let auth_service = AuthService::new(state.db.clone());
 
     let agent_name = format!("agent_{}", req.name.to_lowercase().replace(' ', "_"));
-    let discriminator = auth_service.generate_discriminator(&agent_name).await?;
+    // One name per account (ADR-075): an agent's name is refused if any account holds it.
+    if auth_service.find_by_username(&agent_name).await?.is_some() {
+        return Err(AppError::ValidationError(
+            "An account with this name already exists".into(),
+        ));
+    }
+    let discriminator: i16 = 1;
     let agent_did = generate_agent_did();
 
     // Agents sign in with their key. The password hash covers a random value
@@ -196,13 +202,20 @@ pub async fn register_agent(
     .bind(req.spending_limit)
     .bind(&req.model)
     .fetch_one(&state.db)
-    .await?;
+    .await
+    .map_err(|e| {
+        if matches!(&e, sqlx::Error::Database(db) if db.constraint() == Some("users_username_unique")) {
+            AppError::ValidationError("An account with this name already exists".into())
+        } else {
+            AppError::DatabaseError(e)
+        }
+    })?;
 
     Ok((
         StatusCode::CREATED,
         Json(AgentRegistrationResponse {
             agent_id,
-            qor_id: format!("{}#{:04}", agent_name, discriminator),
+            qor_id: agent_name.clone(),
             did: agent_did,
             address: account.address(state.config.chain.ss58_prefix),
             account_id: account.account_id_hex(),

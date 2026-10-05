@@ -81,6 +81,17 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!("✅ Database migrations applied");
 
+    // How many accounts migration 019 renamed to make every name unique (ADR-075). A count, never a
+    // name: it says whether anyone needs telling.
+    let renamed: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM users WHERE renamed_from IS NOT NULL")
+            .fetch_one(&db_pool)
+            .await?;
+    tracing::info!(
+        renamed,
+        "accounts renamed for one name per account (ADR-075)"
+    );
+
     // Redis connection
     let redis_cfg = deadpool_redis::Config::from_url(&config.redis.url);
     let redis_pool = redis_cfg.create_pool(Some(deadpool_redis::Runtime::Tokio1))?;

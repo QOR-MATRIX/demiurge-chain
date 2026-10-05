@@ -1,33 +1,32 @@
 //! Qor ID specific models and utilities.
+//!
+//! A QOR ID is the account's username alone, unique on its own whatever its letter case (ADR-075).
+//! Until 5 October 2026 it carried a Battle.net-style `#0001` discriminator; an old string in that
+//! form is still read, and its number ignored.
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-/// Parsed Qor ID components
+/// A QOR ID: a username.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QorId {
     pub username: String,
-    pub discriminator: i16,
 }
 
 impl QorId {
-    /// Parse a Qor ID string (e.g., "username#1337")
+    /// Parse a QOR ID: `name`, or the retired `name#0001` form, whose number is ignored.
     pub fn parse(s: &str) -> Option<Self> {
-        let parts: Vec<&str> = s.split('#').collect();
-        if parts.len() != 2 {
-            return None;
-        }
-
-        let username = parts[0].to_lowercase();
-        let discriminator = parts[1].parse::<i16>().ok()?;
-
-        if !(0..=9999).contains(&discriminator) {
-            return None;
-        }
-
-        Some(Self {
-            username,
-            discriminator,
+        let name = match s.split_once('#') {
+            Some((name, number))
+                if !number.is_empty() && number.bytes().all(|b| b.is_ascii_digit()) =>
+            {
+                name
+            }
+            Some(_) => return None,
+            None => s,
+        };
+        Self::is_valid_username(name).then(|| Self {
+            username: name.to_lowercase(),
         })
     }
 
@@ -47,7 +46,7 @@ impl QorId {
 
 impl fmt::Display for QorId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}#{:04}", self.username, self.discriminator)
+        f.write_str(&self.username)
     }
 }
 
@@ -75,26 +74,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_qor_id_parse() {
-        let qor_id = QorId::parse("alaustrup#1337").unwrap();
+    fn a_qor_id_is_the_username_alone() {
+        let qor_id = QorId::parse("Alaustrup").unwrap();
         assert_eq!(qor_id.username, "alaustrup");
-        assert_eq!(qor_id.discriminator, 1337);
+        assert_eq!(qor_id.to_string(), "alaustrup", "no #0001 is shown");
     }
 
     #[test]
-    fn test_qor_id_display() {
-        let qor_id = QorId {
-            username: "alaustrup".into(),
-            discriminator: 42,
-        };
-        assert_eq!(qor_id.to_string(), "alaustrup#0042");
+    fn the_retired_number_is_read_and_ignored() {
+        assert_eq!(
+            QorId::parse("alaustrup#1337").unwrap().to_string(),
+            "alaustrup"
+        );
     }
 
     #[test]
     fn test_invalid_qor_id() {
-        assert!(QorId::parse("invalid").is_none());
-        assert!(QorId::parse("user#99999").is_none());
+        assert!(QorId::parse("ab").is_none());
+        assert!(QorId::parse("user#").is_none());
         assert!(QorId::parse("user#-1").is_none());
+        assert!(QorId::parse("user name").is_none());
     }
 
     #[test]

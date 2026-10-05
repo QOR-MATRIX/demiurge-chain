@@ -81,6 +81,7 @@ export interface Arrival {
 export interface Session {
   qor_id: string;
   username: string;
+  /** Retired with ADR-075: always 1. The QOR ID is the name alone. */
   discriminator: number;
   role: string;
   address: string | null;

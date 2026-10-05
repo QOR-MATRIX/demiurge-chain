@@ -5,6 +5,9 @@ ourselves through Vercel"); the engineering below follows from it under the owne
 question [ADR-069](ADR-069-arqade-the-gaming-platform.md) left open, and changes two parts of
 [ADR-073](ADR-073-qor-id-sign-in-for-apps.md) (decisions 11 and 12, below). It decides no economic value.
 
+**Identity form changed, 5 October 2026, by [ADR-075](ADR-075-one-name-per-qor-id.md):** a QOR ID is the username
+alone, unique on its own; the `#0001` discriminator below is retired. The text is kept as it was written.
+
 ## Context
 
 ARQADE ran on OpenAI Sites: vinext on Cloudflare Workers, Cloudflare D1 through drizzle, and players identified by the

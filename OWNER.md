@@ -19,7 +19,8 @@ The code is public at `github.com/QOR-MATRIX/demiurge-chain` (your organisation)
 - **The chain.** Makes and finalises blocks — *finalise: agree a block can never be undone* — holds assets,
   sends, sells with royalties, nests one asset in another, and refuses a purchase if the seller changed the
   work after you looked. **150 tests pass** (4 October, the ARQ Wallet's included).
-- **Sign-in (QOR ID)** at `id.qorsync.dev`, beside its database in Virginia. **143 tests pass** (5 October). Since
+- **Sign-in (QOR ID)** at `id.qorsync.dev`, beside its database in Virginia. **145 tests pass** (5 October). Your QOR ID is now just your name, with no `#0001`, and no two
+  accounts can share a name (ADR-075, your rule; waiting on your merge). Since
   5 October it also signs people in to **other websites** on its own page, and ARQADE is registered with it.
 - **The launcher 0.1.6.** Keys, sign-in, sending, minting, Inventory, trading, selling, buying, and a
   **Market** of everything listed. Its next build points at the devnet by default. **195 tests pass.**

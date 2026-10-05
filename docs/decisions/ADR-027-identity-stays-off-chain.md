@@ -6,6 +6,9 @@
 **Follows:** [ADR-017](ADR-017-password-accounts-no-chain-identity-without-a-key.md), under which a chain identity
 exists exactly where a key the holder proved exists.
 
+**Identity form changed, 5 October 2026, by [ADR-075](ADR-075-one-name-per-qor-id.md):** a QOR ID is the username
+alone, unique on its own; the `#0001` discriminator below is retired. The text is kept as it was written.
+
 ## Context
 
 The custom chain's `qor-identity` module holds DID records and handles. Nothing dispatches it, it is not in

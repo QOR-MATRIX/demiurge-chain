@@ -16,7 +16,7 @@ const storeWith=(name,connect)=>compile('lib/arena-store.ts',name,[
 const store=await import(storeWith('store','()=>globalThis.__arenaTest.db'));
 const chat=await import(compile('app/api/chat/route.ts','chat',[["from '@/lib/arena-store'","from './store.mjs'"]]));
 const live=await import(compile('app/api/live/route.ts','live',[["from '@/lib/arena-store'","from './store.mjs'"]]));
-async function user(name){globalThis.__arenaTest.user={sub:'sub-'+name,qorId:name+'#0001',username:name,chainAccount:null};return store.identity()}
+async function user(name){globalThis.__arenaTest.user={sub:'sub-'+name,qorId:name,username:name,chainAccount:null};return store.identity()}
 const A=await user('player-a'),B=await user('player-b'),C=await user('spectator');
 const req=(data,origin='https://arcade.test')=>new Request('https://arcade.test/api/chat',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(data)});
 
@@ -29,9 +29,9 @@ test('Reversi legal turns preserve occupancy and finish 100 varied games',()=>{
  for(let seed=0;seed<100;seed++){let b=engine.initialBoard('reversi'),n=0;while(b.winner===null){const legal=engine.legalMoves('reversi',b);assert.ok(legal.length);const count=b.cells.filter(Boolean).length;b=engine.moveBoard('reversi',b,legal[(seed*17+n*11)%legal.length]);assert.equal(b.cells.filter(Boolean).length,count+1);assert.ok(++n<=32)}const one=b.cells.filter(v=>v===1).length,two=b.cells.filter(v=>v===2).length;assert.equal(b.winner,one===two?0:one>two?1:2)}
 });
 test('A player is their QOR ID: named by it, keyed by a hash of the account, never the account id; origins enforced',async()=>{
- assert.equal(A.name,'player-a#0001');assert.equal(A.qorVerified,true);assert.match(A.id,/^[0-9a-f]{64}$/);assert.notEqual(A.id,'sub-player-a');
+ assert.equal(A.name,'player-a');assert.equal(A.qorVerified,true);assert.match(A.id,/^[0-9a-f]{64}$/);assert.notEqual(A.id,'sub-player-a');
  globalThis.__arenaTest.user=null;await assert.rejects(store.identity(),e=>e.status===401&&/QOR ID/.test(e.message));
- globalThis.__arenaTest.user={sub:'sub-player-a',qorId:'renamed#0002',username:'renamed',chainAccount:null};const again=await store.identity();assert.equal(again.id,A.id);assert.equal(again.name,'renamed#0002','a renamed QOR ID shows at once');
+ globalThis.__arenaTest.user={sub:'sub-player-a',qorId:'renamed',username:'renamed',chainAccount:null};const again=await store.identity();assert.equal(again.id,A.id);assert.equal(again.name,'renamed','a renamed QOR ID shows at once');
  await user('player-a');assert.throws(()=>store.sameOrigin(req({},'https://evil.test')),e=>e.status===403);assert.throws(()=>store.sameOrigin(new Request('https://arcade.test/api/chat')),e=>e.status===403);
 });
 test('Two-player lifecycle: unauthorized moves, racing moves, exact-once ranks and early resign',async()=>{
@@ -51,7 +51,7 @@ test('Chat enforces identity, atomic rate limits, message limits and ownership',
  await user('player-a');await chat.POST(req({action:'delete',id}));assert.equal((await one('SELECT deleted FROM messages WHERE id=$1',[id])).deleted,1);
 });
 test('Global ranking aggregates both games before top-100 limit and omits deleted chat',async()=>{
- await one('INSERT INTO standings(player,game,wins,points,updated) VALUES ($1,$2,$3,$4,$5)',[B.id,'reversi',2,60,Date.now()]);await user('player-a');const r=await live.GET();assert.equal(r.status,200);const data=await r.json();const global=data.standings.filter(s=>s.game==='all');assert.equal(global[0].player,B.id);assert.equal(global[0].points,65);assert.equal(global[0].alias,'player-b#0001');assert.equal(typeof data.online,'number');assert.equal(data.messages.length,0);assert.equal(data.me.id,A.id);
+ await one('INSERT INTO standings(player,game,wins,points,updated) VALUES ($1,$2,$3,$4,$5)',[B.id,'reversi',2,60,Date.now()]);await user('player-a');const r=await live.GET();assert.equal(r.status,200);const data=await r.json();const global=data.standings.filter(s=>s.game==='all');assert.equal(global[0].player,B.id);assert.equal(global[0].points,65);assert.equal(global[0].alias,'player-b');assert.equal(typeof data.online,'number');assert.equal(data.messages.length,0);assert.equal(data.me.id,A.id);
 });
 test('Without a database the arcade says it is being connected',async()=>{
  const off=await import(storeWith('store-off',"()=>{throw new Unavailable('DATABASE_URL is not set.')}"));

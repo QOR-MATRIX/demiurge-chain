@@ -77,11 +77,11 @@ pub async fn list_users(
     .fetch_all(&state.db)
     .await?
     .iter()
-    .map(|(id, email, username, discriminator, role, status, created_at)| {
+    .map(|(id, email, username, _discriminator, role, status, created_at)| {
         json!({
             "id": id,
             "email": email,
-            "qor_id": format!("{}#{:04}", username, discriminator),
+            "qor_id": username.to_lowercase(),
             "role": role,
             "status": status,
             "created_at": created_at,
