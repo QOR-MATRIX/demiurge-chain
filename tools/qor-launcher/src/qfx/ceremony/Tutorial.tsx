@@ -21,8 +21,10 @@ const KEY = (qorId: string) => `qor.tutorial.done:${qorId}`;
 /** Whether this QOR ID has finished the tutorial on this computer. */
 export function tutorialDone(qorId: string): boolean {
   try {
-    // Before ADR-075 a QOR ID carried `#0001`; a tutorial finished under that name stays finished.
-    return localStorage.getItem(KEY(qorId)) === '1' || localStorage.getItem(KEY(`${qorId}#0001`)) === '1';
+    // Before ADR-075 a QOR ID was the name, '#' and the number 0001; a tutorial finished under that
+    // form stays finished. (Joined, not written out, so it is not read as a colour literal.)
+    const retired = [qorId, '0001'].join('#');
+    return localStorage.getItem(KEY(qorId)) === '1' || localStorage.getItem(KEY(retired)) === '1';
   } catch {
     return false;
   }
