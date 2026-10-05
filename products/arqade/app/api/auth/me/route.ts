@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   const held = cookie(request.headers.get('cookie'), SESSION_COOKIE);
   const configured = configFrom(process.env) !== null;
   try {
-    const profile = await currentProfile(deps(), held);
+    const profile = held ? await currentProfile(deps(), held) : null;
     const headers = new Headers({ 'Cache-Control': 'no-store' });
     if (held && !profile) headers.append('Set-Cookie', setCookie(SESSION_COOKIE, '', 0, new URL(request.url).protocol === 'https:'));
     return Response.json(

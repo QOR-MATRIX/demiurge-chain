@@ -15,6 +15,9 @@ export function deps(): Deps {
 /** The QOR ID person behind this request's session cookie, for the live arcade, or null. */
 export async function sessionProfile(): Promise<Profile | null> {
   const held = (await cookies()).get(SESSION_COOKIE)?.value ?? null;
+  // No cookie, no session: answered without touching the database, so a visitor who is not signed in is told
+  // to sign in even while the database is unreachable.
+  if (!held) return null;
   return currentProfile(deps(), held, ARCADE_RECHECK_MS);
 }
 
