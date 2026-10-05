@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 43 (4 October 2026): the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 44 (4 October 2026): the devnet upgrade to spec_version 7 rehearsed, awaiting the owner's signature; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1554,6 +1554,19 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     clippy `-D warnings` clean. **CI run `37260938168` on `main` (`f3a684e`) concluded success: every job passed** —
     chain (fmt, clippy and every test with the wasm built, its first pass since 28 September), QOR ID, launcher,
     ARQADE, coverage and security; two-validators and the newest-clippy report are scheduled-only and were skipped.
+
+44. **4 October 2026: the ARQ Wallet's runtime upgrade rehearsed; the devnet waits on the owner's signature.** Live
+    devnet read first: `demiurge` spec_version 6, `Sudo::Key` set. Built `cargo build -p demiurge-node --release
+    --features sudo --locked` at `715f0ee`: the runtime is `demiurge_runtime.compact.compressed.wasm`, **516,222 bytes,
+    SHA-256 `0db8455c018df88ad8aac04c86016629467b506aef3c203bb582dac8ba81a901`**, copied to the owner's Downloads as
+    `demiurge-runtime-v7.compact.compressed.wasm`. **Rehearsal** (`chain/scripts/rehearse-upgrade.mjs`, new): a
+    development specification with its genesis `:code` replaced by the devnet's own (2,614,632 bytes, read with
+    `state_getStorage(":code")`), one local validator; a transfer and a DRC-369 mint left behind; then
+    `sudo.sudoUncheckedWeight(system.setCode(wasm))` exactly as the owner will sign it. **Passed:** spec_version 7,
+    spec_name kept, Sudo kept with the same key, the transfer and the asset kept, `ArqWallet` in the metadata, and a new
+    ARQ Wallet paid a player exactly 5 CGT. The client logged one decode warning for the upgrade block's events, read
+    with the old metadata; expected at an upgrade. Traps: a `--tmp` validator needs `--node-key`. **Next:** the
+    owner signs the upgrade on the devnet in polkadot.js Apps; then spec_version is read back.
 
 ## 5. Traps, so nobody re-learns them
 
