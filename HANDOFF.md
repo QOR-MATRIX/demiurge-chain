@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 41 (4 October 2026): `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 42 (4 October 2026): merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1529,6 +1529,15 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     incremental caches under three `target/debug/incremental` directories were removed and the run repeated with
     `CARGO_INCREMENTAL=0`. **To reach the devnet** the runtime must be built **with the `sudo` feature** (the devnet's
     runtime has it; a wasm without it would remove sudo from the devnet on upgrade) and set by the owner's sudo key.
+
+42. **4 October 2026: ARQADE merged to `main`; the chain's CI job is red, and has been since Rust 1.99.** `main`
+    fast-forwarded to `e5b5f7c` (six commits) and pushed; `public-main` now tracks `matrix/main`. CI runs on the
+    organisation (no longer blocked): QOR ID and Security pass; **the chain job fails at Lints**, as it has on every
+    run since 28 September, because `dtolnay/rust-toolchain@stable` installed Rust 1.99.0, whose clippy flags
+    `clone_on_copy` in code `#[pallet::event]` and `#[pallet::call]` generate (reproduced locally: 36 hits in
+    `pallet-drc369`, 3 in `pallet-validator-set`). Every fix weakens a gated check, so it is written up for the owner:
+    `docs/architecture/RUST_TOOLCHAIN.md`, recommending a 1.98.1 pin with a non-failing newest-clippy report. Nothing
+    was changed in CI or in code. `archive-7gUg78/` (a GitKraken installer zip) was left uncommitted on purpose.
 
 ## 5. Traps, so nobody re-learns them
 
