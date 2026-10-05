@@ -26,6 +26,11 @@ depend on this runtime, and the first end-to-end use of its finality.
 | `pallets/arq-wallet` (`pallet-arq-wallet`) | **Mounted as `ArqWallet` at index 11** (2026-10-04, ADR-070, ARQADE's P7.11). One keyless payout account per published game, derived from its DRC-369 Cartridge (`PalletId` `dmg/arqw`) and governed by whoever holds the Cartridge: a policy on chain (largest payout, epoch budget, cap per recipient, rule versions), tightened at once and loosened only after its delay; a payout authority that can only pay within it; each outcome paid once inside an outcome window; payouts that cannot reach a player owed and claimable, and never withdrawn; withdrawals delayed and never taking the deposit or what is owed. Prizes held before paid rounds are a later slice. Its protocol bounds are **U-16 placeholders** marked in `runtime/src/assets.rs`; weights are placeholders owed to M7.2. Not yet on the devnet |
 | `pallet-sponsorship`, `pallet-agent-caps` | Not written yet. Names confirmed by the owner on 2026-09-17 and checked for collisions |
 
+
+**Rust is pinned to 1.98.1** by `rust-toolchain.toml` (ADR-072): Rust 1.99's clippy lints code the pinned SDK's pallet
+macros generate. rustup installs 1.98.1, `clippy`, `rustfmt` and `wasm32v1-none` on the first `cargo` run here. The pin
+moves deliberately, as the SDK's does; CI's `chain-newest-clippy` job reports what the newest Rust would say.
+
 ## What it deliberately does not contain
 
 Values that [`docs/economics/OPEN_QUESTIONS.md`](../docs/economics/OPEN_QUESTIONS.md) leaves undecided are

@@ -1,0 +1,9 @@
+# The chain's Rust, pinned (ADR-072). Rust 1.99's clippy lints code the pinned SDK's
+# macros generate, so the chain stays on the toolchain its evidence was produced under,
+# and a CI report job shows what the newest Rust would say. Move it deliberately, as the
+# SDK pin moves (ADR-033 rule 3), never incidentally.
+[toolchain]
+channel = "1.98.1"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32v1-none"]
+profile = "minimal"

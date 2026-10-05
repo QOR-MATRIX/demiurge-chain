@@ -66,8 +66,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      # Pinned (ADR-072): chain/rust-toolchain.toml names the same version, so every
+      # cargo run in chain/ uses it whatever is installed here.
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: "1.98.1"
           components: rustfmt, clippy
           # The runtime's wasm. The SDK prefers this target over wasm32-unknown-unknown.
           targets: wasm32v1-none
@@ -96,6 +99,33 @@ jobs:
       - name: Tests
         working-directory: ./chain
         run: cargo test --workspace --locked
+
+  chain-newest-clippy:
+    # A REPORT, not a gate (ADR-072, GATES.toml [ci].reports): what the newest
+    # stable Rust's clippy says about chain/, which builds with a pinned 1.98.1.
+    # It never fails the run. When it is clean, the pin can move (ADR-033 rule 3).
+    # SKIP_WASM_BUILD because it reports lints and is never evidence.
+    name: "chain/: newest-Rust clippy (report only, ADR-072)"
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install system dependencies
+        run: sudo apt-get -o Acquire::Retries=5 update && sudo apt-get -o Acquire::Retries=5 install -y clang libclang-dev llvm-dev protobuf-compiler
+
+      - name: Clippy on the newest stable Rust (reported)
+        working-directory: ./chain
+        env:
+          SKIP_WASM_BUILD: "1"
+        run: |
+          rustc +stable --version
+          cargo +stable clippy --workspace --all-targets --locked -- -D warnings
 
   two-validators:
     # The part of the acceptance behaviour that cannot be tested inside the
@@ -130,10 +160,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: "1.98.1"
           # The release build embeds the runtime wasm, so the target is needed
-          # here exactly as it is in the `chain` job.
+          # here exactly as it is in the `chain` job. Pinned as it is (ADR-072).
           targets: wasm32v1-none
 
       - name: Install system dependencies
@@ -371,9 +402,12 @@ jobs:
           mkdir -p coverage
           echo '{"status":"unmeasurable","reason":"docs/GATES.toml lists no pallets, or the chain has no location (inventory Q-8, Q-15)"}' > coverage/summary.json
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
         if: steps.pallets.outputs.list != '' && steps.pallets.outputs.dir != ''
         with:
+          # chain/rust-toolchain.toml decides the version in chain/ (ADR-072), so
+          # llvm-tools must be installed for that version.
+          toolchain: "1.98.1"
           components: llvm-tools-preview
           # As Woodpecker's coverage run needed: a pallet test build can pull the
           # runtime's wasm target in.

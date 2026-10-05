@@ -657,6 +657,13 @@ type = "tightening"
 change = "arqade.wallet-tests: eleven tests of pallet-arq-wallet (ADR-070) in the chain suite must pass, ten in the pallet and one in the runtime. Counted by ARQADE's gate, not Alpha's, because the pallet is a product's (ADR-050 decision 8). No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
 reason = "The wallet holds other people's CGT. The rules that protect it (each outcome once, nothing owed withdrawn, loosening delayed) must not regress silently. Three were seen to fail against planted faults: the outcome check removed, the owed total ignored, loosening applied at once."
 
+[[change_log]]
+date = "2026-10-04"
+type = "evidence-rule"
+change = "The chain's quality gate runs on a pinned Rust, 1.98.1 (chain/rust-toolchain.toml and the chain, two-validators and coverage jobs), instead of the newest stable. A new report job lints chain/ with the newest stable clippy on scheduled and manual runs and never fails the run. The checks themselves (fmt, clippy -D warnings, every test with the wasm built) are unchanged."
+reason = "Rust 1.99.0's clippy flags clone_on_copy in code the pinned SDK's pallet macros generate, so the chain job failed at Lints on every run since 28 September and its tests stopped running in CI. Pinning stops new upstream lints from gating the chain until the pin moves, which is a loosening by this file's rule; the report keeps them visible. docs/architecture/RUST_TOOLCHAIN.md set out four options."
+approved_by = "owner, 2026-10-04 (\"go with option A\"; ADR-072)"
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -698,7 +705,7 @@ workflow = "Pleroma CI"
 repository = "QOR-MATRIX/demiurge-chain"
 file = ".github/workflows/ci.yml"
 quality_gates = [
-  "chain/: cargo fmt --all --check; cargo clippy --workspace --all-targets -D warnings; cargo test --workspace --locked, WITHOUT SKIP_WASM_BUILD, which cannot build a chain specification and is never evidence",
+  "chain/: cargo fmt --all --check; cargo clippy --workspace --all-targets -D warnings; cargo test --workspace --locked, WITHOUT SKIP_WASM_BUILD, which cannot build a chain specification and is never evidence. On Rust 1.98.1, pinned by chain/rust-toolchain.toml since 2026-10-04 (ADR-072)",
   "chain/: two validators agree, finalise and catch up. A job of its own, because it needs a release build with the sudo feature: cargo build -p demiurge-node --release --features sudo --locked, then node scripts/check-two-validators.mjs. It fails the run; criterion alpha.multi-validator reads it. Since 2026-09-21 it runs NIGHTLY (03:00 UTC) and on workflow_dispatch, not on every push",
   "services/qor-auth: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test -- --include-ignored, against a migrated Postgres 16 and a Redis 7.4",
   "tools/qor-launcher: npm ci, frontend build and npm run check (design, accessibility, gates view, Projects view, QFX contrast); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
@@ -716,6 +723,7 @@ not_in_ci_yet = [
   "tools/qor-launcher chain::live: it needs a running development node. Worth adding once the chain job's build time in CI is known.",
 ]
 reports = [
+  "chain/ on the newest stable Rust: cargo +stable clippy -D warnings, with SKIP_WASM_BUILD, on every scheduled and manual run. It does not fail the run and NO criterion reads it (ADR-072). It shows what moving the chain's pinned 1.98.1 would bring; on 2026-10-04 Rust 1.99.0 reported clone_on_copy in code the SDK's pallet macros generate.",
   "products/arqade lint: npm run lint runs and does not fail the run. The arcade arrived on 2026-10-04 with 13 errors and 6 warnings, all React Compiler rules (setState inside an effect, refs read during render) in minified code whose fix changes behaviour. NO criterion reads it. It moves to quality_gates in the change that fixes them.",
   "coverage: cargo-llvm-cov line coverage for the pallets listed in beta.value-pallet-coverage, uploaded as the \"coverage\" artifact. It does not fail the run; the coverage kind compares it with the threshold.",
   "cargo audit of chain/: runs and does not fail the run, so a new advisory is visible without an exemption file hiding the known ones. NO criterion reads it, and it is not a quality gate. Its 10 vulnerabilities were measured one by one on 2026-09-20: four are compiled, six are not, and every one of the four is held by a version the pinned SDK dictates, which ADR-033 rule 1 does not override. Each is named with what blocks it and what would close it in SECURITY.md, \"Dependency advisories in chain/\". Making it a gate is a decision for when those four can close.",

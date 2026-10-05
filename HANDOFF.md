@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 42 (4 October 2026): merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 43 (4 October 2026): the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1543,6 +1543,15 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     tracked through documented exceptions (`6a4c566`); a clean copy of the commit installed, type-checked, passed 21
     tests and built, and **CI run `37260506426` passed the ARQADE job**. Trap: an import into this repository must be
     checked with `git status --ignored`, because the root rules drop files without a word.
+
+43. **4 October 2026: the owner chose option A — the chain builds with Rust 1.98.1 (ADR-072).** "go with option A".
+    `chain/rust-toolchain.toml` pins 1.98.1 with `rustfmt`, `clippy` and `wasm32v1-none`; the chain, two-validators and
+    coverage jobs install 1.98.1 (coverage's `llvm-tools-preview` for that version, since the toolchain file decides the
+    version in `chain/`); a new `chain-newest-clippy` job lints with the newest stable on scheduled and manual runs,
+    `continue-on-error`, `SKIP_WASM_BUILD`, and no criterion reads it. ADR-072 amends ADR-033 rule 2 for `chain/` only.
+    `GATES.toml`: `[ci].quality_gates` names the pin, `[ci].reports` the new job, and an `evidence-rule` change-log
+    entry carries the owner's approval. Verified locally: rustup switched `chain/` to 1.98.1 from the file; fmt and
+    clippy `-D warnings` clean.
 
 ## 5. Traps, so nobody re-learns them
 

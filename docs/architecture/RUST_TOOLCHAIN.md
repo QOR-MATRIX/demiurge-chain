@@ -1,7 +1,8 @@
 # The chain's CI is red because Rust 1.99 lints code the SDK's macros write
 
-**For the owner. A decision only you can take**, because every way to turn CI green weakens a check a release gate
-reads (`GATES.toml`, "Changing the evidence rules"). Written 4 October 2026.
+**Decided 4 October 2026: option A** ("go with option A"), recorded as
+[ADR-072](../decisions/ADR-072-the-chain-builds-with-a-pinned-rust.md) and logged in `GATES.toml`. Kept as the write-up the
+owner decided from. Written the same day, because every way to turn CI green weakens a check a release gate reads.
 
 ## What happened
 
