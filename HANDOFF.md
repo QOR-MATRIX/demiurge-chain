@@ -1538,6 +1538,11 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     `pallet-drc369`, 3 in `pallet-validator-set`). Every fix weakens a gated check, so it is written up for the owner:
     `docs/architecture/RUST_TOOLCHAIN.md`, recommending a 1.98.1 pin with a non-failing newest-clippy report. Nothing
     was changed in CI or in code. `archive-7gUg78/` (a GitKraken installer zip) was left uncommitted on purpose.
+    **The ARQADE job failed at first**, at setup: the root `.gitignore` excludes every `package-lock.json` and every
+    `build/`, so the import had silently left out the arcade's lockfile and `build/sites-vite-plugin.ts`. Both are now
+    tracked through documented exceptions (`6a4c566`); a clean copy of the commit installed, type-checked, passed 21
+    tests and built, and **CI run `37260506426` passed the ARQADE job**. Trap: an import into this repository must be
+    checked with `git status --ignored`, because the root rules drop files without a word.
 
 ## 5. Traps, so nobody re-learns them
 
