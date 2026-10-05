@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 47 (4 October 2026): Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 48 (4 October 2026): P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1600,6 +1600,20 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     `fbd85089…0074`, the rehearsed file; `Sudo::Key` unchanged; `ArqWallet` at index 11 with 15 calls, `open_round`
     among them; finality advancing (#20,370 → #20,376 in 36 s) with both validators authoring; readiness 200. CI run
     `37269092178` on `75e8ba8` passed every job before the upgrade.
+
+48. **4 October 2026: P7.2 done — ARQADE reads any account's CGT and DRC-369 assets from the devnet.** `lib/account.ts`:
+    `System::Account` from storage (key `twox128(System) ++ twox128(Account) ++ blake2_128_concat(id)`) and the runtime
+    API `Drc369Api_assets_of`, both at the finalized head, decoded by a bounded SCALE reader; spendable is
+    `free − max(frozen − reserved, existential deposit)`, as `pallet-balances` computes with `Preserve`. The SDK's
+    `ss58Decode` refuses another network's prefix and a broken checksum before any read. `/api/chain/account` returns
+    amounts as decimal strings (400 for a refused address, 503 for an unreadable chain); `app/account-lookup.tsx` on the
+    QOR Identity screen shows them grouped, labelled test CGT, and keeps the last answer marked stale on failure.
+    **Evidence:** test vectors captured from a local `--dev` node at `spec_version` 8 after two named mints (one a
+    remix, one with a non-ASCII name, both commit kinds), where `@polkadot/api` decoded the same balance; the reader
+    against the live devnet matched `@polkadot/api` on `5DMPEX…qLxK` (100,000 test CGT, 0 assets); the route answered
+    in the local workerd runtime; headless Chrome drove the panel (a lookup showing 99,900 / 100,000; a refused checksum).
+    `npm test` 31 of 31, type check and build clean; lint unchanged at 13 inherited errors. Trap: `npm run build` fails
+    with EPERM on `dist` while `npm start` (workerd) is running. **The live Sites website was not redeployed.**
 
 ## 5. Traps, so nobody re-learns them
 

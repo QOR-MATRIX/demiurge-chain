@@ -17,7 +17,7 @@ export type ChainSnapshot = {
   observedAt: string;
 };
 
-type Rpc = (method: string, params: unknown[]) => Promise<unknown>;
+export type Rpc = (method: string, params: unknown[]) => Promise<unknown>;
 
 const HASH = /^0x[0-9a-f]{64}$/;
 

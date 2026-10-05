@@ -901,8 +901,17 @@ here sets an economic value; payouts are U-16.
 1. [ ] Baseline: the arcade's source in `products/arqade/` with its tests in CI, an integration inventory of every
    control, and the false claims removed (CRGT, DMRG, USD prices for Energy, the deleted chain's
    `chain_getBlockNumber`). Depends on ADR-069 accepted (ADR-050 decision 10).
-2. [ ] Live reads from Demiurge Devnet, read-only: the genesis hash checked, the finalised head, an account's CGT
+2. [x] Live reads from Demiurge Devnet, read-only: the genesis hash checked, the finalised head, an account's CGT
    balance in integer Sparks, and its DRC-369 inventory from finalised state, shown stale rather than zero on loss.
+
+   **Done 4 October 2026.** `lib/chain.ts` checks the genesis and name and reads the finalised and best heads
+   (`/api/chain`); `lib/account.ts` reads `System::Account` and `Drc369Api_assets_of` at the finalised block and decodes
+   both as the runtime encodes them (`/api/chain/account?address=`), refusing an address for another network or with a
+   broken checksum before any read; the QOR Identity screen looks an account up and keeps the last answer, marked
+   stale, if a refresh fails. Evidence: 6 tests against bytes a real `--dev` node produced at `spec_version` 8 (two
+   named assets, one a remix), whose balance `@polkadot/api` decoded identically; the reader against the live devnet
+   agreed with `@polkadot/api` on the owner's launcher account (100,000 test CGT, no assets); the route answered in the
+   site's own worker runtime; and the panel was driven in headless Chrome: a lookup, then a refused checksum.
 3. [ ] Verified QOR sign-in in the browser, bound to the account's `sub`, with the practice alias migrated only on
    proof of both identities. Depends on ADR-043 accepted and built, and on a way for ARQADE's server to verify a
    token without QOR ID's secret (ADR-069 decision 4).

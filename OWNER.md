@@ -45,7 +45,8 @@ or give anyone test CGT except by you sending it from the faucet.
 3. **A faucet page**, so testers can get test CGT without you sending it by hand.
 4. **The indexer** — *a service that reads the chain so the Market can search and show history*.
 5. **Prize rounds are live on the devnet** — *a game locks a prize on the chain before anyone plays for it* — after
-   your second upgrade. The SDK finds a game's wallet and builds its payouts. Next: ARQADE's screens using them.
+   your second upgrade. The SDK finds a game's wallet and builds its payouts. **ARQADE's QOR screen now looks up any
+   account's test CGT and assets on the devnet** (in the code; the live website still shows the old version).
 
 ## What only you can do
 

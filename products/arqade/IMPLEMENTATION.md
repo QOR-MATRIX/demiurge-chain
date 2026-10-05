@@ -22,9 +22,12 @@ Imported into the Demiurge repository on 4 October 2026 from the arcade checkout
 - Browser terminal with history, completion and navigation/game commands.
 - Configurable local game creator, saved draft, source view, sandboxed preview and standalone HTML export.
 - Read-only Demiurge Devnet reader (`lib/chain.ts`, `/api/chain`): standard Substrate JSON-RPC at the fixed `https://rpc.qorsync.dev`, refusing any chain whose genesis is not `0x934e2caa…254a`; returns the finalized and best block numbers, or 503.
+- Account lookup (`lib/account.ts`, `/api/chain/account?address=`, the QOR Identity screen): any address's test CGT (free, reserved, frozen, spendable while keeping the account open) and DRC-369 assets at the finalized block, decoded from the runtime's own encoding; a refused address returns 400, an unreadable chain 503; the last answer stays on screen marked stale. (P7.2.)
 - WebMCP read-local-state and navigate tools. No purchases, signing, or reward mutations exposed.
 
 ## Not implemented or activated
+
+- The sidebar's "Demiurge Protocol · Chain connection pending" panel is pre-existing copy and does not read the chain; the QOR Identity screen does. For the integration inventory (P7.1).
 
 This is a private playable explorer build, not a live gambling, payment, AI-generation or blockchain settlement system.
 

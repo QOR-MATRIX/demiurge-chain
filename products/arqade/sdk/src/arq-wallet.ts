@@ -127,3 +127,35 @@ export function payoutArgs(p: Payout): [number, number, string, number, string, 
   u32le(p.item);
   return [p.collection, p.item, p.outcome, p.issuedAt, p.ruleVersion, p.to, p.amount.toString()];
 }
+
+function unbase58(text: string): Uint8Array {
+  let n = BigInt(0);
+  const fiftyEight = BigInt(58);
+  for (const ch of text) {
+    const v = BASE58.indexOf(ch);
+    if (v < 0) throw new RangeError('not base58');
+    n = n * fiftyEight + BigInt(v);
+  }
+  const hexed = n.toString(16);
+  const body = hexed === '0' ? '' : hexed.length % 2 ? '0' + hexed : hexed;
+  const bytes = Uint8Array.from(body.match(/../g) ?? [], (h) => parseInt(h, 16));
+  let zeros = 0;
+  while (zeros < text.length && text[zeros] === '1') zeros++;
+  const out = new Uint8Array(zeros + bytes.length);
+  out.set(bytes, zeros);
+  return out;
+}
+
+/**
+ * An SS58 address's 32-byte account id, refused unless its checksum holds and its prefix is `prefix`
+ * (42 on Demiurge's networks until mainnet, ADR-024). An address for another network is not quietly accepted.
+ */
+export function ss58Decode(address: string, prefix = SS58_PREFIX): Uint8Array {
+  if (typeof address !== 'string' || address.length < 46 || address.length > 50) throw new RangeError('Not an SS58 address');
+  const bytes = unbase58(address);
+  if (bytes.length !== 35) throw new RangeError('Not a 32-byte SS58 address');
+  if (bytes[0] !== prefix) throw new RangeError(`An address for another network (prefix ${bytes[0]}, expected ${prefix})`);
+  const id = bytes.subarray(1, 33);
+  if (ss58(id, prefix) !== address) throw new RangeError('The address checksum does not hold');
+  return id.slice();
+}
