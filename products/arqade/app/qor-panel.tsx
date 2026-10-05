@@ -53,7 +53,7 @@ export function QorPanel() {
   return (
     <div className="qor-panel">
       <div className="integration-row"><span>QOR authentication</span><span>{status}</span></div>
-      <div className="integration-row"><span>Verified account</span><span>{me?.signedIn ? `${me.username} · ${me.qorId}` : 'None'}</span></div>
+      <div className="integration-row"><span>Verified account</span><span>{me?.signedIn ? me.qorId : 'None'}</span></div>
       <div className="integration-row">
         <span>Chain account</span>
         <span>{me?.signedIn ? (me.chainAccount ? `${me.chainAccount.slice(0, 6)}…${me.chainAccount.slice(-4)}` : 'No key linked yet') : '—'}</span>
