@@ -44,24 +44,22 @@ or give anyone test CGT except by you sending it from the faucet.
 2. **CI is green** since your option A (ADR-072); next, the two-validator check on its nightly run.
 3. **A faucet page**, so testers can get test CGT without you sending it by hand.
 4. **The indexer** — *a service that reads the chain so the Market can search and show history*.
-5. **Prize rounds are built** — *a game locks a prize on the chain before anyone plays for it* — and rehearsed; they
-   reach the devnet when you sign a second upgrade (below). The SDK now finds a game's wallet and builds its payouts.
+5. **Prize rounds are live on the devnet** — *a game locks a prize on the chain before anyone plays for it* — after
+   your second upgrade. The SDK finds a game's wallet and builds its payouts. Next: ARQADE's screens using them.
 
 ## What only you can do
 
-1. **Upgrade the devnet to version 8** (prize rounds): the same steps as before, with
-   `demiurge-runtime-v8.compact.compressed.wasm` from your Downloads.
-2. **Send yourself test CGT:** open `https://polkadot.js.org/apps/?rpc=wss://rpc.qorsync.dev`, allow your wallet,
+1. **Send yourself test CGT:** open `https://polkadot.js.org/apps/?rpc=wss://rpc.qorsync.dev`, allow your wallet,
    then Accounts → **Devnet faucet** → Send → to your launcher address `5DMPEX…qLxK`.
-3. **Get a legal opinion** on backing (crowdfunding) and on paid games with prizes before either goes live.
+2. **Get a legal opinion** on backing (crowdfunding) and on paid games with prizes before either goes live.
    Still open for ARQADE: its look, where it is hosted, and the rest of **U-16** — *whether paying to enter may win a
    prize, and the platform's minimum waiting times on an ARQ Wallet*.
-4. **Take your Resend key out of this PC's environment**; Railway holds it now.
-5. **Bounce reports**: a Resend webhook to `https://id.qorsync.dev/api/v1/webhooks/resend`, its `whsec_…`
+3. **Take your Resend key out of this PC's environment**; Railway holds it now.
+4. **Bounce reports**: a Resend webhook to `https://id.qorsync.dev/api/v1/webhooks/resend`, its `whsec_…`
    secret into Railway as `RESEND_WEBHOOK_SECRET`.
-6. **In Cloudflare**, delete the `ci` record and the tunnel.
-7. **Revoke the old SSH key** (`admin@pleroma`) and **rotate the nine credentials** in `SECURITY.md`.
-8. **Open economic questions**: the 15% for selling, deposit amounts (U-14), Q-19 and Q-20, U-16.
+5. **In Cloudflare**, delete the `ci` record and the tunnel.
+6. **Revoke the old SSH key** (`admin@pleroma`) and **rotate the nine credentials** in `SECURITY.md`.
+7. **Open economic questions**: the 15% for selling, deposit amounts (U-14), Q-19 and Q-20, U-16.
 
 ## What it costs per month
 

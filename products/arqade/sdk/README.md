@@ -36,7 +36,7 @@ Run them from `products/arqade`: `npm test`.
 | --- | --- |
 | Player sign-in (browser) | ADR-043's redirect flow in QOR ID (accepted, not built) and a way for a game server to verify a token |
 | Signing a player's payment | The signing path of ADR-069 decision 5, each with its own record |
-| ARQ Wallets: `vault ignite`, `payouts.award`, rounds, claims | Sending and watching the calls (the chain client, M5.1); the CLI's `vault ignite`. Rounds are on chain at `spec_version` 8, reaching the devnet at its next upgrade |
+| ARQ Wallets: `vault ignite`, `payouts.award`, rounds, claims | Sending and watching the calls (the chain client, M5.1); the CLI's `vault ignite`. Rounds are live on the devnet at `spec_version` 8 |
 | Trophies | An issuer account minting and transferring today; account-bound ones wait on G-16 |
 | Cards, sets, packs | G-15 (editions) and G-14 (randomness) |
 | Evolving assets | M4.2's state and XP |

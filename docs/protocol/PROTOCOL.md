@@ -157,7 +157,7 @@ transactions in blocks (D-008).
 index 8, makes an item a DRC-369 asset (ADR-047, ADR-052). `pallet-utility`, mounted as `Utility` at index 9, puts
 several calls in one transaction (ADR-053). `pallet-drc369-royalties`, mounted as `Drc369Royalties` at index 10, holds
 royalty terms and settles sales in CGT (ADR-061). `pallet-arq-wallet`, mounted as `ArqWallet` at index 11 since 4 October
-2026 (`spec_version` 7 on the devnet; 8 in the tree, adding rounds), holds one keyless payout account per DRC-369 Cartridge, described below. `spec_version` was 6 from 2 October 2026, when
+2026 (`spec_version` 7; 8 since the same day, adding rounds; both on the devnet), holds one keyless payout account per DRC-369 Cartridge, described below. `spec_version` was 6 from 2 October 2026, when
 `Drc369Royalties::buy_exact` and the runtime API `Drc369RoyaltiesApi` were added (5 on 1 October, for `Drc369::nest`
 and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369::mint` gained its
 `derived_from` argument. No existing call's encoding changed on 1 or 2 October.
@@ -297,7 +297,7 @@ and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369
   returns an expired amount to the wallet; `prune_outcome` removes an outcome record after its window.
 - **`execute_withdrawal`**, by anyone, at or after the scheduled block, and only if the wallet still holds the amount
   beyond its deposit and what it owes. Every transfer out keeps the wallet alive.
-- **Rounds** (`spec_version` 8, built 4 October 2026, **not yet on the devnet**, which runs 7). `open_round`, by the
+- **Rounds** (`spec_version` 8, built 4 October 2026 and **on the devnet the same day**). `open_round`, by the
   authority, names a round id (32 bytes), a prize no larger than the epoch budget, a rule version and a closing
   block; the prize is held at once (`Held`, per wallet) and kept out of every payout and withdrawal, as owed CGT is.
   At most `MaxOpenRounds` (64) are open per wallet. `settle_round`, by the authority, from the closing block to

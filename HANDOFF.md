@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 46 (4 October 2026): rounds with held prizes and the SDK's wallet module, spec_version 8 rehearsed and awaiting the owner's signature; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 47 (4 October 2026): Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1594,6 +1594,12 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     payout, and a round holding 20 CGT then settling 15 to a winner — passed. The runtime, built with `--features sudo`
     at this commit, is **516,949 bytes, SHA-256 `fbd85089f7095e0604cd2d1aa07e0aecf32035e63e40845b572e72eed7db0074`**,
     in the owner's Downloads as `demiurge-runtime-v8.compact.compressed.wasm`.
+
+47. **4 October 2026: the owner upgraded Demiurge Devnet to `spec_version` 8 — rounds with held prizes are live.**
+    Signed in polkadot.js Apps as before. **Read back:** `demiurge` spec_version 8; `:code` 516,949 bytes, SHA-256
+    `fbd85089…0074`, the rehearsed file; `Sudo::Key` unchanged; `ArqWallet` at index 11 with 15 calls, `open_round`
+    among them; finality advancing (#20,370 → #20,376 in 36 s) with both validators authoring; readiness 200. CI run
+    `37269092178` on `75e8ba8` passed every job before the upgrade.
 
 ## 5. Traps, so nobody re-learns them
 

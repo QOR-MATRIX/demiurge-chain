@@ -6,8 +6,7 @@ belongs to your game alone, has no private key, and moves CGT only under rules y
 > **Status: decided; its chain half is built and live on Demiurge Devnet (4 October 2026).** This describes [ADR-070](../../../../docs/decisions/ADR-070-game-vaults.md),
 > **accepted by the project owner on 4 October 2026**, who named the wallet **ARQ Wallet**. The chain module, `pallet-arq-wallet`,
 > exists and is tested (`chain/pallets/arq-wallet/`): wallets, policy, delayed loosening and withdrawals, the payout
-> authority, each outcome once, accruals and claims. Rounds with held prizes are built in the tree (`spec_version` 8) and
-> reach the devnet with its next upgrade. In the SDK, `arqWalletAddress`, `outcomeId`, `roundId`, `toChainPolicy`
+> authority, each outcome once, accruals and claims. Rounds with held prizes are live on the devnet too (`spec_version` 8). In the SDK, `arqWalletAddress`, `outcomeId`, `roundId`, `toChainPolicy`
 > and `payoutArgs` exist; every API below marked *proposed* does not. What
 > exists today is in [`../README.md`](../README.md). "ARQ Wallet" is the owner's name; the CLI and package names are
 > placeholders until the project owner approves them.
