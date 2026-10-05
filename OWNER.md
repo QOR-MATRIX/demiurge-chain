@@ -44,8 +44,8 @@ or give anyone test CGT except by you sending it from the faucet.
 2. **CI is green** since your option A (ADR-072); next, the two-validator check on its nightly run.
 3. **A faucet page**, so testers can get test CGT without you sending it by hand.
 4. **The indexer** — *a service that reads the chain so the Market can search and show history*.
-5. **The ARQ Wallet is built on the chain** (not yet on the devnet): next, prizes held for paid rounds, the SDK calls,
-   and putting it on the devnet — which needs your admin key once, when it is ready.
+5. **The ARQ Wallet is live on the devnet** (you upgraded it on 4 October): next, prizes held for paid rounds and the
+   SDK calls a game developer uses.
 
 ## What only you can do
 

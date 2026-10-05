@@ -22,7 +22,7 @@ Run them from `products/arqade`: `npm test`.
 ## Guides
 
 - [**ARQ Wallets**](docs/arq-wallet.md): paying players CGT from a keyless account that belongs to your game alone,
-  and how to unlock one ("ignition"). **Decided (ADR-070); the chain module is built and tested, not yet on the devnet; the SDK calls are not built.**
+  and how to unlock one ("ignition"). **Decided (ADR-070); the chain module is built, tested and live on Demiurge Devnet; the SDK calls are not built.**
 - [**Publishing**](docs/publishing.md): the four stages, the profile, prices up to 10,000 CGT, in-game items.
   **The checks are built; the rest is decided (ADR-071, accepted 4 October 2026) and not built.**
 - [**Backing**](docs/backing.md): campaigns, memberships and tips in CGT, rewards and never proceeds. **Designed.**
@@ -35,7 +35,7 @@ Run them from `products/arqade`: `npm test`.
 | --- | --- |
 | Player sign-in (browser) | ADR-043's redirect flow in QOR ID (accepted, not built) and a way for a game server to verify a token |
 | Signing a player's payment | The signing path of ADR-069 decision 5, each with its own record |
-| ARQ Wallets: `vault ignite`, `payouts.award`, rounds, claims | The devnet running `spec_version` 7, and the SDK calls; rounds wait on the pallet's second slice |
+| ARQ Wallets: `vault ignite`, `payouts.award`, rounds, claims | The SDK calls; rounds wait on the pallet's second slice. The chain half is live on the devnet |
 | Trophies | An issuer account minting and transferring today; account-bound ones wait on G-16 |
 | Cards, sets, packs | G-15 (editions) and G-14 (randomness) |
 | Evolving assets | M4.2's state and XP |

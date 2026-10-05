@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 44 (4 October 2026): the devnet upgrade to spec_version 7 rehearsed, awaiting the owner's signature; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 45 (4 October 2026): Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1567,6 +1567,15 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     ARQ Wallet paid a player exactly 5 CGT. The client logged one decode warning for the upgrade block's events, read
     with the old metadata; expected at an upgrade. Traps: a `--tmp` validator needs `--node-key`. **Next:** the
     owner signs the upgrade on the devnet in polkadot.js Apps; then spec_version is read back.
+
+45. **4 October 2026: the owner upgraded Demiurge Devnet to `spec_version` 7 — the ARQ Wallet is live.** Signed in
+    polkadot.js Apps (`Developer → Sudo`, `system.setCode` with weight override, the wallet's own password) with the
+    sudo account `5HN6PZA4…Zadn`. **Read back from `wss://rpc.qorsync.dev`:** `demiurge` spec_version 7,
+    `transaction_version` 2; `:code` is 516,222 bytes with SHA-256 `0db8455c…a901`, the rehearsed file; `Sudo::Key`
+    unchanged; `ArqWallet` at index 11 with 12 calls; finality advancing (#19,792 → #19,798 in 36 s) with both
+    validators authoring; readiness 200. The node image (`sha-f836075`) was not rebuilt and need not be: the runtime
+    runs as wasm from state. Trap: Apps showed no admin account on the Sudo page until the wallet's accounts appeared
+    under Accounts; the wallet asks for its own per-account password, not QOR ID's.
 
 ## 5. Traps, so nobody re-learns them
 
