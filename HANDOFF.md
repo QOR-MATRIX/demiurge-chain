@@ -1668,6 +1668,13 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     Vercel gets `QOR_CLIENT_ID`, `QOR_CLIENT_SECRET`, `QOR_REDIRECT_URI`. **An incident:** a `taskkill /IM node.exe`
     and later a kill of whatever listened on port 3000 stopped Docker Desktop twice (port 3000 is a container's); the
     owner restarted it and the `vyb-*` containers came back healthy. Kill only recorded PIDs of processes you started.
+    **Later the same day:** the owner created the Vercel project `qor-arqade` (team Astra Matrix), **live at
+    `https://qor-arqade-tau.vercel.app`**: the page loads and `/api/chain` reads Demiurge Devnet (genesis checked). Its
+    first build failed because Vercel saw the root `turbo.json` and installed the frozen workspace;
+    `products/arqade/vercel.json` (PR #3) fixes install and build to the folder. Vercel at first copied the repository into
+    a new private `QOR-MATRIX/arqade`; the project now builds from `demiurge-chain`, and deleting the copy is the owner's
+    call. With no database or settings the site now says so (not configured, sign in, being connected) instead of a
+    generic outage. Still to do: Neon, the Railway callback, the three `QOR_*` settings in Vercel.
 
 ## 5. Traps, so nobody re-learns them
 
