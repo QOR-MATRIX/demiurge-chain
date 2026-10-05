@@ -841,6 +841,80 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         .await;
     assert_eq!(r.status, StatusCode::OK);
 
+    // The account page (handlers/account.rs): the page, a refused and an accepted password change,
+    // an address added, then the password changed back through the API with a fresh token, since a
+    // change signs every session out.
+    let r = client.get("/account", None).await;
+    assert_eq!(r.status, StatusCode::OK);
+    let page_password = "an account page password";
+    secrets.push(page_password.into());
+    let r = client
+        .form(
+            "/account/password",
+            &[
+                ("identifier", username),
+                ("current_password", "not the account password"),
+                ("new_password", page_password),
+                ("confirm_password", page_password),
+            ],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::UNAUTHORIZED);
+    let r = client
+        .form(
+            "/account/password",
+            &[
+                ("identifier", username),
+                ("current_password", new_password),
+                ("new_password", page_password),
+                ("confirm_password", page_password),
+            ],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    // The link sent earlier in this check is under the five-minute limit; lift it, so the page's
+    // send runs rather than being refused.
+    sqlx::query("UPDATE users SET email_verification_sent_at = NULL WHERE username = $1")
+        .bind(username)
+        .execute(&db)
+        .await
+        .expect("lift the limit");
+    let r = client
+        .form(
+            "/account/email",
+            &[
+                ("identifier", username),
+                ("password", page_password),
+                ("email", "logcheck.page@mail.logcheck.invalid"),
+            ],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    let r = client
+        .json(
+            "/api/v1/auth/login",
+            json!({ "identifier": username, "password": page_password }),
+            None,
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    let fresh = r.json()["access_token"]
+        .as_str()
+        .expect("access token")
+        .to_string();
+    secrets.push(fresh.clone());
+    if let Some(refresh) = r.json()["refresh_token"].as_str() {
+        secrets.push(refresh.to_string());
+    }
+    let r = client
+        .json(
+            "/api/v1/profile/password",
+            json!({ "current_password": page_password, "new_password": new_password }),
+            Some(&fresh),
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+
     // A hash of the password is not the password, but it is still not for a log.
     let hash: String = sqlx::query_scalar("SELECT password_hash FROM users WHERE username = $1")
         .bind(username)
@@ -872,6 +946,9 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         "/oauth/token",
         "/oauth/userinfo",
         "/oauth/revoke",
+        "/account/password",
+        "/account/email",
+        "/api/v1/profile/password",
     ] {
         assert!(
             log.contains(expected),

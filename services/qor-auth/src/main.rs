@@ -167,6 +167,13 @@ pub(crate) fn router(state: Arc<AppState>) -> Router {
             "/forgot-password",
             post(handlers::pages::request_reset_link),
         )
+        // A person's own account page (handlers/account.rs): every form asks for the current password.
+        .route("/account", get(handlers::account::account))
+        .route(
+            "/account/password",
+            post(handlers::account::change_password_page),
+        )
+        .route("/account/email", post(handlers::account::change_email_page))
         // Sign-in for other apps by redirect (ADR-043, ADR-073): QOR ID's own page, then a code, then
         // tokens for the app's server. Never `*` in CORS: these are page and server-to-server calls.
         .route(
@@ -299,6 +306,7 @@ fn profile_routes() -> Router<Arc<AppState>> {
             post(handlers::profile::regenerate_backup_codes),
         )
         .route("/email", post(handlers::profile::request_email_change))
+        .route("/password", post(handlers::account::change_password_api))
         .layer(from_fn(crate::middleware::auth::require_auth))
 }
 

@@ -3,7 +3,7 @@
 // Sign-in happens on QOR ID's own page; this site's server holds the tokens and the browser only a cookie.
 import { useEffect, useState } from 'react';
 
-type Me = { configured: boolean; signedIn: boolean; username?: string; qorId?: string; chainAccount?: string | null; error?: string };
+type Me = { configured: boolean; signedIn: boolean; username?: string; qorId?: string; chainAccount?: string | null; accountUrl?: string | null; error?: string };
 
 const NOTICES: Record<string, string> = {
   unconfigured: 'QOR ID sign-in is not configured for this site yet.',
@@ -64,6 +64,9 @@ export function QorPanel() {
         <button className="secondary" onClick={() => void signOut()} disabled={busy}>{busy ? 'Signing out…' : 'Sign out'}</button>
       ) : (
         me?.configured !== false && <a className="primary qor-signin" href="/api/auth/login">Sign in with QOR ID</a>
+      )}
+      {me?.signedIn && me.accountUrl && (
+        <p className="muted qor-hint"><a href={me.accountUrl} target="_blank" rel="noopener noreferrer">Manage your QOR ID</a>: change your password or add an email address, on the QOR ID site.</p>
       )}
       {me?.signedIn && !me.chainAccount && <p className="muted qor-hint">Link a key from the QOR Launcher to give this account a chain identity.</p>}
     </div>
