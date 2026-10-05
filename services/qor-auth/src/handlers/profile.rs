@@ -45,8 +45,15 @@ pub async fn get_profile(
     .await
     .map_err(|_| AppError::NotFound("User not found".into()))?;
 
-    // Format QOR ID: username#discriminator
-    let qor_id = format!("{}#{:04}", user.username, user.discriminator);
+    // The QOR ID is the username alone (ADR-075).
+    let qor_id = user.username.to_lowercase();
+    // The name this account had before migration 019 resolved a shared name, so the account can be
+    // told (ADR-075). None for every account that kept its name.
+    let renamed_from: Option<String> =
+        sqlx::query_scalar("SELECT renamed_from FROM users WHERE id = $1")
+            .bind(user_id)
+            .fetch_one(&state.db)
+            .await?;
 
     let chain_account = user
         .chain_account_id
@@ -64,6 +71,7 @@ pub async fn get_profile(
     Ok(Json(json!({
         "id": user.id.to_string(),
         "qor_id": qor_id,
+        "renamed_from": renamed_from,
         "email": user.email,
         "email_deliverable": email_deliverable,
         "display_name": user.username, // Use username as display name for now
@@ -578,6 +586,31 @@ mod email_change_tests {
         .fetch_one(db)
         .await
         .expect("count")
+    }
+
+    /// ADR-075: the profile shows the QOR ID as the name alone, and tells an account that migration 019
+    /// renamed which name it had.
+    #[sqlx::test]
+    async fn the_profile_shows_the_name_alone_and_any_rename(db: PgPool) {
+        let state = state_with(db.clone(), None);
+        let kept = account_with_email(&db, "Keeper", "keeper@example.invalid").await;
+        let Json(profile) = get_profile(State(state.clone()), Extension(kept))
+            .await
+            .expect("profile");
+        assert_eq!(profile["qor_id"], json!("keeper"));
+        assert_eq!(profile["renamed_from"], Value::Null);
+
+        let renamed = account_with_email(&db, "agent_bot_2", "bot@example.invalid").await;
+        sqlx::query("UPDATE users SET renamed_from = 'agent_bot' WHERE id = $1")
+            .bind(renamed)
+            .execute(&db)
+            .await
+            .expect("mark the rename");
+        let Json(profile) = get_profile(State(state), Extension(renamed))
+            .await
+            .expect("profile");
+        assert_eq!(profile["qor_id"], json!("agent_bot_2"));
+        assert_eq!(profile["renamed_from"], json!("agent_bot"));
     }
 
     #[sqlx::test]

@@ -75,9 +75,10 @@ fn challenge_message(challenge: &str) -> QorResult<Vec<u8>> {
 /// The signed-in user, as shown in the launcher shell.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Session {
-    /// Human-readable identity, `handle#0001`.
+    /// Human-readable identity: the username alone, unique on its own (ADR-075).
     pub qor_id: String,
     pub username: String,
+    /// Retired with ADR-075: QOR ID sends 1 for every account. Kept so the shape is unchanged.
     pub discriminator: u16,
     pub role: String,
     /// On-chain address, when the account has one linked.
@@ -555,24 +556,26 @@ pub fn needs_registration(error: &QorError) -> bool {
 /// into a form that had reset. The tests below pin this exact payload so the two
 /// cannot drift apart again.
 ///
-/// The handle and discriminator are recovered from `qor_id` when they are not
-/// sent separately, since `handle#0001` always carries both.
+/// The handle is recovered from `qor_id` when it is not sent separately. A QOR ID
+/// is the username alone (ADR-075); an older service's `handle#0001` is read too,
+/// and shown without its number.
 fn parse_session(value: &serde_json::Value) -> QorResult<Session> {
     let root = value.get("user").unwrap_or(value);
 
-    let qor_id = root
+    let sent = root
         .get("qor_id")
         .and_then(serde_json::Value::as_str)
         .map(str::to_owned);
 
-    // `handle#0001` splits into its two halves.
-    let (handle_from_qor, discriminator_from_qor) = match qor_id.as_deref() {
+    // A retired `handle#0001` splits into its two halves; only the handle is shown.
+    let (handle_from_qor, discriminator_from_qor) = match sent.as_deref() {
         Some(id) => match id.rsplit_once('#') {
             Some((handle, number)) => (Some(handle.to_string()), number.parse::<u16>().ok()),
             None => (Some(id.to_string()), None),
         },
         None => (None, None),
     };
+    let qor_id = handle_from_qor.clone();
 
     let username = root
         .get("username")
@@ -603,7 +606,7 @@ fn parse_session(value: &serde_json::Value) -> QorResult<Session> {
         .map(str::to_owned);
 
     Ok(Session {
-        qor_id: qor_id.unwrap_or_else(|| format!("{username}#{discriminator:04}")),
+        qor_id: qor_id.unwrap_or_else(|| username.to_lowercase()),
         username,
         discriminator,
         role: root
@@ -619,8 +622,8 @@ fn parse_session(value: &serde_json::Value) -> QorResult<Session> {
     })
 }
 
-/// QOR ID handle rules, matching the service's Battle.net-style scheme where the
-/// handle is paired with a numeric discriminator.
+/// QOR ID's username rules, exactly as the service applies them (`QorId::is_valid_username`):
+/// 3 to 20 characters, ASCII letters, digits and underscore. A name is unique on its own (ADR-075).
 fn validate_username(username: &str) -> QorResult<()> {
     let name = username.trim();
 
@@ -629,15 +632,12 @@ fn validate_username(username: &str) -> QorResult<()> {
     }
     if name.contains('#') {
         return Err(QorError::Auth(
-            "leave off the #number; it is assigned for you".into(),
+            "a QOR ID has no #number: it is just your name".into(),
         ));
     }
-    if !name
-        .chars()
-        .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
-    {
+    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
         return Err(QorError::Auth(
-            "a QOR ID may contain only letters, numbers, underscore and hyphen".into(),
+            "a QOR ID may contain only letters, numbers and underscore".into(),
         ));
     }
     Ok(())
@@ -666,7 +666,11 @@ mod tests {
     #[test]
     fn username_rules_are_enforced() {
         assert!(validate_username("architect").is_ok());
-        assert!(validate_username("qor_user-1").is_ok());
+        assert!(validate_username("qor_user_1").is_ok());
+        assert!(
+            validate_username("qor-user").is_err(),
+            "QOR ID refuses a hyphen, so the launcher does too"
+        );
 
         assert!(validate_username("ab").is_err(), "too short");
         assert!(validate_username(&"a".repeat(21)).is_err(), "too long");
@@ -676,7 +680,7 @@ mod tests {
         let err = validate_username("architect#0001").unwrap_err();
         assert!(
             err.to_string().contains("#number"),
-            "should explain the discriminator"
+            "should say a QOR ID has no number"
         );
     }
 
@@ -703,7 +707,10 @@ mod tests {
         }))
         .unwrap();
 
-        assert_eq!(session.qor_id, "architect#0001");
+        assert_eq!(
+            session.qor_id, "architect",
+            "an old #0001 is not shown (ADR-075)"
+        );
         assert_eq!(session.username, "architect", "recovered from display_name");
         assert_eq!(session.discriminator, 1, "recovered from the qor_id suffix");
         assert_eq!(session.role, "user");
@@ -715,6 +722,17 @@ mod tests {
         assert!(session.avatar_url.is_none());
     }
 
+    /// What QOR ID sends since ADR-075: the name alone, with a discriminator of 1.
+    #[test]
+    fn a_qor_id_is_the_name_alone() {
+        let session = parse_session(&json!({
+            "user": { "username": "godmode", "discriminator": 1, "qor_id": "godmode" }
+        }))
+        .unwrap();
+        assert_eq!(session.qor_id, "godmode");
+        assert_eq!(session.username, "godmode");
+    }
+
     /// The handle must survive even when only `qor_id` is present.
     #[test]
     fn recovers_the_handle_from_qor_id_alone() {
@@ -722,7 +740,7 @@ mod tests {
 
         assert_eq!(session.username, "aeon");
         assert_eq!(session.discriminator, 42);
-        assert_eq!(session.qor_id, "aeon#0042");
+        assert_eq!(session.qor_id, "aeon");
     }
 
     /// The older flat shape must keep working.
@@ -736,10 +754,7 @@ mod tests {
         }))
         .unwrap();
 
-        assert_eq!(
-            session.qor_id, "architect#0001",
-            "discriminator is zero-padded"
-        );
+        assert_eq!(session.qor_id, "architect", "the name alone (ADR-075)");
         assert_eq!(session.role, "god");
         assert_eq!(session.address.as_deref(), Some("0xabc"));
     }
@@ -751,7 +766,7 @@ mod tests {
         }))
         .unwrap();
 
-        assert_eq!(session.qor_id, "aeon#0042");
+        assert_eq!(session.qor_id, "aeon");
         assert_eq!(session.role, "user", "role defaults when absent");
     }
 

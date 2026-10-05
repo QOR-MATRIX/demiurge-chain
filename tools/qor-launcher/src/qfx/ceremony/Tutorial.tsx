@@ -21,7 +21,8 @@ const KEY = (qorId: string) => `qor.tutorial.done:${qorId}`;
 /** Whether this QOR ID has finished the tutorial on this computer. */
 export function tutorialDone(qorId: string): boolean {
   try {
-    return localStorage.getItem(KEY(qorId)) === '1';
+    // Before ADR-075 a QOR ID carried `#0001`; a tutorial finished under that name stays finished.
+    return localStorage.getItem(KEY(qorId)) === '1' || localStorage.getItem(KEY(`${qorId}#0001`)) === '1';
   } catch {
     return false;
   }

@@ -280,9 +280,9 @@ pub struct AgentInfo {
 }
 
 impl User {
-    /// Format as Qor ID (username#discriminator)
+    /// The QOR ID: the username alone, unique on its own (ADR-075). There is no `#0001`.
     pub fn qor_id(&self) -> String {
-        format!("{}#{:04}", self.username.to_lowercase(), self.discriminator)
+        self.username.to_lowercase()
     }
 
     /// Check if account is locked

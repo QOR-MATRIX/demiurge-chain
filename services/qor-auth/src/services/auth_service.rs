@@ -55,27 +55,6 @@ impl AuthService {
             .is_ok())
     }
 
-    /// Generate a unique discriminator for a username
-    pub async fn generate_discriminator(&self, username: &str) -> AppResult<i16> {
-        // Find existing discriminators for this username
-        let existing: Vec<i16> =
-            sqlx::query_scalar("SELECT discriminator FROM users WHERE LOWER(username) = LOWER($1)")
-                .bind(username)
-                .fetch_all(&self.db)
-                .await?;
-
-        // Find first available discriminator (1-9999)
-        for d in 1..=9999i16 {
-            if !existing.contains(&d) {
-                return Ok(d);
-            }
-        }
-
-        Err(AppError::ValidationError(
-            "No available discriminators for this username".into(),
-        ))
-    }
-
     /// Find user by email
     pub async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
         let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE LOWER(email) = LOWER($1)")
@@ -125,15 +104,13 @@ impl AuthService {
         Ok(())
     }
 
-    /// Find user by username (any discriminator)
+    /// The one account with this username, whatever its letter case (ADR-075: names are unique).
     pub async fn find_by_username(&self, username: &str) -> AppResult<Option<User>> {
-        // Find user with lowest discriminator (primary account)
-        let user = sqlx::query_as::<_, User>(
-            "SELECT * FROM users WHERE LOWER(username) = LOWER($1) ORDER BY discriminator ASC LIMIT 1"
-        )
-        .bind(username)
-        .fetch_optional(&self.db)
-        .await?;
+        let user =
+            sqlx::query_as::<_, User>("SELECT * FROM users WHERE LOWER(username) = LOWER($1)")
+                .bind(username)
+                .fetch_optional(&self.db)
+                .await?;
 
         Ok(user)
     }

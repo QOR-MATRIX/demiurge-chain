@@ -2,6 +2,9 @@
 
 **Status:** **Accepted**, 28 September 2026, by the project owner. Proposed 21 September 2026.
 
+**Identity form changed, 5 October 2026, by [ADR-075](ADR-075-one-name-per-qor-id.md):** a QOR ID is the username
+alone, unique on its own; the `#0001` discriminator below is retired. The text is kept as it was written.
+
 **Depends on:** [ADR-001](ADR-001-innovation-budget.md) (build boring where failure is silent),
 [ADR-016](ADR-016-sign-in-with-unlock.md) (sign-in is an unlock),
 [ADR-017](ADR-017-password-accounts-no-chain-identity-without-a-key.md) (an account may have no key at all),

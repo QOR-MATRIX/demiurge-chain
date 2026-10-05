@@ -654,7 +654,8 @@ mod tests {
         .await;
         assert_eq!(status, StatusCode::OK);
         assert!(html.contains("Email address confirmed"));
-        assert!(html.contains("pressed#0001"));
+        assert!(html.contains("pressed"));
+        assert!(!html.contains("pressed#"), "no #0001 is shown (ADR-075)");
         assert_eq!(verification(&db, user).await, (true, None));
     }
 

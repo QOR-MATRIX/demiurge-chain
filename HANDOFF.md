@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 51 (5 October 2026): QOR ID sign-in live for apps; ARQADE moved to Vercel with Postgres (ADR-074), on a branch; item 50: P7.3 built, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 52 (5 October 2026): one name per QOR ID, no #0001 (ADR-075), on a branch; item 51: QOR ID sign-in live for apps; ARQADE moved to Vercel with Postgres (ADR-074), on a branch; item 50: P7.3 built, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1675,6 +1675,20 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     a new private `QOR-MATRIX/arqade`; the project now builds from `demiurge-chain`, and deleting the copy is the owner's
     call. With no database or settings the site now says so (not configured, sign in, being connected) instead of a
     generic outage. Still to do: Neon, the Railway callback, the three `QOR_*` settings in Vercel.
+
+52. **5 October 2026: ADR-075, one name per QOR ID, no `#0001` (the owner's rule). On branch
+    `session/unique-usernames`, not merged: merging redeploys QOR ID and runs migration 019 on the live database.**
+    The owner's three ARQADE sign-ins as `Godmode` were refused by QOR ID's password check (Railway HTTP log, 21:10,
+    `POST /oauth/authorize` 401); every sign-up path for people always refused a taken name, so this was the password or
+    the account's state, not a shared name (I said otherwise first, and corrected it). QOR ID: `User::qor_id()` and every
+    response give the name alone; `find_by_username` has no `ORDER BY discriminator`; `generate_discriminator` removed;
+    agent sign-up refuses a taken name; an insert race maps `users_username_unique` to "Username already taken";
+    `QorId` reads an old `name#0001` and drops the number; profile returns `renamed_from`; start-up logs the renamed
+    count. Migration 019 (oldest keeps the name, later `name_N`, `renamed_from`, discriminator 1, unique index) checked
+    on a database holding shared names. 145 tests, fmt, clippy; a planted `#0001` failed a test. Launcher: shows the
+    name alone, its name rules now match QOR ID's (no hyphen), a tutorial finished under `name#0001` stays finished;
+    196 tests, clippy, build. ARQADE's tests use plain names (41). **A rename flow is not built**: only agent accounts
+    could have shared a name; read the count logged at deploy.
 
 ## 5. Traps, so nobody re-learns them
 
