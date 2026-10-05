@@ -41,7 +41,7 @@ or give anyone test CGT except by you sending it from the faucet.
 ## Next, in order
 
 1. **Fund your launcher account on the devnet** and try minting, selling and the Market there.
-2. **Get CI green**: the chain pinned to Rust 1.98.1 by your choice (ADR-072); confirm the run passes.
+2. **CI is green** since your option A (ADR-072); next, the two-validator check on its nightly run.
 3. **A faucet page**, so testers can get test CGT without you sending it by hand.
 4. **The indexer** — *a service that reads the chain so the Market can search and show history*.
 5. **The ARQ Wallet is built on the chain** (not yet on the devnet): next, prizes held for paid rounds, the SDK calls,
@@ -51,7 +51,7 @@ or give anyone test CGT except by you sending it from the faucet.
 
 1. **Send yourself test CGT:** open `https://polkadot.js.org/apps/?rpc=wss://rpc.qorsync.dev`, allow your wallet,
    then Accounts → **Devnet faucet** → Send → to your launcher address `5DMPEX…qLxK`.
-2. **Look at the next CI run**: after your option A (ADR-072) the chain job should pass again.
+2. **CI is green**: every job passed on `main` on 4 October (run 37260938168), after your option A (ADR-072).
 3. **Get a legal opinion** on backing (crowdfunding) and on paid games with prizes before either goes live.
    Still open for ARQADE: its look, where it is hosted, and the rest of **U-16** — *whether paying to enter may win a
    prize, and the platform's minimum waiting times on an ARQ Wallet*.

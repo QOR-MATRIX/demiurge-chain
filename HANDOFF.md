@@ -1551,7 +1551,9 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     `continue-on-error`, `SKIP_WASM_BUILD`, and no criterion reads it. ADR-072 amends ADR-033 rule 2 for `chain/` only.
     `GATES.toml`: `[ci].quality_gates` names the pin, `[ci].reports` the new job, and an `evidence-rule` change-log
     entry carries the owner's approval. Verified locally: rustup switched `chain/` to 1.98.1 from the file; fmt and
-    clippy `-D warnings` clean.
+    clippy `-D warnings` clean. **CI run `37260938168` on `main` (`f3a684e`) concluded success: every job passed** —
+    chain (fmt, clippy and every test with the wasm built, its first pass since 28 September), QOR ID, launcher,
+    ARQADE, coverage and security; two-validators and the newest-clippy report are scheduled-only and were skipped.
 
 ## 5. Traps, so nobody re-learns them
 
