@@ -6,6 +6,10 @@ record" [ADR-069](ADR-069-arqade-the-gaming-platform.md) decision 5 requires bef
 launcher) is built, for devnet play before delegated keys (M5.2) exist. It decides no economic value: the one number it
 needs, decision 6's cap, is the owner's, set on acceptance for the devnet.
 
+**Amended, 5 October 2026, by [ADR-077](ADR-077-corrections-to-adr-076.md):** approval is the host dialog, not
+Windows Hello (the owner's choice); the dialog says there is no fee while the chain charges none; "devnet only" is
+checked by genesis hash. The text below is kept as accepted.
+
 ## Context
 
 P7.4: a player approves a CGT payment from their own Vault, previewed and finalised, never with a key held by ARQADE.
