@@ -894,8 +894,8 @@ M8. [`blueprints/stream.md`](blueprints/stream.md).
 #### P7: ARQADE (P7.2 depends on nothing)
 
 The gaming platform, named by the owner on 4 October 2026: games played with a QOR ID, every owned collectible a
-DRC-369 asset, CGT the only currency, and a developer SDK. Its starting point is an existing arcade on OpenAI Sites,
-outside this repository. [`blueprints/arqade.md`](blueprints/arqade.md); its decisions are ADR-069, accepted on 4 October 2026. No item
+DRC-369 asset, CGT the only currency, and a developer SDK. Its starting point was an existing arcade on OpenAI Sites;
+since 5 October 2026 it is hosted on Vercel from `products/arqade/` (ADR-074). [`blueprints/arqade.md`](blueprints/arqade.md); its decisions are ADR-069, accepted on 4 October 2026. No item
 here sets an economic value; payouts are U-16.
 
 1. [x] Baseline: the arcade's source in `products/arqade/` with its tests in CI, an integration inventory of every
@@ -929,8 +929,13 @@ here sets an economic value; payouts are U-16.
    registry in `QOR_OAUTH_CLIENTS`, sessions that record their app; 7 tests and the log check over the whole flow.
    ARQADE: a server-side session behind one HttpOnly cookie, `userinfo` on every check, sign-out that revokes at QOR ID,
    and a player bound to a QOR identity only on proof of both; 9 tests. Driven end to end in Chrome against a local QOR
-   ID. **Live** after the owner merges (QOR ID redeploys), registers ARQADE in Railway and sets ARQADE's secret in its
-   host.
+   ID. QOR ID's side went live on 5 October (merged; ARQADE registered in Railway, read back from outside).
+
+   **Moved to Vercel, 5 October 2026 (ADR-074).** The Sites host could not be published or checked from here, so the
+   site became standard Next.js with Postgres, and the live arcade's players became QOR ID accounts (no ChatGPT sign-in,
+   no Explorer alias). 41 tests, the arenas' SQL against Postgres; the whole flow in Chrome against Postgres 16 and a
+   local QOR ID, a match created by the signed-in player. **Live** once the owner creates the Vercel project with its
+   database and ARQADE's Vercel callback is registered at QOR ID.
 4. [ ] A player approves a CGT payment from their own Vault, previewed and finalised, never with a key held by
    ARQADE. Depends on the signing path ADR-069 decision 5 chooses, with its own record, and for production on M5.2.
 5. [ ] Paid play on the devnet: a test-CGT entry finalised, one session authorised, the result validated by the

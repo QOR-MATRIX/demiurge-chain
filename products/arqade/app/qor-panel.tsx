@@ -8,12 +8,8 @@ type Me = { configured: boolean; signedIn: boolean; username?: string; qorId?: s
 const NOTICES: Record<string, string> = {
   unconfigured: 'QOR ID sign-in is not configured for this site yet.',
   unavailable: 'QOR ID could not be reached. Try again in a moment.',
+  site: 'Sign-in could not start on this site. Try again in a moment.',
   refused: 'The sign-in did not complete. Nothing was shared. Try again.',
-};
-const LINKS: Record<string, string> = {
-  linked: 'Your arcade explorer is now bound to this QOR ID.',
-  already: 'Your arcade explorer was already bound to this QOR ID.',
-  taken: 'This QOR ID already belongs to another arcade explorer, so it was not bound to this one.',
 };
 
 export function QorPanel() {
@@ -24,7 +20,7 @@ export function QorPanel() {
   useEffect(() => {
     let live = true;
     const params = new URLSearchParams(window.location.search);
-    const parts = [NOTICES[params.get('qor_error') ?? ''], params.get('qor') === 'signed_in' ? LINKS[params.get('link') ?? ''] : undefined].filter(Boolean);
+    const parts = [NOTICES[params.get('qor_error') ?? '']].filter(Boolean);
     if (params.has('qor_error') || params.has('qor')) {
       // Keep the address clean once the result has been read.
       window.history.replaceState(null, '', window.location.pathname + window.location.hash);

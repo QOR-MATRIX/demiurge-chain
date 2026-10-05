@@ -13,9 +13,9 @@ Imported into the Demiurge repository on 4 October 2026 from the arcade checkout
 - Flux Four and Rift Reversi: persistent two-player strategy matches, invitation links, spectators, reconnect, legal-move hints, 90-second turns, concessions, rematch creation, and server-authoritative rules.
 - Global top-100 and per-game rankings from completed multiplayer matches. Combined rankings aggregate before limiting. Win 30 / draw 10 / loss 5 points; fewer than six moves does not rank. Solo browser scores never submit to global rankings.
 - Floating world chat with authenticated author identity, persistent messages, two-second send limits, own-message deletion, local mute, report storage, unread indicator and draft preservation on connection failure.
-- Shared D1 data: players, matches, standings, messages and reports. Versioned schema migration. Match state and awards settle in one atomic, revision-guarded batch, preventing duplicate results from racing requests.
+- Shared Postgres data (ADR-074): players, matches, standings, messages and reports, and the QOR ID sign-in tables. Migrations in `db/migrations/`, applied on production builds. Match state and awards settle in one atomic, revision-guarded batch, preventing duplicate results from racing requests.
 - Live lobby, presence, chat and ranking updates every two seconds while visible; active match reads every 1.2 seconds. This is near-real-time polling for turn-based games, not a WebSocket action-game transport.
-- Server-derived Explorer aliases use the Sites authenticated identity. A nullable verified QOR mapping is reserved; client-provided usernames cannot impersonate QOR IDs.
+- A player is a QOR ID account: shown by its QOR ID, keyed by the SHA-256 of its `sub`. Client-provided names cannot impersonate anyone.
 - Synapse: random memory sequences, keyboard/touch input, eight progressive rounds.
 - Orbital: timed capture arcs, increasing orbital speed, ten locks and three misses.
 - Optional synthesized audio, pause controls, local best scores and completion results.
@@ -24,7 +24,7 @@ Imported into the Demiurge repository on 4 October 2026 from the arcade checkout
 - Browser terminal with history, completion and navigation/game commands.
 - Configurable local game creator, saved draft, source view, sandboxed preview and standalone HTML export.
 - Read-only Demiurge Devnet reader (`lib/chain.ts`, `/api/chain`): standard Substrate JSON-RPC at the fixed `https://rpc.qorsync.dev`, refusing any chain whose genesis is not `0x934e2caa…254a`; returns the finalized and best block numbers, or 503.
-- QOR ID sign-in (`lib/qor-session.ts`, `/api/auth/*`, the QOR Identity card; ADR-073): QOR ID's own page, a server-side session behind one HttpOnly cookie, `userinfo` on every check, sign-out that revokes at QOR ID; a host-signed-in explorer bound to the QOR identity on proof of both. Needs `QOR_CLIENT_ID`, `QOR_CLIENT_SECRET`, `QOR_REDIRECT_URI` (and `QOR_ID_URL` off the default) in the host's environment. (P7.3.)
+- QOR ID sign-in (`lib/qor-session.ts`, `/api/auth/*`, the QOR Identity card; ADR-073): QOR ID's own page, a server-side session behind one HttpOnly cookie, `userinfo` on every check, sign-out that revokes at QOR ID. The live arcade accepts QOR ID's answer for 30 seconds (ADR-074). Needs `QOR_CLIENT_ID`, `QOR_CLIENT_SECRET`, `QOR_REDIRECT_URI` (and `QOR_ID_URL` off the default) in the host's environment. (P7.3.)
 - Account lookup (`lib/account.ts`, `/api/chain/account?address=`, the QOR Identity screen): any address's test CGT (free, reserved, frozen, spendable while keeping the account open) and DRC-369 assets at the finalized block, decoded from the runtime's own encoding; a refused address returns 400, an unreadable chain 503; the last answer stays on screen marked stale. (P7.2.)
 - WebMCP read-local-state and navigate tools. No purchases, signing, or reward mutations exposed.
 
@@ -33,7 +33,6 @@ Imported into the Demiurge repository on 4 October 2026 from the arcade checkout
 
 This is a private playable explorer build, not a live gambling, payment, AI-generation or blockchain settlement system.
 
-- A QOR linking/verifier service. Until supplied, the interface clearly labels Explorer aliases. Private site access is preserved; invitations do not admit otherwise unauthorized visitors.
 - Automated report triage or an operator moderation dashboard; reports are persisted in the reports table. Message reads show up to 60 nondeleted messages from the last seven days; this is a display window, not a data-deletion retention policy.
 - AI model/provider integration. The creator currently uses a local configurable template and says so.
 - Real Energy purchases, payment webhooks, paid entitlements, refunds, and durable server ledger.
@@ -53,7 +52,7 @@ Do not connect client-local scores, energy, reward draws or storage to real valu
 
 TypeScript check and local production build passed. Browser checks exercised Orbital and Synapse completion with exactly one debit and reward result, runner rendering/movement/pause, terminal game launch, local ledger, creator save and runnable generated game. Mobile overview fit the viewport without horizontal overflow. WebMCP valid navigation/read and invalid navigation rejection were exercised.
 
-Polish pass: `node --test tests/arena.test.mjs` passes seven test groups including 100 complete Reversi games, Flux wins/illegal moves, identity and origin checks, simultaneous-move contention, exactly-once awards, early concessions, timeouts, SQL transaction rollback, chat limits/ownership, and aggregate rankings. An additional production-worker HTTP check exercised two isolated local identities through an entire Flux match, persistent rankings and cross-player chat delivery/deletion; unauthenticated requests returned 401. All test players/messages exist only in local test storage and are not deployment seeds.
+Polish pass (on Sites, before ADR-074; the same tests now run against Postgres): `node --test tests/arena.test.mjs` passes seven test groups including 100 complete Reversi games, Flux wins/illegal moves, identity and origin checks, simultaneous-move contention, exactly-once awards, early concessions, timeouts, SQL transaction rollback, chat limits/ownership, and aggregate rankings. An additional production-worker HTTP check exercised two isolated local identities through an entire Flux match, persistent rankings and cross-player chat delivery/deletion; unauthenticated requests returned 401. All test players/messages exist only in local test storage and are not deployment seeds.
 
 Browser verification also exercised local sign-in, lobby create/cancel, invitation copy feedback, chat send/delete, Rift Survivor WebGL rendering, upgrade selection and pause, and desktop/mobile layouts. New match results and global rankings remain server-side; practice scores and the Energy cache remain device-local.
 

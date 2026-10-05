@@ -4,9 +4,10 @@
 // code; the server exchanges it, with PKCE and ARQADE's client secret, and keeps the tokens in its own
 // database. The browser holds one HttpOnly cookie naming an ARQADE session, and never a QOR ID token.
 //
-// Who a person is comes from QOR ID's `/oauth/userinfo`, asked with the access token on every check,
-// so a sign-out or a revocation at QOR ID ends the session here at once. ARQADE never holds QOR ID's
-// signing secret.
+// Who a person is comes from QOR ID's `/oauth/userinfo`, asked with the access token, so a sign-out or
+// a revocation at QOR ID ends the session here. The identity card asks on every check; the live arcade,
+// which polls every two seconds, accepts an answer up to 30 seconds old (ADR-074). ARQADE never holds
+// QOR ID's signing secret.
 //
 // Everything is passed in (database, fetch, clock, settings), so the whole flow runs in tests.
 
@@ -34,6 +35,8 @@ export const SESSION_COOKIE = 'arq_session';
 export const LOGIN_TTL_MS = 10 * 60 * 1000;
 /** As long as QOR ID's session for an app (ADR-073). */
 export const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+/** How old QOR ID's last answer may be for the live arcade (ADR-074). */
+export const ARCADE_RECHECK_MS = 30 * 1000;
 
 const b64url = (bytes: Uint8Array) =>
   btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -148,25 +151,35 @@ export async function finishLogin(
   const now = deps.now();
   await deps.db
     .prepare(
-      'INSERT INTO qor_sessions (id, sub, qor_id, username, chain_account, access_token, refresh_token, created, expires) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO qor_sessions (id, sub, qor_id, username, chain_account, access_token, refresh_token, created, expires, checked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     )
-    .bind(await sha256url(session), profile.sub, profile.qorId, profile.username, profile.chainAccount, t.data.access_token, t.data.refresh_token, now, now + SESSION_TTL_MS)
+    .bind(await sha256url(session), profile.sub, profile.qorId, profile.username, profile.chainAccount, t.data.access_token, t.data.refresh_token, now, now + SESSION_TTL_MS, now)
     .run();
   return { session, profile };
 }
 
-type Row = { id: string; access_token: string; refresh_token: string; expires: number };
+type Row = {
+  id: string;
+  sub: string;
+  qor_id: string;
+  username: string;
+  chain_account: string | null;
+  access_token: string;
+  refresh_token: string;
+  expires: number;
+  checked: number;
+};
 
 /**
- * Who the session's person is now, asked of QOR ID. A revoked or expired session at QOR ID ends this
- * one: the row is deleted and null returned. An expired access token is refreshed once, rotating the
- * refresh token as QOR ID requires.
+ * Who the session's person is, asked of QOR ID unless it answered within `maxAgeMs`. A revoked or
+ * expired session at QOR ID ends this one: the row is deleted and null returned. An expired access
+ * token is refreshed once, rotating the refresh token as QOR ID requires.
  */
-export async function currentProfile(deps: Deps, sessionCookie: string | null): Promise<Profile | null> {
+export async function currentProfile(deps: Deps, sessionCookie: string | null, maxAgeMs = 0): Promise<Profile | null> {
   if (!sessionCookie || !deps.config) return null;
   const id = await sha256url(sessionCookie);
   const row = await deps.db
-    .prepare('SELECT id, access_token, refresh_token, expires FROM qor_sessions WHERE id = ?')
+    .prepare('SELECT id, sub, qor_id, username, chain_account, access_token, refresh_token, expires, checked FROM qor_sessions WHERE id = ?')
     .bind(id)
     .first<Row>();
   if (!row) return null;
@@ -175,16 +188,27 @@ export async function currentProfile(deps: Deps, sessionCookie: string | null): 
     return null;
   };
   if (deps.now() > row.expires) return end();
+  if (maxAgeMs > 0 && deps.now() - row.checked <= maxAgeMs) {
+    return { sub: row.sub, qorId: row.qor_id, username: row.username, chainAccount: row.chain_account };
+  }
+  const confirmed = async (p: Profile) => {
+    await deps.db
+      .prepare('UPDATE qor_sessions SET qor_id = ?, username = ?, chain_account = ?, checked = ? WHERE id = ?')
+      .bind(p.qorId, p.username, p.chainAccount, deps.now(), id)
+      .run();
+    return p;
+  };
 
   const first = await whoIs(deps, row.access_token);
-  if (first) return first;
+  if (first) return confirmed(first);
   const t = await tokenRequest(deps, { grant_type: 'refresh_token', refresh_token: row.refresh_token });
   if (!t.ok) return end();
   await deps.db
     .prepare('UPDATE qor_sessions SET access_token = ?, refresh_token = ? WHERE id = ?')
     .bind(t.data.access_token, t.data.refresh_token, id)
     .run();
-  return (await whoIs(deps, t.data.access_token!)) ?? end();
+  const again = await whoIs(deps, t.data.access_token!);
+  return again ? confirmed(again) : end();
 }
 
 /** Sign out: QOR ID ends its session for ARQADE, and the row goes. */
@@ -202,21 +226,7 @@ export async function logout(deps: Deps, sessionCookie: string | null): Promise<
   }
 }
 
-/**
- * Bind a host-signed-in arcade player to their QOR identity, now that they proved both in one request.
- * Refused, and reported, if that QOR identity already belongs to another player.
- */
-export async function linkPlayer(db: Db, playerId: string, sub: string): Promise<'linked' | 'already' | 'taken'> {
-  const other = await db.prepare('SELECT id FROM players WHERE qor_id = ? AND id != ?').bind(sub, playerId).first<{ id: string }>();
-  if (other) return 'taken';
-  const mine = await db.prepare('SELECT qor_id FROM players WHERE id = ?').bind(playerId).first<{ qor_id: string | null }>();
-  if (mine?.qor_id === sub) return 'already';
-  if (mine?.qor_id && mine.qor_id !== sub) return 'taken';
-  await db.prepare('UPDATE players SET qor_id = ? WHERE id = ? AND qor_id IS NULL').bind(sub, playerId).run();
-  return 'linked';
-}
-
-/** The settings from the worker's environment, or null when sign-in is not set up. */
+/** The settings from the server's environment, or null when sign-in is not set up. */
 export function configFrom(env: Record<string, unknown>): QorConfig | null {
   const issuer = typeof env.QOR_ID_URL === 'string' && env.QOR_ID_URL ? env.QOR_ID_URL : 'https://id.qorsync.dev';
   const clientId = env.QOR_CLIENT_ID, clientSecret = env.QOR_CLIENT_SECRET, redirectUri = env.QOR_REDIRECT_URI;

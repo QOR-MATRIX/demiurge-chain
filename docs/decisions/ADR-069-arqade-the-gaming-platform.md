@@ -7,6 +7,9 @@ by this acceptance**: the record says so itself. **Amends:** [ADR-011](ADR-011-w
 with:** [ADR-043](ADR-043-qor-id-as-an-identity-provider.md). The design is [`../blueprints/arqade.md`](../blueprints/arqade.md); the steps are
 P7 in [`../DIRECTION.md`](../DIRECTION.md).
 
+**Hosting settled, 5 October 2026:** the owner chose Vercel; [ADR-074](ADR-074-arqade-on-vercel.md) records it. The
+hosting option below is kept as it was written.
+
 **Relates to:** [ADR-011](ADR-011-web-surface.md) (two web surfaces), which decision 3 amends;
 [ADR-043](ADR-043-qor-id-as-an-identity-provider.md) (browser sign-in), accepted with this record, which decision 4 needs;
 [ADR-046](ADR-046-the-launcher-is-an-app-host.md) and [ADR-010](ADR-010-agent-rails.md) /

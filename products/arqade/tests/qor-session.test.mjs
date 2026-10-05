@@ -1,25 +1,11 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
-import {pathToFileURL} from 'node:url';
-import ts from 'typescript';
+import {compile,postgres} from './postgres.mjs';
 
-// The real sign-in module against a stand-in QOR ID and the arcade's own migrations in SQLite.
-const dir=path.resolve('work/qor-session-tests');fs.mkdirSync(dir,{recursive:true});
-const out=path.join(dir,'qor-session.mjs');
-fs.writeFileSync(out,ts.transpileModule(fs.readFileSync('lib/qor-session.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText);
-const Q=await import(pathToFileURL(out).href);
-
-function database(){
-  const sqlite=new DatabaseSync(':memory:');
-  for(const f of fs.readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())
-    for(const stmt of fs.readFileSync(path.join('drizzle',f),'utf8').split('--> statement-breakpoint')) if(stmt.trim()) sqlite.exec(stmt);
-  const db={prepare:sql=>({bind:(...v)=>({run:async()=>sqlite.prepare(sql).run(...v),first:async()=>sqlite.prepare(sql).get(...v)??null})})};
-  return {sqlite,db};
-}
+// The real sign-in module against a stand-in QOR ID and Postgres (PGlite) with the site's migrations.
+const Q=await import(compile('lib/qor-session.ts','qor-session'));
+async function database(){const {pg,db}=await postgres();return {db,rows:async(sql,params=[])=>(await pg.query(sql,params)).rows}}
 
 const CONFIG={issuer:'https://id.test',clientId:'arqade',clientSecret:'s'.repeat(40),redirectUri:'https://arqade.test/api/auth/callback'};
 const b64url=b=>Buffer.from(b).toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -64,7 +50,7 @@ async function signedIn(db,q,clock){
 }
 
 test('a sign-in starts at QOR ID with a state and an S256 challenge of a verifier kept here',async()=>{
-  const {sqlite,db}=database();const q=qorId();
+  const {rows,db}=await database();const q=qorId();
   const {location,state}=await Q.startLogin(deps(db,q));
   const u=new URL(location);
   assert.equal(u.origin+u.pathname,'https://id.test/oauth/authorize');
@@ -72,13 +58,13 @@ test('a sign-in starts at QOR ID with a state and an S256 challenge of a verifie
   assert.equal(u.searchParams.get('redirect_uri'),CONFIG.redirectUri);
   assert.equal(u.searchParams.get('code_challenge_method'),'S256');
   assert.equal(u.searchParams.get('state'),state);
-  const row=sqlite.prepare('SELECT verifier FROM qor_logins WHERE state=?').get(state);
+  const [row]=await rows('SELECT verifier FROM qor_logins WHERE state=$1',[state]);
   assert.equal(u.searchParams.get('code_challenge'),b64url(createHash('sha256').update(row.verifier).digest()));
   assert.equal(u.searchParams.get('code_verifier'),null,'the verifier never leaves the server');
 });
 
 test('finishing needs the state this browser carried, once, within ten minutes',async()=>{
-  const {db}=database();const q=qorId();
+  const {db}=await database();const q=qorId();
   let t=1_000_000;const clock=()=>t;
   const d=deps(db,q,clock);
   const {location,state}=await Q.startLogin(d);
@@ -98,38 +84,38 @@ test('finishing needs the state this browser carried, once, within ten minutes',
 });
 
 test('the session is stored by the hash of the cookie, never the cookie, with its tokens server-side',async()=>{
-  const {sqlite,db}=database();const q=qorId();
+  const {rows,db}=await database();const q=qorId();
   const {session,profile}=await signedIn(db,q);
   assert.equal(profile.sub,'sub-1');
-  const rows=sqlite.prepare('SELECT id,access_token,refresh_token,sub FROM qor_sessions').all();
-  assert.equal(rows.length,1);
-  assert.notEqual(rows[0].id,session);
-  assert.equal(rows[0].id,b64url(createHash('sha256').update(session).digest()));
-  assert.ok(rows[0].access_token&&rows[0].refresh_token);
+  const all=await rows('SELECT id,access_token,refresh_token,sub FROM qor_sessions');
+  assert.equal(all.length,1);
+  assert.notEqual(all[0].id,session);
+  assert.equal(all[0].id,b64url(createHash('sha256').update(session).digest()));
+  assert.ok(all[0].access_token&&all[0].refresh_token);
 });
 
 test('who is signed in is asked of QOR ID; an expired access token is refreshed and rotated',async()=>{
-  const {sqlite,db}=database();const q=qorId();
+  const {rows,db}=await database();const q=qorId();
   const {session}=await signedIn(db,q);
   assert.equal((await Q.currentProfile(deps(db,q),session)).qorId,'player#0001');
-  const before=sqlite.prepare('SELECT access_token,refresh_token FROM qor_sessions').get();
+  const [before]=await rows('SELECT access_token,refresh_token FROM qor_sessions');
   q.access.delete(before.access_token); // the access token expired at QOR ID
   assert.equal((await Q.currentProfile(deps(db,q),session)).username,'player');
-  const after=sqlite.prepare('SELECT access_token,refresh_token FROM qor_sessions').get();
+  const [after]=await rows('SELECT access_token,refresh_token FROM qor_sessions');
   assert.notEqual(after.refresh_token,before.refresh_token,'rotated');
   assert.equal(await Q.currentProfile(deps(db,q),'not a session'),null);
 });
 
 test('a session QOR ID ended ends here at once',async()=>{
-  const {sqlite,db}=database();const q=qorId();
+  const {rows,db}=await database();const q=qorId();
   const {session}=await signedIn(db,q);
   q.access.clear();q.refresh.clear(); // revoked at QOR ID
   assert.equal(await Q.currentProfile(deps(db,q),session),null);
-  assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM qor_sessions').get().n,0);
+  assert.equal((await rows('SELECT COUNT(*) AS n FROM qor_sessions'))[0].n,0);
 });
 
 test('a session past its eight hours ends without asking QOR ID',async()=>{
-  const {db}=database();const q=qorId();
+  const {db}=await database();const q=qorId();
   let t=1_000_000;
   const {session}=await signedIn(db,q,()=>t);
   t+=Q.SESSION_TTL_MS+1;q.calls.length=0;
@@ -138,22 +124,29 @@ test('a session past its eight hours ends without asking QOR ID',async()=>{
 });
 
 test('sign-out deletes the session here and revokes it at QOR ID',async()=>{
-  const {sqlite,db}=database();const q=qorId();
+  const {rows,db}=await database();const q=qorId();
   const {session}=await signedIn(db,q);
-  const refresh=sqlite.prepare('SELECT refresh_token FROM qor_sessions').get().refresh_token;
+  const [{refresh_token:refresh}]=await rows('SELECT refresh_token FROM qor_sessions');
   await Q.logout(deps(db,q),session);
-  assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM qor_sessions').get().n,0);
+  assert.equal((await rows('SELECT COUNT(*) AS n FROM qor_sessions'))[0].n,0);
   assert.deepEqual(q.revoked,[refresh]);
 });
 
-test('an arcade explorer is bound to one QOR identity, and one QOR identity to one explorer',async()=>{
-  const {sqlite,db}=database();
-  for(const id of ['p1','p2'])sqlite.prepare('INSERT INTO players (id,alias,created,seen) VALUES (?,?,?,?)').run(id,'Explorer-'+id,1,1);
-  assert.equal(await Q.linkPlayer(db,'p1','sub-1'),'linked');
-  assert.equal(await Q.linkPlayer(db,'p1','sub-1'),'already');
-  assert.equal(await Q.linkPlayer(db,'p2','sub-1'),'taken');
-  assert.equal(await Q.linkPlayer(db,'p1','sub-2'),'taken','an explorer already bound keeps its identity');
-  assert.equal(sqlite.prepare('SELECT qor_id FROM players WHERE id=?').get('p2').qor_id,null);
+test('the live arcade reuses the answer from QOR ID for 30 seconds, then asks again; the identity card always asks',async()=>{
+  const {db}=await database();const q=qorId();
+  let t=1_000_000;const clock=()=>t;
+  const {session}=await signedIn(db,q,clock);
+  q.calls.length=0;
+  assert.equal((await Q.currentProfile(deps(db,q,clock),session,Q.ARCADE_RECHECK_MS)).qorId,'player#0001');
+  assert.deepEqual(q.calls,[],'answered from the session QOR ID confirmed at sign-in');
+  assert.equal((await Q.currentProfile(deps(db,q,clock),session)).qorId,'player#0001');
+  assert.deepEqual(q.calls,['/oauth/userinfo'],'no allowance given: QOR ID is asked');
+  q.access.clear();q.refresh.clear(); // revoked at QOR ID
+  t+=Q.ARCADE_RECHECK_MS-1;q.calls.length=0;
+  assert.ok(await Q.currentProfile(deps(db,q,clock),session,Q.ARCADE_RECHECK_MS),'within the allowance');
+  t+=2;
+  assert.equal(await Q.currentProfile(deps(db,q,clock),session,Q.ARCADE_RECHECK_MS),null,'past it, the revocation ends the session');
+  assert.ok(q.calls.includes('/oauth/userinfo'));
 });
 
 test('sign-in is off unless the site is configured with a client and a real secret',()=>{
