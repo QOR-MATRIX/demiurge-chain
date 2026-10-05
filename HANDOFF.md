@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 48 (4 October 2026): P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 49 (5 October 2026): P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1614,6 +1614,22 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     in the local workerd runtime; headless Chrome drove the panel (a lookup showing 99,900 / 100,000; a refused checksum).
     `npm test` 31 of 31, type check and build clean; lint unchanged at 13 inherited errors. Trap: `npm run build` fails
     with EPERM on `dist` while `npm start` (workerd) is running. **The live Sites website was not redeployed.**
+
+49. **5 October 2026: P7.1 done — ARQADE renamed on screen, its inventory written, its lint a gate.** The 13 React
+    Compiler errors fixed without changing behaviour: latest-callback refs (`callback`, `doneRef`, `cb`, the Orbital
+    action, Rift Survivor's props) written in an effect after render; the per-game reset as React's previous-value
+    pattern; the first "nothing lit" in Synapse scheduled with its timers; three mount-time reads of browser storage and
+    the arenas' first poll deferred one tick; Rift Survivor's run created by `useState`; the home link through
+    `next/link`; an unused import removed. Lint 0 errors, 4 warnings (three effect dependencies, one expression), and
+    now a CI gate (a tightening, logged). **Verified in headless Chrome** against the built worker: each of the four solo
+    games opened, began and played with no page exception or console error (a control run showed Synapse's synthetic
+    click was the check's fault, and a real key press advanced its round). **Renamed** "ARQADE · powered by Demiurge":
+    title, brand, intro, notice, terminal, ledger file, exported games; `localStorage` keys and the `navigate_demiurge`
+    tool name kept. **Two more false displays fixed:** the sidebar's "Demiurge Protocol · Chain connection pending",
+    which read nothing, and the terminal's `chain`, which printed "block #undefined" after the devnet reader's fields
+    changed. **Inventory:** `products/arqade/INTEGRATION_INVENTORY.md`, every control with its source, permission,
+    persistence, failure and verification; it and `IMPLEMENTATION.md` are now in `docs/README.md`. `npm test` 31 of 31,
+    type check and build clean.
 
 ## 5. Traps, so nobody re-learns them
 

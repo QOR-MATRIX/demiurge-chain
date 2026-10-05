@@ -1,4 +1,6 @@
-# ARQADE (formerly Demiurge Arcade) — implementation state
+# ARQADE — implementation state
+
+Renamed on screen from "DEMIURGE · The Sovereign Arcade" to **ARQADE, powered by Demiurge** on 5 October 2026; browser storage keys keep their `demiurge.` names so no visitor loses progress. The control-by-control record is `INTEGRATION_INVENTORY.md`.
 
 Imported into the Demiurge repository on 4 October 2026 from the arcade checkout at `4f02baf` (P7.1, ADR-069). The design and the steps are `docs/blueprints/arqade.md` and P7 in `docs/DIRECTION.md`; where this file and those disagree, those win.
 
@@ -27,7 +29,6 @@ Imported into the Demiurge repository on 4 October 2026 from the arcade checkout
 
 ## Not implemented or activated
 
-- The sidebar's "Demiurge Protocol · Chain connection pending" panel is pre-existing copy and does not read the chain; the QOR Identity screen does. For the integration inventory (P7.1).
 
 This is a private playable explorer build, not a live gambling, payment, AI-generation or blockchain settlement system.
 

@@ -340,7 +340,7 @@ jobs:
         run: cargo test --locked --features qontrol-no-skips
 
   arqade:
-    name: "ARQADE (products/arqade): install, type check, tests, build; lint reported"
+    name: "ARQADE (products/arqade): install, type check, lint, tests, build"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -369,12 +369,10 @@ jobs:
         working-directory: ./products/arqade
         run: npm run build
 
-      # Reported, not a gate: the imported code carried 13 React Compiler errors on
-      # 2026-10-04 (GATES.toml [ci].reports). It becomes a gate in the change that
-      # fixes them.
-      - name: Lint (reported)
+      # A gate since 2026-10-05, when the 13 React Compiler errors the imported code
+      # carried were fixed. Warnings do not fail it; errors do.
+      - name: Lint
         working-directory: ./products/arqade
-        continue-on-error: true
         run: npm run lint
 
   coverage:

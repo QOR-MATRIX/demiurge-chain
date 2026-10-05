@@ -3,8 +3,8 @@ import "./globals.css";
 
 
 export const metadata: Metadata = {
-  title: "DEMIURGE — The Sovereign Arcade",
-  description: "Enter the Demiurge universe. Play original games, create new worlds, and explore a sovereign terminal.",
+  title: "ARQADE — powered by Demiurge",
+  description: "ARQADE, the gaming platform powered by Demiurge. Play original games, create new worlds, and explore a sovereign terminal.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

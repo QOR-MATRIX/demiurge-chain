@@ -898,9 +898,17 @@ DRC-369 asset, CGT the only currency, and a developer SDK. Its starting point is
 outside this repository. [`blueprints/arqade.md`](blueprints/arqade.md); its decisions are ADR-069, accepted on 4 October 2026. No item
 here sets an economic value; payouts are U-16.
 
-1. [ ] Baseline: the arcade's source in `products/arqade/` with its tests in CI, an integration inventory of every
+1. [x] Baseline: the arcade's source in `products/arqade/` with its tests in CI, an integration inventory of every
    control, and the false claims removed (CRGT, DMRG, USD prices for Energy, the deleted chain's
    `chain_getBlockNumber`). Depends on ADR-069 accepted (ADR-050 decision 10).
+
+   **Done 5 October 2026.** Imported 4 October (`f647c82`) and in CI since (`arqade` job, green on every run from
+   `37260506426`); the false claims removed the same day; the inventory is
+   [`products/arqade/INTEGRATION_INVENTORY.md`](../products/arqade/INTEGRATION_INVENTORY.md), every control with its
+   source, permission, persistence, failure and verification. Also: renamed ARQADE, powered by Demiurge, on screen
+   (storage keys kept, so no visitor loses progress); two more false displays fixed (a sidebar "chain connection
+   pending" that read nothing, and the terminal's `chain` printing "block #undefined"); the 13 inherited lint errors
+   fixed and lint made a CI gate. Each solo game was played in headless Chrome after the fixes, with no page errors.
 2. [x] Live reads from Demiurge Devnet, read-only: the genesis hash checked, the finalised head, an account's CGT
    balance in integer Sparks, and its DRC-369 inventory from finalised state, shown stale rather than zero on loss.
 
