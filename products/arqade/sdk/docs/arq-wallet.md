@@ -6,8 +6,9 @@ belongs to your game alone, has no private key, and moves CGT only under rules y
 > **Status: decided; its chain half is built and live on Demiurge Devnet (4 October 2026).** This describes [ADR-070](../../../../docs/decisions/ADR-070-game-vaults.md),
 > **accepted by the project owner on 4 October 2026**, who named the wallet **ARQ Wallet**. The chain module, `pallet-arq-wallet`,
 > exists and is tested (`chain/pallets/arq-wallet/`): wallets, policy, delayed loosening and withdrawals, the payout
-> authority, each outcome once, accruals and claims. **Held prizes for paid rounds are not built yet**, and every SDK API
-> below marked *proposed* does not exist. What
+> authority, each outcome once, accruals and claims. Rounds with held prizes are built in the tree (`spec_version` 8) and
+> reach the devnet with its next upgrade. In the SDK, `arqWalletAddress`, `outcomeId`, `roundId`, `toChainPolicy`
+> and `payoutArgs` exist; every API below marked *proposed* does not. What
 > exists today is in [`../README.md`](../README.md). "ARQ Wallet" is the owner's name; the CLI and package names are
 > placeholders until the project owner approves them.
 >
@@ -87,20 +88,26 @@ Amounts are **integer Sparks** (`1 CGT = 10^18 Sparks`), as decimal strings in J
 SDK's `parseCgt` and `formatCgt` convert, and refuse excess precision rather than rounding. The SDK's
 `validatePolicy` checks a policy before you sign it (both exist today, [`../README.md`](../README.md)).
 
-## Paying a player (proposed)
+## Paying a player
+
+What exists today: the arguments, built and checked. Signing and sending them is your server's own chain client
+(the SDK's will be **proposed** until M5.1).
 
 ```ts
 // On your game server, with the payout authority's key. Never in a browser.
-import { payouts } from '@arqade/sdk/server'; // placeholder name
+import { arqWalletAddress, outcomeId, parseCgt, payoutArgs } from 'arqade-sdk'; // placeholder name
 
-const receipt = await payouts.award({
-  vault: '5Gxx…',
-  outcomeId: match.id,          // unique per outcome; the chain refuses a repeat
-  ruleVersion: 'flux-four@3',   // must be in the policy's ruleVersions
-  recipient: winner.account,    // the player's SS58 address, proven through QOR ID
-  amount: parseCgt('25'),       // bigint Sparks
+const wallet = arqWalletAddress(cartridge.collection, cartridge.item); // where your game's CGT is
+const args = payoutArgs({
+  collection: cartridge.collection,
+  item: cartridge.item,
+  outcome: outcomeId('flux-four', match.id, winner.seat), // the same inputs give the same id: retries pay once
+  issuedAt: currentBlock,          // a payout older than the outcome window is refused
+  ruleVersion: 'flux-four@3',      // must be in the policy's ruleVersions
+  to: winner.account,              // the player's SS58 address, proven through QOR ID
+  amount: parseCgt('25'),          // bigint Sparks, sent as a decimal string
 });
-// receipt.status: 'paid' | 'accrued' | 'refused'; wait for finality before telling the player it arrived.
+await api.tx.arqWallet.payout(...args).signAndSend(authority); // then wait for finality and the Paid or Accrued event
 ```
 
 - **Paid twice? Impossible by construction.** Resend the same `outcomeId` after a timeout and the chain answers with
@@ -109,11 +116,13 @@ const receipt = await payouts.award({
   the player claims it later. Your game shows it as owed, not as received.
 - **Inclusion is not success.** The SDK resolves only at finality with the pallet's `Paid` or `Accrued` event.
 
-## Paid rounds and proof of prize (proposed)
+## Paid rounds and proof of prize
 
-Before a paid round accepts anyone's entry, its prize is **held** inside the Vault. A player's client reads the hold
-from chain state, and shows "prize reserved on chain" before they pay. Settling pays winners from the hold; cancelling
-releases it. Neither you nor anyone else can withdraw a held prize.
+Before a paid round accepts anyone's entry, its prize is **held** inside the wallet: `open_round(round, prize,
+ruleVersion, closesAt)`, with `roundId('your-game', …)` as the id. A player's client reads the hold from chain state
+(`Rounds`) and shows "prize reserved on chain" before they pay. From `closesAt`, `settle_round` pays up to 64 winners
+from the hold, owes what cannot reach them yet, and releases the rest; `cancel_round` releases it all. Neither you nor
+anyone else can withdraw or pay out a held prize, and a round nobody settles in time can be released by anyone.
 
 > **Paid entry that can win a prize stays switched off in production** until the project owner decides U-16 and has a
 > legal review (ADR-069). On the devnet the whole flow can be built and tested with test CGT.

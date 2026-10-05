@@ -169,7 +169,11 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // `tests/assets.rs` pins, so `transaction_version` stays again.
     // 7: `pallet-arq-wallet`, ARQ Wallets (ADR-070), a new pallet at index 11.
     // No existing call changed, so `transaction_version` stays.
-    spec_version: 7,
+    // 8: `ArqWallet::open_round`, `settle_round` and `cancel_round`, prizes held
+    // before a paid round (ADR-070 decision 8). New calls and storage only; no
+    // stored value's encoding changed, so no migration and the same
+    // `transaction_version`.
+    spec_version: 8,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,

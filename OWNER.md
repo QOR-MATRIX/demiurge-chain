@@ -18,7 +18,7 @@ The code is public at `github.com/QOR-MATRIX/demiurge-chain` (your organisation)
   agreeing. You hold its admin key and its faucet — *the account that hands out test CGT* — in your wallet.
 - **The chain.** Makes and finalises blocks — *finalise: agree a block can never be undone* — holds assets,
   sends, sells with royalties, nests one asset in another, and refuses a purchase if the seller changed the
-  work after you looked. **143 tests pass** (4 October, the ARQ Wallet's included).
+  work after you looked. **150 tests pass** (4 October, the ARQ Wallet's included).
 - **Sign-in (QOR ID)** at `id.qorsync.dev`, beside its database in Virginia. **136 tests pass.**
 - **The launcher 0.1.6.** Keys, sign-in, sending, minting, Inventory, trading, selling, buying, and a
   **Market** of everything listed. Its next build points at the devnet by default. **195 tests pass.**
@@ -44,14 +44,15 @@ or give anyone test CGT except by you sending it from the faucet.
 2. **CI is green** since your option A (ADR-072); next, the two-validator check on its nightly run.
 3. **A faucet page**, so testers can get test CGT without you sending it by hand.
 4. **The indexer** — *a service that reads the chain so the Market can search and show history*.
-5. **The ARQ Wallet is live on the devnet** (you upgraded it on 4 October): next, prizes held for paid rounds and the
-   SDK calls a game developer uses.
+5. **Prize rounds are built** — *a game locks a prize on the chain before anyone plays for it* — and rehearsed; they
+   reach the devnet when you sign a second upgrade (below). The SDK now finds a game's wallet and builds its payouts.
 
 ## What only you can do
 
-1. **Send yourself test CGT:** open `https://polkadot.js.org/apps/?rpc=wss://rpc.qorsync.dev`, allow your wallet,
+1. **Upgrade the devnet to version 8** (prize rounds): the same steps as before, with
+   `demiurge-runtime-v8.compact.compressed.wasm` from your Downloads.
+2. **Send yourself test CGT:** open `https://polkadot.js.org/apps/?rpc=wss://rpc.qorsync.dev`, allow your wallet,
    then Accounts → **Devnet faucet** → Send → to your launcher address `5DMPEX…qLxK`.
-2. **CI is green**: every job passed on `main` on 4 October (run 37260938168), after your option A (ADR-072).
 3. **Get a legal opinion** on backing (crowdfunding) and on paid games with prizes before either goes live.
    Still open for ARQADE: its look, where it is hosted, and the rest of **U-16** — *whether paying to enter may win a
    prize, and the platform's minimum waiting times on an ARQ Wallet*.

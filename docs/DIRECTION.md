@@ -924,8 +924,9 @@ here sets an economic value; payouts are U-16.
 11. [ ] ARQ Wallets: one keyless payout account per published game, derived from its DRC-369 Cartridge and governed by
     whoever holds it, paying only within a policy on chain, each outcome once, with loosening and withdrawals delayed,
     prizes reserved before paid rounds open, and payouts below the existential deposit accrued; "ignition" in the SDK.
-    **Its chain half's first slice is built** (4 October 2026, `pallet-arq-wallet`, `spec_version` 7; **on Demiurge Devnet since that day**):
-    everything above but the held prizes. The owner's direction and name of 4 October 2026; ADR-070, accepted that day, and
+    **Its chain half is built** (4 October 2026, `pallet-arq-wallet`): everything above at `spec_version` 7, **on Demiurge Devnet since
+    that day**; the held prizes at `spec_version` 8, in the tree, reaching the devnet at its next upgrade. The SDK derives a wallet's
+    address and the outcome and round ids, and builds the calls' arguments; sending them waits on M5.1. The owner's direction and name of 4 October 2026; ADR-070, accepted that day, and
     [`products/arqade/sdk/docs/arq-wallet.md`](../products/arqade/sdk/docs/arq-wallet.md). Depends on
     `pallet-arq-wallet` and U-16's bounds.
 12. [ ] Self-publishing: a project submitted at any stage becomes its DRC-369 Cartridge, whose profile manifest is the

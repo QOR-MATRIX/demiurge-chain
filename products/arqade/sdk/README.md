@@ -15,6 +15,7 @@ and charge in CGT, and award DRC-369 assets, without the game ever holding a pla
 | [`src/amount.ts`](src/amount.ts) | CGT as integer Sparks (`bigint`, `1 CGT = 10^18 Sparks`): `parseCgt`, `formatCgt`, `sparksFromJson`, the existential deposit (100 CGT, ADR-036). Refuses excess precision, signs, exponents and anything past `u128`; never rounds, never uses floating point | `tests/sdk.test.mjs` |
 | [`src/arq-wallet-policy.ts`](src/arq-wallet-policy.ts) | An ARQ Wallet's payout policy: `validatePolicy` names every problem before the governor signs it, against the bounds the runtime reports; `loosens` says which changes must wait the delay | `tests/sdk.test.mjs` |
 | [`src/profile.ts`](src/profile.ts) and [`templates/arqade-project.json`](templates/arqade-project.json) | The project profile that becomes a store page; `checkReadiness` and `readyStage` for the four stages; `priceProblem` with the owner's 10,000 CGT ceiling | `tests/profile.test.mjs` |
+| [`src/arq-wallet.ts`](src/arq-wallet.ts) | A Cartridge's ARQ Wallet address (`arqWalletAccountId`, `arqWalletAddress`, `ss58`), the same bytes the chain derives and pins; `outcomeId` and `roundId`, deterministic and domain-separated, so a retried payout names the same outcome; `toChainPolicy` and `payoutArgs`, the chain calls' arguments, checked | `tests/arq-wallet.test.mjs` |
 | `../lib/chain.ts` (the app's, for now) | Reads Demiurge Devnet read-only, refusing any chain whose genesis is not the devnet's | `../tests/chain.test.mjs` |
 
 Run them from `products/arqade`: `npm test`.
@@ -35,7 +36,7 @@ Run them from `products/arqade`: `npm test`.
 | --- | --- |
 | Player sign-in (browser) | ADR-043's redirect flow in QOR ID (accepted, not built) and a way for a game server to verify a token |
 | Signing a player's payment | The signing path of ADR-069 decision 5, each with its own record |
-| ARQ Wallets: `vault ignite`, `payouts.award`, rounds, claims | The SDK calls; rounds wait on the pallet's second slice. The chain half is live on the devnet |
+| ARQ Wallets: `vault ignite`, `payouts.award`, rounds, claims | Sending and watching the calls (the chain client, M5.1); the CLI's `vault ignite`. Rounds are on chain at `spec_version` 8, reaching the devnet at its next upgrade |
 | Trophies | An issuer account minting and transferring today; account-bound ones wait on G-16 |
 | Cards, sets, packs | G-15 (editions) and G-14 (randomness) |
 | Evolving assets | M4.2's state and XP |

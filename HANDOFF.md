@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 45 (4 October 2026): Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 46 (4 October 2026): rounds with held prizes and the SDK's wallet module, spec_version 8 rehearsed and awaiting the owner's signature; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1576,6 +1576,24 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     validators authoring; readiness 200. The node image (`sha-f836075`) was not rebuilt and need not be: the runtime
     runs as wasm from state. Trap: Apps showed no admin account on the Sudo page until the wallet's accounts appeared
     under Accounts; the wallet asks for its own per-account password, not QOR ID's.
+
+46. **4 October 2026: rounds with held prizes (ADR-070 decision 8) and the SDK's ARQ Wallet module. `spec_version` 8,
+    rehearsed; the devnet still runs 7 until the owner signs.** `pallet-arq-wallet` gains `open_round` (authority;
+    prize at most the epoch budget, held at once in `Held`, at most `MaxOpenRounds` 64 open), `settle_round` (authority,
+    from close to `OutcomeWindow` after; at most `MaxWinners` 64 distinct winners; pays, accrues what cannot reach,
+    releases the rest) and `cancel_round` (authority or governor any time, anyone once unsettleable). `available()`
+    subtracts the hold, so payouts and withdrawals cannot touch it. Held totals live in their own map, so **no stored
+    encoding changed and no migration is needed**; `transaction_version` stays 2. **Evidence:** 21 pallet tests (6 new,
+    one pinning the wallet account's bytes beside the SDK's) and 4 runtime tests; three planted faults caught (hold
+    ignored: 2 failed; prize limit removed: 1; anyone may cancel: 1); fmt and clippy clean; **150 workspace tests with
+    the wasm built** (143 before). Five more tests in `arqade.wallet-tests` (a tightening, logged). **SDK:**
+    `sdk/src/arq-wallet.ts` — `arqWalletAccountId`, `arqWalletAddress`, `ss58` (checked against Alice's known address),
+    `outcomeId` and `roundId` (BLAKE2b-256, length-prefixed fields, separate domains), `toChainPolicy`, `payoutArgs`;
+    4 tests, `npm test` 25 of 25. New dependency `@noble/hashes` 2.4 (ADR-033 rule 2: current). **Upgrade rehearsal**
+    against the devnet's live `:code` (516,222 bytes, the v7 the owner set): spec_version 8, Sudo kept, state kept, a
+    payout, and a round holding 20 CGT then settling 15 to a winner — passed. The runtime, built with `--features sudo`
+    at this commit, is **516,949 bytes, SHA-256 `fbd85089f7095e0604cd2d1aa07e0aecf32035e63e40845b572e72eed7db0074`**,
+    in the owner's Downloads as `demiurge-runtime-v8.compact.compressed.wasm`.
 
 ## 5. Traps, so nobody re-learns them
 

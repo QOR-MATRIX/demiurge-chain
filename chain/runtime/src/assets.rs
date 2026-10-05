@@ -216,6 +216,10 @@ impl pallet_arq_wallet::Config for Runtime {
     /// of at most 58 bytes in the SDK's form.
     type MaxRuleVersions = ConstU32<8>;
     type MaxRuleVersionLen = ConstU32<64>;
+    /// Engineering bounds on storage and on a settlement's weight: rounds a
+    /// wallet holds prizes for at once, and winners one round pays.
+    type MaxOpenRounds = ConstU32<64>;
+    type MaxWinners = ConstU32<64>;
     /// Placeholders, not benchmarks: M7.2 debt.
     type WeightInfo = pallet_arq_wallet::weights::PlaceholderWeight<Runtime>;
 }

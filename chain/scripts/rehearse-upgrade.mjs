@@ -94,5 +94,18 @@ const paid = await send(api, api.tx.arqWallet.payout(collection, item, '0x' + '3
 check(paid.some(({ event }) => event.section === 'arqWallet' && event.method === 'Paid'), 'an ARQ Wallet paid a player after the upgrade');
 check((await api.query.system.account(charlie.address)).data.free.toBigInt() === charlieBefore + 5n * CGT, 'the player received exactly 5 CGT');
 
+// Rounds (spec_version 8 onwards): a prize held, then settled to a winner.
+if (api.tx.arqWallet.openRound) {
+  const round = '0x' + '44'.repeat(32);
+  const opensAt = (await api.rpc.chain.getHeader()).number.toNumber();
+  await send(api, api.tx.arqWallet.openRound(collection, item, round, 20n * CGT, 'flux@1', opensAt + 2), bob);
+  check((await api.query.arqWallet.held([collection, item])).toBigInt() === 20n * CGT, 'a round holds its 20 CGT prize');
+  while ((await api.rpc.chain.getHeader()).number.toNumber() < opensAt + 2) await new Promise((r) => setTimeout(r, 2000));
+  const settled = await send(api, api.tx.arqWallet.settleRound(collection, item, round, [[charlie.address, 15n * CGT]]), bob);
+  check(settled.some(({ event }) => event.section === 'arqWallet' && event.method === 'RoundSettled'), 'the round settled');
+  check((await api.query.arqWallet.held([collection, item])).toBigInt() === 0n, 'nothing is held after settlement');
+  check((await api.query.system.account(charlie.address)).data.free.toBigInt() === charlieBefore + 20n * CGT, 'the winner received exactly 15 CGT more');
+}
+
 await api.disconnect();
 console.log(process.exitCode ? 'REHEARSAL FAILED' : 'REHEARSAL PASSED');

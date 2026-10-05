@@ -35,10 +35,19 @@
 //!   owed total is kept out of every later payout and every withdrawal.
 //! - **The wallet never dies.** Every transfer out keeps the account alive, so
 //!   the existential deposit paid at creation stays.
+//! - **A round's prize is held before anyone competes for it** (ADR-070
+//!   decision 8, "proof of prize"). The authority opens a round with a prize no
+//!   larger than the epoch budget; the prize is held at once and shows on chain.
+//!   Held CGT is kept out of every payout and withdrawal, exactly as owed CGT is.
+//!   Settling pays the winners from the hold (accruing what cannot reach them)
+//!   and releases the rest; cancelling releases it all. A round settles at or
+//!   after it closes and within [`Config::OutcomeWindow`] of closing; after that
+//!   it can only be cancelled, by anyone, so a hold can never be stranded.
+//!   Prizes are not counted against epoch budgets or recipient caps: the cap on a
+//!   round is its own declared, held prize.
 //!
 //! # What it does not do yet
 //!
-//! Prizes held before a paid round opens (ADR-070 decision 8) are a later slice.
 //! The protocol's bounds — [`Config::MinLoosenDelay`],
 //! [`Config::MaxAccrualExpiry`], [`Config::OutcomeWindow`],
 //! [`Config::MaxPayoutsPerEpoch`] — are **U-16** and undecided; the runtime
@@ -200,6 +209,16 @@ pub mod pallet {
         #[pallet::constant]
         type MaxRuleVersionLen: Get<u32>;
 
+        /// How many rounds one wallet may hold prizes for at once. An engineering
+        /// bound on storage.
+        #[pallet::constant]
+        type MaxOpenRounds: Get<u32>;
+
+        /// How many winners one round may pay. An engineering bound on a
+        /// settlement's weight.
+        #[pallet::constant]
+        type MaxWinners: Get<u32>;
+
         /// Placeholders until M7.2 benchmarks them. See [`crate::weights`].
         type WeightInfo: WeightInfo;
     }
@@ -341,6 +360,55 @@ pub mod pallet {
         OptionQuery,
     >;
 
+    /// A round whose prize is held.
+    #[derive(
+        CloneNoBound,
+        PartialEqNoBound,
+        EqNoBound,
+        DebugNoBound,
+        Encode,
+        Decode,
+        DecodeWithMemTracking,
+        MaxEncodedLen,
+        TypeInfo,
+    )]
+    #[scale_info(skip_type_params(T))]
+    #[codec(mel_bound())]
+    pub struct Round<T: Config> {
+        /// The CGT held for its winners.
+        pub prize: Balance,
+        /// The game rule version it is played under.
+        pub rule_version: RuleVersionOf<T>,
+        /// The block from which it may be settled.
+        pub closes_at: u32,
+    }
+
+    /// The game's own name for a round, unique among a wallet's open rounds.
+    pub type RoundId = [u8; 32];
+
+    /// Each wallet's open rounds.
+    #[pallet::storage]
+    pub type Rounds<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        (CollectionId, ItemId),
+        Blake2_128Concat,
+        RoundId,
+        Round<T>,
+        OptionQuery,
+    >;
+
+    /// What each wallet holds for open rounds, in total. Kept apart from the
+    /// wallet's own record so that adding rounds changed no stored encoding.
+    #[pallet::storage]
+    pub type Held<T: Config> =
+        StorageMap<_, Blake2_128Concat, (CollectionId, ItemId), Balance, ValueQuery>;
+
+    /// How many rounds each wallet has open.
+    #[pallet::storage]
+    pub type OpenRounds<T: Config> =
+        StorageMap<_, Blake2_128Concat, (CollectionId, ItemId), u32, ValueQuery>;
+
     /// Every event carries what an indexer needs (ADR-028): which wallet, who,
     /// how much, and for payouts the outcome and the rule version.
     #[pallet::event]
@@ -433,6 +501,34 @@ pub mod pallet {
             collection: CollectionId,
             item: ItemId,
         },
+        /// A round opened, its prize held.
+        RoundOpened {
+            collection: CollectionId,
+            item: ItemId,
+            round: RoundId,
+            prize: Balance,
+            rule_version: Vec<u8>,
+            closes_at: u32,
+        },
+        /// A round was settled: `paid` reached their winners, `accrued` is owed
+        /// to winners who could not receive it yet, `released` returned to the
+        /// wallet. Together they are the prize.
+        RoundSettled {
+            collection: CollectionId,
+            item: ItemId,
+            round: RoundId,
+            paid: Vec<(T::AccountId, Balance)>,
+            accrued: Vec<(T::AccountId, Balance)>,
+            released: Balance,
+        },
+        /// A round was cancelled and its whole prize released.
+        RoundCancelled {
+            collection: CollectionId,
+            item: ItemId,
+            round: RoundId,
+            prize: Balance,
+            by: T::AccountId,
+        },
     }
 
     #[pallet::error]
@@ -504,6 +600,28 @@ pub mod pallet {
         WithdrawalPending,
         /// The outcome's record is still needed.
         OutcomeStillRemembered,
+        /// A round with that id is already open.
+        RoundExists,
+        /// No open round has that id.
+        NoRound,
+        /// The wallet has as many rounds open as it may.
+        TooManyRounds,
+        /// A round's prize may not exceed the policy's epoch budget.
+        PrizeAboveBudget,
+        /// A round must close after the block it opens in.
+        ClosesInPast,
+        /// The round has not closed yet.
+        RoundNotClosed,
+        /// The round closed longer ago than the outcome window; it can only be
+        /// cancelled.
+        RoundExpired,
+        /// The winners' amounts add up to more than the prize.
+        WinnersExceedPrize,
+        /// The same account is named twice among the winners.
+        DuplicateWinner,
+        /// Only the authority or the governor may cancel an open round before it
+        /// expires.
+        NotAllowedToCancel,
     }
 
     #[pallet::call]
@@ -1001,6 +1119,192 @@ pub mod pallet {
             Outcomes::<T>::remove(key, outcome);
             Ok(())
         }
+
+        /// Open a round and hold its prize. The payout authority only, within
+        /// the policy's epoch budget and the wallet's available funds.
+        #[pallet::call_index(12)]
+        #[pallet::weight(<T as Config>::WeightInfo::open_round())]
+        pub fn open_round(
+            origin: OriginFor<T>,
+            collection: CollectionId,
+            item: ItemId,
+            round: RoundId,
+            prize: Balance,
+            rule_version: RuleVersionOf<T>,
+            closes_at: u32,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let wallet = Wallets::<T>::get(collection, item).ok_or(Error::<T>::NoWallet)?;
+            ensure!(
+                wallet.authority.as_ref() == Some(&who),
+                Error::<T>::NotAuthority
+            );
+            ensure!(!wallet.paused, Error::<T>::Paused);
+            ensure!(prize > 0, Error::<T>::ZeroAmount);
+            ensure!(
+                prize <= wallet.policy.epoch_budget,
+                Error::<T>::PrizeAboveBudget
+            );
+            ensure!(
+                wallet.policy.rule_versions.contains(&rule_version),
+                Error::<T>::RuleVersionNotAllowed
+            );
+            ensure!(closes_at > Self::now(), Error::<T>::ClosesInPast);
+            let key = (collection, item);
+            ensure!(
+                !Rounds::<T>::contains_key(key, round),
+                Error::<T>::RoundExists
+            );
+            let open = OpenRounds::<T>::get(key);
+            ensure!(open < T::MaxOpenRounds::get(), Error::<T>::TooManyRounds);
+            ensure!(
+                Self::available(collection, item, wallet.owed) >= prize,
+                Error::<T>::InsufficientFunds
+            );
+            let held = Held::<T>::get(key)
+                .checked_add(prize)
+                .ok_or(Error::<T>::Overflow)?;
+
+            Held::<T>::insert(key, held);
+            OpenRounds::<T>::insert(key, open.saturating_add(1));
+            Rounds::<T>::insert(
+                key,
+                round,
+                Round::<T> {
+                    prize,
+                    rule_version: rule_version.clone(),
+                    closes_at,
+                },
+            );
+            Self::deposit_event(Event::RoundOpened {
+                collection,
+                item,
+                round,
+                prize,
+                rule_version: rule_version.into_inner(),
+                closes_at,
+            });
+            Ok(())
+        }
+
+        /// Settle a closed round: pay each winner from the held prize, accrue
+        /// what cannot reach them yet, and release the rest. The payout
+        /// authority only, from the round's close until the outcome window
+        /// after it.
+        #[pallet::call_index(13)]
+        #[pallet::weight(<T as Config>::WeightInfo::settle_round())]
+        pub fn settle_round(
+            origin: OriginFor<T>,
+            collection: CollectionId,
+            item: ItemId,
+            round: RoundId,
+            winners: BoundedVec<(T::AccountId, Balance), T::MaxWinners>,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let mut wallet = Wallets::<T>::get(collection, item).ok_or(Error::<T>::NoWallet)?;
+            ensure!(
+                wallet.authority.as_ref() == Some(&who),
+                Error::<T>::NotAuthority
+            );
+            ensure!(!wallet.paused, Error::<T>::Paused);
+            let key = (collection, item);
+            let r = Rounds::<T>::get(key, round).ok_or(Error::<T>::NoRound)?;
+            let now = Self::now();
+            ensure!(now >= r.closes_at, Error::<T>::RoundNotClosed);
+            ensure!(
+                now - r.closes_at <= T::OutcomeWindow::get(),
+                Error::<T>::RoundExpired
+            );
+
+            let mut total: Balance = 0;
+            for (index, (account, amount)) in winners.iter().enumerate() {
+                ensure!(*amount > 0, Error::<T>::ZeroAmount);
+                ensure!(
+                    !winners[..index].iter().any(|(other, _)| other == account),
+                    Error::<T>::DuplicateWinner
+                );
+                total = total.checked_add(*amount).ok_or(Error::<T>::Overflow)?;
+            }
+            ensure!(total <= r.prize, Error::<T>::WinnersExceedPrize);
+
+            // The prize leaves the hold first, so what the winners are paid is
+            // checked against the wallet's balance, not double-counted.
+            Held::<T>::mutate(key, |held| *held = held.saturating_sub(r.prize));
+            OpenRounds::<T>::mutate(key, |open| *open = open.saturating_sub(1));
+            Rounds::<T>::remove(key, round);
+
+            let account = Self::account_of(collection, item);
+            let expires = now.saturating_add(wallet.policy.accrual_expiry);
+            let mut paid = Vec::new();
+            let mut accrued = Vec::new();
+            for (to, amount) in winners.into_inner() {
+                if Self::can_receive(&to, amount) {
+                    <<T as Config>::Currency as Mutate<T::AccountId>>::transfer(
+                        &account,
+                        &to,
+                        amount,
+                        Preservation::Preserve,
+                    )?;
+                    paid.push((to, amount));
+                } else {
+                    let owed_to = Accruals::<T>::get(key, &to)
+                        .map(|(owed, _)| owed)
+                        .unwrap_or(0)
+                        .checked_add(amount)
+                        .ok_or(Error::<T>::Overflow)?;
+                    wallet.owed = wallet
+                        .owed
+                        .checked_add(amount)
+                        .ok_or(Error::<T>::Overflow)?;
+                    Accruals::<T>::insert(key, &to, (owed_to, expires));
+                    accrued.push((to, amount));
+                }
+            }
+            Wallets::<T>::insert(collection, item, wallet);
+            Self::deposit_event(Event::RoundSettled {
+                collection,
+                item,
+                round,
+                paid,
+                accrued,
+                released: r.prize - total,
+            });
+            Ok(())
+        }
+
+        /// Cancel an open round and release its whole prize. The authority or
+        /// the governor at any time; anyone once the round can no longer be
+        /// settled, so a hold is never stranded.
+        #[pallet::call_index(14)]
+        #[pallet::weight(<T as Config>::WeightInfo::cancel_round())]
+        pub fn cancel_round(
+            origin: OriginFor<T>,
+            collection: CollectionId,
+            item: ItemId,
+            round: RoundId,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let wallet = Wallets::<T>::get(collection, item).ok_or(Error::<T>::NoWallet)?;
+            let key = (collection, item);
+            let r = Rounds::<T>::get(key, round).ok_or(Error::<T>::NoRound)?;
+            let expired = Self::now().saturating_sub(r.closes_at) > T::OutcomeWindow::get()
+                && Self::now() > r.closes_at;
+            let entitled = wallet.authority.as_ref() == Some(&who)
+                || pallet_nfts::Pallet::<T>::owner(collection, item).as_ref() == Some(&who);
+            ensure!(entitled || expired, Error::<T>::NotAllowedToCancel);
+
+            Held::<T>::mutate(key, |held| *held = held.saturating_sub(r.prize));
+            OpenRounds::<T>::mutate(key, |open| *open = open.saturating_sub(1));
+            Rounds::<T>::remove(key, round);
+            Self::deposit_event(Event::RoundCancelled {
+                collection,
+                item,
+                round,
+                prize: r.prize,
+                by: who,
+            });
+            Ok(())
+        }
     }
 
     impl<T: Config> Pallet<T> {
@@ -1010,7 +1314,7 @@ pub mod pallet {
         }
 
         /// What the wallet can pay out or withdraw: everything above its
-        /// deposit, less what it owes.
+        /// deposit, less what it owes and what it holds for open rounds.
         pub fn available(collection: CollectionId, item: ItemId, owed: Balance) -> Balance {
             <<T as Config>::Currency as Inspect<T::AccountId>>::reducible_balance(
                 &Self::account_of(collection, item),
@@ -1018,6 +1322,7 @@ pub mod pallet {
                 Fortitude::Polite,
             )
             .saturating_sub(owed)
+            .saturating_sub(Held::<T>::get((collection, item)))
         }
 
         fn now() -> u32 {

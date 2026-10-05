@@ -101,6 +101,7 @@ pub const MIN_LOOSEN_DELAY: u32 = 5;
 pub const MAX_ACCRUAL_EXPIRY: u32 = 100;
 pub const OUTCOME_WINDOW: u32 = 20;
 pub const MAX_PAYOUTS_PER_EPOCH: u32 = 3;
+pub const MAX_OPEN_ROUNDS: u32 = 2;
 
 impl pallet_arq_wallet::Config for Test {
     type Currency = Balances;
@@ -111,6 +112,8 @@ impl pallet_arq_wallet::Config for Test {
     type MaxPayoutsPerEpoch = ConstU32<MAX_PAYOUTS_PER_EPOCH>;
     type MaxRuleVersions = ConstU32<8>;
     type MaxRuleVersionLen = ConstU32<64>;
+    type MaxOpenRounds = ConstU32<MAX_OPEN_ROUNDS>;
+    type MaxWinners = ConstU32<4>;
     type WeightInfo = ();
 }
 

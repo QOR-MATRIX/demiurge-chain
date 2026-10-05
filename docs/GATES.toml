@@ -664,6 +664,12 @@ change = "The chain's quality gate runs on a pinned Rust, 1.98.1 (chain/rust-too
 reason = "Rust 1.99.0's clippy flags clone_on_copy in code the pinned SDK's pallet macros generate, so the chain job failed at Lints on every run since 28 September and its tests stopped running in CI. Pinning stops new upstream lints from gating the chain until the pin moves, which is a loosening by this file's rule; the report keeps them visible. docs/architecture/RUST_TOOLCHAIN.md set out four options."
 approved_by = "owner, 2026-10-04 (\"go with option A\"; ADR-072)"
 
+[[change_log]]
+date = "2026-10-04"
+type = "tightening"
+change = "arqade.wallet-tests requires five more tests: the round's prize held and unspendable, settlement's split between paid, accrued and released, a round always releasable, the wallet account's bytes (pinned beside the SDK's), and a round through the runtime's dispatch. No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
+reason = "Rounds hold other people's prizes. Three were seen to fail against planted faults first: the hold ignored by available(), the prize limit on winners removed, anyone allowed to cancel at any time."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1663,6 +1669,11 @@ player's own Vault, and a developer SDK with which others publish games."""
     "a_withdrawal_waits_its_delay_and_never_takes_what_is_owed_or_the_deposit",
     "the_largest_amounts_cannot_overflow",
     "a_wallet_is_created_for_a_cartridge_and_pays_a_player_in_cgt",
+    "a_rounds_prize_is_held_before_anyone_competes_and_nothing_else_can_spend_it",
+    "settling_pays_winners_from_the_hold_accrues_the_unreachable_and_releases_the_rest",
+    "a_round_that_was_never_settled_can_always_be_released",
+    "a_wallet_account_is_modl_the_pallet_id_and_the_cartridge_zero_padded",
+    "a_round_holds_its_prize_and_settles_through_the_runtime",
   ]
 
   # The arcade's own suite since it was imported (P7.1, 2026-10-04): the arenas'

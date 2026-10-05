@@ -54,8 +54,8 @@ fn policy() -> pallet_arq_wallet::PolicyOf<Runtime> {
 }
 
 #[test]
-fn the_arq_wallet_is_pallet_eleven_at_spec_version_seven() {
-    assert_eq!(VERSION.spec_version, 7);
+fn the_arq_wallet_is_pallet_eleven_at_spec_version_eight() {
+    assert_eq!(VERSION.spec_version, 8);
     assert_eq!(VERSION.transaction_version, 2);
     let call = RuntimeCall::ArqWallet(pallet_arq_wallet::Call::set_paused {
         collection: 0,
@@ -150,6 +150,79 @@ fn a_wallet_is_created_for_a_cartridge_and_pays_a_player_in_cgt() {
         assert_eq!(
             ArqWallet::available(c, i, 0),
             990 * CGT - EXISTENTIAL_DEPOSIT
+        );
+    });
+}
+
+#[test]
+fn a_round_holds_its_prize_and_settles_through_the_runtime() {
+    let (dev, server, player) = (account(1), account(2), account(3));
+    chain_with(vec![
+        (dev.clone(), 10_000 * CGT),
+        (server.clone(), 1_000 * CGT),
+        (player.clone(), 1_000 * CGT),
+    ])
+    .execute_with(|| {
+        assert_ok!(Drc369::mint(
+            RuntimeOrigin::signed(dev.clone()),
+            ContentRef {
+                algo: HashAlgo::Blake3_256,
+                root: H256::repeat_byte(2),
+                size: 512
+            },
+            Some(CommitId::Sha1([8; 20])),
+            b"game".to_vec().try_into().unwrap(),
+            true,
+            None,
+        ));
+        let singles = pallet_drc369::Singles::<Runtime>::get(&dev).unwrap();
+        let (c, i) = (singles.collection, singles.next_item - 1);
+        assert_ok!(RuntimeCall::ArqWallet(pallet_arq_wallet::Call::create {
+            collection: c,
+            item: i,
+            policy: policy(),
+            funding: 1_000 * CGT
+        })
+        .dispatch(RuntimeOrigin::signed(dev.clone())));
+        assert_ok!(
+            RuntimeCall::ArqWallet(pallet_arq_wallet::Call::set_authority {
+                collection: c,
+                item: i,
+                authority: Some(server.clone())
+            })
+            .dispatch(RuntimeOrigin::signed(dev.clone()))
+        );
+        assert_ok!(RuntimeCall::ArqWallet(pallet_arq_wallet::Call::open_round {
+            collection: c,
+            item: i,
+            round: [4; 32],
+            prize: 100 * CGT,
+            rule_version: b"flux@1".to_vec().try_into().unwrap(),
+            closes_at: 2,
+        })
+        .dispatch(RuntimeOrigin::signed(server.clone())));
+        assert_eq!(
+            ArqWallet::available(c, i, 0),
+            900 * CGT - EXISTENTIAL_DEPOSIT
+        );
+
+        System::set_block_number(2);
+        assert_ok!(
+            RuntimeCall::ArqWallet(pallet_arq_wallet::Call::settle_round {
+                collection: c,
+                item: i,
+                round: [4; 32],
+                winners: vec![(player.clone(), 75 * CGT)].try_into().unwrap(),
+            })
+            .dispatch(RuntimeOrigin::signed(server.clone()))
+        );
+        assert_eq!(
+            <Balances as Inspect<AccountId>>::balance(&player),
+            1_075 * CGT
+        );
+        assert_eq!(
+            ArqWallet::available(c, i, 0),
+            925 * CGT - EXISTENTIAL_DEPOSIT
         );
     });
 }

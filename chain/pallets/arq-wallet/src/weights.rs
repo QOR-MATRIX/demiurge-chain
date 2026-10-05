@@ -24,12 +24,15 @@ pub trait WeightInfo {
     fn schedule_withdrawal() -> Weight;
     fn execute_withdrawal() -> Weight;
     fn prune_outcome() -> Weight;
+    fn open_round() -> Weight;
+    fn settle_round() -> Weight;
+    fn cancel_round() -> Weight;
 }
 
 /// The placeholder the runtime uses until M7.2.
 pub struct PlaceholderWeight<T>(PhantomData<T>);
 
-impl<T: frame_system::Config> WeightInfo for PlaceholderWeight<T> {
+impl<T: crate::Config> WeightInfo for PlaceholderWeight<T> {
     /// The asset record, its holder, the wallet; both accounts of a transfer; writes the wallet.
     fn create() -> Weight {
         T::DbWeight::get().reads_writes(5, 3)
@@ -71,6 +74,24 @@ impl<T: frame_system::Config> WeightInfo for PlaceholderWeight<T> {
     fn prune_outcome() -> Weight {
         T::DbWeight::get().reads_writes(1, 1)
     }
+    /// The wallet, the round, the open count, the hold, the wallet's account;
+    /// writes the round, the count and the hold.
+    fn open_round() -> Weight {
+        T::DbWeight::get().reads_writes(5, 3)
+    }
+    /// The worst case: every winner either paid (both accounts read and
+    /// written) or accrued (the accrual read and written), for the most winners.
+    fn settle_round() -> Weight {
+        let winners = u64::from(<T as crate::Config>::MaxWinners::get());
+        T::DbWeight::get().reads_writes(4, 4).saturating_add(
+            T::DbWeight::get()
+                .reads_writes(2, 2)
+                .saturating_mul(winners),
+        )
+    }
+    fn cancel_round() -> Weight {
+        T::DbWeight::get().reads_writes(4, 3)
+    }
 }
 
 /// For tests.
@@ -109,6 +130,15 @@ impl WeightInfo for () {
         Weight::zero()
     }
     fn prune_outcome() -> Weight {
+        Weight::zero()
+    }
+    fn open_round() -> Weight {
+        Weight::zero()
+    }
+    fn settle_round() -> Weight {
+        Weight::zero()
+    }
+    fn cancel_round() -> Weight {
         Weight::zero()
     }
 }

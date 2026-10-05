@@ -3,7 +3,7 @@
 //! planted fault before they were trusted (`HANDOFF.md` records which).
 
 use crate::{mock::*, *};
-use frame_support::{assert_noop, assert_ok, traits::fungible::Inspect};
+use frame_support::{assert_noop, assert_ok, traits::fungible::Inspect, BoundedVec};
 use pallet_drc369::{CommitId, ContentRef, HashAlgo};
 use sp_core::H256;
 
@@ -509,4 +509,196 @@ fn the_largest_amounts_cannot_overflow() {
         Wallets::<Test>::mutate(c, i, |w| w.as_mut().unwrap().owed = Balance::MAX);
         assert_eq!(ArqWallet::available(c, i, Balance::MAX), 0);
     });
+}
+
+fn open(c: CollectionId, i: ItemId, round: u8, prize: Balance, closes_at: u32) -> DispatchResult {
+    ArqWallet::open_round(
+        signed(SERVER),
+        c,
+        i,
+        [round; 32],
+        prize,
+        rv("flux@1"),
+        closes_at,
+    )
+}
+
+fn winners(
+    list: &[(u8, Balance)],
+) -> BoundedVec<(AccountId, Balance), <Test as Config>::MaxWinners> {
+    list.iter()
+        .map(|(w, a)| (account(*w), *a))
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap()
+}
+
+#[test]
+fn a_rounds_prize_is_held_before_anyone_competes_and_nothing_else_can_spend_it() {
+    new_test_ext().execute_with(|| {
+        let (c, i) = wallet(EXISTENTIAL_DEPOSIT + 300);
+        assert_ok!(open(c, i, 1, 200, 10));
+        assert_eq!(Held::<Test>::get((c, i)), 200);
+        assert!(matches!(
+            events().last(),
+            Some(Event::RoundOpened {
+                prize: 200,
+                closes_at: 10,
+                ..
+            })
+        ));
+        // 100 remain available: a payout or a withdrawal cannot reach into the hold.
+        assert_eq!(ArqWallet::available(c, i, 0), 100);
+        assert_ok!(pay(c, i, 1, PLAYER, 50));
+        assert_ok!(pay(c, i, 2, PLAYER, 50));
+        assert_noop!(pay(c, i, 3, BOB, 1), Error::<Test>::InsufficientFunds);
+        assert_noop!(
+            ArqWallet::schedule_withdrawal(signed(ALICE), c, i, account(ALICE), 1),
+            Error::<Test>::InsufficientFunds
+        );
+        assert_noop!(open(c, i, 2, 1, 10), Error::<Test>::InsufficientFunds);
+    });
+}
+
+#[test]
+fn only_the_authority_opens_a_round_within_the_policy_and_the_bounds() {
+    new_test_ext().execute_with(|| {
+        let (c, i) = wallet(10_000);
+        assert_noop!(
+            ArqWallet::open_round(signed(ALICE), c, i, [1; 32], 10, rv("flux@1"), 10),
+            Error::<Test>::NotAuthority
+        );
+        assert_noop!(open(c, i, 1, 0, 10), Error::<Test>::ZeroAmount);
+        assert_noop!(open(c, i, 1, 501, 10), Error::<Test>::PrizeAboveBudget);
+        assert_noop!(
+            ArqWallet::open_round(signed(SERVER), c, i, [1; 32], 10, rv("flux@9"), 10),
+            Error::<Test>::RuleVersionNotAllowed
+        );
+        assert_noop!(open(c, i, 1, 10, 1), Error::<Test>::ClosesInPast);
+        assert_ok!(open(c, i, 1, 10, 10));
+        assert_noop!(open(c, i, 1, 10, 10), Error::<Test>::RoundExists);
+        assert_ok!(open(c, i, 2, 10, 10));
+        assert_noop!(open(c, i, 3, 10, 10), Error::<Test>::TooManyRounds);
+        assert_ok!(ArqWallet::set_paused(signed(ALICE), c, i, true));
+        assert_ok!(ArqWallet::cancel_round(signed(SERVER), c, i, [1; 32]));
+        assert_noop!(open(c, i, 3, 10, 10), Error::<Test>::Paused);
+    });
+}
+
+#[test]
+fn settling_pays_winners_from_the_hold_accrues_the_unreachable_and_releases_the_rest() {
+    new_test_ext().execute_with(|| {
+        let (c, i) = wallet(1_000);
+        assert_ok!(open(c, i, 1, 100, 10));
+        assert_noop!(
+            ArqWallet::settle_round(signed(SERVER), c, i, [1; 32], winners(&[(PLAYER, 60)])),
+            Error::<Test>::RoundNotClosed
+        );
+        run_to(10);
+        assert_noop!(
+            ArqWallet::settle_round(
+                signed(SERVER),
+                c,
+                i,
+                [1; 32],
+                winners(&[(PLAYER, 60), (BOB, 41)])
+            ),
+            Error::<Test>::WinnersExceedPrize
+        );
+        assert_noop!(
+            ArqWallet::settle_round(
+                signed(SERVER),
+                c,
+                i,
+                [1; 32],
+                winners(&[(PLAYER, 6), (PLAYER, 6)])
+            ),
+            Error::<Test>::DuplicateWinner
+        );
+        assert_noop!(
+            ArqWallet::settle_round(signed(ALICE), c, i, [1; 32], winners(&[(PLAYER, 60)])),
+            Error::<Test>::NotAuthority
+        );
+        assert_ok!(ArqWallet::settle_round(
+            signed(SERVER),
+            c,
+            i,
+            [1; 32],
+            winners(&[(PLAYER, 60), (NOBODY, 8)])
+        ));
+        assert_eq!(balance(&account(PLAYER)), START + 60);
+        assert_eq!(Accruals::<Test>::get((c, i), account(NOBODY)).unwrap().0, 8);
+        assert_eq!(Held::<Test>::get((c, i)), 0);
+        assert_eq!(OpenRounds::<Test>::get((c, i)), 0);
+        let w = Wallets::<Test>::get(c, i).unwrap();
+        assert_eq!(w.owed, 8);
+        // 1,000 - 60 paid; 8 owed and the deposit kept back; the 32 unawarded released.
+        assert_eq!(
+            ArqWallet::available(c, i, w.owed),
+            1_000 - 60 - 8 - EXISTENTIAL_DEPOSIT
+        );
+        assert!(matches!(
+            events().last(),
+            Some(Event::RoundSettled { released: 32, .. })
+        ));
+        assert_noop!(
+            ArqWallet::settle_round(signed(SERVER), c, i, [1; 32], winners(&[(PLAYER, 1)])),
+            Error::<Test>::NoRound
+        );
+    });
+}
+
+#[test]
+fn a_round_that_was_never_settled_can_always_be_released() {
+    new_test_ext().execute_with(|| {
+        let (c, i) = wallet(1_000);
+        assert_ok!(open(c, i, 1, 100, 10));
+        assert_noop!(
+            ArqWallet::cancel_round(signed(BOB), c, i, [1; 32]),
+            Error::<Test>::NotAllowedToCancel
+        );
+        // The governor may cancel at any time.
+        assert_ok!(ArqWallet::cancel_round(signed(ALICE), c, i, [1; 32]));
+        assert_eq!(Held::<Test>::get((c, i)), 0);
+
+        // Past the outcome window after closing, it cannot be settled, and anyone may release it.
+        assert_ok!(open(c, i, 2, 100, 10));
+        run_to(10 + OUTCOME_WINDOW as u64 + 1);
+        assert_noop!(
+            ArqWallet::settle_round(signed(SERVER), c, i, [2; 32], winners(&[(PLAYER, 1)])),
+            Error::<Test>::RoundExpired
+        );
+        assert_ok!(ArqWallet::cancel_round(signed(BOB), c, i, [2; 32]));
+        assert_eq!(Held::<Test>::get((c, i)), 0);
+        assert_eq!(ArqWallet::available(c, i, 0), 1_000 - EXISTENTIAL_DEPOSIT);
+    });
+}
+
+#[test]
+fn a_held_total_at_the_limit_cannot_overflow() {
+    new_test_ext().execute_with(|| {
+        let (c, i) = wallet(1_000);
+        Held::<Test>::insert((c, i), Balance::MAX);
+        // Nothing is available above a hold that large, and nothing wraps.
+        assert_eq!(ArqWallet::available(c, i, 0), 0);
+        assert_noop!(open(c, i, 1, 1, 10), Error::<Test>::InsufficientFunds);
+    });
+}
+
+#[test]
+fn a_wallet_account_is_modl_the_pallet_id_and_the_cartridge_zero_padded() {
+    // products/arqade/sdk/tests/arq-wallet.test.mjs pins the same bytes, so the SDK
+    // and the chain cannot disagree about where a game's wallet is.
+    let expected: [u8; 32] =
+        hex_literal_bytes("6d6f646c646d672f617271770100000002000000000000000000000000000000")
+            .try_into()
+            .unwrap();
+    assert_eq!(ArqWallet::account_of(1, 2), AccountId::from(expected));
+}
+
+fn hex_literal_bytes(h: &str) -> Vec<u8> {
+    (0..h.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&h[i..i + 2], 16).unwrap())
+        .collect()
 }
