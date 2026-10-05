@@ -26,6 +26,10 @@ package-lock.json
 # The launcher's is tracked: CI installs it with `npm ci`, so it tests exactly the
 # versions a developer has, and every dependency in package.json is a range.
 !tools/qor-launcher/package-lock.json
+# ARQADE's too, for the same reason: its CI job runs `npm ci` (ADR-069).
+!products/arqade/package-lock.json
+# The arcade's build/ is source, not output: the Sites Vite plugin vite.config.ts imports (MIT, licence beside it).
+!products/arqade/build/
 .pnpm-debug.log*
 .next/
 .turbo/
