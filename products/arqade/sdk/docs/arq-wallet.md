@@ -1,11 +1,12 @@
-# Game Vaults: paying players CGT from your game
+# ARQ Wallet: paying players CGT from your game
 
 **For game developers building on ARQADE.** This is how your game pays players in CGT: from a payout account that
 belongs to your game alone, has no private key, and moves CGT only under rules you set and the chain enforces.
 
-> **Status: designed, not built.** This describes [ADR-070](../../../../docs/decisions/ADR-070-game-vaults.md), which
-> is **Proposed**. The chain has no Game Vault pallet yet, and every API below marked *proposed* does not exist. What
-> exists today is in [`../README.md`](../README.md). Names (`arqade`, `pallet-game-vaults`, the package names) are
+> **Status: decided, not built.** This describes [ADR-070](../../../../docs/decisions/ADR-070-game-vaults.md),
+> **accepted by the project owner on 4 October 2026**, who named the wallet **ARQ Wallet**. The chain has no ARQ Wallet
+> pallet yet (`pallet-arq-wallet`), and every API below marked *proposed* does not exist. What
+> exists today is in [`../README.md`](../README.md). "ARQ Wallet" is the owner's name; the CLI and package names are
 > placeholders until the project owner approves them.
 >
 > On Demiurge Devnet all CGT is **test CGT**. Nothing in this document says or implies that CGT has a cash value.
@@ -15,7 +16,7 @@ belongs to your game alone, has no private key, and moves CGT only under rules y
 ## The idea in one paragraph
 
 When you publish a game, its build becomes a DRC-369 asset — your game's **Cartridge** — pinned to the exact commit it
-was built from. Every Cartridge gets exactly one **Game Vault**: an account derived from the Cartridge's id that
+was built from. Every Cartridge gets exactly one **ARQ Wallet**: an account derived from the Cartridge's id that
 **nobody holds a key for**. You fund it from your own Vault. Your game server holds a narrow **payout authority** key
 that can pay players only within the **policy** you wrote on chain: how much per payout, per player, per epoch. The
 chain refuses to pay the same outcome twice, keeps what players are owed ahead of anything you withdraw, and makes
@@ -25,7 +26,7 @@ the Cartridge.
 ## Why it has no key
 
 A prize account whose key sits on a game server is one leak away from empty, and nothing on chain can tell a payout
-from theft. A Game Vault has no key to leak. The worst a stolen **payout authority** key can do is pay out what your
+from theft. An ARQ Wallet has no key to leak. The worst a stolen **payout authority** key can do is pay out what your
 policy already allows, until you revoke it from your own Vault. The worst a stolen **governor** key can do is
 schedule a withdrawal or a looser policy, which waits in public for the delay, and which you cancel.
 
@@ -46,16 +47,16 @@ schedule a withdrawal or a looser policy, which waits in public for the delay, a
 The governor is **whoever holds the Cartridge**, checked at every call. There is no separate admin list to keep in
 step with ownership.
 
-## Ignition: unlocking your Game Vault
+## Ignition: unlocking your ARQ Wallet
 
-A Game Vault goes live only after one real payout has finalised on Demiurge Devnet. The SDK walks it with one command
+An ARQ Wallet goes live only after one real payout has finalised on Demiurge Devnet. The SDK walks it with one command
 (*proposed*):
 
 ```text
 $ arqade vault ignite --project ./my-game --network devnet
 
   1  Cartridge      mint build 3f2a…c901 as a DRC-369 asset          approve in your Vault
-  2  Game Vault     create the Vault for Cartridge 7:12              approve in your Vault
+  2  ARQ Wallet     create the Vault for Cartridge 7:12              approve in your Vault
   3  Fund           send 1,000 CGT (test) to 5Gxx…Vault              approve in your Vault
   4  Policy         per payout 50 · per player/epoch 200 · …         approve in your Vault
   5  Authority      register 5Fyy…srv as payout authority            approve in your Vault

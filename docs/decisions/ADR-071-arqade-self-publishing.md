@@ -1,8 +1,9 @@
 # ADR-071: ARQADE as a self-publishing store: project profiles, stages, backing, prices, in-game items and agents
 
-**Status:** **Proposed**, 4 October 2026. **Decision 1 is the owner's direction**, given that day and recorded rather
-than proposed, **including the price ceiling of 10,000 CGT**, which is the owner's own number. **Decisions 2 to 9 are
-the assistant's recommendations** and are not accepted. The developer-facing descriptions are
+**Status:** **Accepted**, 4 October 2026, by the project owner ("I accept ADR-070 and ADR-071 as written"). Proposed
+the same day. Decision 1, the 10,000 CGT ceiling included, is the owner's direction; decisions 2 to 9 were the
+assistant's recommendations and are accepted as written. **Where this record says Game Vault, the owner's name is ARQ
+Wallet** (ADR-070). The developer-facing descriptions are
 [`products/arqade/sdk/docs/publishing.md`](../../products/arqade/sdk/docs/publishing.md),
 [`backing.md`](../../products/arqade/sdk/docs/backing.md) and
 [`building-with-agents.md`](../../products/arqade/sdk/docs/building-with-agents.md); the steps are P7.12 to P7.15 in

@@ -910,7 +910,7 @@ here sets an economic value; payouts are U-16.
    ARQADE. Depends on the signing path ADR-069 decision 5 chooses, with its own record, and for production on M5.2.
 5. [ ] Paid play on the devnet: a test-CGT entry finalised, one session authorised, the result validated by the
    server, and one DRC-369 trophy and one funded test-CGT payout delivered exactly once, surviving reload and retry.
-   Depends on P7.3 and P7.4; the payout comes from the game's Game Vault once P7.11 exists.
+   Depends on P7.3 and P7.4; the payout comes from the game's ARQ Wallet once P7.11 exists.
 6. [ ] Card universes: cards as DRC-369 assets with declared sets, decks from finalised ownership, sales through
    `buy_exact` with the chain's royalties, and packs. Depends on P7.4; packs and editions on G-14 and G-15.
 7. [ ] An owned asset that evolves through verified play, keeping its identity and history. Depends on M4.2's state
@@ -921,22 +921,22 @@ here sets an economic value; payouts are U-16.
 9. [ ] Third-party games released through Market's listing model, played in an isolated origin, with game and rule
    versions pinned for every paid session. Depends on P5.3, P7.8 and a record for third-party sign-in.
 10. [ ] Production payouts and any paid prize. Depends on U-16 decided and the owner's legal review.
-11. [ ] Game Vaults: one keyless payout account per published game, derived from its DRC-369 Cartridge and governed by
+11. [ ] ARQ Wallets: one keyless payout account per published game, derived from its DRC-369 Cartridge and governed by
     whoever holds it, paying only within a policy on chain, each outcome once, with loosening and withdrawals delayed,
     prizes reserved before paid rounds open, and payouts below the existential deposit accrued; "ignition" in the SDK.
-    The owner's direction of 4 October 2026; the design is ADR-070 (Proposed) and
-    [`products/arqade/sdk/docs/game-vaults.md`](../products/arqade/sdk/docs/game-vaults.md). Depends on ADR-070
-    accepted, a pallet the owner names, and U-16's bounds.
+    The owner's direction and name of 4 October 2026; ADR-070, accepted that day, and
+    [`products/arqade/sdk/docs/arq-wallet.md`](../products/arqade/sdk/docs/arq-wallet.md). Depends on
+    `pallet-arq-wallet` and U-16's bounds.
 12. [ ] Self-publishing: a project submitted at any stage becomes its DRC-369 Cartridge, whose profile manifest is the
     store page and whose revisions are the devlog; four stages (concept, prototype, early access, released) publish
     themselves once the SDK's `checkReadiness` finds nothing missing; a game priced free or up to 10,000 CGT (the
-    owner's ceiling) and bought as a DRC-369 licence. ADR-071 (Proposed). The profile, its checks and the price check
-    exist in `products/arqade/sdk/`; the rest depends on ADR-070 and ADR-071 accepted, P7.4, and an interim content
+    owner's ceiling) and bought as a DRC-369 licence. ADR-071, accepted 4 October 2026. The profile, its checks and the price check
+    exist in `products/arqade/sdk/`; the rest depends on P7.4, P7.11, and an interim content
     store (G-3).
 13. [ ] In-game purchases as non-fungible DRC-369 items declared in the profile, resold under the chain's royalties.
     Depends on G-17 (primary sale) for selling copies; until then, items minted ahead and listed.
 14. [ ] Backing in CGT: all-or-nothing campaigns held in a keyless Campaign Vault with milestone release, memberships,
-    and tips; backers receive DRC-369 rewards and never proceeds. Devnet first. Depends on ADR-071, ADR-070's pallet
+    and tips; backers receive DRC-369 rewards and never proceeds. Devnet first. Depends on the ARQ Wallet's pallet
     family, U-17 and the owner's legal review; recurring memberships on M5.2.
 15. [ ] Agentic creation: ARQADE's tools on ADR-010's MCP server, used by an external LLM under an agent key the
     developer authorised; the model prepares, the developer signs what is public or moves CGT. Depends on M5.3, and on

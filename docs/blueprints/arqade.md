@@ -191,14 +191,14 @@ payout is CGT to the player's own account. No chips, Energy, CRGT, DMRG, swaps o
 points and tokens are practice data and never become claims.
 
 - **Sinks.** Paid entry, packs and card sales are access gating (ADR-006). Name the sink in every mechanic.
-- **Payouts come from the game's own Game Vault** (the owner's direction, 4 October 2026; ADR-070, Proposed): a
+- **Payouts come from the game's own ARQ Wallet** (the owner's direction and name, 4 October 2026; ADR-070, accepted): a
   keyless account per published game, funded by its developer, paying only within a policy on chain. See
-  [`products/arqade/sdk/docs/game-vaults.md`](../../products/arqade/sdk/docs/game-vaults.md).
+  [`products/arqade/sdk/docs/arq-wallet.md`](../../products/arqade/sdk/docs/arq-wallet.md).
 - **Payouts move existing CGT.** Nothing is created by play. A displayed prize is funded and reserved before a paid
   round accepts entries, with caps, liability and failure handling recorded.
 - **On the devnet**, with test CGT and values marked as placeholders, the whole loop is built and tested.
 - **In production**, nothing is paid out until **U-16**'s remaining parts are decided (whether paid entry may win
-  anything, and the protocol's bounds on a Game Vault). **Paid chance-based prizes stay off** until U-16
+  anything, and the protocol's bounds on an ARQ Wallet). **Paid chance-based prizes stay off** until U-16
   and a legal review; calling something a sweepstake does not make it compliant.
 - **The existential deposit** is 100 CGT. A payout too small to open an account accrues as a pending claim until it
   can be paid; ARQADE subsidises no account outside ADR-029's sponsorship (U-4, M4.4).
@@ -240,7 +240,7 @@ fake activity, no coercive streaks, no deceptive odds.
 
 ## 11a. Self-publishing, backing and agents
 
-The owner's direction of 4 October 2026, designed in ADR-071 (Proposed): developers self-publish once a stage's
+The owner's direction of 4 October 2026, decided in ADR-071 (accepted 4 October 2026): developers self-publish once a stage's
 requirements are met, the Cartridge's profile is the store page and its history the devlog, a game is free or up to
 10,000 CGT, in-game purchases are non-fungible DRC-369 items, backers support projects in CGT and receive the work and
 never its proceeds, and an external LLM builds through ADR-010's MCP server while the developer signs. The developer

@@ -1,10 +1,10 @@
-// A Game Vault's payout policy (ADR-070, Proposed), checked before the governor signs it. Every value is the
+// An ARQ Wallet's payout policy (ADR-070, accepted 4 October 2026), checked before the governor signs it. Every value is the
 // developer's own; this module sets none. The protocol's bounds on delays and windows are U-16 and are passed in,
 // never assumed.
 
 import { checkSparks } from './amount';
 
-export type VaultPolicy = {
+export type ArqWalletPolicy = {
   maxPayout: bigint;
   epochBlocks: number;
   epochBudget: bigint;
@@ -24,7 +24,7 @@ export type ProtocolBounds = {
 const RULE_VERSION = /^[a-z0-9][a-z0-9._-]{0,47}@[0-9]{1,9}$/;
 
 /** Every problem with a policy, in plain words; an empty list means it may be signed. */
-export function validatePolicy(p: VaultPolicy, bounds: ProtocolBounds): string[] {
+export function validatePolicy(p: ArqWalletPolicy, bounds: ProtocolBounds): string[] {
   const problems: string[] = [];
   for (const key of ['maxPayout', 'epochBudget', 'perRecipientPerEpoch'] as const) {
     try {
@@ -52,7 +52,7 @@ export function validatePolicy(p: VaultPolicy, bounds: ProtocolBounds): string[]
  * Whether moving from `current` to `next` loosens anything. A loosening waits loosenDelayBlocks on chain; a
  * tightening applies at once (ADR-070 decision 6). Adding a rule version loosens; removing one tightens.
  */
-export function loosens(current: VaultPolicy, next: VaultPolicy): string[] {
+export function loosens(current: ArqWalletPolicy, next: ArqWalletPolicy): string[] {
   const out: string[] = [];
   if (next.maxPayout > current.maxPayout) out.push('maxPayout');
   if (next.epochBudget > current.epochBudget) out.push('epochBudget');

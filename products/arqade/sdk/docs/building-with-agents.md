@@ -5,7 +5,7 @@ model — Claude, or any other — can scaffold, write, test and prepare your ga
 signature on everything that is public or costs CGT.
 
 > **Status: designed, not built.** The connection is the Demiurge MCP server ADR-010 decided (M5.3), with ARQADE's tools
-> added ([ADR-071](../../../../docs/decisions/ADR-071-arqade-self-publishing.md) decision 7, Proposed). Tool names are
+> added ([ADR-071](../../../../docs/decisions/ADR-071-arqade-self-publishing.md) decision 7, accepted on 4 October 2026). Tool names are
 > placeholders.
 
 ---
@@ -31,7 +31,7 @@ signature on everything that is public or costs CGT.
 
 ## What it cannot do alone
 
-Submitting a stage, setting or changing a price, opening a campaign and funding a Game Vault are **public or move CGT**,
+Submitting a stage, setting or changing a price, opening a campaign and funding an ARQ Wallet are **public or move CGT**,
 so they reach your Vault as a request you read and approve. When the chain enforces delegated spend caps (M5.2), you will
 be able to let an agent key do small, capped things on its own, and revoke it at will.
 

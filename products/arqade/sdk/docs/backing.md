@@ -4,7 +4,7 @@
 Kickstarter shape), memberships (the Patreon shape) and tips.
 
 > **Status: designed, not built** ([ADR-071](../../../../docs/decisions/ADR-071-arqade-self-publishing.md) decision 6,
-> Proposed). It runs on Demiurge Devnet with test CGT first. **In production it waits on a legal review and on U-17**
+> accepted on 4 October 2026). It runs on Demiurge Devnet with test CGT first. **In production it waits on a legal review and on U-17**
 > (review threshold, refunds, holding periods). Names are placeholders.
 
 ---
@@ -19,7 +19,7 @@ share.
 ## Campaigns: all or nothing, released as you deliver
 
 - You set a **goal** and a **deadline**, and **reward tiers** (each a DRC-369 asset granted when the campaign succeeds).
-- Pledges go into a **Campaign Vault**: like a Game Vault ([game-vaults.md](game-vaults.md)), an account with no key,
+- Pledges go into a **Campaign Vault**: like an ARQ Wallet ([arq-wallet.md](arq-wallet.md)), an account with no key,
   tied to your Cartridge.
 - **Goal met by the deadline**: funds become yours. **Missed**: every backer can take their pledge back, at any time,
   without asking anyone.

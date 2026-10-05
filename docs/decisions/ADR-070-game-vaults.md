@@ -1,9 +1,11 @@
 # ADR-070: Game Vaults: one keyless payout account per published game, governed by whoever holds the game
 
-**Status:** **Proposed**, 4 October 2026. **Decision 1 is the owner's direction**, given that day and recorded rather
-than proposed. **Decisions 2 to 10 are the assistant's recommendations** and are not accepted; nothing is built on
-them until this record says Accepted. The developer-facing description is
-[`products/arqade/sdk/docs/game-vaults.md`](../../products/arqade/sdk/docs/game-vaults.md); the step is P7.11 in
+**Status:** **Accepted**, 4 October 2026, by the project owner, who wrote "I accept ADR-070 and ADR-071 as written"
+and named the wallet: **"The game wallet should be called ARQ Wallet"**. Proposed the same day. Decision 1 is the
+owner's direction; decisions 2 to 10 were the assistant's recommendations and are accepted as written. **Where this
+record says Game Vault, the name is ARQ Wallet**; the decision is unchanged. The pallet is `pallet-arq-wallet`
+(`ArqWallet` in the runtime), its name taken from the owner's. The developer-facing description is
+[`products/arqade/sdk/docs/arq-wallet.md`](../../products/arqade/sdk/docs/arq-wallet.md); the step is P7.11 in
 [`../DIRECTION.md`](../DIRECTION.md).
 
 **Relates to:** [ADR-069](ADR-069-arqade-the-gaming-platform.md) (ARQADE; this answers half of the U-16 it opened);

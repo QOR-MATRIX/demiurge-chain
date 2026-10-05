@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 39 (4 October 2026): ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 40 (4 October 2026): ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1500,6 +1500,14 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     (`checkReadiness`, `readyStage`, `priceProblem`), the template, 5 tests; the first run caught a real gap (the
     template's all-zero QOR id passed) and two planted faults (ceiling doubled; sandbox not tied to the build) each
     failed a test. `npm test` 21 of 21, `tsc` clean. **Legal review now covers backing as well as paid chance.**
+
+40. **4 October 2026: the owner accepts ADR-070 and ADR-071 and names the wallet "ARQ Wallet".** In the owner's words:
+    "I accept ADR-070 and ADR-071 as written. The game wallet should be called 'ARQ Wallet'". Statuses and indexes
+    updated; each record's status says that where it reads Game Vault the name is ARQ Wallet, and neither record's
+    decision changed. **The pallet is `pallet-arq-wallet`** (`ArqWallet` in the runtime), its name taken from the
+    owner's. Renamed in current documents and code: the guide is `products/arqade/sdk/docs/arq-wallet.md`, the
+    module `src/arq-wallet-policy.ts`, the type `ArqWalletPolicy`. ADR-070's filename and the history in items 38 and
+    39 and in `GATES.toml`'s change log keep the old words. `arqade.decisions` now has all five of its units met.
 
 ## 5. Traps, so nobody re-learns them
 

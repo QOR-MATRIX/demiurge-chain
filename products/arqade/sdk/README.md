@@ -13,7 +13,7 @@ and charge in CGT, and award DRC-369 assets, without the game ever holding a pla
 | Module | What it does | Tests |
 | --- | --- | --- |
 | [`src/amount.ts`](src/amount.ts) | CGT as integer Sparks (`bigint`, `1 CGT = 10^18 Sparks`): `parseCgt`, `formatCgt`, `sparksFromJson`, the existential deposit (100 CGT, ADR-036). Refuses excess precision, signs, exponents and anything past `u128`; never rounds, never uses floating point | `tests/sdk.test.mjs` |
-| [`src/vault-policy.ts`](src/vault-policy.ts) | A Game Vault's payout policy: `validatePolicy` names every problem before the governor signs it, against the bounds the runtime reports; `loosens` says which changes must wait the delay | `tests/sdk.test.mjs` |
+| [`src/arq-wallet-policy.ts`](src/arq-wallet-policy.ts) | An ARQ Wallet's payout policy: `validatePolicy` names every problem before the governor signs it, against the bounds the runtime reports; `loosens` says which changes must wait the delay | `tests/sdk.test.mjs` |
 | [`src/profile.ts`](src/profile.ts) and [`templates/arqade-project.json`](templates/arqade-project.json) | The project profile that becomes a store page; `checkReadiness` and `readyStage` for the four stages; `priceProblem` with the owner's 10,000 CGT ceiling | `tests/profile.test.mjs` |
 | `../lib/chain.ts` (the app's, for now) | Reads Demiurge Devnet read-only, refusing any chain whose genesis is not the devnet's | `../tests/chain.test.mjs` |
 
@@ -21,10 +21,10 @@ Run them from `products/arqade`: `npm test`.
 
 ## Guides
 
-- [**Game Vaults**](docs/game-vaults.md): paying players CGT from a keyless account that belongs to your game alone,
-  and how to unlock one ("ignition"). **Designed (ADR-070, Proposed), not built.**
+- [**ARQ Wallets**](docs/arq-wallet.md): paying players CGT from a keyless account that belongs to your game alone,
+  and how to unlock one ("ignition"). **Decided (ADR-070, accepted 4 October 2026), not built.**
 - [**Publishing**](docs/publishing.md): the four stages, the profile, prices up to 10,000 CGT, in-game items.
-  **The checks are built; the rest is designed (ADR-071, Proposed).**
+  **The checks are built; the rest is decided (ADR-071, accepted 4 October 2026) and not built.**
 - [**Backing**](docs/backing.md): campaigns, memberships and tips in CGT, rewards and never proceeds. **Designed.**
 - [**Building with your own LLM**](docs/building-with-agents.md): the MCP connection and what a model may do alone.
   **Designed.**
@@ -35,7 +35,7 @@ Run them from `products/arqade`: `npm test`.
 | --- | --- |
 | Player sign-in (browser) | ADR-043's redirect flow in QOR ID (accepted, not built) and a way for a game server to verify a token |
 | Signing a player's payment | The signing path of ADR-069 decision 5, each with its own record |
-| Game Vaults: `vault ignite`, `payouts.award`, rounds, claims | ADR-070 accepted and its pallet built |
+| ARQ Wallets: `vault ignite`, `payouts.award`, rounds, claims | `pallet-arq-wallet` built, tested and on the devnet |
 | Trophies | An issuer account minting and transferring today; account-bound ones wait on G-16 |
 | Cards, sets, packs | G-15 (editions) and G-14 (randomness) |
 | Evolving assets | M4.2's state and XP |

@@ -254,9 +254,9 @@ demand to spend. Three things are undecided, and none has a value:
 - **Whether a paid entry may lead to a CGT or asset prize at all**, and under which rules — skill only, or chance as
   well. Paid chance with a transferable prize is a legal question in many jurisdictions before it is an economic one.
 - **What funds a prize — answered in direction on 4 October 2026.** The owner: a game pays from a dedicated payout
-  account of its own, reached through the ARQADE SDK. ADR-070 (Proposed) designs it as a keyless **Game Vault** per
+  account of its own, reached through the ARQADE SDK. ADR-070, accepted that day, makes it a keyless **ARQ Wallet** (the owner's name) per
   published game, funded by its developer. Whether entry fees may also flow into it stays here, with the first bullet.
-- **The protocol's bounds on a Game Vault's policy**: the shortest delay before a loosening or a withdrawal applies,
+- **The protocol's bounds on an ARQ Wallet's policy**: the shortest delay before a loosening or a withdrawal applies,
   how long a paid outcome id is remembered, and the longest an unpaid accrual waits. A developer's own caps are theirs
   and are not platform values; these bounds are. Any platform share of entries joins U-15's question.
 

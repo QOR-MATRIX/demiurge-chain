@@ -7,12 +7,12 @@ import ts from 'typescript';
 
 // The real modules, transpiled; imports between them rewritten to the emitted files.
 const dir=path.resolve('work/sdk-tests');fs.mkdirSync(dir,{recursive:true});
-for(const name of ['amount','vault-policy']){
+for(const name of ['amount','arq-wallet-policy']){
   const src=fs.readFileSync(`sdk/src/${name}.ts`,'utf8').replace("from './amount'","from './amount.mjs'");
   fs.writeFileSync(path.join(dir,name+'.mjs'),ts.transpileModule(src,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText);
 }
 const A=await import(pathToFileURL(path.join(dir,'amount.mjs')).href);
-const P=await import(pathToFileURL(path.join(dir,'vault-policy.mjs')).href);
+const P=await import(pathToFileURL(path.join(dir,'arq-wallet-policy.mjs')).href);
 const S=BigInt(10)**BigInt(18);
 
 test('CGT parses to exact Sparks and formats back',()=>{

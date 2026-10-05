@@ -6,7 +6,7 @@ stake.
 
 > **Status: partly built.** The profile template, its checks (`checkReadiness`, `readyStage`) and the price check
 > (`priceProblem`) exist in this SDK and are tested. Minting the Cartridge, store pages, listing and sales are
-> **proposed** in [ADR-071](../../../../docs/decisions/ADR-071-arqade-self-publishing.md) and not built. Names are
+> **proposed** in [ADR-071](../../../../docs/decisions/ADR-071-arqade-self-publishing.md), accepted on 4 October 2026, and not built. Names are
 > placeholders. On Demiurge Devnet, CGT is test CGT.
 
 ---
@@ -40,7 +40,7 @@ readyStage(profile);                    // 'prototype'
 checkReadiness(profile, 'early-access'); // [{ stage: 'early-access', missing: 'a support page (https)' }, …]
 ```
 
-**What goes to a person, not a machine:** turning on Game Vault payouts ([game-vaults.md](game-vaults.md)), a backing
+**What goes to a person, not a machine:** turning on ARQ Wallet payouts ([arq-wallet.md](arq-wallet.md)), a backing
 campaign above the platform's review threshold, and anything a player reports.
 
 ## Prices

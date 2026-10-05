@@ -1,5 +1,5 @@
 // A project's profile: the manifest a Cartridge carries, which ARQADE renders as the game's store page, and the
-// requirements each stage must meet before it publishes itself (ADR-071, Proposed). Nothing here touches the chain.
+// requirements each stage must meet before it publishes itself (ADR-071, accepted 4 October 2026). Nothing here touches the chain.
 
 import { checkSparks, SPARKS_PER_CGT } from './amount';
 
