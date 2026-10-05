@@ -359,8 +359,9 @@ jobs:
         working-directory: ./products/arqade
         run: npm run typecheck
 
-      # The arenas' rules against SQLite, and the devnet reader against a scripted
-      # node. No network: nothing here reads the live devnet.
+      # The arenas' rules and SQL against Postgres (PGlite, in-process), sign-in against
+      # a stand-in QOR ID, and the devnet reader against a scripted node. No network:
+      # nothing here reads the live devnet. The build skips migrations (not production).
       - name: Tests
         working-directory: ./products/arqade
         run: npm test

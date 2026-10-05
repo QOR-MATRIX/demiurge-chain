@@ -6,8 +6,9 @@ design and the brief for whoever implements it. **It is not a roadmap**: ARQADE'
 [`../DIRECTION.md`](../DIRECTION.md), and its decisions are [ADR-069](../decisions/ADR-069-arqade-the-gaming-platform.md)
 (accepted by the owner on 4 October 2026, with ADR-043). Read [`ECOSYSTEM.md`](ECOSYSTEM.md) first.
 
-**Status:** planned. The existing arcade runs on OpenAI Sites and its source is outside this repository. Nothing in
-this repository implements ARQADE yet.
+**Status:** in progress (P7). The source is in `products/arqade/`. Since 5 October 2026 it is a standard Next.js site
+hosted on Vercel with Postgres, and its players sign in with QOR ID ([ADR-074](../decisions/ADR-074-arqade-on-vercel.md)).
+Section 2 describes where it started, on OpenAI Sites.
 
 ---
 
@@ -31,7 +32,7 @@ against the tree on 4 October 2026.
 | 11 | A release pipeline with its own catalogue | Market is "one listing model for games, tools, …" (P5.3) | Third-party games are Market listings of kind "game"; ARQADE plays the web-playable ones |
 | 12 | Paid play, CGT prizes, "approved budgeted funds" | No treasury (OPEN-2), no issuance (OPEN-1); a prize is not payment for work (ADR-008) | Devnet test values only. Production funding and whether paid entry may win anything is **U-16** |
 | 13 | Optional "Energy" entitlements | ADR-031 keeps fungible game items out; "Energy" was the deleted chain's fee model (D-001); the site shows USD prices for it | Energy is retired. No USD prices, no CRGT, no DMRG |
-| 14 | "Use the official Sites workflow" | The arcade is on OpenAI Sites (Cloudflare Workers, D1); this ecosystem is on Railway and `qorsync.dev` / `demiurge.cloud` | Sites stays the prototype host until the owner chooses (ADR-069). An implementing agent without Sites tooling does not deploy there |
+| 14 | "Use the official Sites workflow" | The arcade is on OpenAI Sites (Cloudflare Workers, D1); this ecosystem is on Railway and `qorsync.dev` / `demiurge.cloud` | Settled 5 October 2026: Vercel, from this repository (ADR-074). Sites is no longer ARQADE's host |
 | 15 | Existential deposit to be "addressed" | Decided: 100 CGT (ADR-036), and a sponsor pays it (ADR-029, mechanics U-4, M4.4) | Payouts below what an account needs accrue until payable; ARQADE subsidises no account outside ADR-029's mechanism |
 
 ---
@@ -49,6 +50,8 @@ This is implementation work, done in bounded, tested slices. A polished simulati
 integration that is missing; the missing piece is named instead.
 
 ## 2. The starting point
+
+As found on 4 October 2026, before ADR-074 moved the site to Vercel. Kept as the record of where it began.
 
 - **Site:** `https://demiurge-arcade.quick-crab-0610.chatgpt.site/`, OpenAI Sites project
   `appgprj_6aafb4a6de848191a3d57f456f231b2a`, publication version 2, audience `custom` (keep it unless the owner
@@ -123,8 +126,8 @@ dead chain call.
 - **Verified sign-in waits on ADR-043** (redirect, authorization code with PKCE, no 30-day refresh token in a
   browser, per-client sessions) **and on a verification path for ARQADE's server** (ADR-069 decision 4). ARQADE's
   origin joins QOR ID's CORS allowlist then, and not before.
-- Until then, the Sites alias is shown as a practice identity. No ranking that claims integrity, no payout and no
-  award is bound to it.
+- Built 5 October 2026 (ADR-073); since ADR-074 the live arcade has no other identity: a player is a QOR ID account,
+  shown by its QOR ID and keyed by a hash of its `sub`. The Sites practice alias is gone.
 - Signing in to QOR ID and controlling a chain account are separate facts. Show a password-only account honestly and
   send the player to the launcher to link a key.
 - Server-managed sessions, origin checks, nothing secret in browser storage, URLs or logs. Any new QOR ID flow joins

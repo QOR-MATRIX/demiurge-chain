@@ -5,6 +5,10 @@
 [ADR-069](ADR-069-arqade-the-gaming-platform.md) decision 4, and settles what ADR-043 left open: token lifetimes,
 where the sign-in page is served, and how an app's server verifies a token. It decides no economic value.
 
+**Changed for ARQADE, 5 October 2026, by [ADR-074](ADR-074-arqade-on-vercel.md):** decision 11's "each check asks
+`/oauth/userinfo`" holds for the identity card, while the live arcade accepts an answer up to 30 seconds old; decision
+12 no longer applies, because ARQADE's players sign in with QOR ID alone. The decisions below are kept as written.
+
 ## Context
 
 ADR-043 decided the shape: an app sends the person to QOR ID, they sign in there, the app receives a single-use code

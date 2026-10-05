@@ -1,5 +1,6 @@
 import { deps, backToIdentity } from '@/lib/qor-deps';
 import { LOGIN_COOKIE, LOGIN_TTL_MS, QorError, setCookie, startLogin } from '@/lib/qor-session';
+import { failure } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,10 @@ export async function GET(request: Request) {
       },
     });
   } catch (e) {
-    const reason = e instanceof QorError && e.status === 503 ? 'unconfigured' : 'unavailable';
-    return Response.redirect(backToIdentity(request, { qor_error: reason }), 302);
+    // QOR ID is not contacted to start a sign-in: a failure here is this site's own (its settings or its
+    // database), and is said so rather than blamed on QOR ID.
+    const reason = e instanceof QorError && e.status === 503 ? 'unconfigured' : 'site';
+    if (reason === 'site') console.error('Sign-in could not start:', failure(e));
+    return new Response(null, { status: 302, headers: { Location: backToIdentity({ qor_error: reason }), 'Cache-Control': 'no-store' } });
   }
 }

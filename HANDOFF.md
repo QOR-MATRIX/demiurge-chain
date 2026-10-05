@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 50 (5 October 2026): P7.3 built on a branch, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 51 (5 October 2026): QOR ID sign-in live for apps; ARQADE moved to Vercel with Postgres (ADR-074), on a branch; item 50: P7.3 built, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1649,6 +1649,25 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     set Railway's `QOR_OAUTH_CLIENTS` for ARQADE's production callback with the hash of a new secret; set
     `QOR_CLIENT_ID`, `QOR_CLIENT_SECRET`, `QOR_REDIRECT_URI` in the site's host; apply ARQADE's migration `0001`;
     redeploy the site.
+
+51. **5 October 2026: P7.3 live on QOR ID's side; ARQADE moved to Vercel (ADR-074). On branch
+    `session/arqade-vercel`, not merged.** The owner merged P7.3 (PR #1, `788d3ab`; QOR ID redeployed, `/oauth/authorize`
+    answering) and set Railway's `QOR_OAUTH_CLIENTS` for ARQADE (read back: the live page is titled "Sign in to ARQADE
+    · QOR ID"; an unknown app still gets 400). The secret is in the session scratchpad, never in the repository. Sites
+    then could not be published or checked from here (every route behind its sign-in wall; it moved itself to
+    `demiurge-arcade.andyithink.chatgpt.site`), so the owner chose **Vercel, with v0 for screens**. Done: vinext, Vite,
+    wrangler, drizzle, the Sites plugin, `.openai/`, `app/chatgpt-auth.ts` and `tests/worker.smoke.mjs` removed; standard
+    Next.js 16; `lib/db.ts` (the D1-shaped statement interface over `pg`, `?` numbered, batches as transactions; PGlite in
+    tests); `db/migrations/0001_arcade.sql`; `scripts/migrate.mjs` (production builds only, advisory lock); players are QOR
+    ID accounts (id = SHA-256 of `sub`); the arcade accepts QOR ID's answer for 30 s (`qor_sessions.checked`); sign-in
+    errors name their cause; origin checks use Host, redirects are relative. **41 tests** (two planted faults caught),
+    type check, lint (0 errors), `next build`; migrations twice on Postgres 16; **Chrome end to end** against Postgres and
+    a local QOR ID: signed in as `arqtester#0001`, a match created by that player, 401 after sign-out. The Vercel
+    connector cannot create projects (403), so **the owner creates the project** in Vercel's dashboard: import
+    `QOR-MATRIX/demiurge-chain`, root `products/arqade`, add Neon. Then: QOR ID's registry gets the Vercel callback, and
+    Vercel gets `QOR_CLIENT_ID`, `QOR_CLIENT_SECRET`, `QOR_REDIRECT_URI`. **An incident:** a `taskkill /IM node.exe`
+    and later a kill of whatever listened on port 3000 stopped Docker Desktop twice (port 3000 is a container's); the
+    owner restarted it and the `vyb-*` containers came back healthy. Kill only recorded PIDs of processes you started.
 
 ## 5. Traps, so nobody re-learns them
 

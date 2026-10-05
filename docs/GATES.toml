@@ -682,6 +682,12 @@ type = "tightening"
 change = "The arqade gate counts ADR-073 (QOR ID sign-in for apps) and a new criterion, arqade.signin-tests: five tests in the qor_auth suite, among them the log check, which now drives the whole sign-in flow for apps. No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
 reason = "P7.3 was built. The rules that keep a sign-in safe (PKCE, exact redirects, single-use codes, refresh rotation, nothing secret in a log) must not regress silently; four were seen to fail against planted faults, and the log check against a planted log of the code."
 
+[[change_log]]
+date = "2026-10-05"
+type = "tightening"
+change = "The arqade gate counts ADR-074 (ARQADE on Vercel with Postgres, players by QOR ID). The arqade suite's arenas now run against Postgres (PGlite) with the site's own migrations instead of SQLite. No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
+reason = "The owner moved ARQADE's hosting. The arcade's SQL had to be checked as Postgres runs it, not as SQLite did; two planted faults (the 30-second allowance never expiring, an origin check passing any site) each failed a test."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1639,7 +1645,7 @@ player's own Vault, and a developer SDK with which others publish games."""
   [[gates.criteria]]
   id = "arqade.decisions"
   kind = "adr"
-  adrs = ["ADR-069", "ADR-043", "ADR-070", "ADR-071", "ADR-073"]
+  adrs = ["ADR-069", "ADR-043", "ADR-070", "ADR-071", "ADR-073", "ADR-074"]
 
   [[gates.criteria]]
   id = "arqade.roadmap"
@@ -1702,7 +1708,8 @@ player's own Vault, and a developer SDK with which others publish games."""
   ]
 
   # The arcade's own suite since it was imported (P7.1, 2026-10-04): the arenas'
-  # rules against SQLite and the devnet reader's network and genesis checks.
+  # rules against Postgres since ADR-074 (SQLite before), sign-in, and the devnet
+  # reader's network and genesis checks.
   [[gates.criteria]]
   id = "arqade.tests"
   kind = "tests"

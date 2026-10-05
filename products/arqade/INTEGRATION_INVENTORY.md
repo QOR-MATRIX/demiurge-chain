@@ -3,7 +3,7 @@
 **What this is.** Every control, statistic, status and terminal command ARQADE shows, with where its value comes
 from, who may use it, where it persists, what happens when it fails, and how it was verified. Required by P7.1
 (`docs/DIRECTION.md`) and the blueprint's §4 (`docs/blueprints/arqade.md`). Written 5 October 2026 against
-`products/arqade/` as it is in the tree; checked in a running build (the site's own workerd runtime, driven in headless
+`products/arqade/` as it is in the tree; checked in a running build (on Sites, the site's own workerd runtime; since ADR-074, `next start` with Postgres, driven in headless
 Chrome) the same day.
 
 **Read with.** `IMPLEMENTATION.md` (what is built), the SDK's `README.md`. When a control changes, its row changes in
@@ -14,7 +14,7 @@ the same commit.
 | Source | What lives there | Who can change it |
 | --- | --- | --- |
 | **The browser** (`localStorage`) | `demiurge.local.v1`: practice Energy, practice tokens, plays, best scores, session ledger. `demiurge.portal.v1`: intro seen. `demiurge.project.v1`: the creator's draft. `demiurge.muted`: muted chat players. Keys kept from before the rename, so nobody loses progress | The visitor, on this device only. **None of it has value or reaches the chain** |
-| **The arcade service** (Cloudflare D1 behind the Sites host) | Players (an `Explorer-…` alias from the host's signed-in user), matches, standings, chat messages, reports | The server, from authenticated requests; rules in `lib/arena-engine.ts`, writes in `lib/arena-store.ts` |
+| **The arcade service** (Postgres, ADR-074) | Players (QOR ID accounts, by QOR ID), matches, standings, chat messages, reports | The server, from authenticated requests; rules in `lib/arena-engine.ts`, writes in `lib/arena-store.ts` |
 | **Demiurge Devnet** (`https://rpc.qorsync.dev`, read-only) | Finalized and best block, any account's test CGT and DRC-369 assets | Nobody, from here. ARQADE signs nothing; the genesis is checked before every read |
 | **The code** | The four solo games, their rules and copy | A release |
 
@@ -27,9 +27,9 @@ the same commit.
 | "Your cybercade · Season Zero" | Static copy | — | — | — | Read in the code |
 | Top bar Energy count | Browser (`demiurge.local.v1`) | Visitor | Browser | Unreadable storage resets to the initial 1,000 practice Energy | `page.tsx` validates every stored field |
 | **Connect QOR ID** | Opens the QOR Identity view, where **Sign in with QOR ID** starts the sign-in on QOR ID's own page (P7.3) | Anyone | — | — | Chrome: opens the view |
-| Live strip ("network … online", open lobbies, Global rankings) | Arcade service (`/api/live`, polled every 2 s while visible) | Host-authenticated visitor | — | Shows "connecting" and "—" when the service is unreachable or the visitor is not signed in to the host | `tests/arena.test.mjs`; locally it shows "connecting" (no host sign-in) |
+| Live strip ("network … online", open lobbies, Global rankings) | Arcade service (`/api/live`, polled every 2 s while visible) | Signed in with QOR ID | — | Shows "connecting" and "—" when the service is unreachable or the visitor is not signed in | `tests/arena.test.mjs`; locally it shows "connecting" (no host sign-in) |
 | Sidebar panel "Demiurge Devnet · Read-only · see QOR Identity" | Static pointer. **Was "Chain connection pending", which never read anything; replaced 5 Oct** | — | — | — | Chrome |
-| "Unbound explorer · Explorer alias" | Arcade service: alias derived from the host's user id. **Not a QOR identity** | Host-authenticated visitor | Server | Unauthenticated: no alias | `tests/arena.test.mjs` (identity is server-derived) |
+| Sidebar name · "QOR verified" | Arcade service: the signed-in QOR ID | Signed in with QOR ID | Server | Not signed in: "Guest · Not signed in" | `tests/arena.test.mjs` (identity is server-derived) |
 | Portal intro and its notice | Code; seen flag in browser | Anyone | Browser | Storage blocked: the intro shows every visit | Chrome |
 | Footer "Connected arcade · No financial transactions · Demiurge Protocol · Portal notice / Replay intro" | Code | — | — | — | Read in the code |
 
@@ -55,12 +55,12 @@ the same commit.
 
 | Control | Source | Permission | Persists | On failure | Verified |
 | --- | --- | --- | --- | --- | --- |
-| Create lobby, invitation link, close lobby, join, cancel | Arcade service | Host-authenticated visitor; origin checked | Server (D1) | Error with **Retry**; revision guard refuses a stale write | `tests/arena.test.mjs` (lifecycle, racing moves) |
+| Create lobby, invitation link, close lobby, join, cancel | Arcade service | Signed in with QOR ID; origin checked | Server (Postgres) | Error with **Retry**; revision guard refuses a stale write | `tests/arena.test.mjs` (lifecycle, racing moves) |
 | Board moves, legal-move hints, 90-second turns, **Concede match**, rematch (**Find another match**), **Back to lobby** | Server rules (`lib/arena-engine.ts`) | The two players; spectators read | Server | A refused move leaves the board unchanged | Tests: 100 Reversi games, Flux wins and illegal moves, exactly-once results, timeouts |
-| Leaderboard (global top 100, per game) | Server standings | Anyone signed in to the host | Server | "Offline" when unreachable | Tests: aggregation before the limit |
-| World chat: send, **Delete** own message, **Mute player**, **Report**, unread count | Server; mute list in browser | Host-authenticated; delete only one's own | Server; mute in browser | Draft kept on failure; two-second send limit | Tests: identity, rate limits, ownership |
+| Leaderboard (global top 100, per game) | Server standings | Anyone signed in with QOR ID | Server | "Offline" when unreachable | Tests: aggregation before the limit |
+| World chat: send, **Delete** own message, **Mute player**, **Report**, unread count | Server; mute list in browser | Signed in with QOR ID; delete only one's own | Server; mute in browser | Draft kept on failure; two-second send limit | Tests: identity, rate limits, ownership |
 
-**Not yet:** results are bound to the host alias, not a QOR identity (P7.3); polling, not WebSockets.
+**Not yet:** polling, not WebSockets.
 
 ## Creation Engine
 
@@ -82,7 +82,7 @@ the same commit.
 | --- | --- | --- | --- | --- | --- |
 | QOR authentication / Verified account / Chain account / CGT settlement rows; **Sign in with QOR ID**, **Sign out** (P7.3) | QOR ID, through ARQADE's server (`/api/auth/me`, which asks `/oauth/userinfo`); CGT settlement is still **Not connected** | Anyone may sign in; sign-out from this site's own pages only | Server-side session (D1, keyed by the cookie's hash), one HttpOnly cookie | Unconfigured site: "Not configured", no button. QOR ID unreachable: says so. A refused sign-in: "did not complete. Nothing was shared" | `tests/qor-session.test.mjs`; end to end in Chrome against a local QOR ID, 5 Oct |
 | **Open Demiurge portal** | Link to `demiurge.cloud` | — | — | — | — |
-| **Check chain connection** | Devnet (`/api/chain`): genesis and name checked, finalized block | Anyone | — | "Wrong network" or "could not be read" (503) | `tests/chain.test.mjs`; route in workerd |
+| **Check chain connection** | Devnet (`/api/chain`): genesis and name checked, finalized block | Anyone | — | "Wrong network" or "could not be read" (503) | `tests/chain.test.mjs`; route in a running build |
 | Account **Look up** | Devnet (`/api/chain/account`): test CGT and DRC-369 assets at the finalized block | Anyone; read-only | — | Refused address: the reason (400). Unreadable: the last answer stays, marked stale (503) | `tests/account.test.mjs` (bytes from a real node); live devnet matched `@polkadot/api`; Chrome lookup and refusal |
 
 ## Terminal (`arqade — local session`, "NO CHAIN SIGNER")
@@ -99,10 +99,10 @@ the same commit.
 
 | Interface | Does | Permission | Verified |
 | --- | --- | --- | --- |
-| `GET /api/chain` | Devnet heads, genesis-checked | Anyone | Tests, workerd |
-| `GET /api/chain/account?address=` | One account's test CGT and assets | Anyone | Tests, workerd |
+| `GET /api/chain` | Devnet heads, genesis-checked | Anyone | Tests, running build |
+| `GET /api/chain/account?address=` | One account's test CGT and assets | Anyone | Tests, running build |
 | `GET /api/auth/login`, `GET /api/auth/callback`, `GET /api/auth/me`, `POST /api/auth/logout` | Start a QOR ID sign-in, finish it (state checked against the browser's cookie, code exchanged with PKCE and the site's secret), who is signed in, sign out | Anyone; logout same-origin only | Tests; Chrome against a local QOR ID |
-| `/api/live`, `/api/matches`, `/api/matches/[id]`, `/api/chat` | Arenas, standings, chat | Host-authenticated; origin checked | `tests/arena.test.mjs`, `tests/worker.smoke.mjs` (needs a running worker) |
+| `/api/live`, `/api/matches`, `/api/matches/[id]`, `/api/chat` | Arenas, standings, chat | Signed in with QOR ID; origin checked | `tests/arena.test.mjs` (Postgres); Chrome against a local QOR ID, 5 Oct |
 | WebMCP tools `read_local_arcade`, `navigate_demiurge` | Read practice state; open a section. Names kept for agents already using them | The page | Read in the code |
 
 ## What is deliberately absent
