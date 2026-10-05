@@ -22,6 +22,12 @@ npm run build     # migrations (production only, see below), then next build
 `npm run dev` serves the site on `http://localhost:3000`. Solo games, the devnet views and the SDK need nothing else.
 The live arcade and sign-in need the settings below.
 
+## On Vercel
+
+[`vercel.json`](vercel.json) fixes the install and build to this folder: `npm ci` against this folder's own lockfile,
+then `npm run build`. Without it, Vercel sees the repository's root workspace (`turbo.json`) and installs the frozen
+`apps/*` and `packages/*`, which do not resolve. The Vercel project's Root Directory is `products/arqade`.
+
 ## Settings
 
 Set in Vercel's project settings (or in `.env.local` for a local run; `.env*` is ignored by git).
