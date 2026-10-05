@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 40 (4 October 2026): ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 41 (4 October 2026): `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1508,6 +1508,27 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     owner's. Renamed in current documents and code: the guide is `products/arqade/sdk/docs/arq-wallet.md`, the
     module `src/arq-wallet-policy.ts`, the type `ArqWalletPolicy`. ADR-070's filename and the history in items 38 and
     39 and in `GATES.toml`'s change log keep the old words. `arqade.decisions` now has all five of its units met.
+
+41. **4 October 2026: `pallet-arq-wallet` built — ARQ Wallets on chain (ADR-070, P7.11's first slice). On
+    `session/arqade-2026-10-04`. Not on the devnet.** Mounted as `ArqWallet` at index 11, `spec_version` 7
+    (`transaction_version` stays 2: no existing call changed). Keyless accounts from `PalletId(*b"dmg/arqw")` and the
+    Cartridge's `(collection, item)`; the governor is `Nfts::owner` at each call; `create` (at least the existential
+    deposit), `set_policy` (tightening at once, loosening pending until `apply_policy` after `loosen_delay`),
+    `cancel_pending`, `set_authority`, `set_paused`, `payout` (authority only; max payout, rule version, outcome
+    window, each outcome once, epoch budget and count, cap per recipient, nothing owed or the deposit spent; a payout
+    that cannot reach its player accrues), `claim`, `expire_accrual`, `schedule_withdrawal` / `execute_withdrawal`
+    (delayed, re-checked against what is owed), `prune_outcome`. Every amount checked, overflow refused. **Not built:**
+    held prizes for paid rounds (ADR-070 decision 8), a runtime API, the SDK calls. **Placeholders:** the four U-16
+    bounds (600, 600, 432,000, 1,000 blocks) in `runtime/src/assets.rs`, pinned by a runtime test as placeholders, and
+    the weights (M7.2). **Evidence:** 15 pallet tests and 3 runtime tests; three planted faults (outcome check removed:
+    1 failed; owed total ignored: 3 failed; loosening applied at once: 1 failed); `cargo fmt --check` and `clippy
+    -D warnings` clean; **143 workspace tests pass with the runtime's wasm built** (125 before). One `clippy` allow,
+    `too_many_arguments` on `payout`, with its reason beside it. The gate gains `arqade.wallet-tests`, eleven of them,
+    counted by ARQADE's gate and not Alpha's (ADR-050 decision 8; a tightening, logged). **Trap found:** drive X: was
+    completely full (0 bytes of 954 GB), and the linker failed with LNK1318/LNK1201 rather than saying so; 48 GB of
+    incremental caches under three `target/debug/incremental` directories were removed and the run repeated with
+    `CARGO_INCREMENTAL=0`. **To reach the devnet** the runtime must be built **with the `sudo` feature** (the devnet's
+    runtime has it; a wasm without it would remove sudo from the devnet on upgrade) and set by the owner's sudo key.
 
 ## 5. Traps, so nobody re-learns them
 

@@ -156,7 +156,8 @@ transactions in blocks (D-008).
 `pallet-nfts` is the ownership ledger (ADR-025), mounted as `Nfts` at index 7. `pallet-drc369`, mounted as `Drc369` at
 index 8, makes an item a DRC-369 asset (ADR-047, ADR-052). `pallet-utility`, mounted as `Utility` at index 9, puts
 several calls in one transaction (ADR-053). `pallet-drc369-royalties`, mounted as `Drc369Royalties` at index 10, holds
-royalty terms and settles sales in CGT (ADR-061). `spec_version` is 6 since 2 October 2026, when
+royalty terms and settles sales in CGT (ADR-061). `pallet-arq-wallet`, mounted as `ArqWallet` at index 11 since 4 October
+2026 (`spec_version` 7), holds one keyless payout account per DRC-369 Cartridge, described below. `spec_version` was 6 from 2 October 2026, when
 `Drc369Royalties::buy_exact` and the runtime API `Drc369RoyaltiesApi` were added (5 on 1 October, for `Drc369::nest`
 and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369::mint` gained its
 `derived_from` argument. No existing call's encoding changed on 1 or 2 October.
@@ -275,6 +276,29 @@ and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369
 - **Royalty events:** `TermsSet`, `Listed`, `Unlisted` and `Sold { collection, item, from, to, price, source, remix,
   royalties, seller_received }`, where `remix` and `royalties` list each payment as `(account, amount)`.
 - **Weights are placeholders** (ADR-052 decision 8, ADR-061), owed to M7.2. No fee is charged anyway.
+
+
+### ARQ Wallets (`pallet-arq-wallet`, ADR-070)
+
+- **The account** of the wallet for Cartridge `(collection, item)` is `PalletId(*b"dmg/arqw")` sub-account of
+  `(collection, item)`, truncated. No key exists for it. A wallet exists once `create` is called by the Cartridge's
+  holder with a policy and at least the existential deposit, which never leaves.
+- **The governor** is `Nfts::owner(collection, item)` at the time of each call. Calls: `create`, `set_policy`,
+  `cancel_pending`, `set_authority`, `set_paused`, `schedule_withdrawal`.
+- **A policy** that loosens any field (`max_payout`, `epoch_budget`, `per_recipient_per_epoch` or `accrual_expiry`
+  rising; `epoch_blocks` or `loosen_delay` falling; a rule version added) is stored as pending and applies through
+  `apply_policy`, by anyone, at or after `now + loosen_delay` of the policy in force. Anything else applies at once.
+- **`payout`**, by the registered authority only, names an outcome id (32 bytes), the block it was issued at, a
+  rule version in the policy, a recipient and an amount. It is refused if paused, above `max_payout`, outside
+  `[now - OutcomeWindow, now]`, for an outcome already recorded, past the epoch's budget, count or the recipient's cap,
+  or above what the wallet holds beyond its deposit and what it owes. If the recipient cannot receive the amount it is
+  recorded as owed (`Accrued`) instead of paid (`Paid`).
+- **`claim`** pays a recipient what they are owed once they can receive it and before it expires; `expire_accrual`
+  returns an expired amount to the wallet; `prune_outcome` removes an outcome record after its window.
+- **`execute_withdrawal`**, by anyone, at or after the scheduled block, and only if the wallet still holds the amount
+  beyond its deposit and what it owes. Every transfer out keeps the wallet alive.
+- **Bounds** `MinLoosenDelay` 600, `OutcomeWindow` 600, `MaxAccrualExpiry` 432,000 and `MaxPayoutsPerEpoch` 1,000 blocks
+  are **U-16 placeholders**, not decided values.
 
 ## 13. Not yet
 

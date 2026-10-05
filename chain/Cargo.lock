@@ -4228,6 +4228,7 @@ dependencies = [
 name = "demiurge-runtime"
 version = "0.1.0"
 dependencies = [
+ "pallet-arq-wallet",
  "pallet-drc369",
  "pallet-drc369-royalties",
  "pallet-validator-set",
@@ -8829,6 +8830,16 @@ dependencies = [
  "sp-crypto-hashing",
  "sp-io",
  "sp-runtime",
+]
+
+[[package]]
+name = "pallet-arq-wallet"
+version = "0.1.0"
+dependencies = [
+ "pallet-drc369",
+ "parity-scale-codec",
+ "polkadot-sdk",
+ "scale-info",
 ]
 
 [[package]]

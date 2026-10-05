@@ -651,6 +651,12 @@ type = "tightening"
 change = "The arqade gate counts ADR-071 (self-publishing, Proposed), P7.12 to P7.15, M5.3 (the MCP server its agentic creation uses) and U-17 (backing), all from the owner's direction of that day. Seven units, all not_met. No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
 reason = "Self-publishing, item sales, backing and agentic creation are now part of what ARQADE is, so the gate cannot pass without them."
 
+[[change_log]]
+date = "2026-10-04"
+type = "tightening"
+change = "arqade.wallet-tests: eleven tests of pallet-arq-wallet (ADR-070) in the chain suite must pass, ten in the pallet and one in the runtime. Counted by ARQADE's gate, not Alpha's, because the pallet is a product's (ADR-050 decision 8). No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
+reason = "The wallet holds other people's CGT. The rules that protect it (each outcome once, nothing owed withdrawn, loosening delayed) must not regress silently. Three were seen to fail against planted faults: the outcome check removed, the owed total ignored, loosening applied at once."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1629,6 +1635,27 @@ player's own Vault, and a developer SDK with which others publish games."""
   id = "arqade.questions"
   kind = "open_question"
   questions = ["U-16", "U-4", "U-17"]
+
+  # The ARQ Wallet's pallet (ADR-070), counted here rather than in Alpha, Beta or
+  # Public Release because it is ARQADE's (ADR-050 decision 8). Each of these was
+  # seen to fail against a planted fault first (HANDOFF.md).
+  [[gates.criteria]]
+  id = "arqade.wallet-tests"
+  kind = "tests"
+  suite = "chain"
+  require = [
+    "only_the_cartridge_holder_creates_a_wallet_and_it_is_keyless_and_funded",
+    "the_governor_is_whoever_holds_the_cartridge_now",
+    "tightening_applies_at_once_and_loosening_waits_its_delay",
+    "only_the_authority_pays_and_only_within_the_policy",
+    "each_outcome_is_paid_once_and_only_inside_its_window",
+    "epoch_budgets_recipient_caps_and_payout_counts_hold_and_reset",
+    "a_payout_never_spends_the_deposit_or_what_is_owed",
+    "a_payout_too_small_to_open_an_account_accrues_and_is_claimed_once_it_can_be",
+    "a_withdrawal_waits_its_delay_and_never_takes_what_is_owed_or_the_deposit",
+    "the_largest_amounts_cannot_overflow",
+    "a_wallet_is_created_for_a_cartridge_and_pays_a_player_in_cgt",
+  ]
 
   # The arcade's own suite since it was imported (P7.1, 2026-10-04): the arenas'
   # rules against SQLite and the devnet reader's network and genesis checks.

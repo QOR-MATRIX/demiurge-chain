@@ -9,7 +9,7 @@
 
 [workspace]
 resolver = "2"
-members = ["node", "pallets/drc369", "pallets/drc369-royalties", "pallets/validator-set", "runtime"]
+members = ["node", "pallets/arq-wallet", "pallets/drc369", "pallets/drc369-royalties", "pallets/validator-set", "runtime"]
 
 [workspace.package]
 authors = ["Demiurge"]
@@ -29,6 +29,7 @@ scale-info = { version = "2", default-features = false, features = ["derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 
 demiurge-runtime = { path = "runtime", default-features = false }
+pallet-arq-wallet = { path = "pallets/arq-wallet", default-features = false }
 pallet-drc369 = { path = "pallets/drc369", default-features = false }
 pallet-drc369-royalties = { path = "pallets/drc369-royalties", default-features = false }
 pallet-validator-set = { path = "pallets/validator-set", default-features = false }

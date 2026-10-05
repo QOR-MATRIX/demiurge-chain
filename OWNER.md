@@ -18,7 +18,7 @@ The code is public at `github.com/QOR-MATRIX/demiurge-chain` (your organisation)
   agreeing. You hold its admin key and its faucet — *the account that hands out test CGT* — in your wallet.
 - **The chain.** Makes and finalises blocks — *finalise: agree a block can never be undone* — holds assets,
   sends, sells with royalties, nests one asset in another, and refuses a purchase if the seller changed the
-  work after you looked. **125 tests pass.**
+  work after you looked. **143 tests pass** (4 October, the ARQ Wallet's included).
 - **Sign-in (QOR ID)** at `id.qorsync.dev`, beside its database in Virginia. **136 tests pass.**
 - **The launcher 0.1.6.** Keys, sign-in, sending, minting, Inventory, trading, selling, buying, and a
   **Market** of everything listed. Its next build points at the devnet by default. **195 tests pass.**
@@ -44,7 +44,8 @@ or give anyone test CGT except by you sending it from the faucet.
 2. **Get CI green**: tell me what its runs show.
 3. **A faucet page**, so testers can get test CGT without you sending it by hand.
 4. **The indexer** — *a service that reads the chain so the Market can search and show history*.
-5. **The ARQ Wallet on the chain** (`pallet-arq-wallet`), then ARQADE's balances and assets on screen.
+5. **The ARQ Wallet is built on the chain** (not yet on the devnet): next, prizes held for paid rounds, the SDK calls,
+   and putting it on the devnet — which needs your admin key once, when it is ready.
 
 ## What only you can do
 

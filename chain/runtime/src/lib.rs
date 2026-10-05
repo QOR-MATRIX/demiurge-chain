@@ -167,7 +167,9 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // 6: `Drc369Royalties::buy_exact`, a new call, and the runtime API
     // `Drc369RoyaltiesApi`. `buy` kept its index and its encoding, which
     // `tests/assets.rs` pins, so `transaction_version` stays again.
-    spec_version: 6,
+    // 7: `pallet-arq-wallet`, ARQ Wallets (ADR-070), a new pallet at index 11.
+    // No existing call changed, so `transaction_version` stays.
+    spec_version: 7,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -390,6 +392,9 @@ construct_runtime!(
         // Royalty terms, and the sale settled in CGT they bind to (M4.2,
         // ADR-061).
         Drc369Royalties: pallet_drc369_royalties = 10,
+        // One keyless payout account per published game, governed by whoever
+        // holds its Cartridge (ADR-070).
+        ArqWallet: pallet_arq_wallet = 11,
 
         // Development and test networks only (ADR-037).
         #[cfg(feature = "sudo")]

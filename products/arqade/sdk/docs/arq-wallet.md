@@ -3,9 +3,11 @@
 **For game developers building on ARQADE.** This is how your game pays players in CGT: from a payout account that
 belongs to your game alone, has no private key, and moves CGT only under rules you set and the chain enforces.
 
-> **Status: decided, not built.** This describes [ADR-070](../../../../docs/decisions/ADR-070-game-vaults.md),
-> **accepted by the project owner on 4 October 2026**, who named the wallet **ARQ Wallet**. The chain has no ARQ Wallet
-> pallet yet (`pallet-arq-wallet`), and every API below marked *proposed* does not exist. What
+> **Status: decided; its chain half is built, not yet on the devnet.** This describes [ADR-070](../../../../docs/decisions/ADR-070-game-vaults.md),
+> **accepted by the project owner on 4 October 2026**, who named the wallet **ARQ Wallet**. The chain module, `pallet-arq-wallet`,
+> exists and is tested (`chain/pallets/arq-wallet/`): wallets, policy, delayed loosening and withdrawals, the payout
+> authority, each outcome once, accruals and claims. **Held prizes for paid rounds are not built yet**, the devnet does
+> not run it until its runtime is upgraded, and every SDK API below marked *proposed* does not exist. What
 > exists today is in [`../README.md`](../README.md). "ARQ Wallet" is the owner's name; the CLI and package names are
 > placeholders until the project owner approves them.
 >

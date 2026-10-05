@@ -186,6 +186,40 @@ impl pallet_drc369_royalties::Config for Runtime {
     type WeightInfo = pallet_drc369_royalties::weights::PlaceholderWeight<Runtime>;
 }
 
+frame_support::parameter_types! {
+    /// What every ARQ Wallet's account is derived from (ADR-070). Changing it
+    /// would move every wallet to an account nobody funded.
+    pub const ArqWalletPalletId: frame_support::PalletId = frame_support::PalletId(*b"dmg/arqw");
+}
+
+/// **U-16 PLACEHOLDERS, not decided values.** The protocol's bounds on an ARQ
+/// Wallet's policy are open (OPEN_QUESTIONS.md, U-16). These let a devnet run,
+/// in six-second blocks: an hour's delay before a loosening or a withdrawal, an
+/// hour's outcome window, thirty days before an unclaimed payout expires, and a
+/// thousand payouts per wallet per epoch. None is presented as decided.
+pub mod arq_wallet_placeholders {
+    pub const MIN_LOOSEN_DELAY: u32 = 600;
+    pub const OUTCOME_WINDOW: u32 = 600;
+    pub const MAX_ACCRUAL_EXPIRY: u32 = 432_000;
+    pub const MAX_PAYOUTS_PER_EPOCH: u32 = 1_000;
+}
+
+impl pallet_arq_wallet::Config for Runtime {
+    /// A wallet holds CGT and pays it, and nothing else.
+    type Currency = Balances;
+    type PalletId = ArqWalletPalletId;
+    type MinLoosenDelay = ConstU32<{ arq_wallet_placeholders::MIN_LOOSEN_DELAY }>;
+    type MaxAccrualExpiry = ConstU32<{ arq_wallet_placeholders::MAX_ACCRUAL_EXPIRY }>;
+    type OutcomeWindow = ConstU32<{ arq_wallet_placeholders::OUTCOME_WINDOW }>;
+    type MaxPayoutsPerEpoch = ConstU32<{ arq_wallet_placeholders::MAX_PAYOUTS_PER_EPOCH }>;
+    /// Engineering bounds: a game lists a few rule versions, each `name@number`
+    /// of at most 58 bytes in the SDK's form.
+    type MaxRuleVersions = ConstU32<8>;
+    type MaxRuleVersionLen = ConstU32<64>;
+    /// Placeholders, not benchmarks: M7.2 debt.
+    type WeightInfo = pallet_arq_wallet::weights::PlaceholderWeight<Runtime>;
+}
+
 /// The runtime's base call filter: everything, except the `pallet-nfts` calls
 /// that would make or change an asset behind `pallet-drc369`, and every
 /// `pallet-utility` call but the atomic batch. See the module documentation.

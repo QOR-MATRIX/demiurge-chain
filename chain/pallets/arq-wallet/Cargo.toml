@@ -1,0 +1,48 @@
+[package]
+name = "pallet-arq-wallet"
+description = "ARQ Wallets: one keyless payout account per published game, governed by whoever holds the game's DRC-369 Cartridge, paying only within a policy on chain (ADR-070)."
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[dependencies]
+codec = { workspace = true }
+scale-info = { workspace = true }
+
+# `pallet-drc369` says a Cartridge is a DRC-369 asset; `pallet-nfts` says who
+# holds it, and so who governs its wallet.
+pallet-drc369 = { workspace = true }
+polkadot-sdk = { workspace = true, features = [
+  "runtime",
+  "pallet-nfts",
+] }
+
+[dev-dependencies]
+polkadot-sdk = { workspace = true, features = [
+  "std",
+  "runtime",
+  "pallet-balances",
+  "pallet-nfts",
+] }
+
+[features]
+default = ["std"]
+std = [
+  "codec/std",
+  "pallet-drc369/std",
+  "polkadot-sdk/std",
+  "scale-info/std",
+]
+runtime-benchmarks = [
+  "pallet-drc369/runtime-benchmarks",
+  "polkadot-sdk/runtime-benchmarks",
+]
+try-runtime = [
+  "pallet-drc369/try-runtime",
+  "polkadot-sdk/try-runtime",
+]
