@@ -69,5 +69,10 @@
         "depends": []
       }
     }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": { "schemes": ["qor"] }
+    }
   }
 }

@@ -41,6 +41,7 @@ export type QorErrorKind =
   | 'declined'
   | 'hello'
   | 'qontrol'
+  | 'payment_refused'
   | 'internal';
 
 export interface AccountView {
