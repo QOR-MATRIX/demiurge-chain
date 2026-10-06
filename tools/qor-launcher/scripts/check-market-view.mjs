@@ -295,6 +295,9 @@ const finish = async () => {
 try {
   let target;
   for (let i = 0; i < 100 && !target; i++) {
+    // Pause before every retry, not only after a refused connection: the browser can answer before its page
+    // exists, and the loop then gave up within milliseconds on a slow runner (CI, 6 October 2026).
+    if (i > 0) await sleep(100);
     try {
       const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
       target = list.find((t) => t.type === 'page');

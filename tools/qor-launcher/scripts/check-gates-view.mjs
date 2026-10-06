@@ -180,8 +180,11 @@ for (let i = 0; i < 100 && !target; i++) {
     const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
     target = list.find((t) => t.type === 'page');
   } catch {
-    await sleep(100);
+    // Not answering yet.
   }
+  // Pause on every miss, not only when the browser refuses the connection: it can answer before its page exists,
+  // and a loop that did not wait then gave up within milliseconds on a slow runner (CI, 6 October 2026).
+  if (!target) await sleep(100);
 }
 if (!target) throw new Error('The browser did not expose a page to inspect');
 
