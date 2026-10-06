@@ -1,7 +1,7 @@
 # Handoff
 
 **Current state, 6 October 2026.** The code is the public repository `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064).
-`main` is at `9f8a818` (PR #13), and Pleroma CI is green on `main`: every completed run on `main` since the merge of #6 (5 October 2026) passed. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Work goes on a `session/*` branch and
+`main` includes PR #14 (`5e90748`, §4 item 58); item 58's owner confirmations and item 59 (ADR-081) reach it in the pull request after, and Pleroma CI is green on `main`: every completed run on `main` since the merge of #6 (5 October 2026) passed. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Work goes on a `session/*` branch and
 reaches `main` by pull request. `origin` is the private archive, not the current tree. Live, devnet-only and with test
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
@@ -1804,7 +1804,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     *Merged to `main` the same day (PR #13, `9f8a818`), as were items 51 to 56 (PRs #2 to #12).*
 
 58. **6 October 2026: documentation brought up to date with the tree after the IBM Bob audit.** On branch
-    `session/docs-current`. **What was stale:** the status sections of the current documents had been written
+    `session/docs-current`; merged as PR #14 (`5e90748`), the owner confirmations below in the pull request after. **What was stale:** the status sections of the current documents had been written
     before the work of ADR-063 to ADR-080 — the public repository and CI on GitHub Actions, QOR ID and the devnet on
     Railway, ARQADE on Vercel, sign-in for apps, unique names, tips, levels and avatars — and still said so. This
     file's §1 called CI blocked by a billing lock, QOR ID configured but not deployed, the launcher at 91 host tests
@@ -1824,7 +1824,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     `alpha.no-dependency-patching` is `done = true`, evidence main's run `37496555161`, whose security step
     passed; "Allowed browser origins confirmed" — `server.allowed_origins` stays unset in production and is
     never set from the environment (it stops QOR ID starting; `services/qor-auth/DEPLOY-RAILWAY.md`).
-59. **6 October 2026: ADR-081 accepted — QQ is QOR Engine.** On branch `session/docs-current`, with item 58. The
+59. **6 October 2026: ADR-081 accepted — QQ is QOR Engine.** On branch `session/docs-current`, pushed after PR #14 merged, so it reaches `main` by the next pull request. The
     owner commissioned QQ, an engine and editor for small, effects-led 2D and 3D games, integrated with the
     launcher, QOR ID, Qontrol and ARQADE, driveable by an LLM and generative, and chose that it **replaces** QOR
     Engine: "QQ becomes QOR Engine" and "Authorized to build by any means necessary to produce the results
@@ -2387,9 +2387,9 @@ container named here.*
 ## 7. Repository state
 
 - **Now (6 October 2026): the public repository `QOR-MATRIX/demiurge-chain`** (ADR-064), whose `main` is at
-  `9f8a818` (PR #13). Work goes on a `session/*` branch and reaches `main` by pull request; PRs #1 to #13 are
-  merged. `origin` is the private archive and is not the current tree. This file's update (§4 item 58) is on
-  `session/docs-current`.
+  `5e90748` (PR #14). Work goes on a `session/*` branch and reaches `main` by pull request; PRs #1 to #14 are
+  merged. `origin` is the private archive and is not the current tree. §4 item 58's owner confirmations and item 59
+  follow on `session/docs-current`.
 - **Earlier (29 September 2026): the public repository's start.** Local branch `public-main` then tracked
   `public/main` on `ALaustrup/demiurge-chain`: `e611c99` (import) and `2681a51` (CI and Railway records). The
   repository moved to `QOR-MATRIX` on 1 October 2026 (ADR-064).
