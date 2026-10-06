@@ -1816,8 +1816,14 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     for ARQADE, the decisions and what is not live; §2's chain identity, endpoint and a list of current gaps; §3's
     R-1, R-2, credentials, sessions and new surfaces; §4.0 (L1.4 partly exercised; L1.6, L1.7 and P7.4 ticked in `DIRECTION.md` with their evidence; the
     pull-request row removed; the owner's open decisions added); §4 items 1 to 11; §5's traps; §6 and §7. No
-    behaviour, ADR decision or gate criterion changed. **Next:** the owner re-runs the audit against `main` on GitHub once this
+    behaviour or ADR decision changed, and no gate criterion's requirement changed. **Next:** the owner re-runs the audit against `main` on GitHub once this
     work is merged.
+    **Owner confirmations, 6 October 2026** (recorded here as `GATES.toml`'s `kinds.check` evidence rule allows):
+    "Release gates file confirmed" — the two reworded criterion texts above (`alpha.no-dependency-patching`,
+    `public-release.single-provider-revisited`) stand; "Mark Dependency-patching gate done" —
+    `alpha.no-dependency-patching` is `done = true`, evidence main's run `37496555161`, whose security step
+    passed; "Allowed browser origins confirmed" — `server.allowed_origins` stays unset in production and is
+    never set from the environment (it stops QOR ID starting; `services/qor-auth/DEPLOY-RAILWAY.md`).
 
 ## 5. Traps, so nobody re-learns them
 

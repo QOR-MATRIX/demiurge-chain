@@ -700,6 +700,14 @@ date = "2026-10-06"
 type = "correction"
 change = "Descriptive text only; no criterion, kind, met condition, threshold, done flag or list changes. [ci].quality_gates names the nine checks npm run check runs. ADR-050 and the other substrate records are described as accepted. alpha.security-track's note on 7.1.4 says the tree substantiates it again (pallet-drc369's authorised mint and owner-of-both nesting tests, required by alpha.pallets). alpha.chain-tests' comment says R-2 is in alpha.pallets and multi-validator agreement is the two-validators job. alpha.multi-validator's evidence names its first Actions results. alpha.no-dependency-patching's text points at ci.yml's step instead of the deleted .woodpecker/security.yaml. public-release.single-provider-revisited names Railway beside Fly. Market's note says its first slice and check-market-view.mjs exist. The arqade gate's comments record that ADR-076 to ADR-079 and P7.16 to P7.18 are not counted. The same day DIRECTION.md ticks L1.6, L1.7 and P7.4 with their evidence, so alpha.launcher, qfx.depends and arqade.roadmap read more units met; that is the roadmap kind working as defined, not a change here."
 reason = "The text had gone stale against the tree: Woodpecker gone since 2026-09-29, ADR-046 to ADR-050 accepted on 2026-09-28, Market and nesting built. Rewording a done = false criterion's reference is not marking it; alpha.no-dependency-patching stays done = false for the owner to assert."
+approved_by = "owner, 2026-10-06: \"Release gates file confirmed.\" (the two reworded says texts included)"
+
+[[change_log]]
+date = "2026-10-06"
+type = "approval"
+change = "alpha.no-dependency-patching is marked done = true, with main's run 37496555161 as evidence: the security job's step \"Fail if anything repoints the dependency graph\" ran on the merge of #13 and passed."
+reason = "A check criterion is met only when the owner asserts it. The control exists in ci.yml, fails the run on any hit, and has passed on main since CI started running on GitHub Actions; the owner asserted it on seeing that evidence."
+approved_by = "owner, 2026-10-06: \"Mark Dependency-patching gate done.\""
 
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
@@ -1093,8 +1101,8 @@ nothing holds value."""
   id = "alpha.no-dependency-patching"
   kind = "check"
   says = "CI fails if any tracked manifest contains a [patch] section, or if anything tracked references the owner's personal Substrate fork or any substrate git repository; the exact patterns are in .github/workflows/ci.yml, in the security job's step \"Fail if anything repoints the dependency graph\", and are not repeated here, because this file is scanned too. Two files are excluded and both are visible in any diff that widens them: .github/workflows/ci.yml, which must contain the patterns to search for them, and HANDOFF.md, which records the deletions and the rule."
-  done = false
-  evidence = ""
+  done = true
+  evidence = "https://github.com/QOR-MATRIX/demiurge-chain/actions/runs/37496555161 (main at 9f8a818, 6 October 2026: the security job's step passed; asserted done by the owner the same day, recorded in HANDOFF.md)"
 
   [[gates.criteria]]
   id = "alpha.no-secrets-in-logs"
