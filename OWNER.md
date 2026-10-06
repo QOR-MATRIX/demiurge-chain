@@ -52,7 +52,8 @@ or give anyone test CGT except by you sending it from the faucet.
 
 1. **Merge pull request #7**, then open `id.qorsync.dev/account` and **add your email address**, so a forgotten
    password can be reset. You accepted **ADR-076** (*paying on ARQADE through the launcher*, at most 100,000 test CGT
-   a payment); I build it next.
+   a payment). **It is built**: tipping a game's creator from your launcher. To switch it on: merge, add two
+   settings in Vercel, install the new launcher — I'll walk you through each.
 2. **Put ARQADE on Vercel**, one step at a time with me: merge the `session/arqade-vercel` pull request, import the
    repository in Vercel (folder `products/arqade`), add a free Neon database there, then one Railway setting and three
    Vercel settings. Vercel's free plan is for non-commercial use; it must change before ARQADE takes any payment.

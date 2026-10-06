@@ -39,6 +39,8 @@ Set in Vercel's project settings (or in `.env.local` for a local run; `.env*` is
 | `QOR_CLIENT_SECRET` | ARQADE's secret for QOR ID; at least 32 characters. Only its SHA-256 is given to QOR ID (`QOR_OAUTH_CLIENTS` on Railway). **Never committed** |
 | `QOR_REDIRECT_URI` | This site's callback, `https://<site>/api/auth/callback`, registered at QOR ID exactly |
 | `QOR_ID_URL` | QOR ID's address; defaults to `https://id.qorsync.dev` |
+| `QOR_PAY_SIGNING_KEY` | ARQADE's key for signing payment requests (ADR-076): Ed25519, PKCS#8, base64. Its public half is built into the QOR Launcher (`tools/qor-launcher/src-tauri/src/pay.rs`, `KNOWN_APPS`); a new key needs a new launcher. **Never committed** |
+| `QOR_PAY_TIP_ADDRESS` | The devnet account tips to ARQADE's own games go to (SS58). Without it, or the key, tips are off and say so |
 
 Without a database the arcade says it is being connected; without the three `QOR_*` settings the sign-in button is
 not shown.

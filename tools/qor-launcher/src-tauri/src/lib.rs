@@ -22,6 +22,7 @@ pub mod gates;
 pub mod identity;
 pub mod listings;
 pub mod partners;
+pub mod pay;
 pub mod qontrol;
 pub mod vault;
 
@@ -1157,6 +1158,104 @@ async fn gates_run_suite(
 
 // ─────────────────────────────── entrypoint ─────────────────────────────────
 
+// ── qor://pay (ADR-076, ADR-077) ────────────────────────────────────────────
+
+/// Request ids being paid right now, so two clicks on one link cannot both reach the dialog.
+static PAYING: parking_lot::Mutex<std::collections::BTreeSet<String>> =
+    parking_lot::Mutex::new(std::collections::BTreeSet::new());
+
+/// A `qor://pay` link opened the launcher. It is checked (`pay::parse`), asked in the host dialog, paid, and the
+/// outcome told in a native message. Nothing is paid without the dialog's approval.
+fn handle_pay_link(app: tauri::AppHandle, link: String) {
+    tauri::async_runtime::spawn(async move {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+        let (title, body) = match pay_link(&app, &link).await {
+            Ok((request, receipt)) => (
+                "Paid".to_string(),
+                format!(
+                    "{} {} paid to {} for \"{}\".\n\nIt is final on Demiurge Devnet. {} will see it shortly.\n\n\
+                     Transaction: {}",
+                    cgt::format_cgt_grouped(request.amount_sparks),
+                    cgt::SYMBOL,
+                    request.to,
+                    request.label,
+                    request.app_name,
+                    receipt.tx_hash
+                ),
+            ),
+            Err(QorError::Declined) => (
+                "Not paid".to_string(),
+                "You declined. Nothing was paid.".to_string(),
+            ),
+            Err(e) => ("Not paid".to_string(), format!("Nothing was paid: {e}.")),
+        };
+        let _ = tauri::async_runtime::spawn_blocking(move || {
+            use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+            let mut dialog = app
+                .dialog()
+                .message(body)
+                .title(title)
+                .kind(MessageDialogKind::Info);
+            if let Some(window) = app.get_webview_window("main") {
+                dialog = dialog.parent(&window);
+            }
+            dialog.blocking_show();
+        })
+        .await;
+    });
+}
+
+async fn pay_link(
+    app: &tauri::AppHandle,
+    link: &str,
+) -> QorResult<(pay::PayRequest, chain::pay::PayReceipt)> {
+    let request = pay::parse(link, chrono::Utc::now().timestamp())?;
+    let state = app.state::<AppState>();
+    let paid = pay::PaidRequests::in_dir(&state.data_dir);
+    if paid.is_paid(&request) {
+        return Err(QorError::PaymentRefused(
+            "this request was already paid".into(),
+        ));
+    }
+    let key = format!("{}:{}", request.app_id, request.id);
+    if !PAYING.lock().insert(key.clone()) {
+        return Err(QorError::PaymentRefused(
+            "this request is already waiting for your answer".into(),
+        ));
+    }
+    let outcome = async {
+        // The vault's first account pays: the account the launcher signs in with (ADR-016).
+        let from = match state.vault.status() {
+            VaultStatus::Unlocked { accounts } => accounts
+                .first()
+                .map(|account| account.address.clone())
+                .ok_or_else(|| QorError::PaymentRefused("the vault holds no account".into()))?,
+            _ => {
+                return Err(QorError::PaymentRefused(
+                    "the vault is not open. Open the QOR Launcher, then click the link again"
+                        .into(),
+                ))
+            }
+        };
+        state
+            .chain
+            .pay_request(&state.vault, &HostDialog(app.clone()), &from, &request)
+            .await
+    }
+    .await;
+    PAYING.lock().remove(&key);
+    let receipt = outcome?;
+    // The chain holds the payment whatever happens here; a failure to remember it only means a second click would
+    // reach the dialog, where the app's own record of the payment answers it.
+    if let Err(e) = paid.record(&request, chrono::Utc::now().timestamp()) {
+        tracing::warn!("a paid request could not be remembered: {e}");
+    }
+    Ok((request, receipt))
+}
+
 /// Build and run the launcher.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -1168,6 +1267,15 @@ pub fn run() {
         .init();
 
     tauri::Builder::default()
+        // First, so a second launch (a `qor://` link clicked while the launcher runs) hands its link to this one
+        // instead of starting another; with the `deep-link` feature the link arrives through `on_open_url` below.
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
@@ -1186,6 +1294,32 @@ pub fn run() {
             tracing::info!(dir = %data_dir.display(), "QOR Launcher starting");
 
             app.manage(AppState::new(data_dir).map_err(|e| e.to_string())?);
+
+            // `qor://pay` (ADR-076). The installer registers the scheme; registering again here covers a launcher run
+            // without installing, and points the scheme at this copy.
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                #[cfg(any(windows, target_os = "linux"))]
+                if let Err(e) = app.deep_link().register_all() {
+                    tracing::warn!("the qor:// scheme could not be registered: {e}");
+                }
+                let handle = app.handle().clone();
+                app.deep_link().on_open_url(move |event| {
+                    for url in event.urls() {
+                        if url.scheme() == "qor" {
+                            handle_pay_link(handle.clone(), url.to_string());
+                        }
+                    }
+                });
+                // A link that started the launcher.
+                if let Ok(Some(urls)) = app.deep_link().get_current() {
+                    for url in urls {
+                        if url.scheme() == "qor" {
+                            handle_pay_link(app.handle().clone(), url.to_string());
+                        }
+                    }
+                }
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

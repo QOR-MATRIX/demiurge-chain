@@ -74,6 +74,10 @@ pub enum QorError {
     #[error("{0}")]
     Qontrol(String),
 
+    /// A `qor://pay` request refused before anything was asked or signed (ADR-076). The sentence is for the person.
+    #[error("{0}")]
+    PaymentRefused(String),
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -100,6 +104,7 @@ impl QorError {
             Self::Keychain(_) => "keychain",
             Self::Io(_) => "io",
             Self::Qontrol(_) => "qontrol",
+            Self::PaymentRefused(_) => "payment_refused",
             Self::Declined => "declined",
             Self::Hello(_) => "hello",
             Self::Internal(_) => "internal",

@@ -934,7 +934,7 @@ fn transfer_call(item: &TradeItem, to: [u8; 32]) -> Value {
 /// The message, as a remark in the same transaction. `remark_with_event` rather
 /// than `remark`, because a message nobody can find is not a message: the event
 /// is what an indexer or the recipient's client reads it from.
-fn remark_call(message: &str) -> Value {
+pub(super) fn remark_call(message: &str) -> Value {
     Value::unnamed_variant(
         "System",
         [Value::named_variant(

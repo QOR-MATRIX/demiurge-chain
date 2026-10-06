@@ -1,6 +1,6 @@
 [package]
 name         = "qor-launcher"
-version      = "0.1.6"
+version      = "0.1.7"
 description  = "QOR Launcher — the sovereign gateway to the Demiurge ecosystem"
 authors      = ["Laustrup Group"]
 edition      = "2021"
@@ -25,6 +25,10 @@ tauri-plugin-notification = "2"
 tauri-plugin-os           = "2"
 tauri-plugin-process      = "2"
 tauri-plugin-shell        = "2"
+# qor://pay links from websites (ADR-076): the scheme, and one running launcher that receives a link clicked while it
+# runs instead of a second copy starting.
+tauri-plugin-deep-link    = "2"
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 
 # Qontrol's read paths: status, log, diff, branches. Pure Rust, so it links into
 # the host that holds the vault without dragging a C parser in with it.
