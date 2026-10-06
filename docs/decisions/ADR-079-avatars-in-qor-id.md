@@ -1,8 +1,9 @@
 # ADR-079: Avatars live in QOR ID
 
-**Status:** **Proposed**, 6 October 2026, for the owner to accept or change. Nothing in it is built. Decisions 1, 2 and 5
-are the owner's direction of 6 October 2026 (an avatar image or GIF per account, kept by QOR ID in its own database,
-shown to others when online, a letter when offline); the rest are recommendations. It decides no economic value.
+**Status:** **Accepted**, 6 October 2026, by the project owner, who replied "I accept ADR-07." to this record, the one
+just proposed to them. Proposed the same day. Decisions 1, 2 and 5 are the owner's direction of 6 October 2026 (an
+avatar image or GIF per account, kept by QOR ID in its own database, shown to others when online, a letter when offline);
+the rest were recommendations, accepted as written. It decides no economic value. Not yet built.
 
 ## Context
 
@@ -49,6 +50,6 @@ illegal, which creates obligations for whoever hosts it.
   avatars ever outgrow it, moving them to a bucket is a storage change behind the same URLs.
 - Avatars are public: anyone who can see an account's QOR ID can see its picture. The upload screen says so.
 
-## For the owner
+## Not decided here
 
-Accept as written, or change it. The limits in decision 3 (sizes, frames) are engineering defaults; change them freely.
+Whether ring styles may glow (ADR-078). The limits in decision 3 are engineering defaults the owner may change.
