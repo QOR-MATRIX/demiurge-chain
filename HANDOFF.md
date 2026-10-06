@@ -6,8 +6,8 @@ reaches `main` by pull request. `origin` is the private archive, not the current
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 item 58 (6 October 2026): documentation brought up to date with the tree after the IBM Bob audit.**
-Before it: item 57 (6 October 2026): avatars (ADR-079) and effects allowed (ADR-080), merged to `main` (PR #13); item 56
+**Newest: §4 item 59 (6 October 2026): ADR-081 accepted — QQ is QOR Engine, and the Godot plan is withdrawn.**
+Before it: item 58 (6 October 2026): documentation brought up to date with the tree after the IBM Bob audit; item 57 (6 October 2026): avatars (ADR-079) and effects allowed (ADR-080), merged to `main` (PR #13); item 56
 (6 October 2026): levels and tasks built (ADR-078), merged (PR #11), then migration 021 and launcher 0.1.8 (PR #12); item
 55 (6 October 2026): ADR-078 accepted, levels, tasks and a 100 CGT welcome grant (PR #10), with "Play Now" and the fix
 for a flaky wait in the launcher's browser checks (PR #9); item 54 (5 October 2026): P7.4 built, tips through the QOR
@@ -80,7 +80,7 @@ ticked the same day against the owner's review of a ten-line summary.
 | Infrastructure | **Railway** (project `demiurge`): Postgres, Redis, QOR ID (`id.qorsync.dev`) and Demiurge Devnet (two validators and an RPC node, ADR-068). **Vercel**: ARQADE, project `qor-arqade` (team Astra Matrix, Hobby plan), with Neon Postgres (ADR-074). Fly.io is not used: ADR-015's Fly plan is superseded by ADR-063 and ADR-068. |
 | Production | No production or test network. Live, devnet-only and with test CGT: Demiurge Devnet, QOR ID and ARQADE. |
 | ARQADE (`products/arqade/`) | **Live at `https://qor-arqade-tau.vercel.app`**: standard Next.js 16 on Neon Postgres, migrations 0001 to 0003 applied on production builds (`scripts/migrate.mjs`). **48 tests** (6 October 2026). QOR ID is the only sign-in; Play Now, the solo games, Flux Four and Rift Reversi multiplayer, rankings, chat, devnet reads, tips through the launcher (ADR-076, ADR-077; the owner tipped successfully on 5 and 6 October), and the level bubble and level row. P7.1 to P7.4 are ticked (P7.4 on 6 October 2026). |
-| Decisions | 80 ADRs (ADR-001 to ADR-080); ADR-069 to ADR-080 are accepted. The owner's open questions are in §4.0. |
+| Decisions | 81 ADRs (ADR-001 to ADR-081); ADR-069 to ADR-081 are accepted. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan. The owner's open questions are in §4.0. |
 | Not live | Avatars in ARQADE (ADR-079 step 3, not built), paying the welcome grant (grants are recorded as owed, never paid), ARQADE inside the launcher (P7.18), the indexer, the Mesh, fees and issuance. |
 
 ## 2. Known gaps: do not build on these
@@ -1824,6 +1824,21 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     `alpha.no-dependency-patching` is `done = true`, evidence main's run `37496555161`, whose security step
     passed; "Allowed browser origins confirmed" — `server.allowed_origins` stays unset in production and is
     never set from the environment (it stops QOR ID starting; `services/qor-auth/DEPLOY-RAILWAY.md`).
+59. **6 October 2026: ADR-081 accepted — QQ is QOR Engine.** On branch `session/docs-current`, with item 58. The
+    owner commissioned QQ, an engine and editor for small, effects-led 2D and 3D games, integrated with the
+    launcher, QOR ID, Qontrol and ARQADE, driveable by an LLM and generative, and chose that it **replaces** QOR
+    Engine: "QQ becomes QOR Engine" and "Authorized to build by any means necessary to produce the results
+    outlined." **Recorded:** ADR-081, indexed in `DECISIONS.md` and `decisions/README.md`; DIRECTION's product
+    list and P3 heading marked superseded (the six P3 items stand until QQ's replace them, and the gate parser
+    still reads them); `blueprints/qor-engine.md` marked superseded; `GATES.toml` loses
+    `qor-engine.opens-in-stock-godot` (`a_project_opens_in_stock_godot`), a loosening logged in its change log
+    with the owner's words — the criterion was unmeasurable, so no gate's counts moved. The launcher's 15
+    gate-reading tests pass against the edited file, `the_repository_gates_file_is_readable_by_this_launcher`
+    among them. **The delegation** (ADR-081 §5) lets QQ's builder make its engineering and product choices
+    without stopping, as ADRs accepted under it; **it does not reach** the money rules, the language rules or the
+    rules protecting keys and secrets (§6). **Next:** QQ's blueprint, its roadmap items replacing P3's, and the
+    `qor-engine` gate rewritten for QQ as a tightening; then the build. The prompt for IBM Bob to do that work
+    was rewritten without stop-and-ask points.
 
 ## 5. Traps, so nobody re-learns them
 

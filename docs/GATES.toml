@@ -709,6 +709,13 @@ change = "alpha.no-dependency-patching is marked done = true, with main's run 37
 reason = "A check criterion is met only when the owner asserts it. The control exists in ci.yml, fails the run on any hit, and has passed on main since CI started running on GitHub Actions; the owner asserted it on seeing that evidence."
 approved_by = "owner, 2026-10-06: \"Mark Dependency-patching gate done.\""
 
+[[change_log]]
+date = "2026-10-06"
+type = "loosening"
+change = "qor-engine.opens-in-stock-godot is removed from the qor-engine gate, and with it the required test a_project_opens_in_stock_godot. No other criterion, kind, met condition or counting rule changes. qor-engine.roadmap still counts P3.1 to P3.6 until QQ's items replace them."
+reason = "The criterion enforced one promise: that every QOR Engine project opens in stock Godot (P3.6, made a criterion on 2026-09-22). ADR-081 replaces the Godot foundation with QQ and withdraws that promise, so the criterion has nothing left to measure. It was unmeasurable (products/qor-engine does not exist), so no gate's counts of met or not_met move. The owner's decision is its own record, ADR-081, made before this change."
+approved_by = "owner, 2026-10-06: \"QQ becomes QOR Engine\" and \"Authorized to build by any means necessary to produce the results outlined\" (ADR-081)"
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1544,15 +1551,9 @@ publishing added as modules and editor plugins."""
   suite = "qor_engine"
   require = []
 
-  # The owner's promise of 2026-09-22, made a criterion by the owner's
-  # instruction: a QOR Engine project opens in stock Godot of the tracked
-  # version, its QOR nodes degrading rather than failing. Unmeasurable until
-  # products/qor-engine exists; the test is named now so it cannot be dropped.
-  [[gates.criteria]]
-  id = "qor-engine.opens-in-stock-godot"
-  kind = "tests"
-  suite = "qor_engine"
-  require = ["a_project_opens_in_stock_godot"]
+  # qor-engine.opens-in-stock-godot was removed on 2026-10-06: ADR-081 withdrew
+  # the promise it enforced (change log). This gate is rewritten for QQ, as a
+  # tightening, when QQ's roadmap items replace P3's.
 
 [[gates]]
 id = "gnosis"

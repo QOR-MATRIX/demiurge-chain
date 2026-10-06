@@ -28,11 +28,21 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 grants QOR ID records as owed, avatars in ARQADE, ARQADE inside the launcher, agent rails
 — *spending limits for AI agents* — and the Mesh — *players hosting what they own*.
 
+## Decided today
+
+**QQ is QOR Engine** (ADR-081 — *decision record 81*). QQ is an engine and editor for small games
+built on visual effects, in the launcher and on ARQADE. An AI can drive it, and it generates
+assets from a description. The Godot plan and its promise that projects open in plain Godot are
+withdrawn, along with the release check that enforced that promise. Its builder makes QQ's
+technical choices without stopping, and records them as decisions. CGT, wording and key-safety
+rules still apply.
+
 ## Next work
 
-1. **The QFX reactive-backdrop library** — *launcher visuals that respond* — you asked for.
-2. **Avatars in ARQADE**, then **paying owed welcome grants** and drawing level unlocks.
-3. **ARQADE inside the launcher**, payments approved in the launcher's own window.
+1. **QQ**: its blueprint, roadmap items and gate, then the engine itself.
+2. **The QFX reactive-backdrop library** — *launcher visuals that respond* — you asked for.
+3. **Avatars in ARQADE**, then **paying owed welcome grants** and drawing level unlocks.
+4. **ARQADE inside the launcher**, payments approved in the launcher's own window.
 
 ## What only you can do
 
