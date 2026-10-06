@@ -246,6 +246,14 @@ show who asks, the amount, the recipient, that there is no fee, and the balance 
 connected chain's genesis again and pays the transfer and a `remark_with_event` naming the request in one `batch_all`,
 from the vault's first account. Any other link, or an unknown app, is refused with a message, and nothing is signed.
 
+### Avatars (ADR-079)
+
+The account's avatar, with its level on a ring that glows from level 1 (ADR-080), sits in the rail and, at 64 px, on the
+Nexus header, where clicking it opens the host's own file picker (`qor_choose_avatar`; the webview never reads files).
+QOR ID cleans and keeps the image; the launcher keeps a copy in its data directory (`avatar.bin`, `qor_avatar`) so it
+shows offline. With no picture, or none yet, an avatar is the name's first letter on a colour the name always gets.
+A GIF holds its first frame under reduce motion.
+
 ### Level and XP (ADR-078)
 
 The rail's avatar carries the account's level in a small bubble, and an XP bar under the name with the next unlock.

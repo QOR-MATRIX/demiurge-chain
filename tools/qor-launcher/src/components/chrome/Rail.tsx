@@ -11,7 +11,6 @@
 
 import {
   Boxes,
-  CircleUser,
   FolderGit2,
   LayoutGrid,
   ListChecks,
@@ -33,7 +32,8 @@ import {
   type Surface as SurfaceId,
 } from '../../state/store';
 import { Surface } from '../ui/Surface';
-import { LevelBubble, XpBar, useProgress } from './Level';
+import { XpBar, useProgress } from './Level';
+import { Avatar, useOwnAvatar } from './Avatar';
 
 interface Item {
   id: SurfaceId;
@@ -64,6 +64,7 @@ export function Rail() {
   const balance = useQor(selectActiveBalance);
   const standing = useAscent().standing;
   const progress = useProgress(Boolean(session));
+  const avatar = useOwnAvatar();
 
   return (
     <nav
@@ -112,10 +113,7 @@ export function Rail() {
           onClick={() => go('vault')}
           className="flex w-full items-center gap-3 p-3 text-left"
         >
-          <span className="relative flex-none">
-            <CircleUser size={22} strokeWidth={1.5} className="text-accent" />
-            <LevelBubble progress={progress} />
-          </span>
+          <Avatar name={session?.username} src={avatar} size={34} level={progress?.level ?? null} />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-ui font-semibold text-ink">
               {session?.qor_id ?? 'Not signed in'}

@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 56 (6 October 2026): levels and tasks built (ADR-078), on a branch; item 55 (6 October 2026): ADR-078 accepted, levels, tasks and a 100 CGT welcome grant; item 54 (5 October 2026): P7.4 built, tips through the QOR Launcher (ADR-076, ADR-077); item 53: QOR ID account page; ADR-076 accepted (cap 100,000 CGT); item 52: one name per QOR ID, no #0001 (ADR-075), on a branch; item 51: QOR ID sign-in live for apps; ARQADE moved to Vercel with Postgres (ADR-074), on a branch; item 50: P7.3 built, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 57 (6 October 2026): avatars (ADR-079) and effects allowed (ADR-080), on a branch; item 56 (6 October 2026): levels and tasks built (ADR-078), on a branch; item 55 (6 October 2026): ADR-078 accepted, levels, tasks and a 100 CGT welcome grant; item 54 (5 October 2026): P7.4 built, tips through the QOR Launcher (ADR-076, ADR-077); item 53: QOR ID account page; ADR-076 accepted (cap 100,000 CGT); item 52: one name per QOR ID, no #0001 (ADR-075), on a branch; item 51: QOR ID sign-in live for apps; ARQADE moved to Vercel with Postgres (ADR-074), on a branch; item 50: P7.3 built, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1754,6 +1754,25 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     **Then:** migration 021 credits accounts created before levels with the verify-email and link-key XP they had
     already earned (checked on sample accounts, twice, no change the second time); launcher 0.1.8 built
     (`QOR Launcher_0.1.8_x64-setup.exe`) to show the level.
+
+57. **6 October 2026: avatars (ADR-079) and effects allowed (ADR-080). On branch `session/adr-079`, not merged.**
+    ADR-079 accepted ("I accept ADR-07.", replying to it). QOR ID: migration 022 (`avatars` with a still first frame for
+    GIFs, `avatar_reports`, `avatar_removals`); `avatar_image.rs` (the `image` crate, pure Rust, under limits: PNG, JPEG,
+    WebP, GIF up to 4 MB, orientation applied, centre square, 256 x 256, re-encoded PNG or GIF, at most 120 frames and
+    2 MB; metadata does not survive, tested with a planted text chunk); `handlers/avatar.rs` (upload with a 4 MB body
+    limit, delete, serve by content hash with immutable caching, `nosniff`, a sandbox CSP and cross-origin resource
+    policy, the still route, report once per reporter, the owner's queue and removal, which clears every account showing
+    it, tells them and is audited); profile and userinfo carry `avatar_url`. 166 tests; the log check drives upload,
+    serve, report, the queue and removal. Launcher: `components/chrome/Avatar.tsx` (picture or letter, ring, level
+    bubble, first frame under reduce motion), `qor_choose_avatar`, `qor_remove_avatar`, `qor_avatar` (the offline copy),
+    the rail at 34 px and the Nexus header at 64 px. **The header first grew** and pushed three Nexus tiles under the
+    fold; `check-readability.mjs` caught it (50 failures) and the header was brought back to its height. **ADR-080**, the
+    owner's: glow, neon, gradients, shadows, canvas, pointer-reactive light and looping animation are allowed everywhere;
+    the rule is distinctiveness, never a generic template; reduce motion, readability as painted, and theme tokens and
+    scales still bind. `check-design.mjs` dropped its five effect rules and the QFX and ceremony exemptions (logged in
+    GATES.toml's change log as the owner's loosening). Rings glow from level 1. **Next, asked for by the owner:** a library
+    of reactive QFX backdrops (Drift, Aurora, Nebula, Lattice, Starfield, Liquid), combinable pointer effects, presets,
+    and backdrops that evolve with the level; and ARQADE's avatars.
 
 ## 5. Traps, so nobody re-learns them
 

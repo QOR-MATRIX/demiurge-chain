@@ -958,6 +958,58 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         .await;
     assert_eq!(r.status, StatusCode::FORBIDDEN, "{}", r.body);
 
+    // Avatars (ADR-079): an upload with the token, the image served, a report, the owner's queue and removal.
+    let picture = {
+        let image = image::RgbaImage::from_pixel(64, 48, image::Rgba([30, 90, 160, 255]));
+        let mut bytes = Vec::new();
+        image::DynamicImage::ImageRgba8(image)
+            .write_to(
+                &mut std::io::Cursor::new(&mut bytes),
+                image::ImageFormat::Png,
+            )
+            .expect("png");
+        bytes
+    };
+    let r = client
+        .send(
+            Request::post("/api/v1/profile/avatar")
+                .header("authorization", format!("Bearer {progress_token}"))
+                .header("content-type", "image/png")
+                .body(Body::from(picture))
+                .expect("request"),
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    let avatar_path = r.json()["avatar_url"]
+        .as_str()
+        .expect("avatar url")
+        .to_string();
+    let avatar_hash = avatar_path.trim_start_matches("/avatars/").to_string();
+    assert_eq!(client.get(&avatar_path, None).await.status, StatusCode::OK);
+    let r = client
+        .json(
+            "/api/v1/avatars/report",
+            json!({ "hash": avatar_hash, "reason": "spam" }),
+            Some(&admin),
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    assert_eq!(
+        client
+            .get("/api/v1/admin/avatar-reports", Some(&admin))
+            .await
+            .status,
+        StatusCode::OK
+    );
+    let r = client
+        .json(
+            &format!("/api/v1/admin/avatars/{avatar_hash}/remove"),
+            json!({}),
+            Some(&admin),
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+
     // A hash of the password is not the password, but it is still not for a log.
     let hash: String = sqlx::query_scalar("SELECT password_hash FROM users WHERE username = $1")
         .bind(username)
@@ -995,6 +1047,9 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         "/api/v1/profile/progress",
         "/api/v1/profile/progress/tutorial",
         "/oauth/progress",
+        "/api/v1/profile/avatar",
+        "/api/v1/avatars/report",
+        "/api/v1/admin/avatar-reports",
     ] {
         assert!(
             log.contains(expected),

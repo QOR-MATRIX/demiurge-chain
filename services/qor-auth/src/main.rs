@@ -34,6 +34,7 @@ use tower_http::{
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod avatar_image;
 mod config;
 mod error;
 mod handlers;
@@ -194,6 +195,14 @@ pub(crate) fn router(state: Arc<AppState>) -> Router {
         .nest("/api/v1/auth", auth_routes())
         // Protected profile endpoints
         .nest("/api/v1/profile", profile_routes())
+        // Anyone may fetch an avatar; reporting one needs a signed-in account (ADR-079).
+        .route("/avatars/{hash}", get(handlers::avatar::serve_avatar))
+        .route("/avatars/{hash}/still", get(handlers::avatar::serve_still))
+        .route(
+            "/api/v1/avatars/report",
+            post(handlers::avatar::report_avatar)
+                .layer(from_fn(crate::middleware::auth::require_auth)),
+        )
         // ZK verification endpoints
         .nest("/api/v1/zk", zk_routes())
         // Admin endpoints (protected - God-level)
@@ -300,7 +309,15 @@ fn profile_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", get(handlers::profile::get_profile))
         .route("/", post(handlers::profile::update_profile))
-        .route("/avatar", post(handlers::profile::upload_avatar))
+        // Avatars (ADR-079). The upload's body is the file, up to 4 MB, past axum's default 2 MB limit.
+        .route(
+            "/avatar",
+            post(handlers::avatar::upload_avatar)
+                .delete(handlers::avatar::delete_avatar)
+                .layer(axum::extract::DefaultBodyLimit::max(
+                    crate::avatar_image::MAX_UPLOAD + 1024,
+                )),
+        )
         .route("/sessions", get(handlers::profile::list_sessions))
         .route(
             "/sessions/{id}",
@@ -340,6 +357,11 @@ fn admin_routes() -> Router<Arc<AppState>> {
         .route("/tokens/transfer", post(handlers::admin::transfer_tokens))
         .route("/tokens/refund", post(handlers::admin::refund_tokens))
         .route("/stats", get(handlers::admin::get_stats))
+        .route("/avatar-reports", get(handlers::avatar::list_reports))
+        .route(
+            "/avatars/{hash}/remove",
+            post(handlers::avatar::remove_avatar),
+        )
         .route("/audit", get(handlers::admin::get_audit_log))
         // Admin-only by design: an account holder who could clear its own address's mark would make
         // the mark mean nothing.

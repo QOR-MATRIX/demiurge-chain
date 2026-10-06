@@ -351,7 +351,9 @@ impl IdentityClient {
             .map_err(|e| QorError::Network(e.to_string()))?;
 
         let value = read_json(response, "profile").await?;
-        let session = parse_session(&value)?;
+        let mut session = parse_session(&value)?;
+        // QOR ID gives its avatar as a path on itself (ADR-079); the webview needs the whole address.
+        session.avatar_url = session.avatar_url.map(|path| self.absolute(&path));
 
         *self.session.write() = Some(session.clone());
         Ok(session)
@@ -406,6 +408,81 @@ impl IdentityClient {
             }
             other => other,
         }
+    }
+
+    /// A path on QOR ID as a whole address: `/avatars/…` on the identity service's own origin.
+    fn absolute(&self, path: &str) -> String {
+        if !path.starts_with('/') {
+            return path.to_string();
+        }
+        match reqwest::Url::parse(&self.endpoint()) {
+            Ok(base) => base
+                .join(path)
+                .map(|u| u.to_string())
+                .unwrap_or_else(|_| path.to_string()),
+            Err(_) => path.to_string(),
+        }
+    }
+
+    /// Upload an image or GIF as the account's avatar (ADR-079). QOR ID cleans and stores it; the profile is read again,
+    /// so the session carries the new avatar's address.
+    pub async fn upload_avatar(&self, bytes: Vec<u8>, content_type: &str) -> QorResult<Session> {
+        let content_type = content_type.to_string();
+        self.with_fresh_token(
+            |token| {
+                self.http
+                    .post(self.url("profile/avatar"))
+                    .bearer_auth(token)
+                    .header(reqwest::header::CONTENT_TYPE, content_type.clone())
+                    .body(bytes.clone())
+                    .send()
+            },
+            "profile/avatar",
+        )
+        .await?;
+        self.load_profile().await
+    }
+
+    /// Remove the account's avatar: everyone sees its letter again.
+    pub async fn remove_avatar(&self) -> QorResult<Session> {
+        self.with_fresh_token(
+            |token| {
+                self.http
+                    .delete(self.url("profile/avatar"))
+                    .bearer_auth(token)
+                    .send()
+            },
+            "profile/avatar",
+        )
+        .await?;
+        self.load_profile().await
+    }
+
+    /// Fetch an avatar's bytes and type, to keep a copy on this machine.
+    pub async fn fetch_avatar(&self, url: &str) -> QorResult<(Vec<u8>, String)> {
+        let response = self
+            .http
+            .get(url)
+            .send()
+            .await
+            .map_err(|e| QorError::Network(e.to_string()))?;
+        if !response.status().is_success() {
+            return Err(QorError::Network(format!(
+                "the avatar could not be read ({})",
+                response.status()
+            )));
+        }
+        let content_type = response
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("image/png")
+            .to_string();
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|e| QorError::Network(e.to_string()))?;
+        Ok((bytes.to_vec(), content_type))
     }
 
     /// Exchange the refresh token for a new access token.

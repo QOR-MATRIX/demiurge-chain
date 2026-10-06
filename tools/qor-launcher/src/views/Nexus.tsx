@@ -49,7 +49,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-import { explain, shortAddress } from '../lib/ipc';
+import { explain, identity, shortAddress } from '../lib/ipc';
+import { Avatar, useOwnAvatar } from '../components/chrome/Avatar';
+import { XpBar, useProgress } from '../components/chrome/Level';
 import {
   byDomain,
   DOMAINS,
@@ -198,10 +200,13 @@ function Masthead({
   const balance = useQor(selectActiveBalance);
   const token = useQor((s) => s.token);
   const ascent = useAscent();
+  const progress = useProgress(Boolean(session));
+  const avatar = useOwnAvatar();
 
   return (
     <header className="relative z-10 flex-none border-b border-edge px-8 pb-5 pt-7">
       <div className="flex items-start gap-8">
+        {session && <ProfileAvatar name={session.username} src={avatar} level={progress?.level ?? null} />}
         <div className="min-w-0 flex-1">
           <p
             className="eyebrow mb-1.5 text-accent"
@@ -216,6 +221,11 @@ function Masthead({
             {session?.qor_id ?? 'Not signed in'}
             {account && <> · {shortAddress(account.address, 8, 6)}</>}
           </p>
+          {session && (
+            <div className="max-w-sm">
+              <XpBar progress={progress} />
+            </div>
+          )}
         </div>
 
         {/* Holdings, always in view: this is a wallet as much as a launcher. */}
@@ -428,5 +438,57 @@ export function ClaimGrant() {
         </p>
       </div>
     </Surface>
+  );
+}
+
+/**
+ * The account's avatar at full size, with its level, and the actions that change it (ADR-079). Choosing opens the
+ * host's own file picker; the webview never reads files. The avatar is public: anyone who sees the QOR ID sees it.
+ */
+function ProfileAvatar({ name, src, level }: { name: string; src: string | null; level: number | null }) {
+  const setSession = useQor((s) => s.setSession);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  async function act(run: () => Promise<unknown>) {
+    setBusy(true);
+    setMessage('');
+    try {
+      const next = await run();
+      if (next && typeof next === 'object') setSession(next as Parameters<typeof setSession>[0]);
+    } catch (e) {
+      setMessage(explain(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  // The header keeps its height: the avatar itself is the button that changes it, and Remove sits beside it.
+  return (
+    <div className="flex flex-none items-center gap-2">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void act(identity.chooseAvatar)}
+        title={src ? 'Change your avatar' : 'Add an avatar'}
+        aria-label={src ? 'Change your avatar' : 'Add an avatar'}
+        className="rounded-full disabled:opacity-60"
+      >
+        <Avatar name={name} src={src} size={64} level={level} />
+      </button>
+      {src && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void act(identity.removeAvatar)}
+          className="self-end text-micro text-ink-muted underline-offset-2 hover:text-accent hover:underline disabled:opacity-50"
+        >
+          Remove
+        </button>
+      )}
+      {message && (
+        <p role="alert" className="max-w-40 text-micro text-bad">
+          {message}
+        </p>
+      )}
+    </div>
   );
 }
