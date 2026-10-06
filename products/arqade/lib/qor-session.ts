@@ -20,7 +20,7 @@ export type QorConfig = {
   redirectUri: string;
 };
 
-/** The part of D1 used here; the tests pass a node:sqlite stand-in. */
+/** The part of the database interface (lib/db.ts) used here; the tests pass PGlite. */
 export type Db = {
   prepare(sql: string): { bind(...values: unknown[]): { run(): Promise<unknown>; first<T>(): Promise<T | null> } };
 };

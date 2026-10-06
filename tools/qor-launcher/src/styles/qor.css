@@ -9,10 +9,11 @@
 
    ── The design position ──────────────────────────────────────────────────
 
-   Professional and restrained, dark and confident (docs/DIRECTION.md §5).
-   Typographic hierarchy and spacing do the work; nothing is decorated. There
-   are no glows, no light that follows the pointer, no particle or animated
-   backdrops, and no gradients standing in for colour. When in doubt, subtract.
+   Dark and confident, and distinctive rather than a stock template
+   (docs/DIRECTION.md §5, ADR-080). Typographic hierarchy and spacing do most of
+   the work. Glows, gradients, pointer light and animated backdrops are allowed
+   since ADR-080 where they earn their place; reduce motion stills anything that
+   moves, and text stays readable over every effect.
 
    Colour discipline: one accent, one structural counter, and three status
    colours that mean ok, caution and failure. Nothing else is tinted. When six
@@ -407,10 +408,9 @@
   }
 
   /* ── QFX layer two: an asset as a card ────────────────────────────────────
-     The card leans towards the pointer (src/qfx/AssetCard.tsx, the only place
-     the pointer rule is waived). Nothing here glows or gradients: those are
-     forbidden in the chrome and in src/qfx/ alike, and a sheen waits for the
-     canvas to show through the card rather than for an exemption. Reduced
+     The card leans towards the pointer (src/qfx/AssetCard.tsx). Nothing here
+     glows or gradients yet, by choice (effects are allowed since ADR-080), and
+     a sheen waits for the canvas to show through the card. Reduced
      motion removes the lean in the component and the transition below by the
      global rule.
      --------------------------------------------------------------------- */
@@ -508,9 +508,9 @@
     top: 50%;
     border-top: 1px dashed var(--edge);
   }
-  /* One pass, on a change, never a loop: an endless decorative animation is
-     forbidden in every directory (check-design.mjs), and a mark that keeps
-     circling says nothing about what the person just did. */
+  /* One pass, on a change, never a loop: a mark that keeps circling says
+     nothing about what the person just did. (A loop is allowed since ADR-080;
+     this one is a choice.) */
   .trade-spark {
     position: relative;
     width: 7px;

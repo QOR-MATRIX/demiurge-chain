@@ -1,20 +1,22 @@
-# Demiurge-Cloud
+# Demiurge (`demiurge-chain`)
 
 [![Pleroma CI](https://github.com/QOR-MATRIX/demiurge-chain/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/QOR-MATRIX/demiurge-chain/actions/workflows/ci.yml)
 
 > CI runs on GitHub Actions for this public repository (ADR-063): every push and pull request to `main`, and
-> two validators nightly.
+> two validators nightly. It is green on `main` (6 October 2026).
 
 A layer-1 blockchain whose currency is **CGT, the Creator God Token**, and the **QOR Launcher**, a
 desktop platform for holding CGT, signing in with one **QOR ID**, and using games and creative work
 built on the chain.
 
-> **Status: pre-release, unaudited, not for real value.** The chain runs as a local development or
-> two-validator network on the Polkadot SDK: Aura authors and GRANDPA finalises, and the validator set
-> comes from governance. Nothing above the base layer exists yet — no DRC-369, no royalties, no agent
-> rails. The economic model was replaced on 2026-09-13 and is not implemented: no issuance, no treasury
-> and no transaction fee, because each needs a value that is undecided. Production endpoints are offline
-> and nothing is deployed.
+> **Status: pre-release, unaudited, not for real value.** The chain is a Substrate L1 on the Polkadot SDK:
+> Aura authors, GRANDPA finalises, and the validator set comes from governance. On chain today: DRC-369
+> assets, royalties on sales settled in CGT, nesting, and ARQ Wallets (one payout account per game).
+> **Live test services:** Demiurge Devnet (`wss://rpc.qorsync.dev`, `spec_version` 8, two validators and a
+> public node), QOR ID (`https://id.qorsync.dev`) and ARQADE (`https://qor-arqade-tau.vercel.app`). There
+> is **no production network**. The economic model was replaced on 2026-09-13 and is not implemented: no
+> issuance, no treasury and no transaction fee, because each needs a value that is undecided. Agent rails
+> are not built.
 
 ## Start here
 
@@ -46,9 +48,10 @@ The chain declares no total-supply constant at all and charges no CGT fee
 
 | Path | What it is | Status |
 | --- | --- | --- |
-| `chain/` | The chain: a purpose-built Substrate L1 on the Polkadot SDK (ADR-013), named and located by ADR-032. Runtime, node and `pallet-validator-set` | Active |
+| `chain/` | The chain: a purpose-built Substrate L1 on the Polkadot SDK (ADR-013), named and located by ADR-032. Runtime, node, and the pallets `pallet-validator-set`, `pallet-drc369`, `pallet-drc369-royalties` and `pallet-arq-wallet` | Active |
 | `services/qor-auth/` | QOR ID identity service (Rust, Axum, Postgres, Redis) | Active |
 | `tools/qor-launcher/` | The QOR Launcher (Tauri 2, Rust host, React) | Active |
+| `products/arqade/` | ARQADE, the gaming platform (Next.js on Vercel, ADR-069, ADR-074), and its developer SDK | Active |
 | `apps/`, `cli/`, `sdk/`, `packages/`, `client/` | Clients built for the pre-realignment protocol | Frozen (D-011) |
 
 ## Running it
@@ -59,6 +62,7 @@ the identity service and the launcher. [`chain/README.md`](chain/README.md) cove
 ```bash
 cd chain && cargo test --workspace          # chain test suite (not SKIP_WASM_BUILD: it is not evidence)
 cd tools/qor-launcher && npm run app:dev    # launcher
+cd products/arqade && npm test              # ARQADE tests
 ```
 
 ## Security

@@ -1,6 +1,6 @@
 # Open questions in the economic model
 
-**Status:** current as of 13 September 2026.
+**Status:** current as of 6 October 2026.
 **Rule:** nothing here has a value. An honest gap is worth more than a plausible number that later gets
 treated as decided. When an item is resolved, the value goes into [`CGT.md`](CGT.md), an ADR records
 the reasoning in [`../decisions/`](../decisions/README.md), and the item is removed from this file.
@@ -241,8 +241,9 @@ none of which a chain can arbitrate. An off-chain payment against an on-chain de
 first, which is escrow — U-8, also open. It is also the one path that can make a product a money transmitter in
 some jurisdictions: a legal question, not an engineering one, and the owner's to take.
 
-Nothing is blocked on an answer today. The royalty pallet (M4.2), the indexer (M5.4) and a listing settled in CGT
-(P5.5) are the work in front of it, and each is needed whatever the answer is.
+Nothing is blocked on an answer today. The royalty pallet (M4.2's royalty half) and a listing settled in CGT
+(ADR-061) were built on 29 September 2026; the indexer (M5.4) is the work still in front of it, and it is needed
+whatever the answer is.
 
 ### U-16: paid play, prizes, and who funds a game's payouts
 
@@ -289,7 +290,8 @@ small welcome grant on finishing the tutorial. Levels and XP are settled there a
   test (ADR-002) and which demand sink, if any, it belongs to (ADR-006).
 
 Rewards for sign-up tasks attract account farming, and token grants and rewards are regulated in many places, so real
-CGT also waits on the owner's legal review. On the devnet the grant runs with test CGT from the faucet.
+CGT also waits on the owner's legal review. On the devnet the grant will run with test CGT. Paying it is not built:
+since 6 October 2026 QOR ID records each owed grant and pays nothing.
 
 ### Settled, and recorded elsewhere
 

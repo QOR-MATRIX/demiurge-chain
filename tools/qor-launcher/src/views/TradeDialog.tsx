@@ -6,9 +6,8 @@
  * The owner asked for a window with two asset containers and something moving
  * between them. What moves is a mark that travels the lane **once**, each time
  * the trade changes: an asset added or removed, or a destination chosen. It does
- * not loop — `scripts/check-design.mjs` forbids endless decorative animation in
- * every directory, this one included — and it is not drawn at all under reduced
- * motion. Motion that means something, rather than motion that fills a gap.
+ * not loop (by choice; ADR-080 allows looping animation), and it is not drawn at
+ * all under reduced motion. Motion that means something, rather than motion that fills a gap.
  *
  * # Two steps, and the second one is the warning
  *

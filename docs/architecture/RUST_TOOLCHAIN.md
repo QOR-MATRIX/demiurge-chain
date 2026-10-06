@@ -1,8 +1,11 @@
-# The chain's CI is red because Rust 1.99 lints code the SDK's macros write
+# Why the chain pins Rust 1.98.1
 
 **Decided 4 October 2026: option A** ("go with option A"), recorded as
-[ADR-072](../decisions/ADR-072-the-chain-builds-with-a-pinned-rust.md) and logged in `GATES.toml`. Kept as the write-up the
-owner decided from. Written the same day, because every way to turn CI green weakens a check a release gate reads.
+[ADR-072](../decisions/ADR-072-the-chain-builds-with-a-pinned-rust.md) and logged in `GATES.toml`. On 4 October 2026
+the chain's CI was red, because Rust 1.99's `clippy` linted code the Polkadot SDK's macros write. With the chain pinned
+to 1.98.1 (`chain/rust-toolchain.toml`) it is green, and a scheduled job reports what the newest Rust would say without
+failing the run. This file is the write-up the owner decided from, written the same day, because every way to turn CI
+green weakened a check a release gate reads. Below, it is kept as written, in the present tense of 4 October.
 
 ## What happened
 

@@ -9,9 +9,10 @@
 4. **Keep the tests green.**
    - Chain: `cd chain && cargo test --workspace`. **Not** under `SKIP_WASM_BUILD`: that leaves the
      runtime wasm unbuilt, so a chain specification cannot be built and a run under it is not evidence.
-     `chain/` is the only chain; `framework/` was deleted at M3.5 and CI **will** fail if it returns, once a job executes — no job ever has (L1.7)
+     `chain/` is the only chain; `framework/` was deleted at M3.5 and CI fails if it returns (`.github/workflows/ci.yml`)
    - Launcher host: `cd tools/qor-launcher/src-tauri && cargo test`
    - Identity service: see [`scripts/run-local-stack.md`](scripts/run-local-stack.md) (`DATABASE_URL` is needed at build time)
+   - ARQADE: `cd products/arqade && npm test`
 5. **Update the documentation in the same change.** If behaviour changes, the current document that
    describes it changes too. There is one roadmap, one decision log (with its ADRs) and one economic
    model; do not create others.

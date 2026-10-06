@@ -1,11 +1,11 @@
 # Market and Library
 
-**Status:** Blueprint, 21 September 2026. Describes intent, not code that exists. Measured against the tree:
-`construct_runtime!` mounts System, Timestamp, Aura, GRANDPA, Balances, Session, ValidatorSet and a
-feature-gated Sudo, and `pallet-nfts` is not among them (`chain/runtime/src/lib.rs`); the launcher's host
-commands download, verify, install, patch and launch nothing (`src-tauri/src/lib.rs`); and `Surface` has ten
-variants, of which `library` renders a blueprint page (`views/Horizon.tsx`) and `market` is not one
-(`src/state/store.ts`).
+**Status:** Blueprint, 21 September 2026. Describes intent, except where the dated notes below name code that
+exists. Measured against the tree on 6 October 2026: `construct_runtime!` mounts `pallet-nfts` (as `Nfts`, index 7)
+with `Drc369`, `Utility`, `Drc369Royalties` and `ArqWallet` beside it (`chain/runtime/src/lib.rs`); the launcher's
+host commands download, verify, install, patch and launch nothing (`src-tauri/src/lib.rs`); and `Surface` has eleven
+variants, of which `library` renders a blueprint page (`views/Horizon.tsx`) and `market` is one, the Market screen
+(`src/state/store.ts`, `views/Market.tsx`).
 
 **Since 22 September 2026:** ADR-047, the object model and DRC-369's wire format, is accepted and M2.3 is ticked, and M2.1 was ticked the same day against the owner's review of a ten-line summary of the inventory's DRC-369 section. Wherever this document says something waits on "M2.1 and M2.3", it now waits on neither, and where it calls the content fingerprint undecided, it is a BLAKE3-256 manifest root with its algorithm tagged.
 
@@ -13,9 +13,14 @@ variants, of which `library` renders a blueprint page (`views/Horizon.tsx`) and 
 (`Drc369Royalties::list`, `unlist` and `buy`, ADR-061). In Inventory, Sell publishes a price on chain, and an asset
 looked up by its number can be bought; both show what the sale pays before anything is signed
 (`tools/qor-launcher/src-tauri/src/chain/sales.rs`). So step 5 of "How a purchase settles" below exists. Steps 1 and
-7, the indexer, do not: there is still no catalogue and no Market surface, and a buyer reaches an asset only by a
-number its holder gave them. One mismatch is recorded here rather than resolved: the pallet refuses a price of zero
+7, the indexer, do not. One mismatch is recorded here rather than resolved: the pallet refuses a price of zero
 (`ZeroPrice`), and decision 9 at the end of this document allows zero-price listings.
+
+**Since 2 October 2026** the launcher has a Market screen (`views/Market.tsx`, `09ad4b5`, L7.2's first slice): every
+listing on the chain, read by walking the chain's listing storage at the finalised block, filtered by whose it is,
+ordered by price or number, and bought through the same dialog as Inventory. Without an indexer there is no search,
+no history and no catalogue model for the six payload kinds (P5.3), so it is one node's bounded view, not the
+catalogue described below.
 
 ## What it is
 
@@ -48,7 +53,7 @@ locks and a runtime-supplied `Locker` hook.
 **Reused, not written:** the `set_price` / `buy_item` pair as a *model* for what a listing is; content-defined
 chunking with per-chunk BLAKE3 and `zstd --patch-from` for deltas; the existing host-dialog signing boundary
 (ADR-016, L1.4); the token-driven theme engine (`themes.ts`, 258 lines); and the design, accessibility and
-contrast check scripts in `tools/qor-launcher/scripts/` (wired into CI, where no job has ever executed).
+contrast check scripts in `tools/qor-launcher/scripts/` (run in CI through `npm run check`, green on `main` since 5 October 2026).
 
 **Rejected, with reasons:**
 
@@ -90,7 +95,7 @@ identity is crowdsourced by whoever downloads the most themes.
 
 **On chain — all of it in DRC-369's pallets, none of it in Market's:** the item, a `(collection, item)` pair
 that ADR-025 fixes as DRC-369's token identity and freezes into the wire format before any SDK ships; the
-content fingerprint, a hash of the bytes, which does not exist yet; the price, `BalanceOf`, meaning CGT and
+content fingerprint, a hash of the bytes, which exists since M4.1 as ADR-047's manifest root; the price, `BalanceOf`, meaning CGT and
 only CGT, which satisfies ADR-006's access-gating sink verbatim; the royalty policy and the settlement call
 that honours it; and the distribution commitments under the demand sink.
 
@@ -129,20 +134,22 @@ the custom build that tracks upstream — not upstream Godot.
 
 ### How a purchase settles, and what the chain still lacks
 
-1. Buyer sees a listing — **indexer, does not exist.**
+1. Buyer sees a listing — **the indexer does not exist.** Since 2 October 2026 the Market screen reads every
+   listing straight from chain storage instead, with no search and no history.
 2. Launcher builds the call from the connected node's metadata — **exists, proven end to end (ADR-040, L3.1).**
 3. Host dialog asks for approval before any signature — **exists (ADR-016, L1.4).**
 4. Vault signs inside its own lock — **exists.**
-5. Chain executes: CGT moves, the royalty policy splits it, the item transfers, events are emitted — **does not exist.**
+5. Chain executes: CGT moves, the royalty policy splits it, the item transfers, events are emitted — **exists
+   since 29 September 2026** (`Drc369Royalties::buy`, ADR-061).
 6. GRANDPA finalises; the launcher reports only then — **exists.**
 7. Indexer sees the events; Library sees a new entitlement — **does not exist.**
 
-**Step 5 is the whole gap**, and it is seven things: `pallet-nfts` mounted (M4); `pallet-drc369` with the
-fingerprint and owner index (M4.1); `pallet-drc369-royalties` with the priced transfer (M4.2); any
-transaction fee at all (M6.4, and `WeightToFee` is **OPEN-4**); sponsorship so a buyer holding no CGT can be
-onboarded (U-4, undecided, and if it is funded from the treasury or from perpetual issuance it also touches
-**OPEN-2** and **OPEN-1**); the indexer (ADR-028, M5.4); and a treasury if the platform takes any share
-(M6.5, **OPEN-2**).
+**Step 5's three pallets exist:** `pallet-nfts` is mounted, `pallet-drc369` has the fingerprint and owner
+index (M4.1), and `pallet-drc369-royalties` has the priced transfer (M4.2's royalty half). **What the
+purchase still lacks is four things:** any transaction fee at all (M6.4, and `WeightToFee` is **OPEN-4**);
+sponsorship so a buyer holding no CGT can be onboarded (U-4, undecided, and if it is funded from the treasury
+or from perpetual issuance it also touches **OPEN-2** and **OPEN-1**); the indexer (ADR-028, M5.4); and a
+treasury if the platform takes any share (M6.5, **OPEN-2**).
 
 **One trap worth naming in advance.** `pallet-nfts` reserves deposits for the collection, the item and
 metadata, and who pays depends on the call: `mint` charges the caller even when minting to someone else,
@@ -175,7 +182,8 @@ the retired devnet's royalty library carried three conflicting caps and a double
   chain identity until it proves a key (ADR-017),** so a buyer who never linked a key cannot own or launch
   anything. Designed for at the Gate, not discovered at first launch.
 - **DRC-369** — the item, the fingerprint, nesting (a bundle is a nested item; a preset names its parent),
-  and royalties. **M4, unstarted, blocked on M2.1 and M2.3.** Nothing here works without it.
+  and royalties. **M4, started and not blocked:** M2.1 and M2.3 were ticked on 22 September 2026, M4.1 is done,
+  and M4.2's royalties, settled sale and nesting are built. Nothing here works without it.
 - **Qontrol** — the creator's side. A plugin, a tool, a theme and a scene are all source in a repository;
   Qontrol versions it and the Projects surface is where a creator tags the version they publish.
 - **Mesh** — the bytes, as content-addressed chunks verified against the on-chain manifest hash. **M8.1,
@@ -189,11 +197,12 @@ anywhere in this design. Where something is missing, it is recorded below rather
 ### Substrate gaps: named, not filled here
 
 1. **Content fingerprint on chain.** M4.1. Without it a download has nothing to be verified against and
-   Library is a download manager with extra steps.
+   Library is a download manager with extra steps. **Closed on 22 September 2026** (M4.1, ADR-047).
 2. **Ownership enumeration by owner, and its runtime API.** Custom, M4.1. "What do I own" is not a query
-   `pallet-nfts` answers.
+   `pallet-nfts` answers. **Closed on 22 September 2026** (M4.1).
 3. **Royalty-enforcing settlement.** Custom, M4.2. A genuine departure from standard components under
-   ADR-013 §7, and it needs its own written reason.
+   ADR-013 §7, and it needs its own written reason. **Closed on 29 September 2026** by
+   `pallet-drc369-royalties`, whose written reason is ADR-061.
 4. **Offline entitlement proof.** An entitlement check asks whether a chain account owns an item. Offline
    launch needs a cached, expiring attestation, and an attestation needs a signer. If QOR ID signs it, QOR
    ID's say-so stands behind access to paid content — the trust ADR-017 and R-3 exist to keep out of value.
@@ -263,9 +272,10 @@ Library at game scale.
 local manifests. That is a launcher that installs and updates verified content from a trusted origin. No
 purchase, no ownership, no CGT.
 
-**In twelve months, and only if M2.1 clears now:** Phases C, D and E — catalogue, ownership-gated launch
-online, and purchase with royalty splits. M2.1 is one document and one sitting, it blocks M4, and M4 blocks
-everything after Phase B; a month of delay there is a month of delay here, serially, not in parallel.
+**In twelve months:** Phases C, D and E — catalogue, ownership-gated launch online, and purchase with royalty
+splits. M2.1 cleared on 22 September 2026, so nothing stands before M4; since then M4.1 and the royalty-settled
+sale have landed, with the launcher's buy flow through the host dialog, which is most of Phase E. The indexer is
+what Phase C still waits on.
 
 **Beyond twelve months, or not estimable at all:** Mesh delivery and Library at game scale (M8.1, blocked on
 U-6); the staking sink's disposition (U-7, with OPEN-2 and OPEN-4); offline launch (gap 4); anything needing
@@ -305,10 +315,10 @@ language creeps in.
 
 | Needed | Item |
 | --- | --- |
-| Owner reads the migration inventory | **M2.1** — unticked, and it blocks all of M4 |
-| DRC-369 wire format decisions | **M2.3** |
-| Ownership, mint, transfer, collections, owner enumeration, content fingerprint | **M4.1** |
-| Nesting, state, royalties settled in CGT | **M4.2** |
+| Owner reads the migration inventory | **M2.1** — ticked on 22 September 2026 |
+| DRC-369 wire format decisions | **M2.3** — ticked on 22 September 2026 (ADR-047) |
+| Ownership, mint, transfer, collections, owner enumeration, content fingerprint | **M4.1** — done, 22 September 2026 |
+| Nesting, state, royalties settled in CGT | **M4.2** — royalties and the settled sale (ADR-061) and nesting (ADR-065) built; state not started |
 | Sponsored fees and deposits, so a new creator can mint without holding CGT | **M4.4** (U-4) |
 | DRC-369 acceptance tests, including R-2 | **M4.5** |
 | Indexer and the public viewer that shares its listing pages | **M5.4**, ADR-028 |
@@ -376,7 +386,8 @@ resale their royalty policy covers; and a remix that pays its parent because the
 
 ## Risks
 
-1. **M2.1 is one unticked line and it blocks the entire product.** Every phase past B waits on it.
+1. **M2.1 was one unticked line that blocked the entire product.** It was ticked on 22 September 2026; the
+   risk now is the indexer (M5.4), which every catalogue phase waits on.
 2. **The chunking format is a one-way door.** Design delta patching in at the start or rewrite the installer.
 3. **The royalty split is the hardest correctness work in M4**, and this project has shipped a royalty
    library with conflicting caps and a double count once already.

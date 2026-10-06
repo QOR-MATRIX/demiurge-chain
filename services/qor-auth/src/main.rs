@@ -1,20 +1,25 @@
-//! # Qor Auth Service
+//! # QOR ID (`qor-auth`)
 //!
-//! The Non-Dual Identity System for the Demiurge Ecosystem.
+//! The identity service of the Demiurge ecosystem, live at `https://id.qorsync.dev`.
 //!
 //! ## Architecture
 //!
 //! - **Framework**: Axum (Rust 2024)
-//! - **Database**: PostgreSQL 18
-//! - **Cache**: Redis 7.4+
-//! - **Auth**: JWT + Refresh Tokens
+//! - **Database**: PostgreSQL (tests run against Postgres 16)
+//! - **Sessions**: Redis 7.4+
+//! - **Tokens**: HS256 JWT access and refresh tokens; an app's refresh tokens rotate on use (ADR-073)
 //!
-//! ## Features
+//! ## What it does
 //!
-//! - Battle.Net-style `username#discriminator` identity
-//! - ZK-proof verification for privacy-preserving attestations
-//! - On-chain identity linking via Substrate
-//! - Session management with device tracking
+//! - Accounts with a unique username, no `#0001` (ADR-075); password or key sign-in (ADR-016, ADR-017)
+//! - Email verification, password reset and the account page (`/account`), with Resend
+//! - A chain account linked only by proving its key (signed, domain-tagged challenges; not yet bound to a network)
+//! - Sign-in for other apps by OAuth 2.1 with PKCE (ADR-073)
+//! - Levels, XP and tasks, and the welcome grant recorded as owed (ADR-078)
+//! - Avatars, cleaned and served from its own database (ADR-079)
+//! - Sessions per device, listable and revocable
+//!
+//! ZK attestation routes answer 501: retired by D-010. Nothing secret reaches a log (`log_hygiene.rs`).
 
 use std::net::SocketAddr;
 use std::sync::Arc;

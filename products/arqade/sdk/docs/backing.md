@@ -3,8 +3,11 @@
 **For game developers.** How people support your project in CGT before and after it ships: campaigns (the
 Kickstarter shape), memberships (the Patreon shape) and tips.
 
-> **Status: designed, not built** ([ADR-071](../../../../docs/decisions/ADR-071-arqade-self-publishing.md) decision 6,
-> accepted on 4 October 2026). It runs on Demiurge Devnet with test CGT first. **In production it waits on a legal review and on U-17**
+> **Status: tips are built for ARQADE's own games**, on Demiurge Devnet with test CGT
+> ([ADR-076](../../../../docs/decisions/ADR-076-arqade-hands-payments-to-the-launcher.md),
+> [ADR-077](../../../../docs/decisions/ADR-077-corrections-to-adr-076.md)). **Campaigns and memberships are designed, not
+> built** ([ADR-071](../../../../docs/decisions/ADR-071-arqade-self-publishing.md) decision 6, accepted on 4 October
+> 2026); they are to run on the devnet with test CGT first. **In production backing waits on a legal review and on U-17**
 > (review threshold, refunds, holding periods). Names are placeholders.
 
 ---
@@ -34,7 +37,14 @@ amount once and can revoke it whenever they like.
 
 ## Tips
 
-A plain transfer of CGT to you, at any stage, from your store page. No reward, no obligation.
+CGT given to a game's creator, at any stage. No reward, no obligation.
+
+**What is built** (6 October 2026, devnet test CGT only): tips to ARQADE's own games, from the **Tip a creator** panel
+on ARQADE's Play Now screen. ARQADE signs a `qor://pay` request; the player's QOR Launcher checks it, shows it in its own
+dialog, and pays one `batch_all`: a transfer to ARQADE's tip address (`QOR_PAY_TIP_ADDRESS`) and a
+`remark_with_event` naming the request. ARQADE counts a tip as paid only when it finds both in one extrinsic of a finalised block.
+
+**Not built:** tips from a creator's own store page, to the creator's own account.
 
 ## What your store page shows
 

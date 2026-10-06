@@ -2,8 +2,9 @@
 
 **Status:** Blueprint, 21 September 2026. **Proposed, and it describes intent rather than code that exists.** The
 records it leans on — ADR-046 (the app host), ADR-047 (the object model), ADR-048 (interchange), ADR-050 (where
-products live) — are themselves proposed, and GNOSIS's track is P4 in `DIRECTION.md`. It fixes no price, rate, share or split:
-each is OPEN-1, OPEN-2 or OPEN-4 and undecided.
+products live) — are all accepted: ADR-047 on 22 September 2026, the other three on 28 September. GNOSIS's track is P4
+in `DIRECTION.md`, and no record defining GNOSIS itself exists yet. It fixes no price, rate, share or split: each is
+OPEN-1, OPEN-2 or OPEN-4 and undecided.
 
 **Since 22 September 2026:** ADR-047, the object model and DRC-369's wire format, is accepted and M2.3 is ticked, and M2.1 was ticked the same day against the owner's review of a ten-line summary of the inventory's DRC-369 section. Wherever this document says something waits on "M2.1 and M2.3", it now waits on neither, and where it calls the content fingerprint undecided, it is a BLAKE3-256 manifest root with its algorithm tagged.
 
@@ -21,8 +22,9 @@ takes, bounces, samples — is stored once under a content fingerprint and refer
 - **Producers who want a history**, not a backup folder called `final_v7_REAL`: a diff you can read and a version you
   can go back to.
 - **Creators who will be paid for use** — a loop, a stem, a preset someone else builds on. **The rail for that payment
-  does not exist:** DRC-369 is M4 and unstarted, the Mesh is M8, and the licence fee, burn share and seeder rate it
-  needs are OPEN-1, OPEN-2 and OPEN-4, named here and left empty.
+  is only partly there:** DRC-369 is started (M4.1 mint, and M4.2's royalties, a sale settled in CGT and nesting, are
+  built), the Mesh is M8 and unstarted, and the licence fee, burn share and seeder rate it needs are OPEN-1, OPEN-2 and
+  OPEN-4, named here and left empty.
 - **Not, at first, mix engineers with a hundred VST3 plugins.** The first releases cannot load most of what they own.
   Said here so it is not discovered later.
 
@@ -126,9 +128,11 @@ three-way merge resolves them with no conflict and no driver: the common case go
 merges.
 
 **R3 — Nothing binary in the tree.** Media by content fingerprint only, and **the fingerprint is the substrate's, not
-GNOSIS's**: ADR-047 proposes BLAKE3-256 as a 32-byte root with the algorithm tagged in a SCALE enum. The tag is why
-`media.lock` writes `blake3-256:` instead of assuming: a Qontrol commit id is a git object id, never BLAKE3. The store
-those references point at is the Mesh (M8.1). **Neither is accepted and neither is built** (G-5, G-2).
+GNOSIS's**: ADR-047, accepted on 22 September 2026, makes it BLAKE3-256 as a 32-byte root with the algorithm tagged in
+a SCALE enum. The tag is why `media.lock` writes `blake3-256:` instead of assuming: a Qontrol commit id is a git object
+id, never BLAKE3. **The fingerprint is decided and built**: the launcher computes ADR-047's manifest
+(`tools/qor-launcher/src-tauri/src/content/`) when it mints a commit. The store those references point at is the Mesh
+(M8.1), which is **not built**; a temporary content store on the minting machine stands in for it (G-2, G-5).
 
 **R4 — Canonical serialisation, enforced by the writer.** Fixed key order, fixed decimal formatting with no float
 round-trip, LF, UTF-8, no timestamps, no machine names, no UI state. **A save that changes nothing produces a
@@ -196,9 +200,9 @@ Four processes, and the split is a security decision before it is an engineering
    libgit2 serves stage and write-tree only, in a helper binary the host spawns over a minimal stdio protocol, both
    behind Qontrol's own interface, so the split is invisible above it and reversible the day gitoxide's
    `tree from index` lands. It exists today as ADR-046's first obligation discharged rather than owed:
-   `tools/qor-launcher/qontrol-git/`, `git2 0.21` with `vendored-libgit2`, `unsafe_code = "forbid"`, two operations
-   plus a ping, to be bundled through Tauri `externalBin` — which is not done yet, so today it runs from a
-   development build only.
+   `tools/qor-launcher/qontrol-git/`, `git2 0.21` with `vendored-libgit2`, `unsafe_code = "forbid"`, six operations
+   (stage all, stage named files, plan, write-tree, switch, discard) plus a ping, bundled with the launcher through
+   Tauri `externalBin` since 26 September 2026 (P1.2), so an installed launcher can commit.
 3. **The audio engine process** — CPAL out, the graph, transport, native Tier-1 devices. It owns the real-time thread;
    the webview never enters the audio path, and IPC never blocks it.
 4. **Plugin host processes, one per plugin instance or per vendor** — `clack-host` for CLAP, later a C++ shim for
@@ -226,11 +230,11 @@ ms. That is native ASIO or CoreAudio with decent hardware, not shared-mode WASAP
 
 | Substrate | How GNOSIS uses it | State |
 | --- | --- | --- |
-| **QOR ID** | Sign-in and the commit author identity. Commits are signed by the Sr25519 key the launcher vault derives, through the host confirmation dialog. **Reuse the one signer; never build a second** | Real. 121 tests; the vault derives Sr25519 as `sp-core` and Polkadot.js do (L3.2, ADR-039). L1.4 — host confirmation before any signature — is open |
+| **QOR ID** | Sign-in and the commit author identity. Commits are signed by the Sr25519 key the launcher vault derives, through the host confirmation dialog. **Reuse the one signer; never build a second** | Real, and live at `https://id.qorsync.dev`. 166 tests (6 October 2026); the vault derives Sr25519 as `sp-core` and Polkadot.js do (L3.2, ADR-039). L1.4 — host confirmation before any signature — is implemented and still unticked |
 | **Qontrol** | The versioning substrate: gitoxide for every read path, libgit2 in the sidecar for stage and write-tree, behind Qontrol's interface. GNOSIS also needs its merge policy registry (which path patterns get which driver, versioned with the format) and a claim/lock for what cannot merge | The split path and the sidecar exist; **the content store, the merge policy registry and claims do not** — G-1 |
-| **DRC-369** | A song version is the nestable asset that carries royalties; stems are its nested components; a sampled loop carries remix royalties to whoever made it | **M4, unstarted**, blocked on M2.3 — G-3 |
+| **DRC-369** | A song version is the nestable asset that carries royalties; stems are its nested components; a sampled loop carries remix royalties to whoever made it | **M4, started.** M4.1 (mint, 22 September 2026) is done and M4.2's royalties and nesting are built; nothing in GNOSIS uses them yet — G-3 |
 | **Mesh** | The content-addressed store the media references point at, with dedup and partial fetch, so cloning a song fetches what the current version references, not every take ever recorded | **M8.1** — G-2 |
-| **CGT** | Settlement when a loop is licensed, a stem is remixed, or a work is used | Balance transfers only; every rate and share is OPEN-1/2/4 — G-4 |
+| **CGT** | Settlement when a loop is licensed, a stem is remixed, or a work is used | Balance transfers, and since 29 September 2026 a sale settled in CGT with its royalties (ADR-061). No fees, no treasury, no issuance; every rate and share is OPEN-1/2/4 — G-4 |
 
 ### Substrate gaps, named and not filled locally
 
@@ -238,19 +242,22 @@ ms. That is native ASIO or CoreAudio with decent hardware, not shared-mode WASAP
   exact local workaround to refuse.
 - **G-2 — The Mesh media store (M8.1).** Until it exists, media lives in a local content directory that is explicitly
   not a substrate, is documented as temporary, and never enters a wire format (ADR-047, 13).
-- **G-3 — DRC-369's wire format.** M2.3 is undecided and freezes on SDK publication, and **GNOSIS's asset requirements
-  are written down nowhere**, so a music product arriving after the freeze gets whatever games needed.
-- **G-4 — Settlement above a balance transfer.** No transaction payment (M6.4), no treasury (M6.5), no sponsored fees
-  (M4.4). **No per-use price, burn share, seeder rate or licence fee is chosen here — those are OPEN-1, OPEN-2 and
+- **G-3 — DRC-369's wire format.** Decided by ADR-047 (M2.3, 22 September 2026) and frozen on SDK publication.
+  GNOSIS's asset requirements were checked against it that day (the table at the end); two of the format's open items,
+  Q-19 and Q-20, are still open before the freeze.
+- **G-4 — Settlement above a sale.** A sale settled in CGT with royalties exists (ADR-061); there is no transaction
+  payment (M6.4), no treasury (M6.5) and no sponsored fees (M4.4). **No per-use price, burn share, seeder rate or licence fee is chosen here — those are OPEN-1, OPEN-2 and
   OPEN-4**, and a prototype needing a number marks it a placeholder.
 - **G-5 — The content fingerprint.** `media.lock`'s and DRC-369's must be one scheme or the product forks the
-  substrate. **ADR-047 proposes BLAKE3-256 with a tagged algorithm; it is not accepted and M4.1 has not built it.**
-  GNOSIS writes the tag and waits; it picks nothing.
+  substrate. **ADR-047, accepted on 22 September 2026, makes it BLAKE3-256 with a tagged algorithm, and it is built:**
+  the launcher computes the manifest root when it mints, and M4.1's pallet stores the tagged reference. GNOSIS writes
+  the same tag; it picks nothing.
 - **G-6 — The licence vocabulary.** Nothing defines what a licence term is, and Stream, Market, Library and QFX need
   the same one. One ADR, before any of the four.
 - **G-7 — GNOSIS and Qontrol have no product home.** Their numbers arrived on 21 September 2026 — P4 and P1 in
-  `docs/DIRECTION.md`, with an entry each in `docs/SYSTEMS.md` and a gate each — but ADR-050's `products/<name>` is
-  Proposed, so neither has a directory of its own, and GNOSIS's tests unit stays unmeasurable until it does.
+  `docs/DIRECTION.md`, with an entry each in `docs/SYSTEMS.md` and a gate each. ADR-050 is accepted (28 September
+  2026), but under its decision 10 a product gets `products/<name>` only with its own defining record accepted, and
+  neither has one, so neither has a directory of its own, and GNOSIS's tests unit stays unmeasurable until it does.
 
 ## The first usable slice
 
@@ -279,7 +286,7 @@ written.
 
 | Phase | Work | Class |
 | --- | --- | --- |
-| **Reused, not written** | Tauri 2 shell, sealed vault, QOR ID sign-in, host/webview split, signing dialog, the Qontrol sidecar and read path, CPAL, Symphonia, `rtrb`/`basedrop`, `clack-host`, DAWproject's schema | **Reused.** 102 launcher host tests and 121 QOR ID tests exist; the rest are maintained third-party crates |
+| **Reused, not written** | Tauri 2 shell, sealed vault, QOR ID sign-in, host/webview split, signing dialog, the Qontrol sidecar and read path, CPAL, Symphonia, `rtrb`/`basedrop`, `clack-host`, DAWproject's schema | **Reused.** 204 launcher Rust tests and 166 QOR ID tests exist (6 October 2026); the rest are maintained third-party crates |
 | **0 — the format alone** | Spec, deterministic writer, round-trip reader, the typed merge drivers, `.gitattributes`, a merge test suite over fixtures. A library and a CLI, **zero audio code** | **New, weeks to a few months.** The highest-leverage work available, testable without a DAW around it |
 | **1 — playback** | CPAL out, Symphonia decode, transport and clock, clip playback, gain/pan mixer, tempo map, waveform drawing, commit and merge through Qontrol | **New, ~3 months**, on one platform. Assembly of maintained crates, not research |
 | **2 — recording and native devices** | Input and takes, Tier-1-only EQ, compressor, delay, sampler. DAWproject import/export against the published MIT schema. Stems + tempo map + SMF export | **New, 3–6 months** |
@@ -289,7 +296,8 @@ written.
 
 **What one founder and an agent ship in three months:** Phase 0 complete, and Phase 1 playing audio on one platform.
 **Not** Phase 2, not a plugin, not a recording path, not three platforms. And the clock has not started: the
-launcher's current phase and the substrate ADRs come first, and GNOSIS's track, P4, has no item started (G-7). **In twelve months:** Phases 0–2 and an honest start on Phase 3 — CLAP plugins loading and processing,
+launcher's current phase comes first (the substrate ADRs it also waited on were all accepted by 28 September 2026),
+and GNOSIS's track, P4, has no item started (G-7). **In twelve months:** Phases 0–2 and an honest start on Phase 3 — CLAP plugins loading and processing,
 demonstrable but not yet correct when one changes its latency mid-session. **Beyond twelve months:** Phase 3 finished,
 Phase 4 at all, and every substrate-dependent line above. A DAW someone finishes a record in is further out still —
 Bitwig took years with a team that had shipped one before — and Qontrol's substrate half is not GNOSIS's three months
@@ -302,9 +310,9 @@ engine can start today. That is deliberate.
 
 - **L1.4** — host confirmation before any signature. Every GNOSIS commit signs, so this is the prerequisite for
   committing at all. **Open.**
-- **L1.6 / L1.7** — the launcher's tests in CI, and CI on `main` starting and passing. **No job in any workflow in
-  this repository has ever run**, so a merge suite and a byte-identical-save test that nothing executes are
-  decoration. **GNOSIS's hardest prerequisite, and nothing to do with audio.**
+- **L1.6 / L1.7** — the launcher's tests in CI, and CI on `main` starting and passing. **CI runs**, on GitHub
+  Actions on the public repository (ADR-063), and passes on `main`. A merge suite and a
+  byte-identical-save test are evidence only once they join it; until then they are decoration.
 - **L3.2** — Sr25519 keys and SS58 display, **done** (ADR-039). **M2.3** — the wire format decisions FRAME forces:
   field bounds, token identity, fixed-point encoding. **GNOSIS's asset requirements must enter that input set before
   it freezes.**
@@ -338,7 +346,8 @@ engine can start today. That is deliberate.
   libgit2 in the sidecar. It does **not** mean a content store, a merge policy registry or claims exist (G-1), nor
   that media lives anywhere but a local temporary directory until the Mesh lands (G-2). **"Commit"** means a signed
   git commit on the creator's own disk: it does **not** touch the chain, mint anything or settle anything, and **a
-  song is not an on-chain asset until DRC-369 exists (M4, unstarted).**
+  song is not an on-chain asset until it is published as one.** DRC-369 minting exists (M4.1); GNOSIS has no
+  publish path to it yet.
 - **"Open your session in Cubase"** means DAWproject carries your arrangement, your automation and your plugin
   *settings*. **It does not carry your plugins. On a machine without them, those tracks will be silent.** That
   sentence, or one as blunt, appears in the UI at the moment of export. The universal exit is stems + a tempo map + an
@@ -364,12 +373,13 @@ engine can start today. That is deliberate.
 5. **The format freezes the moment someone's song is in it.** Every file carries a `v1` marker from the first commit,
    and a migration path is designed before the second version, not after.
 6. **A non-deterministic writer destroys the premise silently.** One reordered key or float round-trip and every diff
-   becomes noise. The byte-identical-save test is the guard, and it is worthless until CI runs (L1.7).
+   becomes noise. The byte-identical-save test is the guard, and it is worthless until it runs in CI, which does run
+   now and is green on `main` since 5 October 2026 (ADR-063).
 7. **Two ignore implementations can disagree**, so `local/` gets committed by one path and hidden by the other. Pinned
    by test for Qontrol's scaffolds; GNOSIS's own tree needs its own fixture, which is not written yet.
-8. **Waiting on substrate that has not started.** Assets, media and settlement all depend on M4, M6, M8 and
-   OPEN-1/2/4; shipping GNOSIS's own versions while waiting breaks the substrate rule on day one and forks the
-   platform.
+8. **Waiting on substrate that is not finished.** Assets have started (M4.1 done, M4.2's royalties and nesting
+   built); media and settlement still depend on M6, M8 and OPEN-1/2/4. Shipping GNOSIS's own versions while waiting
+   breaks the substrate rule on day one and forks the platform.
 9. **Scope.** Games are the flagship (ADR-009) and music is the strongest second, with the cleanest per-use story —
    and competing with the flagship for attention is a real risk to it, now that GNOSIS has a track (P4) beside it.
 
@@ -377,7 +387,8 @@ engine can start today. That is deliberate.
 
 Each answer is the owner's and is reversible.
 
-1. **GNOSIS's home is under `products/`**, `products/gnosis/`, as ADR-050 (Proposed) lays out. Its track is P4.
+1. **GNOSIS's home is under `products/`**, `products/gnosis/`, as ADR-050 (accepted 28 September 2026) lays out.
+   Its track is P4.
 2. **Its asset requirements go into M2.3 before the format freezes.** ADR-047 decided the format on 22 September;
    the freeze comes before any SDK is published (`beta.wire-format-frozen`). They are checked below.
 3. **BLAKE3 is accepted** (ADR-047). `media.lock`'s fingerprints and DRC-369's are one scheme.

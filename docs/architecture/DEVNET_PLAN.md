@@ -1,27 +1,41 @@
 # A public multi-validator devnet: the plan for `alpha.devnet-live`
 
 **Status:** Written 1 October 2026; **decided 3 October 2026 by the owner, who chose every recommended answer in §9
-([ADR-068](../decisions/ADR-068-the-devnet-on-railway.md)).** For §7's question the owner chose a sudo account with
-the existential deposit and a separate faucet account holding marked test CGT. Nothing is deployed yet.
+([ADR-068](../decisions/ADR-068-the-devnet-on-railway.md)), and carried out the same day.** For §7's question the
+owner chose a sudo account with the existential deposit and a separate faucet account holding marked test CGT.
+
+**Where it stands, 6 October 2026.** `Demiurge Devnet` (id `demiurge_devnet`, chain type `Live`) is **live at
+`wss://rpc.qorsync.dev` since 3 October 2026**: two validators and a separate RPC node on Railway, topology A
+(§2). How it was done, and what to do again, is [`chain/DEPLOY-RAILWAY.md`](../../chain/DEPLOY-RAILWAY.md).
+`alpha.devnet-live` in `docs/GATES.toml` names `https://rpc.qorsync.dev/health/readiness`, and ADR-068 added
+`alpha.devnet-finality`. **The rest of this file is the plan as written on 1 October**, kept as the reasoning
+ADR-068 accepted; where it describes the code or the deployment in the present tense, it describes 1 October.
 
 **What it is for.** The Alpha gate has a criterion `alpha.devnet-live` (`docs/GATES.toml`): kind `http`,
-`url = ""`, `expect_status = 200`. It is unmeasurable until a URL is written there. Today the chain runs only
+`expect_status = 200`. When this was written its `url` was empty, so it was unmeasurable, and the chain ran only
 on the owner's computer with `--dev`. This plan says what has to exist for a devnet of two validators to be
 reachable at a public address, what it costs, and who does what.
 
 **What it must not do.** Put a `--dev` chain on the internet. ADR-063 decision 6 withholds public RPC because a
 `--dev` chain's sudo key is the well-known Alice key. Anyone could replace the runtime.
 
-**Records it touches.** ADR-015 puts devnet nodes on Fly.io. ADR-063 moved QOR ID, Postgres and Redis to
-Railway and did not reopen the nodes. ADR-044 (validators not publicly addressable, public RPC a separate node)
-is still **Proposed**. This plan recommends Railway for the nodes, which **needs a new ADR that supersedes
-ADR-015 for the nodes**. It is not a decision until the owner makes it.
+**Records it touches.** ADR-015 put devnet nodes on Fly.io. ADR-063 moved QOR ID, Postgres and Redis to
+Railway and did not reopen the nodes. This plan recommended Railway for the nodes, which needed a new ADR
+superseding ADR-015 for them: that is **ADR-068**, accepted 3 October 2026. ADR-044 (validators not publicly
+addressable, public RPC a separate node) was Proposed when this was written and was **accepted the same day
+through ADR-068**.
 
 ---
 
 ## 1. What must exist before any node is public
 
-### 1.1 What the code has today (read on 1 October 2026)
+### 1.1 What the code had on 1 October 2026
+
+**A dated record.** This table is the code as it was read on 1 October 2026, before the work it led to. Since
+3 October some rows are no longer true: the node **has** a `key` subcommand (`chain/node/src/cli.rs`), there are
+**three** built-in specifications (`dev`, `local` and `demiurge_devnet`, `command.rs`), whose committed raw
+specification is `chain/specs/demiurge_devnet.raw.json`, and `chain/Dockerfile` builds `chain/`. Read the code,
+not this table, for what is true today.
 
 | Fact | Where |
 | --- | --- |
@@ -58,10 +72,10 @@ Nothing else in `chain/node/` blocks this. `build-spec` and loading a specificat
 - **The raw specification is committed**, produced by `demiurge-node build-spec --chain <id> --raw`. Every node
   starts from that one file, so every node has the same genesis. A specification rebuilt from a different
   runtime build gives a different genesis hash, which is why the raw file is committed and not regenerated.
-- **Name, id and chain type are proposals, not decisions.** Proposed: name `Demiurge Devnet`, id
-  `demiurge_devnet`, chain type `Live`. They appear in `system_chain`, which clients read, so the owner
-  approves them (AGENTS.md §8). `chain/scripts/dev-fund.mjs` refuses any chain that is not `Development`, so
-  it will correctly refuse this one.
+- **Name, id and chain type: decided 3 October 2026 by the owner (ADR-068).** Name `Demiurge Devnet`, id
+  `demiurge_devnet`, chain type `Live` (`DEVNET_CHAIN_NAME` and `DEVNET_CHAIN_ID` in `chain_spec.rs`). They
+  appear in `system_chain`, which clients read, which is why the owner approved them (AGENTS.md §8).
+  `chain/scripts/dev-fund.mjs` refuses any chain that is not `Development`, so it correctly refuses this one.
 
 ### 1.4 Keys: how they are made, and where each one lives
 
@@ -109,7 +123,7 @@ not help: three still needs all three. Four tolerate one being away. This plan s
 | | A. Two validators and a separate RPC node (recommended) | B. Two validators, one of them serving RPC |
 | --- | --- | --- |
 | Machines | 3 | 2 |
-| Follows ADR-044 (Proposed) and `HOSTING.md` §4 | Yes | No |
+| Follows ADR-044 (Proposed when written; accepted 3 October 2026) and `HOSTING.md` §4 | Yes | No |
 | A flood of RPC requests can stall block production | No | Yes |
 | The machine holding a session key answers the internet | No | Yes, with safe methods only |
 | Cost | One more node | — |
@@ -294,9 +308,14 @@ account only the owner has.
 
 ## 7. Risks, and what is deliberately left out
 
-### Open question for the owner: how does anyone hold CGT on this network?
+### The question for the owner: how does anyone hold CGT on this network?
 
-**This plan does not answer it, and nothing may be built that assumes an answer.**
+**Answered 3 October 2026 by the owner (ADR-068):** genesis holds a sudo account with the existential deposit and a
+separate faucet account holding marked test CGT, a placeholder amount (`chain_spec.rs`). The question as it was put
+follows; the "Deliberately left out" list below predates that answer, so its first line no longer holds for the
+faucet.
+
+**As written on 1 October: this plan does not answer it, and nothing may be built that assumes an answer.**
 
 - AGENTS.md §5: "do not add any path that creates CGT outside `--dev`" until issuance is designed. The genesis
   split is OPEN-2 and the issuance rate is OPEN-1.
@@ -324,7 +343,7 @@ account only the owner has.
 | All nodes with one provider | Not decentralisation. ADR-015 already says so, and revisits it before mainnet |
 | A public endpoint is probed and flooded | Safe methods only, rate limits, and a separate RPC node so validators are unaffected |
 | Railway is a poor fit once outside nodes must peer | Known (§3). The move is a Beta decision, costing new addresses and a resync |
-| ADR-044 is still Proposed | Topology A follows it. Accepting this plan with A is a reason to accept ADR-044 too |
+| ADR-044 was still Proposed when this was written | Topology A follows it. The owner accepted ADR-044 with topology A on 3 October 2026 (ADR-068) |
 
 ### Deliberately left out
 
@@ -336,7 +355,7 @@ account only the owner has.
   the gate is not planned here.
 - **Backups of chain state.** A devnet's state is rebuilt by resyncing from the other nodes. Losing every
   volume at once is a reset.
-- **Changing the launcher's default endpoint.** A later launcher change (§2).
+- **Changing the launcher's default endpoint.** A later launcher change (§2), made on 3 October 2026.
 
 ---
 

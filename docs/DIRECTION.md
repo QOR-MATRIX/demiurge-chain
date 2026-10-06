@@ -6,7 +6,7 @@ we building". Decisions behind it are indexed in [`DECISIONS.md`](DECISIONS.md).
 [`protocol/PROTOCOL.md`](protocol/PROTOCOL.md). How the current code measures up against all of it is
 [`audit/RECONCILIATION.md`](audit/RECONCILIATION.md).
 
-**Last updated:** 2026-09-22
+**Last updated:** 2026-10-06
 
 ---
 
@@ -29,12 +29,13 @@ across the launcher, the web and agents.
 
 People reach these primitives through client surfaces:
 - **The QOR Launcher**, the desktop application, and the host for everything built above it. Its surfaces
-  today are Gate, Nexus, Vault, Inventory, Chain, Gates, Projects and Settings; Library, Social (named Agora until 2026-09-28) and Mesh
-  are placeholders, Studio is a link out, and Market does not exist yet (`SYSTEMS.md`). Products it
-  launches will be separate processes it supervises and signs for (ADR-046, Proposed).
+  today are Gate, Nexus, Vault, Inventory, Market, Chain, Gates, Projects and Settings; Library, Social (named Agora until 2026-09-28) and Mesh
+  are placeholders, and Studio is a link out. Market lists the DRC-369 listings on chain as the connected
+  node reads them, with no search and no indexer (`SYSTEMS.md`). Products it launches will be separate
+  processes it supervises and signs for (ADR-046, accepted 28 September 2026).
 - **A web surface** in two parts, described in §5.
 
-**Six products are built on that substrate**, each with a blueprint in
+**Seven products are built on that substrate**, each with a blueprint in
 [`blueprints/`](blueprints/ECOSYSTEM.md) and a track of its own in §7:
 - **Qontrol**, version control for creative work, git-compatible on disk (P1). Its first surface,
   Projects, is built, line-by-line diffs included since 23 September 2026, and since 22 September 2026
@@ -48,17 +49,19 @@ People reach these primitives through client surfaces:
   patches and launches (P5, carrying L7.1 and L7.2).
 - **Stream**, a placeholder name for music distribution and licensing over the Mesh (P6). It does not
   exist before M8.
+- **ARQADE**, the gaming platform: games played with a QOR ID, every owned collectible a DRC-369 asset,
+  CGT the only currency (P7). It is live at `https://qor-arqade-tau.vercel.app` since 5 October 2026.
 
-**One substrate, six apps.** Every product signs in with QOR ID, stores creations as DRC-369 assets,
+**One substrate, seven apps.** Every product signs in with QOR ID, stores creations as DRC-369 assets,
 versions them with Qontrol, distributes through the Mesh and settles in CGT. A product that would need its
 own identity, asset format, storage or payment rail has found a substrate gap: it is recorded in
 [`blueprints/ECOSYSTEM.md`](blueprints/ECOSYSTEM.md) §4, never filled locally. The six substrate
-decisions they share are ADR-046 to ADR-051: ADR-047 (the asset format) and ADR-051 (QFX's rendering
-layer) were accepted on 22 September 2026, and the rest are Proposed.
+decisions they share are ADR-046 to ADR-051, all accepted: ADR-047 (the asset format) and ADR-051 (QFX's
+rendering layer) on 22 September 2026, and ADR-046, ADR-048, ADR-049 and ADR-050 on 28 September 2026.
 
 **Scope discipline.** Anything proposed later must justify itself against one of the four primitives.
-A proposal that strengthens none of them is out of scope. The six products are held to the same rule:
-each is a surface over the primitives, not a seventh thing beside them.
+A proposal that strengthens none of them is out of scope. The seven products are held to the same rule:
+each is a surface over the primitives, not another thing beside them.
 
 The product name is **Demiurge-Cloud**. The protocol name is **Demiurge**. The repository is
 `QOR-MATRIX/demiurge-chain`, public since 29 September 2026 (ADR-063) and in the organisation since 1 October
@@ -76,7 +79,9 @@ This section used to say it was not; that was written before `chain/` existed an
   `pallet-session` and `pallet-validator-set` rather than from a configuration file (ADR-020). Two
   validators agree, finalise, and one recovers after being killed — 13 checks.
 - **What is still missing is above the base layer**, and each for a recorded reason: no transaction
-  payment (OPEN-4), no issuance (OPEN-1), no treasury (OPEN-2), no assets beyond M4.1's first pallet (M4), and no sponsorship (U-4).
+  payment (OPEN-4), no issuance (OPEN-1), no treasury (OPEN-2), no asset state and XP, physics, rental or
+  fractions (M4.2, M4.3), and no sponsorship (U-4). DRC-369 itself, its royalties and settled sale
+  (ADR-061), nesting (ADR-065) and ARQ Wallets (ADR-070) are built.
 - The module-by-module mapping is
   [`architecture/MIGRATION_INVENTORY.md`](architecture/MIGRATION_INVENTORY.md). **Seventeen of its
   twenty questions are decided** (ADR-017 to ADR-032, and Q-17 by ADR-041). Three were added on 22 September
@@ -183,39 +188,41 @@ and project status: read, manage, transact.
 Creation, publishing and Mesh seeding stay in the launcher, where the local vault and node live. The
 console is kept thin so that it never becomes a competing second product.
 
-**Visual identity.** Every surface keeps Demiurge's established identity: professional and restrained,
-dark and confident, with typographic hierarchy and generous spacing doing the work rather than
-decoration. No neon gradients, glows, particle backgrounds or cyberpunk styling. When in doubt,
-subtract. Where current code departs from this, the reconciliation report records it (§7 there).
+**Visual identity.** The rule is distinctiveness (ADR-080, accepted 6 October 2026): every surface is
+intentional and recognisably Demiurge's, never the default output of a template or an AI. Glow, neon,
+gradients, shadows, canvas and shader backdrops, pointer-reactive light and looping animation are allowed
+on every surface. Three duties stay, because they protect people or keep themes working: reduce motion
+stills or skips every moving effect; text is readable over whatever is behind it, measured as painted;
+and colours, sizes and letter-spacing come from the theme's tokens and scales. `check-design.mjs` holds
+the scales, and `check-contrast.mjs` and `check-readability.mjs` measure readability in every theme. A
+surface that uses an effect carries the reduce-motion and readability duties itself.
 
-**One thing moves behind the launcher's interface: QFX's canvas** (ADR-051, accepted 22 September 2026). Its
-rule, in the owner's words: **the design system governs the default theme and the chrome; QFX governs the
-canvas; the default must still pass `check-design.mjs` unchanged.** Layer one's backdrop (P2.1) is a slow drift
-in the theme's own colours under a scrim the chrome owns, live by default at a restrained amplitude, still under
-reduced motion, and off at one switch. Nothing above it — no text, control or status colour — is ever the
-canvas's. The dreamlike look is a creator's choice, never the default.
+**QFX's canvas moves behind the launcher's interface** (ADR-051, accepted 22 September 2026). It is no
+longer an exception to the design system, because since ADR-080 there is nothing to exempt it from; its
+obligations stay: readability as painted, still under reduced motion, and a frame-time budget. Layer one's
+backdrop (P2.1) is a slow drift in the theme's own colours under a scrim the chrome owns, live by default at a
+restrained amplitude, and off at one switch. Nothing above it — no text, control or status colour — is ever
+the canvas's.
 
 ## 6. Where things stand
 
-Verified 13 to 15 September 2026, and the rows the chain work changed were re-verified on 20 September
-2026, after M3.5 retired and deleted the custom devnet. The launcher and product rows were re-verified on
-21 September 2026. Evidence is in
-[`audit/RECONCILIATION.md`](audit/RECONCILIATION.md), which is a dated audit kept as written, and in
-[`HANDOFF.md`](../HANDOFF.md) §1 for anything later than it.
+Re-verified on 6 October 2026 against the tree, CI and the live services. The first verification, 13 to
+21 September 2026, is in [`audit/RECONCILIATION.md`](audit/RECONCILIATION.md), which is a dated audit kept
+as written; [`HANDOFF.md`](../HANDOFF.md) §1 has anything later than this table.
 
 | Component | State |
 | --- | --- |
-| Chain (`chain/`) | **The only chain** (ADR-013, ADR-032). A Substrate L1 on the pinned Polkadot SDK: Aura authors, GRANDPA finalises, and the validator set comes from governance through `pallet-session` and `pallet-validator-set` (ADR-018 to ADR-020). Since 2026-09-22 it mounts `pallet-nfts` and `pallet-drc369` (M4.1, ADR-052), and `pallet-utility` with only `batch_all` reachable, so several assets move in one all-or-nothing transaction (M4.6, ADR-053); `spec_version` 3. Two validators agree, finalise, and one catches up after a restart (13 checks, re-run 2026-09-22). 74 workspace tests pass with the runtime wasm built. No transaction payment, no issuance and no treasury, on purpose (OPEN-1, OPEN-2, OPEN-4). Local use only; nothing is deployed. |
+| Chain (`chain/`) | **The only chain** (ADR-013, ADR-032). A Substrate L1 on the pinned Polkadot SDK (`polkadot-stable2606-1`, on Rust 1.98.1 by ADR-072): Aura authors, GRANDPA finalises, and the validator set comes from governance through `pallet-session` and `pallet-validator-set` (ADR-018 to ADR-020). It mounts `pallet-nfts` and `pallet-drc369` (M4.1, ADR-052) with nesting (ADR-065), `pallet-drc369-royalties` with royalties and a sale settled in CGT (ADR-061), `pallet-utility` with only `batch_all` reachable (M4.6, ADR-053), and `pallet-arq-wallet` (ADR-070); `spec_version` 8. 150 workspace tests pass with the runtime wasm built (2026-10-04). Two validators agree, finalise, and one catches up after a restart: CI's nightly two-validators job. No transaction payment, no issuance and no treasury, on purpose (OPEN-1, OPEN-2, OPEN-4). **Demiurge Devnet is live** at `wss://rpc.qorsync.dev`: two validators and an RPC node on Railway (ADR-068), holding test CGT only. |
 | Chain (`framework/`) | **Retired and deleted at M3.5, 20 September 2026**, after everything referring to it was rewritten. It was custom Rust with no finality, and untrusted: its non-strict Ed25519 verification accepted signatures nobody made for small-order keys (R-1). Nothing in it is carried forward, and CI fails if the directory returns. |
 | CGT on chain | 18 decimals, decided (ADR-035), with an existential deposit of 100 CGT (ADR-036). **`chain/` declares no total-supply constant at all**, because issuance is OPEN-1 and the genesis split is OPEN-2; the superseded 13 billion figure went with `framework/`, and left the launcher on 2026-09-20, which is the removal ADR-003 asks for by name: the launcher's ceiling on a typed amount is now named for what it is and is not a supply, and the Settings surface shows no total (`RECONCILIATION.md`, "Remediation since this audit"). No CGT fee is charged, and there is no path that creates CGT outside a development chain specification. The ticker is `CGT` (ADR-034), and `chain/` was written with it from the start, which is requirement R-4. |
 | Economic model | Decided in direction (ADR-002 to ADR-008). Rates, split, curve and burn shares are open. Nothing implemented. |
-| DRC-369 | **M4.1's chain half exists, since 2026-09-22** (ADR-052): `pallet-drc369` over `pallet-nfts` mints an asset carrying ADR-047's 41-byte content reference and its pinned commit, revises it until a one-way switch makes it permanent, creates one singles collection per creator, and lists what an owner holds, from storage and through a runtime API. Only it can create an asset. Its deposits are placeholders (U-14) and its weights are placeholders owed to M7.2. Nesting, state and XP, physics, remix, royalties, rental and fractions are not started. **The launcher mints a Qontrol project's commit and lists what an account holds from chain storage** (M4.1's launcher half, the same day). The custom chain's module — mint, transfer, state and XP, nesting, burn, approvals and one royalty setting, none of which moved CGT — was deleted with `framework/` and is not carried forward. What it must do, including requirement R-2 (refuse nesting cycles), is in the migration inventory and in M4.5. The wire format is decided (ADR-047, accepted 2026-09-22, M2.3), and M2.1 was ticked the same day against the owner's review of a ten-line summary, so nothing stands before M4. |
-| QOR ID (`services/qor-auth`) | Username and keypair sign-in with JWTs. Changes on 2026-09-14: committed secrets and the seeded admin removed (rotation confirmed by the owner); agents register their own keys and QOR ID only authorises them (ADR-014); agent endpoints scoped to their controller; key links authenticated and proven; logout and session revocation take effect at once; registration creates no CGT and calls no chain (migration inventory R-3); every mounted route does what it reports or refuses, including email verification, password reset and the admin routes (SECURITY.md). On 2026-09-15: email through Resend (sent live from `demiurge.cloud` to Resend's test address; delivery to a real inbox unconfirmed), password resets that end every session, single-use hashed backup codes, and sign-in that refuses every failure alike; a new verification link for an account whose link lapsed, and backup codes a signed-in account can regenerate with its password; an account can add or change its email address with its password, confirmed by the new address, announced to the old one, and keeping its backup codes; the lockouts that remain are accepted and named in SECURITY.md; emails rewritten in the design system with a plain-text part; the pages the links open spend a token only when their button is pressed, so a mail scanner cannot burn one; and signed bounce and complaint reports from Resend stop sending to an address that cannot or should not receive mail (not yet received live), with an admin-only, audited route to take a mark off; no token, key, link or address may reach a log at any level, checked at runtime and in CI, and no SQL statement may be built from values, checked at build time (`alpha.no-secrets-in-logs`, `alpha.parameterised-sql`); QOR ID serves its own pages on its own subdomain (ADR-015, clarified). A password-only account will have no chain identity until it proves a key (ADR-017; not implemented until the Substrate work). Built, tested and checked end to end against Postgres 16 and Redis. Capabilities and spend caps are recorded, not enforced (Q-9). |
-| QOR Launcher (`tools/qor-launcher`) | Phase 1: vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, accessibility settings. Since 2026-09-20 it is a `subxt` client of `chain/`, building every call from the metadata that node serves (ADR-040), with an Sr25519 vault and SS58 addresses (ADR-039). Since 2026-09-21 it also has a Projects surface, Qontrol's first slice (P1.1, done on 2026-09-23 when its line-by-line diffs arrived; since 2026-09-26 it branches, switches, discards, commits the ticked files only, holds back a huge or credential-shaped file until it is accepted, and its helper is bundled so an installed launcher can commit: P1.2), and QFX layer one's backdrop with an Ambience setting (P2.1). Since 2026-09-22 Projects mints a commit as a DRC-369 asset, Inventory lists an account's assets from chain storage as cards (M4.1, P2.8), and each card's own menu sends several of them to another account in one all-or-nothing transaction (L4.4, L4.5, M4.6). Since 2026-09-23 the trade window has two sides with a lane between them and offers the accounts this machine has traded with before, and Sell drafts a listing that stays on this machine and says so (L4.6, half of it, unticked). Since 2026-09-28 there is no lock screen: the vault's key is in the operating system's keychain and nothing is asked to open it, QOR ID never blocks the launcher and has no password route, and older vaults move once (ADR-056, superseding ADR-055's Windows Hello the same day). 162 host tests pass (2026-09-28), plus three that need a running development node — a transfer, a mint and a trade; the qontrol-git helper's 16 pass; the eight view checks — design 8, accessibility 41, gates 34, Projects 104, Inventory 127, the Gate 65, contrast 54 and readability 281 — pass (2026-09-28), with two intermittent failures recorded in `HANDOFF.md` §4 item 19. **Readability, since 2026-09-22:** the interface had been painted beneath the QFX backdrop's scrim, which made most of the launcher unreadable with the backdrop on; it is lifted above it, three colours outside the ink ramp are raised, and `check-readability.mjs` measures every run of text as painted on every screen in every theme. Gate, Nexus, Vault and Inventory are built. Library, Social and Mesh are placeholder pages; Studio is an external tile; Market does not exist. |
-| Products (P1 to P6) | Six blueprints and six Proposed substrate records (ADR-046 to ADR-051). Two first slices are built, both inside the launcher: Qontrol's Projects surface, with its diffs since 2026-09-23, and QFX layer one. QOR Engine, GNOSIS, Market and Stream have not started. None is a product yet. |
+| DRC-369 | **Built on chain.** `pallet-drc369` over `pallet-nfts` mints an asset carrying ADR-047's 41-byte content reference and its pinned commit, revises it until a one-way switch makes it permanent, creates one singles collection per creator, and lists what an owner holds, from storage and through a runtime API (M4.1, ADR-052, 2026-09-22). Only it can create an asset. Royalties, remix royalties one level deep and a sale settled in CGT since 2026-09-29 (`pallet-drc369-royalties`, ADR-061, ADR-062); nesting, with requirement R-2's cycle refusal, since 2026-10-01 (ADR-065). Its deposits are placeholders (U-14) and its weights are placeholders owed to M7.2. State and XP, physics, rental and fractions are not started. **The launcher** mints a Qontrol project's commit, lists what an account holds, trades, lists for sale, withdraws and buys (L4.2, L4.5, L4.6). The wire format is decided (ADR-047, accepted 2026-09-22, M2.3) and not yet frozen (`beta.wire-format-frozen`). |
+| QOR ID (`services/qor-auth`) | **Live at `https://id.qorsync.dev`**, deployed from `main` to Railway. Username and keypair sign-in with JWTs: Sr25519 keys, an account as SS58 or hex, and a password-only account with no chain identity until it proves a key (ADR-017, implemented with L3.2). Email verification, password reset and address change through Resend; single-use backup codes; an account page to change a password or add an email. Agents register their own keys and QOR ID only authorises them (ADR-014); capabilities and spend caps are recorded, not enforced (Q-9). Sign-in for apps by OAuth 2.1 with PKCE (ADR-073; ARQADE is registered); unique usernames (ADR-075); levels, XP, tasks and owed welcome grants (ADR-078, migration 020); avatars (ADR-079, migration 022). No token, key, link or address may reach a log at any level, checked at runtime and in CI, and no SQL statement may be built from values (`alpha.no-secrets-in-logs`, `alpha.parameterised-sql`). The §7.1 defects are fixed; what remains is named in SECURITY.md, among it that an access token alone can still register an agent (L5.1). 166 tests pass against Postgres 16 and Redis 7.4 (2026-10-06). |
+| QOR Launcher (`tools/qor-launcher`) | Version 0.1.8, unsigned, with no update channel (L6). A `subxt` client of `chain/` building every call from the metadata the node serves (ADR-040), with an Sr25519 vault and SS58 addresses (ADR-039); the vault's key is in the operating system's keychain and there is no lock screen (ADR-056). Built: Gate, Nexus, Vault, Inventory (assets as cards; trade, sell, withdraw and buy: L4.5, L4.6), Market (the listings on chain as the connected node reads them; no search, no indexer), Projects (Qontrol: P1.1, P1.2), Chain, Gates and Settings, with QFX layer one's backdrop (P2.1). `qor://pay` opens a signed payment request in the host dialog (ADR-076, ADR-077); the level bubble and XP bar show QOR ID progress (ADR-078); an avatar in a ring that glows from level 1, with upload, is on `main` after 0.1.8 and not yet in a build (ADR-079, ADR-080). Library, Social and Mesh are placeholder pages; Studio is an external tile; the Nexus still shows nine frozen-app tiles marked local or forming. 204 host tests pass (2026-10-06), and nine browser checks: design 3, accessibility 41, gates view 34, Projects 104, Inventory 238, Market 127, vault gate 65, contrast 54 and readability 361. CI runs all of them (L1.6). |
+| Products (P1 to P7) | Seven blueprints and six substrate records (ADR-046 to ADR-051), all accepted. **ARQADE is live** on Vercel at `https://qor-arqade-tau.vercel.app` since 2026-10-05 (ADR-074): QOR ID sign-in, solo games, two multiplayer games, rankings, chat, devnet reads, tips approved in the launcher (P7.4) and levels. Three first slices are built inside the launcher: Qontrol's Projects surface (P1.1, P1.2), QFX layer one (P2.1) and Market's first slice (P5.3, without the indexer). QOR Engine, GNOSIS and Stream have not started. |
 | SDKs, web apps, CLI | Frozen. None produces a transaction the current node accepts. |
 | Agent rails, MCP server, public viewer, remote console | Not started. |
-| Production (`demiurge.cloud`, `rpc.demiurge.cloud`) | Offline. |
+| Production (`demiurge.cloud`, `rpc.demiurge.cloud`) | Offline. No production network exists; the public devnet is `wss://rpc.qorsync.dev`. |
 | Audits | None. Nothing here should hold real value. |
 
 ## 7. Roadmap
@@ -247,7 +254,9 @@ migration work. Each carries forward as a requirement for the Polkadot SDK chain
 in [`SECURITY.md`](../SECURITY.md).
 
 1. [x] Remove the committed token secrets and database credentials from configuration. **Rotating them
-   is the owner's action**; the values remain in git history.
+   is the owner's action**, and the owner confirmed it on 14 September 2026. The values remain only in the
+   private archive's history (`ALaustrup/demiurge-cloud`); the public repository's history starts on
+   29 September 2026.
 2. [x] Remove the seeded admin account and its recovery code (migrations 008 and 010).
 3. [x] Refuse the Balances self-transfer that created CGT.
 4. [x] Authorise DRC-369 mint, and require owning the parent to nest.
@@ -390,8 +399,9 @@ nesting cycles (R-2).
    **Not deleted with it, deliberately:** the build and deploy files that referred to it — `Dockerfile`,
    `docker/Dockerfile.node`, `docker/docker-compose.testnet.yml`, `config/production/demiurge-node.service`,
    `testnet/systemd/*.service` and `fly.toml`. They were already recorded as non-working (`HANDOFF.md` §5)
-   and are a separate cleanup; `fly.toml` in particular is to be rewritten for `chain/` under ADR-015
-   rather than removed.
+   and are a separate cleanup; `fly.toml` in particular was to be rewritten for `chain/` under ADR-015
+   rather than removed, a plan moot since the devnet runs on Railway (ADR-068). Since then `docker/docker-compose.testnet.yml` has left the tree: it is not in the
+   public repository, whose history starts on 29 September 2026.
 
 ### M4: The asset primitive
 
@@ -522,6 +532,7 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 
 1. [x] Visual identity in line with §5: the particle field, glows and pointer light removed; status colours
    taken from theme tokens; one type and spacing scale; the design system documented (reconciliation §7).
+   Since 6 October 2026 ADR-080 allows those effects again (§5); the tokens and scales still bind.
 2. [x] Accessibility settings that take effect: the contrast override and the motion preference.
 3. [x] Amounts never pass through JavaScript numbers; no raw Spark counts in user-facing views; no
    2-decimal fallback.
@@ -530,13 +541,32 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
    repoint the RPC or QOR ID
    endpoints without that confirmation. Implemented and unit-tested; it stays unchecked until the native
    dialogs are exercised in a running launcher, against the list in `HANDOFF.md`.
+
+   **Partly exercised, 5 and 6 October 2026:** the owner approved `qor://pay` tips in the host dialog of an
+   installed launcher against Demiurge Devnet (P7.4). Declining a prompt, and the confirmation before the RPC
+   or QOR ID endpoint changes, have not been exercised by a person, so the item stays unchecked.
 5. [x] Domain-separated QOR ID challenge signing, shared with security track item 7.
-6. [ ] The launcher's host tests run in CI. The job is written (`.github/workflows/ci.yml`, "QOR Launcher
-   host"): frontend build, format, lints and tests. It has never executed, because no job in **any** workflow in this repository has ever run — every run fails at startup, and a trivial probe workflow pushed on 2026-09-21 (run `35622108578`) failed the same way, which rules the workflow file out as the cause (`HANDOFF.md` §1). That is not the same as no workflow run has
-   started since the repository transfer, so this stays unchecked until L1.7 makes it real.
-7. [ ] CI on `main` starts and passes, and produces the coverage report `GATES.toml` reads (cargo-llvm-cov,
-   for the pallets it lists). Every run since 9 September 2026 failed to start or was cancelled, and a
-   permanently red CI signal makes the release gates worthless.
+6. [x] The launcher's host tests run in CI. The job is "QOR Launcher host (tools/qor-launcher): frontend
+   build, format, lints, tests" in `.github/workflows/ci.yml`: the frontend build, `npm run check`'s nine
+   browser checks, the `qontrol-git` helper's format, lints and tests, then the host's format, lints and
+   `cargo test --features qontrol-no-skips`.
+
+   **Ticked on 6 October 2026.** Before 29 September 2026 no GitHub Actions job here had ever started
+   (Woodpecker ran CI on 28 and 29 September, ADR-058). Since then CI runs on GitHub Actions on the public
+   repository (ADR-063), and this job runs on every pull request and every push to `main`. On `main`'s run for the merge of #13 (run `37496555161`, 6 October 2026) it
+   passed: 204 host tests passed and 7 were ignored, and the helper's 16 passed.
+7. [x] CI on `main` starts and passes, and produces the coverage report `GATES.toml` reads (cargo-llvm-cov,
+   for the pallets it lists).
+
+   **Ticked on 6 October 2026.** "Pleroma CI" runs on GitHub Actions on every pull request and every push to
+   `main` since 29 September 2026 (ADR-063). Every completed run on `main` since the merge of #6 (5 October
+   2026) has passed, the merges of #12 (`37470330563`) and #13 (`37496555161`) among them; the runs for the
+   merges of #7 and #10 were cancelled by the next merge, as the workflow's concurrency rule does, and the
+   merges of #2 to #4 earlier on 5 October failed. On `main`'s latest run the coverage job uploaded the
+   `coverage` artifact cargo-llvm-cov writes for the pallets `beta.value-pallet-coverage` lists. The nightly
+   run adds the two-validator job, which passed on 5 and 6 October, and the newest-Rust clippy report, which
+   fails on lints in code the SDK's macros generate (ADR-072) and does not fail the run. Of the pull requests,
+   #8 was merged with its launcher job red on the pull request, and the last runs of #3 and #4 were cancelled.
 
 #### L2: Development dashboard (no chain dependency)
 
@@ -613,8 +643,9 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
    pointer's secondary button opens the same menu; it takes focus, the arrow keys move through it and Escape
    closes it. **Sell was offered and refused, with the reason** — a listing needs the royalty pallet (M4.2)
    and the indexer (M5.4) — because an item that silently does nothing is worse than one that says why.
-   **Since 2026-09-23 it opens the listing form instead** (L4.6), and the note under it carries the same
-   reason: what the form drafts publishes nowhere. Share
+   **Since 2026-09-23 it opens the listing form instead** (L4.6), which until 2026-10-01 drafted a listing
+   that published nowhere; **since 2026-10-01 Sell publishes a price on chain** (L4.6), and only a listing's
+   description stays on this machine. Share
    copies the asset's content reference. Ten checks in `check-inventory-view.mjs`, shown to fail first when
    the menu button is removed and only the right click is left. **Corrected the same day**: the first item's
    label depended on how many assets the account held, so an account holding one saw "Send…" and not "Trade";
@@ -657,8 +688,8 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
    given the asset's number (no indexer, M5.4), royalty terms cannot be set from the launcher, and no person has
    run it against the native dialogs.
 
-   **Half of it exists since 2026-09-23, and the item stays unticked, because the half that exists is the
-   half nobody else can see.** Sell opens a form that drafts a listing on this machine
+   **The first half was built on 2026-09-23, and it was the half nobody else can see.** It is now Sell's
+   second screen: a form that drafts a listing's description on this machine
    (`src-tauri/src/listings.rs`, `src/views/SellDialog.tsx`): a title, a kind, the questions that kind asks, a
    price and a description. The draft is a file in the launcher's data directory, is sent nowhere and is
    visible to nobody else, and the form says so in the product — a banner before anything is typed, and a line
@@ -699,14 +730,15 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 ### The product tracks
 
 One track per product, added on 21 September 2026 at the owner's instruction, in the form ADR-050
-(Proposed) describes. Each product's design is its blueprint in [`blueprints/`](blueprints/ECOSYSTEM.md);
+(accepted 28 September 2026) describes. Each product's design is its blueprint in [`blueprints/`](blueprints/ECOSYSTEM.md);
 this is the only list of its steps. Every item names what it depends on, and an item that names nothing
 can start now. Each product has a release gate of its own in [`GATES.toml`](GATES.toml), appended after
 Public Release; **nothing here changes Alpha, Beta or Public Release.**
 
 A track is not active scope. A product enters active scope by ADR-050's decision 10, once the record that
-defines it is accepted. Until then the two first slices below live inside `tools/qor-launcher/`, which is
-active, and nothing is written under `products/` or `platform/`.
+defines it is accepted. ARQADE has: `products/arqade/` exists under decision 10 since ADR-069 was accepted on
+4 October 2026. The first slices of Qontrol, QFX and Market live inside `tools/qor-launcher/`, which is
+active, and nothing else is written under `products/` or `platform/`.
 
 No item here sets an economic value. Where a product needs one, its blueprint names the open question
 (OPEN-1, OPEN-2, OPEN-4, U-4, U-6, U-7) and leaves it empty.
@@ -733,8 +765,8 @@ Version control for creative work. [`blueprints/qontrol.md`](blueprints/qontrol.
    against a planted raw-byte diff. `check-projects-view.mjs` has 67 checks, including a late answer for a
    file no longer chosen being dropped, and `check-readability.mjs` measures an open diff in every theme.
    Since 2026-09-22 the surface's controls use classes the stylesheet defines (`3f67870`) and it has a Mint
-   panel (M4.1). **It runs from a development build only:** the helper is not bundled yet, which is P1.2,
-   and nobody has yet opened a diff in a running launcher.
+   panel (M4.1). **On that day it ran from a development build only:** the helper was bundled on 2026-09-26
+   (P1.2), and nobody had yet opened a diff in a running launcher.
 2. [x] The git layer completed: branch, switch, discard, per-file diff and commit; a guard before staging
    that warns on large files and on anything credential-shaped; and the helper bundled with the launcher
    (`externalBin`), so an installed launcher can commit.
@@ -810,9 +842,9 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
    **The shell is done, 2026-09-22**, at the owner's request and as the owner sequenced it: every asset the
    Inventory reads from chain storage is a card that leans towards the pointer and opens at size on its own
    title, carrying what the chain holds and, until there is a preview, a mark derived from the fingerprint
-   itself. It is in `src/qfx/`, under the carve-out the owner widened that day from the backdrop to a
-   QFX-owned surface (`GATES.toml`, `DESIGN_SYSTEM.md` §1); the two exempt rules did not change, so the card
-   has no gradient, shadow or glow. **The sheen** is the one canvas showing through the card, never a second
+   itself. It is in `src/qfx/`, built under the carve-out the owner widened that day from the backdrop to a
+   QFX-owned surface. Since ADR-080 (6 October 2026) there are no effect rules left to exempt it from; the
+   card still has no gradient, shadow or glow, by choice. **The sheen** is the one canvas showing through the card, never a second
    canvas (ADR-051). **The preview image** needs a mint to name one: ADR-047 has the Preview role and nothing
    sets it, and the bytes come from the temporary content store until the Mesh (M8). **The model** is a glTF
    or GLB entry rendered in that same canvas, which is the 3D view the owner asked for.
@@ -902,7 +934,7 @@ here sets an economic value; payouts are U-16.
    control, and the false claims removed (CRGT, DMRG, USD prices for Energy, the deleted chain's
    `chain_getBlockNumber`). Depends on ADR-069 accepted (ADR-050 decision 10).
 
-   **Done 5 October 2026.** Imported 4 October (`f647c82`) and in CI since (`arqade` job, green on every run from
+   **Done 5 October 2026.** Imported 4 October (`f647c82`) and in CI since (`arqade` job, green on every run that completed it, from
    `37260506426`); the false claims removed the same day; the inventory is
    [`products/arqade/INTEGRATION_INVENTORY.md`](../products/arqade/INTEGRATION_INVENTORY.md), every control with its
    source, permission, persistence, failure and verification. Also: renamed ARQADE, powered by Demiurge, on screen
@@ -924,7 +956,7 @@ here sets an economic value; payouts are U-16.
    proof of both identities. Depends on ADR-043 accepted and built, and on a way for ARQADE's server to verify a
    token without QOR ID's secret (ADR-069 decision 4).
 
-   **Built 5 October 2026 (ADR-073), not yet live.** QOR ID: `/oauth/authorize` (its own sign-in page), `/oauth/token`
+   **Built 5 October 2026 (ADR-073), and live since that day.** QOR ID: `/oauth/authorize` (its own sign-in page), `/oauth/token`
    (PKCE always; rotating, single-use refresh tokens; reuse ends the session), `/oauth/userinfo`, `/oauth/revoke`, a
    registry in `QOR_OAUTH_CLIENTS`, sessions that record their app; 7 tests and the log check over the whole flow.
    ARQADE: a server-side session behind one HttpOnly cookie, `userinfo` on every check, sign-out that revokes at QOR ID,
@@ -934,9 +966,10 @@ here sets an economic value; payouts are U-16.
    **Moved to Vercel, 5 October 2026 (ADR-074).** The Sites host could not be published or checked from here, so the
    site became standard Next.js with Postgres, and the live arcade's players became QOR ID accounts (no ChatGPT sign-in,
    no Explorer alias). 41 tests, the arenas' SQL against Postgres; the whole flow in Chrome against Postgres 16 and a
-   local QOR ID, a match created by the signed-in player. **Live** once the owner creates the Vercel project with its
-   database and ARQADE's Vercel callback is registered at QOR ID.
-4. [ ] A player approves a CGT payment from their own Vault, previewed and finalised, never with a key held by
+   local QOR ID, a match created by the signed-in player. **Live since 5 October 2026** at
+   `https://qor-arqade-tau.vercel.app`: the owner created the Vercel project with its database, and ARQADE's Vercel
+   callback is registered at QOR ID. QOR ID is the only sign-in, and every player is a QOR ID account.
+4. [x] A player approves a CGT payment from their own Vault, previewed and finalised, never with a key held by
    ARQADE. Depends on the signing path ADR-069 decision 5 chooses, with its own record, and for production on M5.2.
 
    **Accepted 5 October 2026: [ADR-076](decisions/ADR-076-arqade-hands-payments-to-the-launcher.md)** (option A for
@@ -944,11 +977,15 @@ here sets an economic value; payouts are U-16.
    only, at most 100,000 CGT per request. Corrected by [ADR-077](decisions/ADR-077-corrections-to-adr-076.md): the host
    dialog approves it (not Windows Hello), no fee is shown because none is charged, the devnet is checked by genesis.
 
-   **Built 5 October 2026, not yet live**, with tips to a game's creator as its first use (the owner's choice; ADR-071's
+   **Built 5 October 2026**, with tips to a game's creator as its first use (the owner's choice; ADR-071's
    tips). Launcher: `src/pay.rs` and `src/chain/pay.rs`, the `qor` scheme; 8 tests, among them ARQADE's own link pinned.
    ARQADE: the signed request, the scan of finalised blocks, the Tip panel, migration `0002`; 6 tests. A real `batch_all`
-   on a local dev chain was found, and a forgery, a wrong amount and a wrong recipient were not. **Live** once merged,
-   ARQADE's key and the tip address are set in Vercel, and the new launcher is installed.
+   on a local dev chain was found, and a forgery, a wrong amount and a wrong recipient were not.
+
+   **Ticked on 6 October 2026: live on the devnet.** Merged in #8; launcher 0.1.7 and later carry `qor://pay`; the
+   owner set `QOR_PAY_SIGNING_KEY` and `QOR_PAY_TIP_ADDRESS` in ARQADE's Vercel project, and tipped successfully
+   through the launcher's host dialog on 5 and 6 October 2026. Devnet only, as ADR-076 decides: production still
+   depends on M5.2.
 5. [ ] Paid play on the devnet: a test-CGT entry finalised, one session authorised, the result validated by the
    server, and one DRC-369 trophy and one funded test-CGT payout delivered exactly once, surviving reload and retry.
    Depends on P7.3 and P7.4; the payout comes from the game's ARQ Wallet once P7.11 exists.
@@ -988,14 +1025,16 @@ here sets an economic value; payouts are U-16.
     server for checked tasks, each once; the level bubble and the XP bar in the launcher and ARQADE; ring styles and
     themes as unlocks; at most three accounts per network address. Depends on nothing.
 
-    **Built 6 October 2026, not yet live.** QOR ID: `progress_events`, `welcome_grants`, `signup_addresses`
+    **Built 6 October 2026, and live in QOR ID and ARQADE the same day; in the launcher from 0.1.8.** QOR ID: `progress_events`, `welcome_grants`, `signup_addresses`
     (migration 020); `GET /api/v1/profile/progress`, `POST /api/v1/profile/progress/tutorial`, `POST /oauth/progress`
     (an app's own tasks, with its secret and the player's token); XP for a verified email, a linked key and a sign-in to
     ARQADE; userinfo carries the progress; three sign-ups per address in 30 days, read from Railway's `X-Real-IP`, kept as
-    a keyed hash. 157 tests. The launcher: the level bubble on the avatar, the XP bar with the next unlock, the tutorial
+    a keyed hash. 157 tests then; 166 with avatars (ADR-079), the same day. The launcher: the level bubble on the avatar, the XP bar with the next unlock, the tutorial
     reported. ARQADE: the bubble, the level row on the QOR Identity card, a first match and a first tip reported.
     Checked end to end in Chrome against a local QOR ID: signing in to ARQADE granted 10 XP and the card showed it.
-    Ring styles and themes are named as unlocks; drawing them is next.
+    **Ring styles are drawn** in the launcher since ADR-079 and ADR-080 (6 October 2026): a plain edge at level 0,
+    a glowing ring from level 1 and a wider glow from level 6, on `main` after 0.1.8 and not yet in a build. Themes as
+    unlocks are not built, so the item stays unticked.
 17. [ ] The welcome grant (ADR-078): 100 CGT once per new QOR ID when the tutorial, the email and a key are confirmed,
     from the Welcome account; test CGT on the devnet first. Real CGT depends on U-18 and the owner's legal review.
     **Owed grants are recorded** by QOR ID (6 October 2026); paying them from the Welcome account is not built.
@@ -1014,7 +1053,7 @@ here sets an economic value; payouts are U-16.
 - `tools/qor-installer/`, when M8 reaches it.
 
 The other product tracks (§7) are planned, not active scope. Qontrol's Projects surface, its `qontrol-git`
-helper and QFX layer one are part of `tools/qor-launcher/`. A product gets a directory under `products/`
+helper, QFX layer one and Market's first slice are part of `tools/qor-launcher/`. A product gets a directory under `products/`
 only by ADR-050's decision 10, once its defining record is accepted.
 
 `framework/`, the custom Rust devnet `chain/` replaced, was retired at M3.5 on 20 September 2026 and
@@ -1050,24 +1089,29 @@ not deploy from them.**
 - `scripts/*.sh`, `testnet/`, `docker/`, `config/` (including `config/production/genesis*.json`)
 - `Dockerfile`, `fly.toml`, `demiurge-server.sh`, `ignite_demiurge.sh`
 
-The only verified way to run the current stack is
-[`scripts/run-local-stack.md`](../scripts/run-local-stack.md).
+The only verified ways to run the current stack are
+[`scripts/run-local-stack.md`](../scripts/run-local-stack.md) on one machine, and, for the live services,
+[`chain/DEPLOY-RAILWAY.md`](../chain/DEPLOY-RAILWAY.md) (from `chain/Dockerfile`) and
+[`services/qor-auth/DEPLOY-RAILWAY.md`](../services/qor-auth/DEPLOY-RAILWAY.md).
 
 ## 9. Risks being carried
 
 - **The base layer is in transition.** `chain/` produces and finalises blocks, but M3 is not complete:
-  M3.2, the chain specification at the base supply, is open, and nothing above the base layer — DRC-369,
-  royalties, agent rails, the economics — exists yet.
+  M3.2, the chain specification at the base supply, is open. Above the base layer, DRC-369 with royalties,
+  a settled sale and nesting, and ARQ Wallets exist; agent rails and the economics do not.
 - **The economics are not built.** There is no transaction payment, no issuance and no treasury, because
   each needs a value OPEN-1, OPEN-2 or OPEN-4 leaves undecided. A chain that charges nothing is not a
   chain anyone has paid to attack, and none of the pressure those mechanisms carry has been observed.
-- **Security defects in QOR ID** (§7.1) are latent while production is offline and would be live on any
-  deployment.
+- **QOR ID is deployed** (`https://id.qorsync.dev`). The §7.1 defects are fixed, all seven items ticked;
+  what remains is named in `SECURITY.md`, among it that an access token alone can still register an agent
+  until L5.1.
 - **Irreversible choices are still open.** The genesis split, issuance, decay curve, key scheme and
   address format are all foreclosed by mainnet genesis. The DRC-369 wire format is foreclosed by SDK
   publication.
-- **Six products compete with the chain for the same weeks.** Four have not started, and the two that
-  have are launcher surfaces. Every product track ends in items that wait on M4 or M8. M2.1 and M2.3, which
-  held all chain work back, were both ticked on 22 September 2026.
+- **Seven products compete with the chain for the same weeks.** ARQADE is live on Vercel and Market has a
+  first slice in the launcher, beside Qontrol's and QFX's; QOR Engine, GNOSIS and Stream have not started.
+  Every product track has items that wait on M4, M5 or M8. M2.1 and M2.3, which held all chain work back,
+  were both ticked on 22 September 2026.
 - **Unaudited.** Nothing here should hold real value.
-- **Production is offline.** No external user can reach the chain.
+- **No production network.** A public devnet exists at `wss://rpc.qorsync.dev`; it holds test CGT only, and
+  nothing on it holds value.

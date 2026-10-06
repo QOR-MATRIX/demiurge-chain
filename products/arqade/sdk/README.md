@@ -17,6 +17,7 @@ and charge in CGT, and award DRC-369 assets, without the game ever holding a pla
 | [`src/profile.ts`](src/profile.ts) and [`templates/arqade-project.json`](templates/arqade-project.json) | The project profile that becomes a store page; `checkReadiness` and `readyStage` for the four stages; `priceProblem` with the owner's 10,000 CGT ceiling | `tests/profile.test.mjs` |
 | [`src/arq-wallet.ts`](src/arq-wallet.ts) | A Cartridge's ARQ Wallet address (`arqWalletAccountId`, `arqWalletAddress`, `ss58`, and `ss58Decode`, which refuses another network's prefix or a broken checksum), the same bytes the chain derives and pins; `outcomeId` and `roundId`, deterministic and domain-separated, so a retried payout names the same outcome; `toChainPolicy` and `payoutArgs`, the chain calls' arguments, checked | `tests/arq-wallet.test.mjs` |
 | `../lib/chain.ts` and `../lib/account.ts` (the app's, for now) | Read Demiurge Devnet read-only, refusing any chain whose genesis is not the devnet's: the heads, and one account's CGT and DRC-369 assets at the finalized block | `../tests/chain.test.mjs`, `../tests/account.test.mjs` |
+| `../lib/pay.ts` and `../lib/pay-chain.ts` (the app's, for now) | Sign a `qor://pay` request with the app's key (devnet only, at most 100,000 CGT, valid for at most fifteen minutes), and find its payment — the transfer and the remark naming the request in one extrinsic — in a finalised block | `../tests/pay.test.mjs` |
 
 Run them from `products/arqade`: `npm test`.
 
@@ -26,7 +27,8 @@ Run them from `products/arqade`: `npm test`.
   and how to unlock one ("ignition"). **Decided (ADR-070); the chain module is built, tested and live on Demiurge Devnet; the SDK calls are not built.**
 - [**Publishing**](docs/publishing.md): the four stages, the profile, prices up to 10,000 CGT, in-game items.
   **The checks are built; the rest is decided (ADR-071, accepted 4 October 2026) and not built.**
-- [**Backing**](docs/backing.md): campaigns, memberships and tips in CGT, rewards and never proceeds. **Designed.**
+- [**Backing**](docs/backing.md): campaigns, memberships and tips in CGT, rewards and never proceeds. **Tips are built
+  for ARQADE's own games, on the devnet (ADR-076, ADR-077); campaigns and memberships are designed, not built.**
 - [**Building with your own LLM**](docs/building-with-agents.md): the MCP connection and what a model may do alone.
   **Designed.**
 
@@ -34,8 +36,8 @@ Run them from `products/arqade`: `npm test`.
 
 | Surface | Waits on |
 | --- | --- |
-| Player sign-in (browser) | ADR-043's redirect flow in QOR ID (accepted, not built) and a way for a game server to verify a token |
-| Signing a player's payment | The signing path of ADR-069 decision 5, each with its own record |
+| Player sign-in | **Built in QOR ID** (ADR-073: OAuth 2.1 with PKCE) and used by ARQADE (`../lib/qor-session.ts`). Not built: an SDK wrapper, and registration for third-party games (today an app is registered only by the owner, in QOR ID's `QOR_OAUTH_CLIENTS` setting) |
+| Signing a player's payment | **`qor://pay` exists for ARQADE's own key** (ADR-076, ADR-077): the player's QOR Launcher checks the request and pays it after its own dialog. Another game waits on being added to the launcher's known apps (`KNOWN_APPS` in `tools/qor-launcher/src-tauri/src/pay.rs`, ARQADE's only today), which needs a new launcher build |
 | ARQ Wallets: `vault ignite`, `payouts.award`, rounds, claims | Sending and watching the calls (the chain client, M5.1); the CLI's `vault ignite`. Rounds are live on the devnet at `spec_version` 8 |
 | Trophies | An issuer account minting and transferring today; account-bound ones wait on G-16 |
 | Cards, sets, packs | G-15 (editions) and G-14 (randomness) |

@@ -1,7 +1,10 @@
 # Protocol
 
 **What the chain does today, exactly.** Every statement here describes code in [`chain/`](../../chain/README.md)
-that exists and was verified on 18 September 2026, except §12, assets, which was verified on 22 September 2026. Where the direction intends something the code does not
+that exists. The whole document was re-checked against the runtime and node source on **6 October 2026**, at
+`spec_version` 8 (`chain/` last changed on 4 October 2026): the transaction extensions, block limits, validator-set
+minimum, genesis specifications, pallet indices, call filter, deposits, bounds, calls, events and runtime APIs.
+Measurements on running nodes keep the dates they were made. Where the direction intends something the code does not
 yet do, it says so under "Not yet". Decisions behind these rules are in [`../DECISIONS.md`](../DECISIONS.md).
 
 This describes the **Substrate L1** built on the Polkadot SDK (ADR-013). It is the chain: it produces and
@@ -81,7 +84,8 @@ every transaction as finalized regardless.
 - Finality needs more than two thirds of the voters. With two validators and one down, the chain keeps
   producing blocks and **stops finalising** until the other returns. That is safety, not a fault.
 - Verified on 18 September 2026 with two validators: they agree on the block at a common height, GRANDPA
-  finalises, and both agree on what is finalised.
+  finalises, and both agree on what is finalised. Demiurge Devnet (§9) has run two validators since 3 October 2026,
+  and its finality was measured publicly that day (`chain/DEPLOY-RAILWAY.md`).
 
 ## 6. Who validates
 
@@ -92,7 +96,7 @@ every transaction as finalized regardless.
 - A validator is identified by its **account**, so a later parachain move swaps the session manager
   without changing identity.
 - **No governance action can stop the chain.** The set may never fall below `MinValidators`, which is one
-  on a development chain, and `new_session` never hands `pallet-session` an empty set: if storage somehow
+  in this runtime, on every network, and `new_session` never hands `pallet-session` an empty set: if storage somehow
   held too few it keeps the set already in use and emits `PreviousSetKept`. Three guards, each verified by
   deleting it.
 - Misbehaviour is handled by governance removing the validator. Nothing is bonded, so there is nothing to
@@ -120,14 +124,25 @@ might be partitioned. `--force-authoring` overrides that and is how a single-nod
 
 - **Development and test specifications only.** There is no mainnet chain specification and there will not
   be one until OPEN-2, the genesis allocation split, is decided.
-- `dev` is a single validator, Alice; `local` is Alice and Bob. Their names and identifiers are
-  `Demiurge Development` / `demiurge_dev` and `Demiurge Local Testnet` / `demiurge_local`, so a person can
-  always ask a node which chain it is with `system_chain`.
+- The node has three built in. `dev` is a single validator, Alice; `local` is Alice and Bob; `demiurge_devnet` is
+  the hosted test network. Their names and identifiers are `Demiurge Development` / `demiurge_dev`,
+  `Demiurge Local Testnet` / `demiurge_local` and `Demiurge Devnet` / `demiurge_devnet`, so a person can always ask
+  a node which chain it is with `system_chain`. Their chain types are `Development`, `Local` and `Live`.
 - The chain's properties — `CGT`, 18 decimals, prefix 42 — come from the runtime's own constants, so the
   node cannot disagree with the runtime about the unit.
-- Endowed accounts are the SDK's **well-known public test keys**, whose secrets everyone has, with a
-  placeholder endowment. This is **not** a genesis allocation of the base supply, and a test asserts the
-  amount stays a millionfold below it.
+- On `dev` and `local`, the endowed accounts are the SDK's **well-known public test keys**, whose secrets everyone
+  has, each with a placeholder endowment of 1,000,000 CGT; Alice is the sudo key. This is **not** a genesis allocation
+  of the base supply, and a test asserts the amount stays a millionfold below it.
+- **Demiurge Devnet** (`demiurge_devnet`, ADR-068) uses no well-known key, and a test checks that none appears in
+  its specification. Its two validators' Aura and GRANDPA keys were made on their own machines at first boot; the
+  validators hold no balance. The **sudo** key is the owner's account, endowed with exactly the existential deposit
+  so that it can sign. The **faucet** is another account of the owner's, endowed with the same **placeholder**
+  1,000,000 CGT as a development account: test CGT, not a genesis allocation (OPEN-2). It is an ordinary account the
+  owner sends from, not an RPC method. Nothing else is endowed. The network runs from the committed raw
+  specification, `chain/specs/demiurge_devnet.raw.json`, genesis
+  `0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a`; `--chain demiurge_devnet` builds the same
+  specification with the runtime of the binary it runs in, so it matches that genesis only from the build it was
+  made with (`chain/README.md`).
 - `pallet-sudo` is present on development and test networks only, behind the `sudo` build feature, and is
   **absent from any mainnet runtime** (ADR-037).
 
@@ -148,7 +163,8 @@ any node whose `system_chainType` is not `Development`.
 ## 11. RPC
 
 Standard Substrate RPC. There is no custom RPC surface: no method writes state outside a block, and there
-is no faucet, no admin mint and no privileged endpoint. What the chain does, it does through signed
+is no faucet method (the devnet's faucet is an account, §9), no admin mint and no privileged endpoint. Demiurge
+Devnet's public node runs with `--rpc-methods safe`, which refuses every method that changes the node. What the chain does, it does through signed
 transactions in blocks (D-008).
 
 ## 12. Assets (DRC-369: M4.1, M4.2's royalties and nesting, and R-2)
@@ -276,7 +292,6 @@ and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369
 - **Royalty events:** `TermsSet`, `Listed`, `Unlisted` and `Sold { collection, item, from, to, price, source, remix,
   royalties, seller_received }`, where `remix` and `royalties` list each payment as `(account, amount)`.
 - **Weights are placeholders** (ADR-052 decision 8, ADR-061), owed to M7.2. No fee is charged anyway.
-
 
 ### ARQ Wallets (`pallet-arq-wallet`, ADR-070)
 

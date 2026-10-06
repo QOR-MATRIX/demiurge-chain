@@ -204,7 +204,9 @@ AGENTS.md §5 forbids adding any path that creates CGT outside `--dev` until the
 designed. Burn requires a CGT fee to burn from; **no fee of any kind is charged**, because a
 `WeightToFee` is an OPEN-4 value and the runtime therefore mounts no transaction-payment pallet. The
 energy mechanism that took the place of a fee on the custom chain does not exist here.
-Mesh payments require on-chain content fingerprints and a way to verify hosting; neither exists. The
+Mesh payments require on-chain content fingerprints and a way to verify hosting. The fingerprints
+exist: since 22 September 2026 `pallet-drc369` records ADR-047's 41-byte content reference (an
+algorithm tag, a BLAKE3-256 root and a size) on every asset it mints. A way to verify hosting does not. The
 demand sinks require licensing, staking-for-distribution, metered compute and escrow mechanics, none of
 which exist. The display layer requires a credits formatting and, for stable pricing, a conversion
 source; neither exists. The reconciliation report gives the evidence for each of these.

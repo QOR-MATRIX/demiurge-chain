@@ -30,8 +30,10 @@ painted, reduced motion, its frame-time budget).
 
 ## 2. Colour
 
-**One accent, one structural counter, three status colours. Nothing else is tinted.** The accent
-means "this one": live, selected, or about to be pressed. It is never spent on ornament.
+**One accent, one structural counter, three status colours, all from the theme's tokens.** The accent's
+first job is to mean "this one": live, selected, or about to be pressed. Since ADR-080 it may also carry
+decoration — the avatar's level ring glows in it (ADR-078, ADR-079) — as long as decoration is never
+mistaken for state.
 
 | Token | Utility | Role |
 | --- | --- | --- |
@@ -75,10 +77,10 @@ A theme is a set of the tokens above (`src/styles/themes.ts`), applied as one st
 `:root[data-theme]`. Five exist: Architect (the default: ember on carbon), Abyss, Sanguine, Veridian and
 Numen.
 
-**Decided by the owner, 22 September 2026:** Veridian (`#3DFF88`) and Abyss (`#22D3EE`), which lean neon,
-become QFX themes and are never the default. They move when QFX's theme package exists (P2.5); until then
-they stay in this list as they are. The copy for Veridian ("The terminal you were warned about") and Sanguine
-("Unsettling on purpose") is not restrained, and is still recorded here and in the reconciliation report (§7).
+**Decided by the owner, 22 September 2026:** Veridian (`#3DFF88`) and Abyss (`#22D3EE`), the two neon
+themes, become QFX themes and are never the default. They move when QFX's theme package exists (P2.5); until
+then they stay in this list as they are. Neon is allowed since ADR-080, so this is a decision about where they
+belong, not a defect waiting to be fixed.
 
 ## 3. Type
 
@@ -145,7 +147,7 @@ the status dot and the switch, which are circles.
 | Glass | `.glass`, `.glass-solid` | Translucent and solid panel fills for dialogs and toasts |
 | Button | `.btn`, `.btn-primary`, `.btn-ghost`, `.btn-danger` | ui size, label tracking, uppercase. One primary per decision. |
 | Field | `.field`, `.field-invalid` | Well fill; accent border on focus; bad border when invalid |
-| Status dot | `.dot-ok`, `.dot-warn`, `.dot-bad` | 6px circle, flat colour, never animated |
+| Status dot | `.dot-ok`, `.dot-warn`, `.dot-bad` | 6px circle, flat colour, kept still by choice: a status is read at a glance and must look the same in every theme and under reduced motion |
 | Progress rail | `.rail`, `.rail-fill` | 2px track, solid accent fill |
 | View header | `ViewHeader` in `views/parts.tsx` | Eyebrow in accent, heading, one line of body |
 | Stat | `Stat` in `views/parts.tsx` | Eyebrow, figure, unit, detail |
@@ -153,20 +155,19 @@ the status dot and the switch, which are circles.
 
 ## 6. Motion
 
-Motion confirms a change; it never decorates a resting screen.
+Motion confirms a change, and it may also decorate: looping and idle animation are allowed on every surface
+(ADR-080, decision 1). Reduce motion stills or skips all of it. The chrome's own motion today:
 - **Entrance:** `animate-rise` (6px, 420ms), and `stagger` for grids at 38ms per item.
 - **View change:** a 160ms cross-fade.
 - **Controls:** colour and border transitions of 150 to 260ms, and a 1px press on buttons.
 - **Easing:** `--ease-expo` throughout.
 - **Loading:** a spinning icon, only while something is actually in progress.
 
-No motion in the chrome runs while the interface is idle. The motion setting (§7) governs all of it, including
-the animations framer-motion drives from JavaScript.
+The motion setting (§7) governs all of it, including the animations framer-motion drives from JavaScript.
 
-**The QFX canvas is the exception, and says so** (ADR-051, accepted 22 September 2026): it may move while the
-interface is idle, behind the chrome's scrim. Settings → Accessibility → Ambience governs it — Live, Still or Off
-— and Still is its pause. Reduced motion forces Still, maximum contrast removes it, and Off removes it and the
-scrim together.
+**The QFX canvas** (ADR-051, accepted 22 September 2026) moves while the interface is idle, behind the chrome's
+scrim. Settings → Accessibility → Ambience governs it — Live, Still or Off — and Still is its pause. Reduced
+motion forces Still, maximum contrast removes it, and Off removes it and the scrim together.
 
 **The layers are fixed, and the order is the guarantee: the canvas, then the scrim, then the interface.** The
 interface is `.qfx-interface` in `qor.css`, lifted above the scrim, with no background of its own, so the page's

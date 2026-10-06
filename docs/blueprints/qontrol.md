@@ -55,8 +55,8 @@ chain that matters: stage → index → write-tree → commit.
 **On linking libgit2 into the host: the sidecar was built, not the temporary link.** The budget rule
 was that if the sidecar cost more than the rest of Phase 4, a dated temporary link was acceptable with
 its expiry tied to the app-host ADR's first item. It did not: one crate and two commands. So there is
-no dated exception to track, and the app-host record, ADR-046 (Proposed), opens with one obligation
-already discharged in miniature.
+no dated exception to track, and the app-host record, ADR-046 (accepted by the owner on 28 September
+2026), opens with one obligation already discharged in miniature.
 
 ## What is new
 
@@ -133,7 +133,9 @@ line-delimited because a person needs to read a transcript when it misbehaves:
 {"op":"ping"}                       -> {"ok":true}
 ```
 
-Every failure answers `{"ok":false,"error":"…"}` and the process stays up; it exits when stdin closes.
+Since 26 September 2026 (P1.2) it also answers `stage` (named files only), `plan`, `switch` and `discard`
+(`qontrol-git/src/main.rs`). Every failure answers `{"ok":false,"error":"…"}` and the process stays up; it
+exits when stdin closes.
 The sidecar holds no keys, opens no network, and is built with `default-features = false` plus
 `vendored-libgit2`, so OpenSSL and libssh2 are absent entirely and a distribution's system libgit2
 cannot silently substitute itself — which matters for a reproducible signed installer (L6.1).
@@ -205,7 +207,7 @@ fingerprint uses was decided on 22 September 2026: ADR-047's BLAKE3-256, with it
 | Substrate | How Qontrol uses it |
 | --- | --- |
 | **QOR ID** | The commit author. One identity across every product; no per-host git account, no separate credential. Signing a published version uses the launcher vault's Sr25519 key (ADR-023, ADR-039), behind the host dialog (L1.4). |
-| **DRC-369** | Publishing mints or revises an asset whose content fingerprint is the pointer file's fingerprint; a fork's asset names its parent. **M4, unstarted** — nothing in this row is buildable today. |
+| **DRC-369** | Publishing mints or revises an asset whose content fingerprint is the pointer file's fingerprint; a fork's asset names its parent. **Publishing a version is built** (M4.1, 22 September 2026; see Phase 5): the Projects surface mints the commit HEAD points at. Revising from Qontrol and fork → remix provenance are not built in the launcher, though the chain records a remix's source since 29 September 2026. |
 | **Qontrol** | It is this product. Everything else in the ecosystem versions through it rather than carrying its own history. |
 | **Mesh** | Qontrol's remote. Push, clone and the shared side store are Mesh operations. **M8, does not exist.** |
 | **CGT** | Settlement for Mesh hosting of the side store and for access-gated private repositories. Both are existing sinks; neither price is set here (OPEN-4, U-4). |
@@ -220,9 +222,11 @@ is the wrong shape and latency for a lock taken for twenty minutes, and there is
 for one anyway (OPEN-4, U-4). A Qontrol lock server with its own accounts is a gap papered over.
 
 **SUBSTRATE GAP — repository identity.** A repository needs a stable id across clones. The natural
-answer is a DRC-369 collection id. Token identity is decided — `(CollectionId, ItemId)`, ADR-047 — but
-DRC-369 itself is M4 and does not exist yet. Until then `qontrol.toml` carries a locally generated UUID **marked in
-the file as a placeholder**. Do not invent a token identity in a scaffold.
+answer is a DRC-369 collection id. Token identity is decided — `(CollectionId, ItemId)`, ADR-047 — and
+DRC-369 exists since M4.1 (22 September 2026), with one singles collection per creator; a collection per
+repository is not something the chain offers yet (G-15 in `ECOSYSTEM.md`). Until then `qontrol.toml` carries a
+locally generated UUID **marked in the file as a placeholder**; neither is built, since the scaffolds write no
+`qontrol.toml` yet. Do not invent a token identity in a scaffold.
 
 **SUBSTRATE GAP — the git author line.** A git commit carries a name and an email address; QOR ID is
 neither, and inventing a domain to put after the `@` would be exactly that, an invention. Until the
@@ -267,8 +271,8 @@ P1.2 did not include. Merge and push are still not built.
 ## Phases to a full product
 
 Estimates are for one founder and an agent, on a tree where the chain milestones compete for the same
-weeks — honest guesses, not commitments. None of this has been through a CI run: no job in any
-workflow in this repository has ever executed (L1.6, L1.7).
+weeks — honest guesses, not commitments. What is built runs in CI, which passes on `main`
+(GitHub Actions on the public repository, ADR-063), with the Qontrol tests under `qontrol-no-skips`.
 
 **Phase 1 — the git layer (reused library calls; days to a week).** Branch, switch, discard a change,
 per-file diff, per-file commit. Commit signing with the vault key. A guard before staging: warn on a
@@ -315,7 +319,8 @@ Mint panel that shows the commit HEAD points at, by its full hash, and mints it.
   commit, and whether it is permanent, with **Make permanent** through the same dialog and vault.
 
 **Not built yet:** revising an asset with a later commit — `Drc369::revise` exists on chain, and the
-Projects surface has no button for it — and fork → remix provenance, which waits on M4.2. The bytes
+Projects surface has no button for it — and fork → remix provenance, whose chain half exists since
+29 September 2026 (a mint records `derived_from`, ADR-061) and whose launcher half does not. The bytes
 are on one machine until the Mesh (M8.1).
 
 **Beyond — the Mesh (M8).** Push and clone against the Mesh, the shared side store settled in CGT,
@@ -339,13 +344,13 @@ phases above map onto P1.2 to P1.7, and its gate is `qontrol` in `GATES.toml`.
 | **Nothing** | Phases 1–4. No chain dependency, no economic value, not migration code. |
 | **M2.1** — the owner reviews the migration inventory | Nothing chain-side may be written before this. **Ticked on 22 September 2026**, against the owner's review of a ten-line summary of the inventory's DRC-369 section. |
 | **M2.3** — the DRC-369 wire format, including the content-hash algorithm and its tag | Fixes what the pointer file's `fingerprint` line means. **Ticked on 22 September 2026 (ADR-047).** |
-| **M4.1 / M4.2** — DRC-369 mint, transfer and content fingerprint; nesting and remix royalties settled in CGT | Publish a version: **built with M4.1, 22 September 2026**. Fork as remix provenance: waits on M4.2. |
+| **M4.1 / M4.2** — DRC-369 mint, transfer and content fingerprint; nesting and remix royalties settled in CGT | Publish a version: **built with M4.1, 22 September 2026**. Fork as remix provenance: the chain records it since M4.2's royalty half (29 September 2026); the launcher does not offer it yet. |
 | **M5.2 / ADR-026** — delegated agent keys with spend caps | An agent committing for a creator. |
 | **M5.4** — the public viewer, on the provenance source chosen in M2 (ADR-028) | Published-version history outside the launcher. |
 | **M8.1** — the Mesh, and seeder work verification (U-6) | A remote at all. |
 | **M8.2** — entitlements from DRC-369 | Access-gated private repositories. |
 | **L1.4** — host-side confirmation before any signature | Publishing. Implemented and unit-tested; unticked until the native dialogs are exercised in a running launcher. |
-| **L1.6 / L1.7** — the launcher's tests run and pass in CI | The three evidence tests are only evidence once CI runs them. |
+| **L1.6 / L1.7** — the launcher's tests run and pass in CI | The three evidence tests are only evidence once CI runs them. **CI runs them**, under `qontrol-no-skips`, and passes on `main` since 5 October 2026. |
 | **L4.1** — minting from the launcher | Shares the publish path. |
 | **L6.1 / L6.2** — signed installers and a verifying update channel | Bundling the sidecar binary and shipping it with the launcher. |
 | **L7.1 / L7.4** — Library delta patches, Mesh seeding | The chunk store Qontrol builds is the same store a delta patch reads. |
@@ -395,15 +400,16 @@ nothing about the repository is lost if Qontrol is uninstalled.
    not make the parser safe. The sidecar holds no keys and opens no network, and its advisories still
    need tracking — there is deliberately no `.cargo/audit.toml` in this tree.
 5. **What the C dependency costs.** A C toolchain becomes a build requirement wherever the sidecar is
-   built, including a CI pipeline that has never successfully executed a job. And libgit2 is GPLv2
+   built, CI included, where it builds and passes. And libgit2 is GPLv2
    with a linking exception, in a tree whose crates are MIT: the exception permits shipping it, but
    the installer's third-party notices must carry libgit2's terms explicitly. Owner-visible.
 6. **The sidecar goes missing.** A partial install, an antivirus quarantine, an unsigned binary on
    macOS, and commits stop. It resolves from `QONTROL_GIT_BIN`, then beside the launcher executable,
-   then a development build tree — and nothing puts it beside the executable yet, because
-   `tauri.conf.json` has no `externalBin` entry. The port reports whether the helper is present.
+   then a development build tree. Since 26 September 2026 the installer puts it beside the executable
+   (`externalBin` in `src-tauri/tauri.bundle.conf.json`), on Windows; the macOS and Linux bundles are not
+   built yet. The port reports whether the helper is present.
 7. **Two hash algorithms, permanently.** Git object ids are SHA-1 today and SHA-256 under Git 3.0;
-   content fingerprints are whatever M2.3 decides, so deduplication between the git object store and
+   content fingerprints are BLAKE3-256 (ADR-047, M2.3), so deduplication between the git object store and
    the content store is impossible across that boundary. The algorithm tag keeps this decidable.
 8. **Chunk boundaries leak information about content.** Published research shows per-user randomised
    chunker parameters can be extracted, after which the leak is protocol-agnostic. Irrelevant for
@@ -425,8 +431,9 @@ Every question this blueprint asked was answered that day. Each answer is the ow
 4. **A user's Unity project is never switched to text serialisation automatically.** Qontrol offers it and
    explains why; the user decides.
 5. **Two placeholders, as proposed:** a locally generated repository id and the repository's own git author line,
-   both marked provisional. ADR-047 is accepted, so the repository id becomes a DRC-369 collection id when M4.1
-   exists.
+   both marked provisional. ADR-047 is accepted, so the repository id becomes a DRC-369 collection id once M4.1
+   can give a repository one. *M4.1 exists since 22 September 2026, with one collection per creator rather than
+   per repository, and the scaffolds write no repository id yet.*
 6. **Local file locks only**, until the platform can hold a lock. No Qontrol lock service.
 7. **The helper ships inside the launcher as a bundled sidecar.** An installed launcher must be able to commit
    (P1.2). *Done 2026-09-26: a Windows installer carries it; the macOS and Linux bundles are not yet built.*

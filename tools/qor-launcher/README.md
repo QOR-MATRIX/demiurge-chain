@@ -4,14 +4,21 @@ The sovereign gateway to the Demiurge ecosystem. One desktop application through
 which every chain and engine system is reached: QOR ID, the CGT Vault, the game
 library, community, peer-to-peer distribution and the node itself.
 
-**Status:** Gate, Nexus, Vault, Inventory, Projects, Chain, Gates and Settings
-are built and running, and so is the first slice of Market (L7.2): every listing
-the chain holds, read through the connected node, with no search and no indexer
-behind it. Library, Social and Mesh are placeholder pages that state their own
-blockers rather than showing mock content. Of the L1
-roadmap items, L1.1, L1.2, L1.3 and L1.5 are ticked; **L1.4 is implemented but
-unticked** until its native dialogs are exercised in a running launcher, and
-L1.6 and L1.7 wait on CI running at all. L3.1 and L3.2 are done.
+**Status:** Version 0.1.8 (unsigned, no update channel; avatars and rings on
+`main` need a new build). Gate, Nexus, Vault, Inventory, Projects, Chain, Gates
+and Settings are built and running, and so is the first slice of Market (L7.2):
+every listing the chain holds, read through the connected node, with no search
+and no indexer behind it. So are payments asked by websites (`qor://pay`), the
+level bubble and XP bar, and the avatar with its ring (below). By default it
+connects to Demiurge Devnet at `wss://rpc.qorsync.dev` and QOR ID at
+`https://id.qorsync.dev`. Library, Social and Mesh are placeholder pages that
+state their own blockers rather than showing mock content. Of the L1 roadmap
+items, L1.1, L1.2, L1.3, L1.5, L1.6 and L1.7 are ticked; **L1.4 is implemented but
+unticked**: the `qor://pay` approval dialog was used for real on 5 and 6 October 2026,
+but a declined request, a transfer and an endpoint change are still untried. L1.6
+and L1.7 were ticked on 6 October 2026 against CI's evidence: CI (GitHub Actions on the public repository,
+ADR-063) runs and is green, including the launcher's host tests, its browser
+checks and the coverage report. L3.1 and L3.2 are done.
 
 ---
 
@@ -47,12 +54,13 @@ tools/qor-launcher
 │   │   ├── chrome/          Frameless title bar, navigation rail, fault boundary
 │   │   ├── gate/            Vault creation, unlock, sign-in, QOR ID claim
 │   │   ├── nexus/           First-run orientation
+│   │   ├── onboarding/      Choosing a QOR ID name
 │   │   └── ui/              The panel surface
 │   ├── lib/ipc.ts           The ONLY module that calls into the host
 │   ├── qfx/                 The living backdrop (QFX layer one): one WebGL2 canvas behind
 │   │                        the interface, under the chrome's scrim
 │   ├── state/store.ts       One Zustand store
-│   └── views/               Overview, Vault, Chain, Inventory, Market, Release gates, Projects, Settings, Horizon
+│   └── views/               Nexus, Vault, Chain, Inventory, Market, Release gates, Projects, Settings, Horizon
 ├── src-tauri/               Rust host (everything security-relevant)
 │   ├── src/cgt.rs           Denomination: parsing, formatting, precision
 │   ├── src/chain/           subxt client for the Substrate chain in chain/ (L3.1, ADR-040),
@@ -63,6 +71,8 @@ tools/qor-launcher
 │   │                        reference, and the temporary content store
 │   ├── src/gates.rs         Release-gate progress from docs/GATES.toml (L2.2)
 │   ├── src/identity/        QOR ID auth + OS keychain token storage
+│   ├── src/pay.rs           qor://pay links, checked before any dialog (ADR-076, ADR-077);
+│   │                        paid by src/chain/pay.rs
 │   ├── src/qontrol/         Qontrol's port: gitoxide for every read, the helper for staging,
 │   │                        switch and discard, and the guard before staging
 │   └── src/vault/           BIP-39, Sr25519 (sp-core), Argon2id, XChaCha20-Poly1305
@@ -128,7 +138,7 @@ before that becomes a real loss.**
 | Key derivation | Argon2id, 64 MiB, 3 passes, 4 lanes | Memory-hardness is what actually costs a GPU attacker. PBKDF2 only costs cycles. |
 | Encryption | XChaCha20-Poly1305 | A 192-bit nonce can be drawn at random with no collision concern, removing the nonce-reuse footgun AES-GCM carries. |
 | Integrity | Header as AEAD associated data | The salt and Argon2 parameters are authenticated, so an attacker cannot downgrade the work factor to make cracking cheap. There is a test for exactly this. |
-| In memory | `Zeroize` throughout | The seed is wiped on lock, on exit, and on the idle timer. |
+| In memory | `Zeroize` throughout | The seed is wiped when the vault's session is dropped: on lock and on exit. There is no idle timer since ADR-056. |
 | In logs | Redacting `Debug` on the decrypted phrase | A derived `Debug` would print the recovery phrase into any panic message or assertion failure that formatted a `Result`. |
 | On disk | Write to a temp file, fsync, rename | A crash cannot leave a truncated file where a recovery phrase used to be. |
 
@@ -202,16 +212,17 @@ per version instead: the owner's own file from `src/assets/first-run/` (its
 README gives the formats), or a longer splash while there is none. Reduced
 motion, in the launcher or the operating system, skips both.
 
-`src/qfx/ceremony/` is the one folder where the design check allows glows,
-gradients and looping animation (the owner's decision, 2026-09-28,
-`docs/design/DESIGN_SYSTEM.md`). Explanatory text elsewhere sits behind an
-information icon (`src/components/ui/InfoTip.tsx`) that opens on hover or
-keyboard focus.
+Since ADR-080 (6 October 2026) glows, gradients, canvas and looping animation
+are allowed on every surface, not only in `src/qfx/ceremony/`; reduce motion
+still stills or skips them, and text must stay readable as painted. Explanatory
+text elsewhere sits behind an information icon (`src/components/ui/InfoTip.tsx`)
+that opens on hover or keyboard focus.
 
 ### Running QOR ID and a chain on this computer
 
-`powershell -File scripts/start-local.ps1` starts what the launcher's settings
-point at: QOR ID on `127.0.0.1:8080` with Postgres (`qor-local-pg`, port
+`powershell -File scripts/start-local.ps1` starts a local QOR ID and chain for
+the launcher's settings to point at (by default they point at the live ones,
+above): QOR ID on `127.0.0.1:8080` with Postgres (`qor-local-pg`, port
 54329, volume `qor-local-pgdata`) and Redis (`qor-local-redis`, port 56389) in
 Docker, and `demiurge-node --dev --tmp` on `127.0.0.1:9944`, a fresh chain each
 start. JWT secrets are made once into `%LOCALAPPDATA%\qor-local\secrets.env`,
@@ -238,11 +249,12 @@ be for: it ported the custom devnet's byte layout by hand, and went with it.
 ### Payments asked by websites: `qor://pay` (ADR-076, ADR-077)
 
 A website can ask the launcher to pay, never make it pay. The `qor` scheme is registered by `tauri-plugin-deep-link`;
-a link clicked while the launcher runs reaches it through `tauri-plugin-single-instance`. `src/pay.rs` checks a link
+a link clicked while the launcher runs reaches it through `tauri-plugin-single-instance`. Added in 0.1.7. `src-tauri/src/pay.rs` checks a link
 before anything is shown: signed with the Ed25519 key of an app in `KNOWN_APPS` (ARQADE's only, today), Demiurge Devnet
 by genesis, a whole number of Sparks up to 100,000 CGT, a valid account, a short label, unexpired and valid for at most
 fifteen minutes, and not already paid (`paid-requests.json` in the app data directory). Only then does the host dialog
-show who asks, the amount, the recipient, that there is no fee, and the balance after. `src/chain/pay.rs` checks the
+show who asks, the amount, the recipient, that there is no fee, and the balance after; approving is that dialog, not
+Windows Hello (ADR-077). `src-tauri/src/chain/pay.rs` checks the
 connected chain's genesis again and pays the transfer and a `remark_with_event` naming the request in one `batch_all`,
 from the vault's first account. Any other link, or an unknown app, is refused with a message, and nothing is signed.
 
@@ -252,7 +264,8 @@ The account's avatar, with its level on a ring that glows from level 1 (ADR-080)
 Nexus header, where clicking it opens the host's own file picker (`qor_choose_avatar`; the webview never reads files).
 QOR ID cleans and keeps the image; the launcher keeps a copy in its data directory (`avatar.bin`, `qor_avatar`) so it
 shows offline. With no picture, or none yet, an avatar is the name's first letter on a colour the name always gets.
-A GIF holds its first frame under reduce motion.
+A GIF holds its first frame under reduce motion. Avatars and rings are on `main` after 0.1.8, so they reach people
+with the next build.
 
 ### Level and XP (ADR-078)
 
@@ -339,8 +352,11 @@ M3.5 is the only chain in the repository.
 chain/target/release/demiurge-node --dev --tmp
 ```
 
-The launcher points at `ws://127.0.0.1:9944`. The chain surface shows the name
-the node reports, so you can see which chain answered.
+The Chain surface's **Local node** preset is `ws://127.0.0.1:9944`; its
+**Devnet** preset, and the launcher's default (`DEFAULT_RPC` in
+`src-tauri/src/chain/mod.rs`), is Demiurge Devnet at `wss://rpc.qorsync.dev`.
+The chain surface shows the name the node reports, so you can see which chain
+answered.
 
 The live test below exercises the whole path against that node, and is the only
 part of the client a test cannot cover without one:
@@ -351,8 +367,8 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
 
 ### Verified
 
-- 195 Rust host tests passing with no node running, and 8 ignored that need a node or the OS keychain
-  (2026-10-02; 182 on 2026-10-01), 39 of them Qontrol's and 7 the object
+- 204 Rust host tests passing with no node running, and 8 ignored that need a node or the OS keychain
+  (2026-10-06; 195 on 2026-10-02), 39 of them Qontrol's and 7 the object
   model's (ADR-047: the same files in any order make the same reference, one changed byte changes it, the
   reference is the 41 bytes the chain stores, and the manifest's encoding is pinned). Build the helper
   first: without it the Qontrol tests that commit skip and say so, and under
@@ -427,8 +443,8 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   repository's `core.autocrlf` and `.gitattributes` before it is compared, and no diff driver's program is
   ever run.
 - The Inventory shows what the chain holds and nothing else: `node scripts/check-inventory-view.mjs` passes
-  **127 checks (2026-09-26)** against a fixture host — the whole script, of which the assets half below is
-  72, the trade 29 and the listing form 16 — each asset's name, the reference it carries now, its
+  **238 checks (2026-10-06)** against a fixture host — the whole script: the assets, the trade, the listing
+  form, and selling and buying, all below — each asset's name, the reference it carries now, its
   pinned commit and whether it is permanent; "Make permanent" only where it can be; after it, the chain's
   next answer and not the view's guess; and nothing held, or a chain that cannot be read, each said as
   such. Since an asset is drawn as a card (`src/qfx/AssetCard.tsx`), it also opens every card as a person
@@ -436,7 +452,7 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   was minted as only where it was revised. Proven to fail first against three faults in the view, and
   three more in the card.
 - **The trade window has two sides and a lane**: what leaves this account, where it goes, and a mark that
-  travels once per change (never a loop — `check-design.mjs` forbids that everywhere). "Recently traded with"
+  travels once per change, not in a loop. "Recently traded with"
   is this machine's own memory of trades the chain finalised (`src-tauri/src/partners.rs`), written nowhere
   else and sent to nobody; choosing one fills the destination.
 - **A trade is driven end to end in the browser**, inside the same check: the menu opened by the keyboard and
@@ -513,9 +529,10 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   version used the traded one and passed silently, because the click that opens the menu used `?.` and a
   missing card made it a no-op. Those clicks do not use `?.`, and the new blocks wait for what they are about
   to read (`until`) rather than for a length of time.
-- **Every run of text is readable as it is painted**, on every screen — the Gate's three states, its unlock
-  screen with Windows Hello on and just cancelled, a checked recovery phrase, and all
-  eleven surfaces on the rail (the Market since 2026-10-02, with a listing of each standing and both its notices; Settings with its Windows Hello panel), plus an asset's menu, a trade, its warning, a file's diff, the discard question
+- **Every run of text is readable as it is painted**, on every screen — the Gate with no vault, an older
+  vault's last Windows Hello (cancelled) or last passphrase (Hello appears only there, to move an older vault
+  to the keychain, ADR-056), a vault that would not open, a checked recovery phrase, and all
+  eleven surfaces on the rail (the Market since 2026-10-02, with a listing of each standing and both its notices), plus an asset's menu, a trade, its warning, a file's diff, the discard question
   and what the guard holds back — in every theme,
   with the backdrop off and with a hostile white backdrop in the canvas's exact place:
   `node scripts/check-readability.mjs`, 361 checks over 16,750 runs of text, all AA (2026-10-02; 341 over 14,500 before the Market). It measures each run twice, from two screenshots: its declared colour
@@ -526,9 +543,10 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
 - Text is readable in every theme and over any backdrop: `node scripts/check-contrast.mjs` applies each
   theme through the app, checks every ink step down to `--ink-faint` on every background token, and solves
   for the worst colour the canvas could paint under the chrome's scrim. 54 checks (2026-09-22).
-- `node scripts/check-design.mjs` passes: no colour literals outside the token files, no sizes or tracking
-  off the scales, and no glows, gradients, pointer-following light or canvas animation — except that
-  `src/qfx/` is exempt from the canvas and pointer rules, and from nothing else (2026-09-21).
+- `node scripts/check-design.mjs` passes its three rules (2026-10-06): no colour literals outside the token
+  files, and no sizes or tracking off the scales. Since ADR-080 (6 October 2026) effects — glow, gradients,
+  canvas, pointer-reactive light, looping animation — are allowed everywhere and the check no longer looks
+  for them; reduce motion and the contrast and readability checks still bind.
 - **The Gates surface shows the host's numbers and no others**: `node scripts/check-gates-view.mjs` passes
   34 checks (2026-09-17). It answers `gates_report` with a fixture whose numbers are known, opens the
   surface in the rendering engine and reads back what was drawn, so the view cannot round, weight or
@@ -552,7 +570,9 @@ with the chain.
 The launcher is the reference implementation of the Demiurge design system:
 [`docs/design/DESIGN_SYSTEM.md`](../../docs/design/DESIGN_SYSTEM.md). It covers tokens, themes,
 the type, tracking and spacing scales, components, motion, the accessibility settings and what is
-ruled out. `node scripts/check-design.mjs` fails on anything the document rules out.
+ruled out. `node scripts/check-design.mjs` fails on colour literals outside the token files and on sizes
+or tracking off the scales. Since ADR-080 effects are allowed; reduce motion must still stop them moving, and the
+contrast and readability checks still measure the text over them.
 
 System fonts only: a launcher must render correctly offline and on first run.
 

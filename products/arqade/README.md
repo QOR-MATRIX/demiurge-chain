@@ -1,11 +1,14 @@
 # ARQADE
 
 The gaming platform powered by Demiurge (ADR-069): solo games, two live multiplayer arenas, read-only views of
-Demiurge Devnet, QOR ID sign-in, and the developer SDK in [`sdk/`](sdk/README.md). Design:
+Demiurge Devnet, QOR ID sign-in, tips through the QOR Launcher, and the developer SDK in [`sdk/`](sdk/README.md). Design:
 [`docs/blueprints/arqade.md`](../../docs/blueprints/arqade.md); steps: P7 in [`docs/DIRECTION.md`](../../docs/DIRECTION.md).
 
-It is a standard Next.js site hosted on **Vercel**, with **Postgres** for the live arcade, and players sign in with
-**QOR ID** (ADR-074). Screens may be designed in v0; what v0 produces comes back here and passes CI like any change.
+It is live at <https://qor-arqade-tau.vercel.app>: a standard Next.js site hosted on **Vercel**, with **Postgres**
+(Neon) for the live arcade, and players sign in with **QOR ID** (ADR-074). A player is a QOR ID account. Their QOR ID
+level shows in a bubble on the sidebar avatar and as a Level row on the QOR Identity card; a player's first finished
+multiplayer match is reported to QOR ID once, as a task, and so is a paid tip (ADR-078). Screens may be designed in
+v0; what v0 produces comes back here and passes CI like any change.
 
 ## Run it
 
@@ -13,7 +16,7 @@ Node 22.13 or later.
 
 ```sh
 npm ci
-npm test          # 41 tests: arenas and chat against Postgres (PGlite), sign-in, the devnet reader, the SDK
+npm test          # 48 tests (6 October 2026): arenas and chat against Postgres (PGlite), sign-in, tips, the devnet reader, account lookup, the SDK
 npm run typecheck
 npm run lint
 npm run build     # migrations (production only, see below), then next build
@@ -60,7 +63,9 @@ values are always bound ([`lib/db.ts`](lib/db.ts)).
 
 ## What it is not, yet
 
-No payment, no real CGT, no signing from a player's Vault (P7.4 onward). Vercel's Hobby plan is for non-commercial use;
-the project moves to a plan that allows commercial use before ARQADE takes a payment (ADR-074).
+Tips in devnet test CGT, signed and paid in the player's QOR Launcher, are the only payment. No real CGT, no purchases,
+no prizes. ARQADE holds no key that can move CGT; its key only signs `qor://pay` requests. Vercel's Hobby plan is for
+non-commercial use; the project moves to a plan that allows commercial use before ARQADE takes a real payment or pays
+out real CGT (ADR-074).
 
 Every control, what it reads and how it was checked: [`INTEGRATION_INVENTORY.md`](INTEGRATION_INVENTORY.md).

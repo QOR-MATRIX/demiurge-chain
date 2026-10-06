@@ -124,9 +124,11 @@ pub const DEVNET_CHAIN_NAME: &str = "Demiurge Devnet";
 ///
 /// Public keys and addresses only. The validators' keys are made on their own
 /// disks at first boot (`chain/docker/entrypoint.sh`) and the sudo account in the
-/// owner's wallet, so this function takes them as arguments; no built-in
-/// `--chain demiurge_devnet` exists until those public values are known (the
-/// plan's §1.4 step order).
+/// owner's wallet, so this function takes them as arguments. Since they became
+/// known on 3 October 2026, `--chain demiurge_devnet` builds the spec from them
+/// (`devnet_built_in`). The live network still runs from the committed raw spec,
+/// `specs/demiurge_devnet.raw.json`: genesis includes the runtime, so a newer build
+/// would produce a different genesis.
 ///
 /// Genesis, as the owner decided on 3 October 2026, and nothing else:
 ///

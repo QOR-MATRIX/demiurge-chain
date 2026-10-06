@@ -2,8 +2,8 @@
  * The panel surface.
  *
  * Every panel in the launcher is one of these: a translucent fill, a hairline
- * border and a 2px radius. Structure comes from those and from spacing. Nothing
- * on a panel glows or follows the pointer (`docs/design/DESIGN_SYSTEM.md`).
+ * border and a 2px radius. Structure comes from those and from spacing. Panels
+ * do not glow or follow the pointer: a choice, since ADR-080 allows effects.
  *
  * `interactive` panels answer hover with a fill and a border, the same way
  * buttons do. `cut` adds the corner registration marks that identify a panel

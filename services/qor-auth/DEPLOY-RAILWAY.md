@@ -17,7 +17,7 @@ setting lives on the service and is written down here instead.
 Root directory `/services/qor-auth`; Dockerfile `Dockerfile`; healthcheck **`/ready`** (it tests Postgres and
 Redis; `/health` answers 200 even with a dead database), timeout 120 s; restart on failure, 3 retries; redeploys
 only when `/services/qor-auth/**` changes. The Dockerfile's `CMD` starts it, and it reads Railway's `PORT`.
-Migrations run at startup, from inside the binary.
+Migrations run at startup, from inside the binary; the latest is `022_avatars.sql` (6 October 2026).
 
 ## `qor-auth` variables
 
@@ -35,7 +35,7 @@ Migrations run at startup, from inside the binary.
 | `QOR_AUTH__SECURITY__PASSWORD_MIN_LENGTH` | `12` |
 | `QOR_AUTH__CHAIN__SS58_PREFIX` | `42` |
 | `QOR_AUTH__DATABASE__MAX_CONNECTIONS` | `10` |
-| `QOR_OAUTH_CLIENTS` | The apps that may sign people in through QOR ID's page (ADR-073), a JSON array: `[{"id":"arqade","name":"ARQADE","redirect_uris":["https://…/api/auth/callback"],"secret_sha256":"<64 hex>"}]`. Only the **hash** of an app's secret is set here; the secret itself lives with the app. Unset means no app can sign anyone in, which is safe |
+| `QOR_OAUTH_CLIENTS` | **Set.** The apps that may sign people in through QOR ID's page (ADR-073), a JSON array of `{"id", "name", "redirect_uris", "secret_sha256"}`: `id` is 1 to 64 letters, digits, `-` or `_`; each redirect URI is compared exactly and must be `https`, or `http` on `localhost`, `127.0.0.1` or `[::1]`, with no fragment; `secret_sha256` is the SHA-256 of the app's secret in 64 hex characters, absent for an app that cannot keep a secret (`src/config.rs`). Only that **hash** is set here; the secret itself lives with the app. One app is registered: **ARQADE**, id `arqade`, redirect URI `https://qor-arqade-tau.vercel.app/api/auth/callback`, with a secret hash. A list QOR ID refuses stops it at start-up; unset would mean no app can sign anyone in |
 | `RUST_LOG` | `qor_auth=info,tower_http=info` |
 | `QOR_AUTH__JWT__ACCESS_SECRET` | **Secret.** At least 32 characters. Pasted in the dashboard by the owner |
 | `QOR_AUTH__JWT__REFRESH_SECRET` | **Secret.** Different from the access secret. Pasted in the dashboard by the owner |
@@ -45,8 +45,31 @@ because `config/production.toml` carries a weaker 8, and changing that file is t
 
 **Email is on (1 October 2026).** `EMAIL_FROM` is `Demiurge-Cloud <noreply@demiurge.cloud>`, `BASE_URL` is
 `https://id.qorsync.dev`, and `RESEND_API_KEY` is a secret the owner pasted in the dashboard; the service logs
-"Email service configured". `RESEND_WEBHOOK_SECRET` is not set yet, so bounce and complaint reports are refused with
-503. `RESEND_API_URL` stays unset.
+"Email service configured". `RESEND_WEBHOOK_SECRET` is not confirmed set: while it is unset, bounce and complaint
+reports are refused with 503, and `main.rs` warns at start-up ("RESEND_WEBHOOK_SECRET is not set"), so the deploy log
+answers it. `RESEND_API_URL` stays unset.
+
+**Browser origins: not set, and not settable by a variable.** `server.allowed_origins` is the list of browser origins
+allowed to call QOR ID cross-origin (`src/config.rs`, `cors_layer` in `src/main.rs`). `config/production.toml` does
+not set it, so production keeps the development default: `http://localhost:1420`, `http://127.0.0.1:1420`,
+`http://localhost:3000` and `http://127.0.0.1:3000`. No public origin may call it from a browser, and nothing needs to
+today: QOR ID's own pages are served from `id.qorsync.dev` itself, ARQADE calls `/oauth/token`, `/oauth/userinfo`,
+`/oauth/revoke` and `/oauth/progress` from its server (`products/arqade/lib/qor-session.ts`), and the launcher is not
+a browser. **Do not add `QOR_AUTH__SERVER__ALLOWED_ORIGINS`.** The `QOR_AUTH` prefix reaches the field, but the
+configuration library (`config` 0.14.1) reads one variable as a string, never a list, and the service then fails to
+start: a program built with the same library and the same loader answered "invalid type: string, expected a sequence"
+for one origin, two separated by a comma, and an empty value (6 October 2026). A browser front end on another origin
+needs the list set in `config/production.toml`, or a code change.
+
+**Three sign-ups per network address (ADR-078) depend on Railway's edge.** `register` and `keypair-register` count
+accounts made in 30 days per address, read from `X-Real-IP`, which Railway's edge sets (`src/handlers/progress.rs`).
+`X-Forwarded-For` is not read. A request without `X-Real-IP` is not limited, so the limit holds only for traffic that
+arrives through Railway's edge. The address is never stored: `signup_addresses` holds an HMAC-SHA-256 of it keyed from
+`QOR_AUTH__JWT__ACCESS_SECRET`, so there is no separate variable, and rotating that secret starts every count again.
+
+**Avatars (ADR-079, migration 022) live in Postgres.** Uploads are re-encoded and kept in the `avatars` table, with
+reports and removals beside them, and served at `/avatars/{hash}` and `/avatars/{hash}/still` (the first frame of an
+animated one). An upload may be up to 4 MB. No volume or storage bucket is needed beyond Postgres's own.
 
 ## Secrets
 

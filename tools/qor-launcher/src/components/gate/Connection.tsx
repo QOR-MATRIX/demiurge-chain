@@ -12,6 +12,9 @@
  *
  * So this probes every known endpoint pair, reports honestly which answered, and
  * lets the choice be made before anyone has signed in to anything.
+ *
+ * (That was September 2026. Since ADR-056 Settings no longer waits on sign-in,
+ * but the chooser stays at the Gate, where a fresh install meets it first.)
  */
 
 import { useCallback, useEffect, useState } from 'react';
