@@ -1,5 +1,9 @@
 # QOR Engine
 
+**Superseded, 6 October 2026, by ADR-081: QQ is QOR Engine.** This blueprint describes the withdrawn plan, a
+custom Godot build, including its promise that every project opens in stock Godot (item 11 below, P3.6).
+QQ's blueprint replaces it. Do not build against this document.
+
 **Status:** Blueprint, 21 September 2026. Describes intent, not code that exists. No line of QOR Engine has been written, and nothing below is a commitment to a date.
 
 **Since 22 September 2026:** ADR-047, the object model and DRC-369's wire format, is accepted and M2.3 is ticked, and M2.1 was ticked the same day against the owner's review of a ten-line summary of the inventory's DRC-369 section. Wherever this document says something waits on "M2.1 and M2.3", it now waits on neither, and where it calls the content fingerprint undecided, it is a BLAKE3-256 manifest root with its algorithm tagged.

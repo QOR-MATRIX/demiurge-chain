@@ -42,8 +42,9 @@ People reach these primitives through client surfaces:
   it mints a commit as a DRC-369 asset (M4.1).
 - **QFX**, the launcher's living visual layer, authored by creators and paid for when used (P2). Layer
   one's first slice, the backdrop, is built.
-- **QOR Engine**, a creation tool that is a custom Godot build tracking upstream: "QOR Engine, built on
-  Godot" (P3).
+- **QOR Engine**, which is **QQ** since ADR-081 (6 October 2026): an engine and editor for small,
+  effects-led 2D and 3D games, in the launcher and on ARQADE, driveable by an LLM and generative (P3). The
+  Godot build it was planned as is withdrawn.
 - **GNOSIS**, music production whose project is a mergeable tree of text files, versioned by Qontrol (P4).
 - **Market and Library**, where work is listed and bought in CGT, and where what you bought installs,
   patches and launches (P5, carrying L7.1 and L7.2).
@@ -852,6 +853,11 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
 #### P3: QOR Engine (P3.1 depends on nothing)
 
 A creation tool that is a custom Godot build tracking upstream. [`blueprints/qor-engine.md`](blueprints/qor-engine.md).
+
+**Superseded by ADR-081 (6 October 2026): QQ is QOR Engine.** The Godot build below, its blueprint and the
+stock-Godot promise (P3.6) are withdrawn, and `GATES.toml` no longer requires
+`a_project_opens_in_stock_godot`. These six items stand, marked superseded, until QQ's work starts and they
+are rewritten as QQ's items; nothing is built against them.
 
 1. [ ] The build exists: a lightly rebranded Godot build on Windows, macOS and Linux — "QOR Engine, built on
    Godot", with an editor Godot's own documentation still describes — tracking the current stable 4.x line,

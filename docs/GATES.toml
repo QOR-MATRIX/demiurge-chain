@@ -700,6 +700,21 @@ date = "2026-10-06"
 type = "correction"
 change = "Descriptive text only; no criterion, kind, met condition, threshold, done flag or list changes. [ci].quality_gates names the nine checks npm run check runs. ADR-050 and the other substrate records are described as accepted. alpha.security-track's note on 7.1.4 says the tree substantiates it again (pallet-drc369's authorised mint and owner-of-both nesting tests, required by alpha.pallets). alpha.chain-tests' comment says R-2 is in alpha.pallets and multi-validator agreement is the two-validators job. alpha.multi-validator's evidence names its first Actions results. alpha.no-dependency-patching's text points at ci.yml's step instead of the deleted .woodpecker/security.yaml. public-release.single-provider-revisited names Railway beside Fly. Market's note says its first slice and check-market-view.mjs exist. The arqade gate's comments record that ADR-076 to ADR-079 and P7.16 to P7.18 are not counted. The same day DIRECTION.md ticks L1.6, L1.7 and P7.4 with their evidence, so alpha.launcher, qfx.depends and arqade.roadmap read more units met; that is the roadmap kind working as defined, not a change here."
 reason = "The text had gone stale against the tree: Woodpecker gone since 2026-09-29, ADR-046 to ADR-050 accepted on 2026-09-28, Market and nesting built. Rewording a done = false criterion's reference is not marking it; alpha.no-dependency-patching stays done = false for the owner to assert."
+approved_by = "owner, 2026-10-06: \"Release gates file confirmed.\" (the two reworded says texts included)"
+
+[[change_log]]
+date = "2026-10-06"
+type = "approval"
+change = "alpha.no-dependency-patching is marked done = true, with main's run 37496555161 as evidence: the security job's step \"Fail if anything repoints the dependency graph\" ran on the merge of #13 and passed."
+reason = "A check criterion is met only when the owner asserts it. The control exists in ci.yml, fails the run on any hit, and has passed on main since CI started running on GitHub Actions; the owner asserted it on seeing that evidence."
+approved_by = "owner, 2026-10-06: \"Mark Dependency-patching gate done.\""
+
+[[change_log]]
+date = "2026-10-06"
+type = "loosening"
+change = "qor-engine.opens-in-stock-godot is removed from the qor-engine gate, and with it the required test a_project_opens_in_stock_godot. No other criterion, kind, met condition or counting rule changes. qor-engine.roadmap still counts P3.1 to P3.6 until QQ's items replace them."
+reason = "The criterion enforced one promise: that every QOR Engine project opens in stock Godot (P3.6, made a criterion on 2026-09-22). ADR-081 replaces the Godot foundation with QQ and withdraws that promise, so the criterion has nothing left to measure. It was unmeasurable (products/qor-engine does not exist), so no gate's counts of met or not_met move. The owner's decision is its own record, ADR-081, made before this change."
+approved_by = "owner, 2026-10-06: \"QQ becomes QOR Engine\" and \"Authorized to build by any means necessary to produce the results outlined\" (ADR-081)"
 
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
@@ -1093,8 +1108,8 @@ nothing holds value."""
   id = "alpha.no-dependency-patching"
   kind = "check"
   says = "CI fails if any tracked manifest contains a [patch] section, or if anything tracked references the owner's personal Substrate fork or any substrate git repository; the exact patterns are in .github/workflows/ci.yml, in the security job's step \"Fail if anything repoints the dependency graph\", and are not repeated here, because this file is scanned too. Two files are excluded and both are visible in any diff that widens them: .github/workflows/ci.yml, which must contain the patterns to search for them, and HANDOFF.md, which records the deletions and the rule."
-  done = false
-  evidence = ""
+  done = true
+  evidence = "https://github.com/QOR-MATRIX/demiurge-chain/actions/runs/37496555161 (main at 9f8a818, 6 October 2026: the security job's step passed; asserted done by the owner the same day, recorded in HANDOFF.md)"
 
   [[gates.criteria]]
   id = "alpha.no-secrets-in-logs"
@@ -1536,15 +1551,9 @@ publishing added as modules and editor plugins."""
   suite = "qor_engine"
   require = []
 
-  # The owner's promise of 2026-09-22, made a criterion by the owner's
-  # instruction: a QOR Engine project opens in stock Godot of the tracked
-  # version, its QOR nodes degrading rather than failing. Unmeasurable until
-  # products/qor-engine exists; the test is named now so it cannot be dropped.
-  [[gates.criteria]]
-  id = "qor-engine.opens-in-stock-godot"
-  kind = "tests"
-  suite = "qor_engine"
-  require = ["a_project_opens_in_stock_godot"]
+  # qor-engine.opens-in-stock-godot was removed on 2026-10-06: ADR-081 withdrew
+  # the promise it enforced (change log). This gate is rewritten for QQ, as a
+  # tightening, when QQ's roadmap items replace P3's.
 
 [[gates]]
 id = "gnosis"
