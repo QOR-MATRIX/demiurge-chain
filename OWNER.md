@@ -41,25 +41,21 @@ or give anyone test CGT except by you sending it from the faucet.
 
 ## Next, in order
 
-1. **Fund your launcher account on the devnet** and try minting, selling and the Market there.
-2. **CI is green** since your option A (ADR-072); next, the two-validator check on its nightly run.
-3. **A faucet page**, so testers can get test CGT without you sending it by hand.
-4. **The indexer** — *a service that reads the chain so the Market can search and show history*.
-5. **Prize rounds are live on the devnet** — *a game locks a prize on the chain before anyone plays for it*. The SDK
-   finds a game's wallet and builds its payouts.
-
+1. **Levels, XP and the welcome grant** (ADR-078): the level bubble and XP bar in the launcher and ARQADE, simple tasks,
+   cosmetic unlocks, and 100 test CGT for each new account once its tutorial, email and key are confirmed.
+2. **ARQADE inside the launcher**: a Play section, signed in, payments approved in the launcher's own window.
+3. **CGT rewards for multiplayer wins**, from ARQADE's ARQ Wallet — *the game's own payout account* — on the devnet.
+4. **A faucet page**, and **the indexer** — *a service that reads the chain so the Market can search*.
 ## What only you can do
 
-1. **Merge pull request #7**, then open `id.qorsync.dev/account` and **add your email address**, so a forgotten
-   password can be reset. You accepted **ADR-076** (*paying on ARQADE through the launcher*, at most 100,000 test CGT
-   a payment). **It is built**: tipping a game's creator from your launcher. To switch it on: merge, add two
-   settings in Vercel, install the new launcher — I'll walk you through each.
-2. **Put ARQADE on Vercel**, one step at a time with me: merge the `session/arqade-vercel` pull request, import the
-   repository in Vercel (folder `products/arqade`), add a free Neon database there, then one Railway setting and three
-   Vercel settings. Vercel's free plan is for non-commercial use; it must change before ARQADE takes any payment.
-3. **Send yourself test CGT:** open `https://polkadot.js.org/apps/?rpc=wss://rpc.qorsync.dev`, allow your wallet,
-   then Accounts → **Devnet faucet** → Send → to your launcher address `5DMPEX…qLxK`.
-4. **Get a legal opinion** on backing (crowdfunding) and on paid games with prizes before either goes live.
+1. **Decide whether avatar rings may glow** (ADR-078, which you accepted with a 100 CGT welcome grant). Until you do,
+   rings are colour and pattern only.
+2. **Add your email address** at `id.qorsync.dev/account` — *QOR ID's own account page* — so a forgotten password
+   can be reset. **Tips through the launcher work** (ADR-076): you tipped a creator from launcher 0.1.7 on 6 October.
+3. **Replace the key behind the 24-word phrase** pasted into a chat on 5 October: treat it as exposed. If it is the
+   devnet's admin key, move admin to a new key (`sudo.setKey`).
+4. **Get a legal opinion** on backing (crowdfunding), paid games with prizes, the welcome grant and task rewards, and
+   making CGT exchangeable, before any of them goes live.
    Still open for ARQADE: its look (v0), its web address, and the rest of **U-16** — *whether paying to enter may win a
    prize, and the platform's minimum waiting times on an ARQ Wallet*.
 5. **Take your Resend key out of this PC's environment**; Railway holds it now.
@@ -67,7 +63,7 @@ or give anyone test CGT except by you sending it from the faucet.
    secret into Railway as `RESEND_WEBHOOK_SECRET`.
 7. **In Cloudflare**, delete the `ci` record and the tunnel.
 8. **Revoke the old SSH key** (`admin@pleroma`) and **rotate the nine credentials** in `SECURITY.md`.
-9. **Open economic questions**: the 15% for selling, deposit amounts (U-14), Q-19 and Q-20, U-16.
+9. **Open economic questions**: the 15% for selling, deposit amounts (U-14), Q-19 and Q-20, U-16, and **U-18** — *who funds the welcome grant and any task rewards with real CGT*.
 
 ## What it costs per month
 

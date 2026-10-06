@@ -276,6 +276,21 @@ Kickstarter and Patreon. Backers receive the work (DRC-369 rewards), never its p
 Crowdfunding and donations are regulated in many places, so production also waits on the owner's legal review. On the
 devnet it is built and tested with test CGT and values marked as placeholders.
 
+### U-18: CGT for tasks, the welcome grant, and what funds them
+
+Opened on 6 October 2026 by ADR-078, when the owner asked for CGT rewards for completing tasks across the ecosystem and a
+small welcome grant on finishing the tutorial. Levels and XP are settled there and touch no CGT. What is not:
+
+- ~~The welcome grant's amount~~: **set by the owner on 6 October 2026 at 100 CGT** (ADR-078), knowing an account at
+  exactly the existential deposit opens with nothing to spend.
+- **Who funds the Welcome account** with real CGT, and whether task rewards beyond the grant pay CGT at all, and how much.
+- **The ten-minute boost**: what it multiplies and by how much.
+- **Whether a reward is a payment for work, a licence, or neither** (ADR-008), which decides whether it passes the spend
+  test (ADR-002) and which demand sink, if any, it belongs to (ADR-006).
+
+Rewards for sign-up tasks attract account farming, and token grants and rewards are regulated in many places, so real
+CGT also waits on the owner's legal review. On the devnet the grant runs with test CGT from the faucet.
+
 ### Settled, and recorded elsewhere
 
 **U-13, the currency's ticker.** Decided on 17 September 2026 and no longer open: the ticker is `CGT` and the name
