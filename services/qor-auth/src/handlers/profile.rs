@@ -76,6 +76,8 @@ pub async fn get_profile(
         "email_deliverable": email_deliverable,
         "display_name": user.username, // Use username as display name for now
         "avatar_url": user.avatar_url,
+        // An avatar the owner removed, not yet replaced: the client says so (ADR-079).
+        "avatar_removed": crate::handlers::avatar::removal_notice(&state.db, user.id).await?,
         "role": user.role,
         "status": user.status,
         "created_at": user.created_at,
@@ -102,18 +104,6 @@ pub async fn get_profile(
 pub async fn update_profile(State(_state): State<Arc<AppState>>) -> AppResult<Json<Value>> {
     Err(AppError::NotImplemented(
         "Profile updates are not implemented; nothing was changed".into(),
-    ))
-}
-
-/// Upload an avatar: not implemented.
-/// POST /api/v1/profile/avatar
-///
-/// This answered "Avatar uploaded successfully. Minting as DRC-369 NFT...", but
-/// stored nothing, minted nothing, and took the account from the form rather than
-/// the access token. It refuses until there is somewhere to store images.
-pub async fn upload_avatar(State(_state): State<Arc<AppState>>) -> AppResult<Json<Value>> {
-    Err(AppError::NotImplemented(
-        "Avatar upload is not implemented; nothing was stored or minted".into(),
     ))
 }
 

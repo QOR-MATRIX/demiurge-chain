@@ -3,6 +3,7 @@
 pub mod account;
 pub mod admin;
 pub mod auth;
+pub mod avatar;
 pub mod health;
 pub mod oauth;
 pub mod pages;

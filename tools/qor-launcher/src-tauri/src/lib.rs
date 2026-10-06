@@ -1092,6 +1092,117 @@ async fn qor_restore(state: tauri::State<'_, AppState>) -> Result<Session, QorEr
     state.identity.restore().await
 }
 
+// ── The account's avatar (ADR-079) ────────────────────────────────────────────
+
+/// The largest file offered for upload; QOR ID refuses more and cleans the rest.
+const AVATAR_UPLOAD_LIMIT: u64 = 4 * 1024 * 1024;
+
+fn avatar_cache(state: &AppState) -> (std::path::PathBuf, std::path::PathBuf) {
+    (
+        state.data_dir.join("avatar.bin"),
+        state.data_dir.join("avatar.type"),
+    )
+}
+
+/// Keep a copy of the account's avatar on this machine, so it shows offline. No avatar clears the copy.
+async fn refresh_avatar_copy(state: &AppState, session: &Session) {
+    let (bytes_path, type_path) = avatar_cache(state);
+    match session.avatar_url.as_deref() {
+        Some(url) => match state.identity.fetch_avatar(url).await {
+            Ok((bytes, content_type)) => {
+                let _ = std::fs::write(&bytes_path, bytes);
+                let _ = std::fs::write(&type_path, content_type);
+            }
+            Err(e) => tracing::warn!("the avatar could not be kept for offline: {e}"),
+        },
+        None => {
+            let _ = std::fs::remove_file(&bytes_path);
+            let _ = std::fs::remove_file(&type_path);
+        }
+    }
+}
+
+/// Choose an image or GIF in a native file picker and make it the account's avatar. The webview never reads files:
+/// the host opens the picker, reads the one file chosen, and uploads it. Cancelling changes nothing.
+#[tauri::command]
+async fn qor_choose_avatar(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<Option<Session>, QorError> {
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        use tauri_plugin_dialog::DialogExt;
+        app.dialog()
+            .file()
+            .set_title("Choose your avatar")
+            .add_filter("Images and GIFs", &["png", "jpg", "jpeg", "webp", "gif"])
+            .blocking_pick_file()
+    })
+    .await
+    .map_err(|e| QorError::Internal(e.to_string()))?;
+    let Some(picked) = picked else {
+        return Ok(None);
+    };
+    let path = picked
+        .into_path()
+        .map_err(|e| QorError::Io(format!("that file could not be opened: {e}")))?;
+    let size = std::fs::metadata(&path)
+        .map_err(|e| QorError::Io(e.to_string()))?
+        .len();
+    if size > AVATAR_UPLOAD_LIMIT {
+        return Err(QorError::Io("that file is larger than 4 MB".into()));
+    }
+    let bytes = std::fs::read(&path).map_err(|e| QorError::Io(e.to_string()))?;
+    let content_type = match path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(str::to_ascii_lowercase)
+        .as_deref()
+    {
+        Some("png") => "image/png",
+        Some("jpg" | "jpeg") => "image/jpeg",
+        Some("webp") => "image/webp",
+        Some("gif") => "image/gif",
+        _ => "application/octet-stream",
+    };
+    let session = state.identity.upload_avatar(bytes, content_type).await?;
+    refresh_avatar_copy(&state, &session).await;
+    Ok(Some(session))
+}
+
+/// Remove the account's avatar.
+#[tauri::command]
+async fn qor_remove_avatar(state: tauri::State<'_, AppState>) -> Result<Session, QorError> {
+    let session = state.identity.remove_avatar().await?;
+    refresh_avatar_copy(&state, &session).await;
+    Ok(session)
+}
+
+/// The account's own avatar from this machine's copy, as a data URL, or none. Refreshes the copy first when online.
+#[tauri::command]
+async fn qor_avatar(
+    state: tauri::State<'_, AppState>,
+    refresh: bool,
+) -> Result<Option<String>, QorError> {
+    if refresh {
+        if let Ok(session) = state.identity.restore().await {
+            refresh_avatar_copy(&state, &session).await;
+        }
+    }
+    let (bytes_path, type_path) = avatar_cache(&state);
+    let (Ok(bytes), Ok(content_type)) = (
+        std::fs::read(bytes_path),
+        std::fs::read_to_string(type_path),
+    ) else {
+        return Ok(None);
+    };
+    use base64::Engine as _;
+    Ok(Some(format!(
+        "data:{};base64,{}",
+        content_type.trim(),
+        base64::engine::general_purpose::STANDARD.encode(bytes)
+    )))
+}
+
 /// The signed-in account's level and XP (ADR-078).
 #[tauri::command]
 async fn qor_progress(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, QorError> {
@@ -1392,6 +1503,9 @@ pub fn run() {
             qor_link_wallet,
             qor_restore,
             qor_progress,
+            qor_choose_avatar,
+            qor_remove_avatar,
+            qor_avatar,
             qor_tutorial_done,
             qor_logout,
             qor_set_auth_endpoint,

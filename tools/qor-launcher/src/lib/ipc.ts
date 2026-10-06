@@ -811,6 +811,11 @@ export const identity = {
   progress: () => call<Progress>('qor_progress'),
   /** The tutorial is finished: XP once. */
   tutorialDone: () => call<Progress>('qor_tutorial_done'),
+  /** Pick an image or GIF in a native picker and make it the avatar (ADR-079). Null when cancelled. */
+  chooseAvatar: () => call<Session | null>('qor_choose_avatar'),
+  removeAvatar: () => call<Session>('qor_remove_avatar'),
+  /** The account's own avatar as a data URL from this machine's copy, or null. */
+  avatar: (refresh: boolean) => call<string | null>('qor_avatar', { refresh }),
   /** Try QOR ID again with the open vault, as opening it does. */
   signIn: () => call<Arrival>('qor_sign_in'),
   logout: () => call<void>('qor_logout'),

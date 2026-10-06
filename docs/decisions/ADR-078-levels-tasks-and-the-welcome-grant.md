@@ -5,6 +5,8 @@ N to 100 CGT. Proposed the same day. Decisions 1, 6, 7 and 9 are the owner's dir
 were recommendations, accepted as written. Glowing ring styles (decision 4) were not decided: until the owner decides,
 ring styles are colour and pattern only. It opens U-18 for the rest. Not yet built.
 
+**Answered, 6 October 2026, by [ADR-080](ADR-080-effects-are-allowed.md):** ring styles may glow. The text below is kept as accepted.
+
 ## Context
 
 The owner asked for "a truly gamified experience that rewards users in CGT for completing tasks within the ecosystem",

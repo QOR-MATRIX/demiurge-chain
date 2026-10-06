@@ -10,6 +10,8 @@ keywords = ["authentication", "identity", "blockchain", "qor-id"]
 categories = ["authentication", "web-programming"]
 
 [dependencies]
+# Avatars (ADR-079): every upload is decoded and re-encoded clean. Pure Rust decoders, no shelling out.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
 # Web Framework
 axum = { version = "0.8", features = ["macros", "ws", "multipart"] }
 axum-extra = { version = "0.10", features = ["typed-header", "cookie"] }

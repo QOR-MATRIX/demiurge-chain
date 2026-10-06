@@ -49,8 +49,8 @@ or give anyone test CGT except by you sending it from the faucet.
 4. **A faucet page**, and **the indexer** — *a service that reads the chain so the Market can search*.
 ## What only you can do
 
-1. **Decide whether avatar rings may glow** (ADR-078, which you accepted with a 100 CGT welcome grant). Until you do,
-   rings are colour and pattern only.
+1. **Merge the avatars pull request**, then reinstall the launcher: your avatar (click it on the Nexus to choose a
+   picture or GIF) shows your level on a glowing ring. Effects are now allowed everywhere (ADR-080, your call).
 2. **Add your email address** at `id.qorsync.dev/account` — *QOR ID's own account page* — so a forgotten password
    can be reset. **Tips through the launcher work** (ADR-076): you tipped a creator from launcher 0.1.7 on 6 October.
 3. **Replace the key behind the 24-word phrase** pasted into a chat on 5 October: treat it as exposed. If it is the

@@ -9,41 +9,24 @@ When this document and the launcher disagree, fix one of them in the same change
 
 ## 1. Position
 
-Professional and restrained, dark and confident. Typographic hierarchy and generous spacing do the
-work, not decoration (`docs/DIRECTION.md` §5). **When in doubt, subtract.**
+**Distinctive and intentional, never a generic template** (the owner, 6 October 2026, ADR-080). Demiurge should not
+look like the default output of a design tool or an AI: every surface earns its look. Effects are allowed wherever
+they serve that, on every surface: glow, neon, gradients, shadows, canvas and shader backdrops, light that answers the
+pointer, animation that loops. Typographic hierarchy, spacing and the theme's tokens still carry the structure.
 
-Ruled out on every surface:
-- glows, including glowing status indicators and focus rings;
-- light or effects that follow the pointer;
-- particle fields, canvas backdrops and other animated backgrounds;
-- gradients used as colour, including vignettes and gradient progress bars;
-- neon colour and cyberpunk styling;
-- animation that loops for decoration. A loading spinner is not decoration.
+What effects owe the people using them is not optional:
+- **Reduce motion**, in the launcher or the operating system, stills every moving effect or skips it.
+- **Text stays readable over whatever is behind it**, measured as painted (`scripts/check-readability.mjs`,
+  `scripts/check-contrast.mjs`).
+- **Colours, sizes and letter-spacing come from the theme's tokens and scales**, so every theme can restyle them.
+  `tools/qor-launcher/scripts/check-design.mjs` fails on colour literals outside the token files and on sizes or
+  tracking off the scales, and on nothing else.
 
-`tools/qor-launcher/scripts/check-design.mjs` fails on colour literals outside the token files, sizes
-or tracking off the scales, shadows, gradients, pointer-following effects and canvas animation.
-
-**One exception, and its rule** (ADR-051, accepted 22 September 2026): **the design system governs the default
-theme and the chrome; QFX governs the canvas; the default must still pass `check-design.mjs` unchanged.** QFX's
-surfaces, in `src/qfx/` alone, may move and answer the pointer, which is why the check exempts that one directory
-from its canvas and pointer rules and from nothing else. Everything a person reads, presses or trusts is chrome,
-and the list above applies to it without exception. The dreamlike look is a creator's choice, never the default.
-
-**Widened once, by the owner, on 22 September 2026:** the exempt directory holds the canvas backdrop *and* the
-DRC-369 asset card, which leans towards the pointer. **The two exempt rules did not change**, so the card carries
-no gradient, shadow or glow. A holographic sheen is a gradient; the way to have one under this rule is for the one
-canvas already behind the interface to show through the card, not for the card to paint its own. What a QFX
-surface may not cost is measured rather than promised: text over it is held to AA as it is painted
-(`scripts/check-readability.mjs`), and reduced motion makes it still, not slower.
-
-**A second exception, the ceremony, decided by the owner on 28 September 2026 as a decision of its own:**
-`src/qfx/ceremony/` may glow, use gradients and loop an animation, and nothing else changes for it. It holds the
-moments that are meant to feel like an arrival rather than a tool: the intro splash on each open, the first-run
-animation after an install or update, the notification with a neochrome halo that opens the tutorial, and the
-tutorial. Every other rule applies there, including colours from tokens (the halo's chrome is the theme's own ink
-and accent); the canvas and pointer exemptions do **not** extend to it; and the chrome outside it, the claim bubble
-and the information icon included, stays under the full list. Its obligations are the QFX ones: its text is
-measured as painted, and reduced motion, in the launcher or the operating system, stills it or skips it.
+**History.** Until 6 October 2026 this section ruled glows, pointer-following light, canvas backdrops, gradients, neon
+and looping animation out of every surface, with two exceptions: QFX (`src/qfx/`, ADR-051, 22 September 2026) for its
+canvas and pointer rules, and the ceremony (`src/qfx/ceremony/`, 28 September 2026) for glow, gradients and loops. ADR-080
+removes the rules, so the exceptions are no longer needed; QFX keeps its own measured obligations (readability as
+painted, reduced motion, its frame-time budget).
 
 ## 2. Colour
 

@@ -688,6 +688,13 @@ type = "tightening"
 change = "The arqade gate counts ADR-074 (ARQADE on Vercel with Postgres, players by QOR ID). The arqade suite's arenas now run against Postgres (PGlite) with the site's own migrations instead of SQLite. No kind's met condition, evidence rule or threshold changed and no unit became unmeasurable."
 reason = "The owner moved ARQADE's hosting. The arcade's SQL had to be checked as Postgres runs it, not as SQLite did; two planted faults (the 30-second allowance never expiring, an origin check passing any site) each failed a test."
 
+[[change_log]]
+date = "2026-10-06"
+type = "ci-scope"
+change = "tools/qor-launcher/scripts/check-design.mjs drops its five effect rules (glows and shadows, gradients, pointer-following effects, canvas and frame-loop animation, looping decorative animation) and with them the QFX and ceremony exemptions. It keeps colour tokens, the type scale and the tracking scale. check-contrast.mjs and check-readability.mjs are unchanged."
+reason = "ADR-080. The rules guarded against a generic template look, not against effects; the owner allows effects on every surface. Reduce motion and readability as painted still bind."
+approved_by = "owner, 2026-10-06: \"There should not be a bunch of rules stating you cannot use drawing canvas, glowing, neon. These are all perfectly fine to use, I just didnt want things to turn out like a cookie-cutter AI template that it usually does.\""
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------

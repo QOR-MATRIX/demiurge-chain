@@ -635,13 +635,13 @@ pub async fn userinfo(
     let sessions = SessionService::new(state.redis.clone(), state.config.jwt.clone());
     let claims = sessions.authenticate_access_token(token).await?;
     let user_id = Uuid::parse_str(&claims.sub).map_err(|_| AppError::InvalidToken)?;
-    let row: Option<(String, Option<Vec<u8>>)> = sqlx::query_as(
-        "SELECT username, chain_account_id FROM users WHERE id = $1 AND status = 'active'",
+    let row: Option<(String, Option<Vec<u8>>, Option<String>)> = sqlx::query_as(
+        "SELECT username, chain_account_id, avatar_url FROM users WHERE id = $1 AND status = 'active'",
     )
     .bind(user_id)
     .fetch_optional(&state.db)
     .await?;
-    let (username, chain) = row.ok_or(AppError::InvalidToken)?;
+    let (username, chain, avatar_url) = row.ok_or(AppError::InvalidToken)?;
     let chain_account = chain
         .as_deref()
         .map(ChainAccount::from_stored)
@@ -653,6 +653,8 @@ pub async fn userinfo(
             "qor_id": claims.qor_id,
             "username": username,
             "chain_account": chain_account,
+            // A path on QOR ID (ADR-079), or none: the app shows the letter.
+            "avatar_url": avatar_url,
             "client_id": claims.cid,
             // The person's level, the same in every app (ADR-078).
             "progress": crate::handlers::progress::summary(&state.db, user_id).await?,
