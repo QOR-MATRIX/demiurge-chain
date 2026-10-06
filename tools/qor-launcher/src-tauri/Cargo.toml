@@ -1,6 +1,6 @@
 [package]
 name         = "qor-launcher"
-version      = "0.1.6"
+version      = "0.1.7"
 description  = "QOR Launcher — the sovereign gateway to the Demiurge ecosystem"
 authors      = ["Laustrup Group"]
 edition      = "2021"
