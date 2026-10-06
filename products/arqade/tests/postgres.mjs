@@ -6,7 +6,9 @@ import {pathToFileURL} from 'node:url';
 import ts from 'typescript';
 import {PGlite} from '@electric-sql/pglite';
 
-const dir=path.resolve('work/tests');fs.mkdirSync(dir,{recursive:true});
+// One folder per test process: the test files run at once, and writing the same compiled file from two of them let
+// one import the other's half-written copy ("dbModule.statements is not a function", CI, 6 October 2026).
+const dir=path.resolve('work/tests',String(process.pid));fs.mkdirSync(dir,{recursive:true});
 
 /** Compile `source` to work/tests/<name>.mjs, applying exact text replacements first, each of which must match. */
 export function compile(source,name,replacements=[]){
