@@ -19,10 +19,10 @@ against the tree on 4 October 2026.
 
 | # | The handoff said | What is true | What this brief does instead |
 | --- | --- | --- | --- |
-| 1 | "Integrate the real QOR service using its implemented flows"; "validate token claims through the service's supported contract" | QOR ID has **no browser sign-in** (no `/authorize`, no PKCE; ADR-043 is Proposed) and **no way for another server to verify a token**: HS256 with a shared secret, no introspection | Sign-in waits on ADR-043 plus a verification path (ADR-069 decision 4). ARQADE never holds QOR ID's secret. Until then the Sites alias is a labelled practice identity |
-| 2 | Connect "the official Vault/launcher integration", or "implement the minimal approved ecosystem bridge" | **No bridge exists** and none is approved. ADR-011 says web surfaces sign with **delegated keys** (ADR-010, ADR-026, M5.2), unbuilt | Three options and a recommendation in ADR-069 decision 5; each needs its own record before code. Until then ARQADE reads and does not sign |
+| 1 | "Integrate the real QOR service using its implemented flows"; "validate token claims through the service's supported contract" | QOR ID has **no browser sign-in** (no `/authorize`, no PKCE; ADR-043 is Proposed) and **no way for another server to verify a token**: HS256 with a shared secret, no introspection | Sign-in waits on ADR-043 plus a verification path (ADR-069 decision 4). ARQADE never holds QOR ID's secret. **Since 5 October 2026 it is built and live** (ADR-073, ADR-074): players sign in with QOR ID and the Sites alias is gone |
+| 2 | Connect "the official Vault/launcher integration", or "implement the minimal approved ecosystem bridge" | **No bridge exists** and none is approved. ADR-011 says web surfaces sign with **delegated keys** (ADR-010, ADR-026, M5.2), unbuilt | Three options and a recommendation in ADR-069 decision 5; each needs its own record before code. **Settled 5 October 2026:** ADR-076, corrected by ADR-077, hands a signed `qor://pay` request to the launcher, whose host dialog approves it; live on the devnet, with tips as its first use. ARQADE still holds no key and signs nothing |
 | 3 | "Reconcile its location with the web-surface decisions" | ADR-011 allows exactly two web surfaces and keeps publishing in the launcher; ADR-050 says where products live | ARQADE is a product in `products/arqade/` (P7, gate `arqade`) and a third web surface amending ADR-011 (ADR-069 decisions 2 and 3) |
-| 4 | Preserve the "cinematic portal, terminal aesthetic" | `DESIGN_SYSTEM.md` rules out glows, particles, animated backgrounds, neon and cyberpunk **on every surface** | Kept, but only once the owner gives ARQADE a design record of its own (as ADR-051 did for QFX). Reduced motion, contrast and focus rules apply regardless |
+| 4 | Preserve the "cinematic portal, terminal aesthetic" | `DESIGN_SYSTEM.md` rules out glows, particles, animated backgrounds, neon and cyberpunk **on every surface** | Kept. **ADR-080 (6 October 2026) reversed the ban**: these effects are allowed on every surface, so ARQADE needs no design record of its own for them. Reduced motion, readability, contrast and focus rules still apply |
 | 5 | "Verifiable allocation" for packs; "inspect existing verifiable randomness" | **The chain has no randomness source** (Aura, no VRF, no randomness pallet) | Gap **G-14**. No pack is sold for CGT until it is decided |
 | 6 | Account-bound trophies "with actual protocol support"; "edition enforcement" | Nothing locks an item's transfer; `Drc369::mint` mints to the signer in one singles collection, with no supply cap | Gaps **G-15** (collections and editions) and **G-16** (account-bound). Until decided, trophies are transferable and say so; no edition cap is claimed |
 | 7 | "Build missing state/XP primitives as bounded extensions" | State and XP are **M4.2**, the chain's item, and unstarted (`chain/pallets/drc369/src/lib.rs:28-30`) | Evolution waits on M4.2. ARQADE builds no chain code of its own |
@@ -74,7 +74,9 @@ The store shows USD prices for Energy and names CRGT and DMRG.
 
 Preserve the experience: the layout, games, controls and mobile behaviour. Evolve the branding to **ARQADE, powered by
 Demiurge** across metadata, intro, navigation, wallet, terminal and notices. Keep old links where practical, keep the
-intro skippable, and respect reduced motion. The cinematic styling stays pending the design record in ADR-069.
+intro skippable, and respect reduced motion. The cinematic styling stays: since ADR-080 (6 October 2026) glow, neon and
+animated backgrounds are allowed on every surface and need no design record, as long as reduced motion stills them and
+text stays readable over them.
 
 ## 3. The ecosystem truth to build against
 
@@ -83,11 +85,12 @@ Read, in order: `HANDOFF.md`, `docs/DIRECTION.md`, `docs/DECISIONS.md`, `docs/ec
 `docs/SYSTEMS.md`, `SECURITY.md` and `docs/GATES.toml`. Follow `AGENTS.md`, above all §1 (old documentation does not
 exist) and §5 (money).
 
-Checked on 4 October 2026; recheck against the runtime you connect to:
+Checked on 4 October 2026, and the runtime again on 6 October; recheck against the runtime you connect to:
 
 - **One chain, `chain/`.** Aura authors, GRANDPA finalises. The retired custom chain and its RPC vocabulary are not
-  revived. Pallets: System, Timestamp, Aura, Grandpa, Balances, Session, ValidatorSet, Nfts, Drc369, Utility (only
-  `batch_all`), Drc369Royalties, and Sudo on development and test networks. `spec_version` 6, `transaction_version` 2.
+  revived. Pallets: System, Timestamp, Aura, Grandpa, Balances, Session, ValidatorSet, Nfts (index 7), Drc369 (8),
+  Utility (9, only `batch_all`), Drc369Royalties (10), ArqWallet (11), and Sudo on development and test networks.
+  `spec_version` 8, `transaction_version` 2.
 - **No fees** (no transaction-payment pallet), **no treasury**, **no issuance**, **no randomness**, **no proxy**, **no
   sponsorship**. Fees are never estimated or shown, because there are none.
 - **CGT:** 18 decimals, integer Sparks, `1 CGT = 10^18 Sparks`, existential deposit 100 CGT, SS58 prefix 42
@@ -123,26 +126,30 @@ dead chain call.
 ## 5. Identity
 
 - The account key is QOR ID's immutable `sub`; usernames are profile data.
-- **Verified sign-in waits on ADR-043** (redirect, authorization code with PKCE, no 30-day refresh token in a
-  browser, per-client sessions) **and on a verification path for ARQADE's server** (ADR-069 decision 4). ARQADE's
-  origin joins QOR ID's CORS allowlist then, and not before.
-- Built 5 October 2026 (ADR-073); since ADR-074 the live arcade has no other identity: a player is a QOR ID account,
-  shown by its QOR ID and keyed by a hash of its `sub`. The Sites practice alias is gone.
+- **Verified sign-in is built and live** (ADR-073, ADR-074, 5 October 2026): redirect, authorization code with PKCE,
+  rotating single-use refresh tokens held by ARQADE's server rather than the browser, and sessions that record the app
+  that created them. ARQADE's server checks each session through QOR ID's `userinfo` and never holds QOR ID's own
+  signing secret.
+- The live arcade has no other identity: a player is a QOR ID account, shown by its QOR ID and keyed by a hash of its
+  `sub`. The Sites practice alias is gone.
 - Signing in to QOR ID and controlling a chain account are separate facts. Show a password-only account honestly and
   send the player to the launcher to link a key.
 - Server-managed sessions, origin checks, nothing secret in browser storage, URLs or logs. Any new QOR ID flow joins
   `services/qor-auth/src/log_hygiene.rs` in the same change (AGENTS.md §9).
-- Explorer records migrate only after the player proves both identities, with collisions handled and history kept.
+- Since ADR-074 there is no anonymous "Explorer" alias and so no Explorer records to migrate; the live arcade's
+  players are QOR ID accounts from their first visit.
 - Logout, expiry, revocation and bans apply to games, chat and every protected operation.
 
 ## 6. Signing and custody
 
 The player's Vault in the launcher is the only custody. ARQADE never asks for a phrase or a key, never creates a
-wallet, and never holds a key for a player. Until ADR-069 decision 5 is accepted and the chosen path has its own
-record, **ARQADE reads and does not sign**: a player who buys, sells or transfers does so in the launcher's Market and
-Inventory, and ARQADE shows the finalised result. When signing arrives, every request shows amount, recipient,
-purpose, network and maximum spend before approval, and delegated authority is only ever what the chain enforces
-(M5.2), never a limit kept by the frontend.
+wallet, and never holds a key for a player. **ADR-069 decision 5's path is chosen: ADR-076, corrected by ADR-077**
+(accepted 5 October 2026). ARQADE signs a `qor://pay` request, the launcher's host dialog approves it and the vault
+signs it, and ARQADE reads the result from finalised blocks; devnet only, at most 100,000 CGT a request. It is live,
+with tips to a game's creator as its first use. **ARQADE itself still signs no transaction**: a player who buys, sells
+or transfers an asset does so in the launcher's Market and Inventory, and ARQADE shows the finalised result. The rule
+for every request, this one and those after it: it shows amount, recipient, purpose, network and maximum spend before
+approval, and delegated authority is only ever what the chain enforces (M5.2), never a limit kept by the frontend.
 
 ## 7. Chain reads and CGT settlement
 
@@ -220,7 +227,8 @@ Keep the arenas' authoritative validation, revision guards, reconnection, timeou
 exactly-once results. Solo games award nothing ranked or redeemable until they have server sessions or deterministic
 replay with issued session ids, rule versions, timing bounds and replay prevention. If action multiplayer moves to
 WebSockets, it is measured; if polling stays, it is called polling. Rankings come from validated results only, with
-tie-breaks, seasons, collusion checks and corrections written down, and bind to `sub` once sign-in is real. Chat
+tie-breaks, seasons, collusion checks and corrections written down. Sign-in is real, and rankings are keyed by a hash
+of the player's QOR ID `sub`. Chat
 keeps its rate limits, deletion and reporting, and gains moderation, bans and a retention policy. No fake players, no
 fake activity, no coercive streaks, no deceptive odds.
 
@@ -264,12 +272,23 @@ The numbered steps are P7 in `DIRECTION.md`; this is the order and what each pro
 1. **Baseline** (P7.1): import, inventory, the false claims removed, tests run. **Done 5 October 2026.**
 2. **Live reads** (P7.2): genesis, finalised head, a balance and an account's DRC-369 inventory, read-only. **Done
    4 October 2026.**
-3. **Verified identity** (P7.3): ADR-043 and a verification path. **Built 5 October 2026** (ADR-073); live once deployed.
-4. **Signing** (P7.4): the path ADR-069 decision 5 chooses, with its own record.
+3. **Verified identity** (P7.3): ADR-043 and a verification path. **Built 5 October 2026** (ADR-073) and **live**
+   on Vercel since then (ADR-074).
+4. **Signing** (P7.4): the path ADR-069 decision 5 chooses, with its own record. **Chosen and built** (ADR-076,
+   ADR-077, 5 October 2026) and **live on the devnet**, with tips through the launcher as its first use; the owner's
+   tips went through on 5 and 6 October.
 5. **Paid play and awards on the devnet** (P7.5), exactly once, surviving reloads and retries.
 6. **Card universes** (P7.6) and **evolution** (P7.7), as G-14, G-15 and M4.2 land.
 7. **Developer SDK and references** (P7.8) and **third-party release** (P7.9).
 8. **Production payouts** (P7.10), only after U-16 and a legal review.
+9. **Levels and tasks** (P7.16, ADR-078): one level and XP per QOR ID, granted only by QOR ID or an app's server.
+   **Live** in QOR ID and ARQADE since 6 October 2026 (the level bubble and the level row), and in the launcher's
+   0.1.8 build (the bubble and the XP bar).
+10. **The welcome grant** (P7.17, ADR-078): 100 CGT once per new QOR ID. **Owed grants are recorded** by QOR ID since
+    6 October 2026; paying them from the Welcome account is not built, and real CGT waits on U-18 and the owner's
+    legal review.
+11. **ARQADE inside the launcher** (P7.18, ADR-078 decision 5): a Play section signed in with the launcher's QOR ID.
+    Not built.
 
 When a slice is blocked, name the prerequisite and continue with independent work. Do not rewrite stable systems to
 look busy.

@@ -10,7 +10,8 @@ The full rules are in [`AGENTS.md`](../AGENTS.md). The essentials:
    devnet that preceded it, in `framework/`, was retired at M3.5 on 20 September 2026 and deleted; do not
    restore it or write against it, and CI fails if the directory returns. Write no migration code until
    the owner has reviewed `docs/architecture/MIGRATION_INVENTORY.md`. The platform is the QOR Launcher in
-   `tools/qor-launcher/`. Identity is `services/qor-auth/`.
+   `tools/qor-launcher/`. Identity is `services/qor-auth/`. ARQADE, the gaming platform, is
+   `products/arqade/` (ADR-069).
 4. CGT has 18 decimals. The base supply is 100,000,000,000,000 CGT with a perpetual issuance and fee
    burn (ADR-003, ADR-004). Amounts are integer Sparks in `u128`, never floating point. Never invent a
    value listed in `docs/economics/OPEN_QUESTIONS.md`.

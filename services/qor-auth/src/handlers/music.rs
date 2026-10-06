@@ -1,5 +1,5 @@
-//! Music player API handlers.
-//! Provides endpoints for music upload, playlists, and playback.
+//! Music player API handlers. **Dead code: this file is not compiled and none of its routes exist**
+//! (`pub mod music` is commented out in `handlers/mod.rs`, which says why).
 
 use axum::{
     extract::{Path, Query, State},

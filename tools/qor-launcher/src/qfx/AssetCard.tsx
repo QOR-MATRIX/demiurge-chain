@@ -4,11 +4,9 @@
  * # Why this file is in `src/qfx/`
  *
  * The card answers the pointer: it tilts towards it, and its registration marks
- * lift. `scripts/check-design.mjs` forbids pointer-following effects everywhere
- * except this directory, which is exempt from exactly two rules — the pointer
- * and the frame loop — and from nothing else. So there is no gradient here and
- * no glow: a holographic sheen is a gradient, and a gradient is still forbidden.
- * The sheen belongs to the next slice, where the one QFX canvas shows through
+ * lift. There is no gradient here and no glow yet. Since ADR-080 (6 October 2026)
+ * effects are allowed everywhere, so that is a design choice, not a rule; reduce
+ * motion still removes the lean. The sheen belongs to the next slice, where the one QFX canvas shows through
  * the card rather than a second canvas being started for it (ADR-051: one
  * canvas, owned by the chrome).
  *

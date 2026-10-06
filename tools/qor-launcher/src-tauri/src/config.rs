@@ -15,6 +15,9 @@
 //! Settings are therefore written to disk next to the vault, changeable from the
 //! Gate, and loaded before anything tries to reach the network.
 //!
+//! (That was September 2026. Since ADR-056 nothing waits on sign-in, so Settings
+//! is reachable without it too, and the defaults are the live devnet and QOR ID.)
+//!
 //! # Precedence
 //!
 //! 1. `QOR_RPC_URL` / `QOR_AUTH_URL` environment variables, when set. These win

@@ -1,32 +1,49 @@
 # Handoff
 
-**Newest: §4 item 57 (6 October 2026): avatars (ADR-079) and effects allowed (ADR-080), on a branch; item 56 (6 October 2026): levels and tasks built (ADR-078), on a branch; item 55 (6 October 2026): ADR-078 accepted, levels, tasks and a 100 CGT welcome grant; item 54 (5 October 2026): P7.4 built, tips through the QOR Launcher (ADR-076, ADR-077); item 53: QOR ID account page; ADR-076 accepted (cap 100,000 CGT); item 52: one name per QOR ID, no #0001 (ADR-075), on a branch; item 51: QOR ID sign-in live for apps; ARQADE moved to Vercel with Postgres (ADR-074), on a branch; item 50: P7.3 built, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
-corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
-Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
-verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
-the e2e email guard). Uncommitted.** **Last session before it:** 13 to 30 September 2026. **The newest work is §4 item 32 (29 and 30 September), HALF DONE: the code is
-public as `ALaustrup/demiurge-chain` (no history), CI is back on GitHub Actions, and QOR ID is moving to Railway. The
-owner's three steps were still not done on 30 September, so the assistant's five could not start; that day's work was
-the independent items listed at the end of item 32. `id.qorsync.dev` is DOWN (530) since the PC's Docker Desktop is
-off. Work now happens on local branch `public-main`, pushed to remote `public`.** Before it, §4 item 31: M4.2's royalty half —
-royalties, remix royalties and a sale settled in CGT (ADR-061), proven live on a development node.** Before it, §4
-items 27 to 30: CI on Woodpecker and the operations stack. Before those, §4 item 25 (28 September): onboarding — a QOR
-ID bubble, a glowing notification and a tutorial, an intro splash and a first-run slot, Agora renamed Social,
-explanations behind information icons, and QOR ID and a chain running on this PC.** Before it, §4 item 24: no lock screen. The
-vault's key is in the OS keychain, nothing is asked to open it, and QOR ID never blocks the launcher (ADR-056,
-the owner's decision, superseding ADR-055 the same day).** Before it, §4 item 23: Windows Hello as the vault's
-only seal (ADR-055). Before that, §4 item 22: a view check for the Gate's restore screens and Windows
-Hello. Before that, §4 item 21: unlocking the vault with Windows Hello as an opt-in (ADR-054). Before it, §4 item 20: restoring a vault from its recovery phrase when the
-passphrase is lost. Before that, §4 item 19: Qontrol's git layer completed —
-branch, switch, discard, per-file commit, a guard before staging, and the helper bundled with the launcher —
-which ticks P1.2.** Before it, §4 item 18: Qontrol's line-by-line diffs, reading line endings and
-`.gitattributes` as git does, which ticked P1.1. Before that, §4 item 17: the trade window reworked into two
-sides with a lane, "recently traded with", and Sell drafting a listing that publishes nothing. Before that,
-§4 item 14: M4.1, the first asset pallet, and the first asset minted from a Qontrol project and shown in the
-launcher's Inventory. M2.1 was ticked the same day against the owner's review of a ten-line summary.
+**Current state, 6 October 2026.** The code is the public repository `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064).
+`main` is at `9f8a818` (PR #13), and Pleroma CI is green on `main`: every completed run on `main` since the merge of #6 (5 October 2026) passed. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Work goes on a `session/*` branch and
+reaches `main` by pull request. `origin` is the private archive, not the current tree. Live, devnet-only and with test
+CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
+(`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Uncommitted.** Everything in §4 items 18 to 22 is in the working tree and **not committed**: the owner
-commits. Item 17 was committed on 2026-09-23 (§7).
+**Newest: §4 item 58 (6 October 2026): documentation brought up to date with the tree after the IBM Bob audit.**
+Before it: item 57 (6 October 2026): avatars (ADR-079) and effects allowed (ADR-080), merged to `main` (PR #13); item 56
+(6 October 2026): levels and tasks built (ADR-078), merged (PR #11), then migration 021 and launcher 0.1.8 (PR #12); item
+55 (6 October 2026): ADR-078 accepted, levels, tasks and a 100 CGT welcome grant (PR #10), with "Play Now" and the fix
+for a flaky wait in the launcher's browser checks (PR #9); item 54 (5 October 2026): P7.4 built, tips through the QOR
+Launcher (ADR-076, ADR-077), merged (PR #8); item 53: QOR ID account page, merged (PR #7); ADR-076 accepted (cap 100,000
+CGT); item 52: one name per QOR ID, no #0001 (ADR-075), merged (PR #5); item 51: QOR ID sign-in live for apps; ARQADE
+moved to Vercel with Postgres (ADR-074), merged (PR #2, then PRs #3, #4 and #6); item 50: P7.3 built, QOR ID signs people
+in to ARQADE, merged (PR #1); item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done,
+ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with
+held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet
+live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42:
+merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested,
+before it reached the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a
+self-publishing store (ADR-071); item 38: Game Vaults designed (ADR-070) and the ARQADE SDK started; item 37: ARQADE in
+`products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled
+with the tree — a corrected brief (`docs/blueprints/arqade.md`), ADR-069, track P7, gate `arqade`, U-16 and gaps G-14 to
+G-16. Before those, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
+verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and the
+e2e email guard). It is on `main`, and the chain has since moved to `spec_version` 8.
+
+**History, 13 to 30 September 2026.** §4 item 32 (29 and 30 September) made the code public, moved CI back to GitHub
+Actions and began moving QOR ID to Railway; all three are done (ADR-063, ADR-064), and QOR ID is live on Railway. Before
+it, §4 item 31: M4.2's royalty half — royalties, remix royalties and a sale settled in CGT (ADR-061), proven live on a
+development node. Before it, §4 items 27 to 30: CI on Woodpecker and the operations stack, both since retired. Before
+those, §4 item 25 (28 September): onboarding — a QOR ID bubble, a glowing notification and a tutorial, an intro splash
+and a first-run slot, Agora renamed Social, explanations behind information icons, and QOR ID and a chain running on
+this PC. Before it, §4 item 24: no lock screen. The vault's key is in the OS keychain, nothing is asked to open it, and
+QOR ID never blocks the launcher (ADR-056, the owner's decision, superseding ADR-055 the same day). Before it, §4 item 23:
+Windows Hello as the vault's only seal (ADR-055). Before that, §4 item 22: a view check for the Gate's restore screens
+and Windows Hello. Before that, §4 item 21: unlocking the vault with Windows Hello as an opt-in (ADR-054). Before it, §4
+item 20: restoring a vault from its recovery phrase when the passphrase is lost. Before that, §4 item 19: Qontrol's git
+layer completed — branch, switch, discard, per-file commit, a guard before staging, and the helper bundled with the
+launcher — which ticks P1.2. Before it, §4 item 18: Qontrol's line-by-line diffs, reading line endings and
+`.gitattributes` as git does, which ticked P1.1. Before that, §4 item 17: the trade window reworked into two sides with a
+lane, "recently traded with", and Sell drafting a listing that publishes nothing. Before that, §4 item 14: M4.1, the
+first asset pallet, and the first asset minted from a Qontrol project and shown in the launcher's Inventory. M2.1 was
+ticked the same day against the owner's review of a ten-line summary.
 
 **Read this first, especially §2.** Then:
 1. [`docs/DIRECTION.md`](docs/DIRECTION.md): what Demiurge is, and the only roadmap, including the launcher
@@ -34,11 +51,12 @@ commits. Item 17 was committed on 2026-09-23 (§7).
 2. [`docs/DECISIONS.md`](docs/DECISIONS.md): the only decision log, with the ADR index.
 3. [`docs/GATES.toml`](docs/GATES.toml): the accepted release gate criteria. Read its rule on changing
    evidence before touching it.
-4. [`docs/architecture/MIGRATION_INVENTORY.md`](docs/architecture/MIGRATION_INVENTORY.md): **seventeen
-   of its nineteen questions are decided** — Q-1 to Q-16 by ADR-017 to ADR-032, confirmed by the owner on
-   2026-09-17, and **Q-17 by ADR-041 on 2026-09-20**
+4. [`docs/architecture/MIGRATION_INVENTORY.md`](docs/architecture/MIGRATION_INVENTORY.md): **all but
+   Q-19 and Q-20 of its twenty questions are decided** — Q-1 to Q-16 by ADR-017 to ADR-032, confirmed by
+   the owner on 2026-09-17, **Q-17 by ADR-041 on 2026-09-20**
    ([`docs/architecture/ADDRESS_TYPE.md`](docs/architecture/ADDRESS_TYPE.md) is the write-up it was
-   decided from). **Q-18 and Q-19 are open until before the freeze** (§4 item 14). **M2.1, the owner's
+   decided from), and **Q-18 by ADR-057 on 2026-09-28** (eight royalty recipients stay). **Q-19 and Q-20
+   are open until before the freeze** (§4 item 14). **M2.1, the owner's
    review of it, was ticked on 2026-09-22** against a ten-line summary, kept verbatim in the document.
 5. [`docs/audit/RECONCILIATION.md`](docs/audit/RECONCILIATION.md): the code measured against the
    direction, with a remediation table.
@@ -49,23 +67,21 @@ commits. Item 17 was committed on 2026-09-23 (§7).
 
 | Area | State |
 | --- | --- |
-| Direction | Settled. Demiurge is a creative engine on a purpose-built Substrate L1, with four primitives. The launcher is a first-class deliverable with its own track (L0 to L7). |
-| Base layer | Migration to the Polkadot SDK decided (ADR-013). **Q-1 to Q-16 decided** (ADR-017 to ADR-032, 15 September 2026), and every inventory claim re-checked against the pinned `polkadot-stable2606-1` (ADR-022). ADR-033 (dependency versions) and ADR-034 (the ticker) were accepted after them and need no confirmation. **The owner confirmed ADR-018 to ADR-032 on 2026-09-17**, with all four inputs, so M3 is unblocked and started (§4 item 3). |
-| The Substrate chain (`chain/`) | **Since 2026-09-29 it pays royalties on sales it settles in CGT** (`pallet-drc369-royalties`, ADR-061 and ADR-062, `spec_version` 4, 96 tests with the wasm built, §4 item 31). **M3, producing and finalising blocks (2026-09-17).** Runtime, node and `pallet-validator-set` build; a development node authored with Aura and GRANDPA finalised, the project's first finality. **The validator set comes from governance** through `pallet-session` (ADR-020), verified by reading `Session::Validators` from the running chain. **51 tests (2026-09-20). Since 2026-09-22, M4.1:** `pallet-nfts` and `pallet-drc369` are mounted
-(ADR-052), and **since M4.6 the same day** `pallet-utility` is too, with only `batch_all` reachable, so a trade of
-several assets is one all-or-nothing transaction (ADR-053). `spec_version` 3, **74 tests** with the wasm built, two
-validators 13 of 13, and both runtime shapes' metadata re-measured at each step (86,259 / 84,316 bytes at
-`spec_version` 2; 92,323 / 90,417 at 3). **A development chain carrying assets was upgraded in place** with
-`sudo.setCode` rather than purged, and the assets survived. No transaction payment (OPEN-4) and no treasury (OPEN-2), both moved to M6 when M3.1 was narrowed on 2026-09-18. **Since 2026-09-20 it has a client outside itself:** the launcher builds transactions from this runtime's metadata and waits on its finality (ADR-040), which is the first thing outside `chain/` to depend on either. **The address type moved to `AccountIdLookup` / `MultiAddress` the same day** (ADR-041), so the runtime matches the SDK's own solochain default and every relay chain; the launcher moved with it in the same commit. |
-| The custom devnet (`framework/`) | **Retired and deleted at M3.5, 2026-09-20.** 150 files, 49,058 lines, after everything that referred to it had been rewritten and verified with the tree still present. Its last run passed 285 tests. Untrusted, and nothing of it is carried forward (§2.0). **M3 is not complete:** M3.2 waits on OPEN-2, and M3.1 is unticked though its own text says what remains "is in place and running" — worth the owner's eye. |
-| Security track | Items 1 to 7 done. **The owner confirmed credential rotation on 2026-09-14:** the Postgres password and both JWT secret pairs. |
-| `services/qor-auth` | Agent keys authorised, never created (ADR-014). Agent endpoints scoped to their controller. Key links authenticated and proven. Challenge signatures domain-separated. Passes rustfmt and clippy with `-D warnings`. Every mounted route does what it reports or refuses; the weaknesses that remain are in §3. The configured password minimum and host binding are honoured. Logout, session revocation, ban, role change and every password reset end the account's sessions at once. Registration creates no CGT and calls no chain (R-3), and stores an email unverified. Email goes through Resend when `RESEND_API_KEY` and `EMAIL_FROM` are set and is refused with 503 otherwise; no email is logged. Backup codes are hashed, ten per account, and each works once; a signed-in account can regenerate them with its password. An account whose verification link lapsed can request a new one. The pages the email links open spend a token only when their button is pressed. Signed bounce and complaint reports from Resend stop sending to an address (not yet received live; the endpoint needs a public address). An account can add or change its email address with its password; the new address is confirmed before it counts, the old one is told, and backup codes are kept. The lockouts that remain are accepted and named in `SECURITY.md`. Sign-in refuses every failure with the same answer after the same work. Admin routes are reachable by god accounts and audited under the acting administrator. On 2026-09-19: 121 tests pass with a Redis, the log and SQL checks among them (re-run after the key-scheme change; 108 on 2026-09-15). `cargo audit` is clean as of 2026-09-19, after `sp-core` entered the graph: no vulnerability, three unmaintained warnings it brought with it (`derivative`, `libsecp256k1`, `paste`), and `rsa` still absent from the compiled graph, which is what its one ignore is conditional on. End to end against Postgres 16 and Redis 7.4: 52 checks for account and admin routes, 13 for sign-in, 20 for sessions, 8 for registration, 15 for logout, and 67 for email through a local stand-in (the link pages opened as a scanner would, and signed webhook deliveries, included) for Resend (28 for challenge signing, last run 2026-09-14). **Live sending through `demiurge.cloud` works against Resend's test address; delivery to a real inbox is unconfirmed (§4).** **One known gap (§2).**  **Accounts became Sr25519 and SS58 on 2026-09-19** (ADR-023, ADR-024, ADR-039): QOR ID verifies Sr25519 with `sp-core` at the chain's pinned version, takes an account as SS58 in `address` or as hex in `account_id`, stores the 32 bytes in `chain_account_id` (migration 018, which replaced `on_chain_address` and `primary_pubkey`), and gives a password-only account **no chain identity until it proves a key** (ADR-017; `hash_to_address` is removed). 121 tests pass with a Postgres and a Redis, the log and SQL checks among them, and the log check now drives the key flows too. **Every key stored before that day was cleared**, so those accounts link again or are created again (§2). **On 2026-09-21: 125 tests pass** against Postgres 16 and Redis 7.4, run again this session. |
-| `tools/qor-launcher` | Phase 1 (L0). **91 host tests pass with no node running (2026-09-20)**, plus one more that needs a development node and is ignored without one; the frontend builds and the design, accessibility and gates-view checks pass 8, 13 and 34. Passes rustfmt and clippy with `-D warnings`; the frontend builds with `npm ci`. L1.1, L1.2, L1.3 and L1.5 done. `scripts/check-design.mjs` enforces the design system (L1.1), and `scripts/check-accessibility.mjs` checks L1.2 in a real rendering engine. L1.4 (a host dialog before every signature and endpoint change) is implemented and unit-tested, and since L3.1 it has a real subject again, but its native dialogs are still not exercised in a running launcher (§4). L2.2 (the release-gate dashboard, `src-tauri/src/gates.rs` and the Gates surface) is in the same state (§4). **L3.2 done on 2026-09-19:** the vault derives Sr25519 keys the way the ecosystem does, shows SS58 addresses with the raw account ID in the advanced panel only, and signs under the chain's context (ADR-023, ADR-024, ADR-039). Sealing and custody are unchanged. **L3.1 done on 2026-09-20 (ADR-040), which completes M3.4:** the chain client is `subxt`, every call is built from the metadata the connected node serves, and the custom devnet's RPC vocabulary has left the launcher entirely. A transfer was proven end to end against a development node — approved, signed in the vault, submitted and finalised by GRANDPA — and a declined one moves nothing. The chain endpoint is a WebSocket address now (§5). **On 2026-09-21 it gained two product surfaces**: Qontrol's Projects (P1.1, `5a44207`) with its `qontrol-git` helper, and QFX layer one's backdrop (P2.1, `75b2ead`, Off corrected in `6e5bb28`). **103 host tests pass**, the helper's 6 pass, and the five view checks pass 8, 34, 34, 31 and 11 — and the contrast check 54 since 2026-09-22, when it began covering every theme. **On 2026-09-22, M4.1's launcher half:** Projects mints the commit HEAD points at, Inventory lists an account's assets from chain storage with Make permanent, and the bytes go to a temporary content store. **On 2026-09-22, L4.4 and L4.5:** each asset is a card with its own menu, and a trade sends several assets to another account in one all-or-nothing transaction (M4.6, ADR-053). **On 2026-09-23, L4.5's rework and half of L4.6:** the trade window is two sides with a lane between them and offers accounts this machine has traded with before (`partners.rs`, local and sent nowhere), and Sell opens a form that drafts a listing into this machine's data directory and publishes nothing (`listings.rs`). **On 2026-09-23, P1.1's diffs:** choosing a change in Projects shows what changed inside it, line by line, read as git reads it (`qontrol/diff.rs`, §4 item 18). **135 host tests pass**, plus three live ones against a node (a transfer, a mint, a trade); the seven view checks are design 8, accessibility 41, gates 34, Projects 67, Inventory 126, contrast 54 and readability 191, all passing, `cargo fmt --check` and `cargo clippy -D warnings` clean. **On 2026-09-26, P1.2:** Projects branches, switches, discards, commits the ticked files only, holds back a huge or credential-shaped file until it is accepted by name, and its helper ships inside the installer (§4 item 19). **150 host tests pass**, the helper's 16, and the view checks design 8, accessibility 41, gates 34, Projects 104, Inventory 127, contrast 54 and readability 231, re-run in a fresh session; two of them failed intermittently first, and one of those was a real fault in the trade dialog, fixed (§4 item 19). **Readability was broken with the backdrop live until 2026-09-22** (§4 item 15), and **the Inventory check could not be parsed at all until 2026-09-23** (§4 item 17). |
-| Products | **Six, each with a blueprint, a track (P1 to P6) and a gate of its own** (§4 item 12). Of their shared substrate decisions, ADR-047 and ADR-051 were **accepted on 2026-09-22**; ADR-046, ADR-048, ADR-049 and ADR-050 are Proposed. Two first slices are built inside the launcher; QOR Engine, GNOSIS, Market and Stream have not started. |
-| Release gates | **`GATES.toml` accepted (2026-09-14).** Coverage: cargo-llvm-cov, 80% of lines, only on pallets that move CGT or own DRC-369 semantics. Public Release gained `public-release.name-clearance` on 2026-09-17, a tightening logged in the file. **Loosening any evidence rule needs the owner's separate decision** (the rule is in the file). |
-| CI | **GitHub Actions on the public `demiurge-chain` since 29 September (ADR-063), blocked by a GitHub account billing lock the owner must clear (§4 item 32).** Before that it was Woodpecker (ADR-058, ADR-060), on the owner's computer. Runs 1 to 4 on 29 September; run 5 is owed, and on 29 September `ci.qorsync.dev` was down because Docker Desktop was off (§4 items 29 to 31). **Re-scoped to option B (2026-09-14).** Quality gates on `chain/`, `qor-auth` and the launcher host. `framework/`'s reference job was replaced on 2026-09-20 by a `chain/` job that **is** a quality gate — format, lints and tests, without `SKIP_WASM_BUILD` — and the security job's `framework/` audit and expiry steps went with it, replaced by a guard that fails if the directory returns. Scope changes are logged in `GATES.toml`. On 2026-09-15 the `qor-auth` job gained a Redis service and runs the tests that need it (`--include-ignored`), a tightening logged there. On 2026-09-20 the security job gained a `cargo audit` of `chain/` that **reports and does not fail the run**, so a new advisory there is visible without an exemption file hiding the known ten (`GATES.toml` `[ci].reports`). The same day it gained a **`two-validators` job** that builds the node in release with the `sudo` feature and runs `chain/scripts/check-two-validators.mjs`, which **does** fail the run: `alpha.multi-validator` had been met by dated manual runs only, and `[ci].not_in_ci_yet` is down to one entry. **Not running yet, and the reason on record was wrong.** Measured against the GitHub API on 2026-09-21: **20 workflow runs exist — 17 `startup_failure` and 3 `cancelled` — and not one has ever executed a job.** So runs *are* being created on every push and are failing instantly, which is not the same as "no run has started"; the Actions tab has 17 failures in it to read. Each failed run carries `path: BuildFailed` and 0s duration, and runs are created even for pushes to `session/*`, which matches **no** trigger in `ci.yml` (`push: [main, develop]`, `pull_request: [main]`) — so GitHub is failing before it evaluates triggers. At the repository level Actions is `enabled: true` with `allowed_actions: all`, and the repository is **private**, so minutes are billed. **The workflow file has been ruled out by experiment** (2026-09-21, run `35622108578`): a four-line `probe.yml` — `name`, `on: push`, one job running `echo ok` on `ubuntu-latest` — was pushed and produced **zero `Probe` runs**. GitHub never registered the workflow at all; the only run created was the same synthetic placeholder (`name: ""`, `path: BuildFailed`, `workflow_id` of a workflow whose own state reads `deleted`). A workflow GitHub can parse but dislikes fails *as that workflow*; this fails before any workflow exists. So the block is **above workflow parsing**, and `ci.yml` is not the cause. An account-level spending limit is what remains, and it is **still not confirmed**: reading billing needs a token scope this session does not have. **The owner checks Settings, Billing and plans, then the Actions tab.** The owner's three L1.7 decisions are applied (§4). |
-| Infrastructure | **Since 29 September (ADR-063): Railway project `demiurge` holds Postgres and Redis (live) and QOR ID (configured, not deployed). The PC stack served `id.qorsync.dev` until the cutover in §4 item 32, but on 30 September Docker Desktop was off and `id.qorsync.dev` answered 530 (Cloudflare: origin unreachable), so QOR ID has no public address until Railway's is attached.** Earlier: **ADR-015 accepted:** Fly.io for QOR ID, Postgres, Redis, devnet nodes and the indexer; Vercel for the web surfaces. Single-provider risk accepted until mainnet. Nothing is deployed. |
-| Production | Offline |
+| Direction | Settled. Demiurge is a creative engine on a purpose-built Substrate L1, with four primitives. The launcher is a first-class deliverable with its own track (L0 to L7). **The active product track is P7, ARQADE** (ADR-069, active scope since 4 October 2026). |
+| Base layer | Migration to the Polkadot SDK decided (ADR-013) and complete since M3.5 (20 September 2026). **Q-1 to Q-16 decided** (ADR-017 to ADR-032, 15 September 2026), confirmed by the owner on 2026-09-17; Q-17 (ADR-041) and Q-18 (ADR-057) decided since; Q-19 and Q-20 open before the freeze. Pinned to `polkadot-stable2606-1` (ADR-022), and the chain builds with Rust 1.98.1 (ADR-072). |
+| The Substrate chain (`chain/`) | **`spec_version` 8. 150 workspace tests pass with the wasm built (4 October 2026).** Pallets: `pallet-drc369` with `pallet-drc369-royalties` and nesting (ADR-052, ADR-061), `pallet-nfts` (ADR-052), `pallet-utility` with only `batch_all` reachable (ADR-053), and `pallet-arq-wallet` at index 11, rounds with held prizes included (ADR-070). The validator set comes from governance through `pallet-session` (ADR-020); an address is a `MultiAddress` (ADR-041). **No transaction payment (OPEN-4), no treasury (OPEN-2) and no issuance (OPEN-1)**; deposits are placeholders (ADR-052, U-14). **Live as Demiurge Devnet** at `wss://rpc.qorsync.dev`, genesis `0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a`: two validators and an RPC node on Railway (ADR-068), and the owner holds the sudo key. `chain/` last changed on 4 October 2026. History: first finality 17 September (M3), M4.1 22 September, royalties 29 September, the ARQ Wallet 4 October (§4 items 14, 31, 41 to 47). |
+| The custom devnet (`framework/`) | **Retired and deleted at M3.5, 2026-09-20.** 150 files, 49,058 lines, after everything that referred to it had been rewritten and verified with the tree still present. Its last run passed 285 tests. Untrusted, and nothing of it is carried forward (§2.0). **M3 is not complete:** M3.2 waits on OPEN-2. |
+| Security track | Items 1 to 7 done. **The owner confirmed credential rotation on 2026-09-14:** the Postgres password and both JWT secret pairs. **Nine credential-shaped values** (from `docker/n8n/docker-compose.yml` and `docker/docker-compose.testnet.yml`) are not in the current tree or in the public repository's history; they exist only in the private archive's history, and rotating them is still advised if those services ever ran (an owner step in `OWNER.md`). CI's security job scans for committed credentials. **A recovery phrase was pasted into a chat on 5 October; treat that key as exposed and replace it.** Sessions record a placeholder IP address. §3. |
+| `services/qor-auth` (QOR ID) | **Live at `https://id.qorsync.dev`**, the Railway service `qor-auth`, deployed from `main`. **166 tests pass** (6 October 2026, against Postgres 16 and Redis 7.4, `--include-ignored`), the log and SQL checks among them. Latest migration: 022. Password and key sign-in (Sr25519 and SS58; ADR-023, ADR-024, ADR-039); email verification and reset through Resend; the account page `/account` (change the password, add or change the email); sign-in for other apps by OAuth 2.1 with PKCE (ADR-073), the apps registered in `QOR_OAUTH_CLIENTS`, ARQADE among them; one name per account, no `#0001` (ADR-075, migrations 019 and 021); levels, XP and tasks, the welcome grant recorded as owed, and three sign-ups per network address read from Railway's `X-Real-IP` (ADR-078, migration 020); avatars (ADR-079, migration 022). Registration creates no CGT and calls no chain (R-3). Agent keys are authorised, never created (ADR-014). **The Resend bounce webhook is an owner step, and delivery to a real inbox is unconfirmed** (§4.0). One known gap (§2). History: §4 items 5 to 8, 33 and 50 to 57. |
+| `tools/qor-launcher` | **Version 0.1.8** (`tauri.conf.json`). **204 Rust tests pass (8 ignored without a node), and the nine browser checks pass** — design 3, accessibility 41, gates view 34, Projects 104, Inventory 238, Market 127, vault gate 65, contrast 54, readability 361 — all on 6 October 2026. The 0.1.8 installer was built locally and is **unsigned, with no update channel** (L6); 0.1.7 added `qor://pay`. Avatars and rings reached `main` after 0.1.8 and need a new build to ship. The default chain endpoint is `wss://rpc.qorsync.dev` (`DEFAULT_RPC` in `src-tauri/src/chain/mod.rs`; `LOCAL_RPC` is `ws://127.0.0.1:9944`). Features: the vault's key in the OS keychain with no lock screen (ADR-056); QOR ID sign-in by key; send, mint, Inventory, trade, sell and buy; the Market view (no search, no indexer); Projects and Qontrol; the gates dashboard; `qor://pay`, approved in the host dialog (ADR-077); the level bubble and XP bar; the avatar with its ring; one QFX backdrop shader. The Nexus still shows nine frozen-app tiles marked "local" or "forming". L1.1, L1.2, L1.3, L1.5, L1.6, L1.7, L3.1 and L3.2 are done (L1.6 and L1.7 ticked on 6 October 2026 against CI). **L1.4 is partly exercised:** the owner approved real `qor://pay` tips in the host dialog on 5 and 6 October; a decline and an endpoint change are not yet exercised (§4.0). History: §4 items 9, 14 to 24 and 54 to 57. |
+| Products | **Seven, each with a blueprint, a track and a gate**: P1 to P6 (§4 item 12) and **P7, ARQADE** (ADR-069). The shared substrate decisions ADR-046 to ADR-051 are all accepted: ADR-047 and ADR-051 on 2026-09-22, ADR-046, ADR-048, ADR-049 and ADR-050 on 2026-09-28. Built inside the launcher: Qontrol's Projects (P1.1, P1.2), QFX's backdrop (P2.1) and the Market view. ARQADE is its own site (row below). QOR Engine, GNOSIS and Stream have not started. |
+| Release gates | **`GATES.toml` accepted (2026-09-14).** Coverage: cargo-llvm-cov, 80% of lines, only on pallets that move CGT or own DRC-369 semantics. Public Release gained `public-release.name-clearance` on 2026-09-17, a tightening logged in the file. **On 2026-10-06 (ADR-080) `check-design.mjs` dropped its five effect rules and the QFX and ceremony exemptions**, keeping colour tokens, the type scale and the tracking scale; it is logged in the change log with the owner's approval. **Loosening any evidence rule needs the owner's separate decision** (the rule is in the file). |
+| CI | **"Pleroma CI", GitHub Actions on the public `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064), and green.** Every completed run on `main` since the merge of #6 (5 October 2026) passed. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Jobs run in the `QOR-MATRIX` organisation, where the billing lock that refused the personal account's jobs in late September does not apply (ADR-064), and `probe.yml` is gone: the workflows are `ci.yml` and `devnet-image.yml`. Jobs: `chain` (format, lints and tests, without `SKIP_WASM_BUILD`); `chain-newest-clippy` (the newest Rust, report-only, scheduled); `two-validators` (scheduled); `qor-auth` (with Redis, `--include-ignored`); `launcher` (with the nine browser checks); `arqade`; `coverage`; and `security` (dependency audits, the committed-credential scan, the `[patch]` guard and the `framework/` guard). A flaky wait loop in the launcher's browser checks was fixed on 6 October (PR #9). Woodpecker and `ci.qorsync.dev` are retired; deleting the `ci` DNS record in Cloudflare is an owner step. Scope changes are logged in `GATES.toml`. History: §4 items 1, 27 to 32 and 42. |
+| Infrastructure | **Railway** (project `demiurge`): Postgres, Redis, QOR ID (`id.qorsync.dev`) and Demiurge Devnet (two validators and an RPC node, ADR-068). **Vercel**: ARQADE, project `qor-arqade` (team Astra Matrix, Hobby plan), with Neon Postgres (ADR-074). Fly.io is not used: ADR-015's Fly plan is superseded by ADR-063 and ADR-068. |
+| Production | No production or test network. Live, devnet-only and with test CGT: Demiurge Devnet, QOR ID and ARQADE. |
+| ARQADE (`products/arqade/`) | **Live at `https://qor-arqade-tau.vercel.app`**: standard Next.js 16 on Neon Postgres, migrations 0001 to 0003 applied on production builds (`scripts/migrate.mjs`). **48 tests** (6 October 2026). QOR ID is the only sign-in; Play Now, the solo games, Flux Four and Rift Reversi multiplayer, rankings, chat, devnet reads, tips through the launcher (ADR-076, ADR-077; the owner tipped successfully on 5 and 6 October), and the level bubble and level row. P7.1 to P7.4 are ticked (P7.4 on 6 October 2026). |
+| Decisions | 80 ADRs (ADR-001 to ADR-080); ADR-069 to ADR-080 are accepted. The owner's open questions are in §4.0. |
+| Not live | Avatars in ARQADE (ADR-079 step 3, not built), paying the welcome grant (grants are recorded as owed, never paid), ARQADE inside the launcher (P7.18), the indexer, the Mesh, fees and issuance. |
 
 ## 2. Known gaps: do not build on these
 
@@ -81,9 +97,9 @@ were shaped by it.
 | | `chain/` |
 | --- | --- |
 | What | The Substrate L1 (ADR-013), located and named by ADR-032 |
-| Chain identity | `demiurge_dev` / "Demiurge Development", or `demiurge_local` |
+| Chain identity | `demiurge_dev` / "Demiurge Development", `demiurge_local` / "Demiurge Local Testnet", or `demiurge_devnet` / "Demiurge Devnet", the live devnet (ADR-068; `chain/node/src/chain_spec.rs`) |
 | Finality | GRANDPA (ADR-018) |
-| RPC | Standard Substrate. The launcher speaks it over WebSocket at `ws://127.0.0.1:9944` (ADR-040) |
+| RPC | Standard Substrate. The launcher speaks it over WebSocket (ADR-040); its default is `wss://rpc.qorsync.dev`, and `ws://127.0.0.1:9944` is `LOCAL_RPC`, for a local node |
 | Crate and binary | `demiurge-node` |
 | Address type | `AccountIdLookup`; an extrinsic's address is a `MultiAddress` (ADR-041) |
 
@@ -99,7 +115,8 @@ were shaped by it.
 - **What it established is not lost.** Its behaviour is in `chain/`'s acceptance tests and the
   two-validator script; its module-by-module mapping is in the migration inventory; what it did on the
   wire is in `PROTOCOL.md`'s history. The inventory's requirements outlived it: **R-1** is closed as met
-  by standard behaviour (ADR-038), **R-2** moved to M4.5 with the pallet that will own it, **R-3** is
+  by standard behaviour (ADR-038), **R-2** is met in `chain/` (`pallet-drc369` refuses a nesting cycle with
+  `NestingCycle`), **R-3** is
   closed in QOR ID, and **R-4** is met by `chain/` having been written with `CGT` from the start.
 - **Do not bring it back.** CI fails if the directory returns. Reading it in git history is not forbidden
   the way the pre-realignment documentation is (AGENTS.md §1) — it is code, not a contradicting plan —
@@ -123,7 +140,7 @@ records what was launched on a date, and every ADR that referred to it. An ADR i
   (ADR-039).
 - **A password account links its new key** through `link-keypair`. **An account created by key sign-in
   before that day cannot sign in at all** and has to be created again: its password is a random value
-  nobody knows. Nothing is deployed, so the accounts this touches are development accounts.
+  nobody knows. Nothing was deployed on 19 September, so the accounts this touched were development accounts.
 - **A vault created before that day opens different accounts.** The phrase is unchanged and nothing is
   lost; the addresses it derives are new ones, which is what ADR-023 accepted while nobody holds anything.
 - **The wire changed with it.** `pubkey` is gone from every request; an account is named by `address`
@@ -135,6 +152,20 @@ records what was launched on a date, and every ADR that referred to it. An ADR i
 - Anyone holding a controller's access token can register an agent for that controller.
 - It is **not a design choice and must not become permanent.** L5.1 is a Beta gate criterion, so the
   public testnet cannot open with the gap in place.
+
+**Other gaps, as of 6 October 2026.**
+- **Welcome grants are recorded as owed and never paid** (ADR-078). Who funds them with real CGT is U-18.
+- **No fees and no issuance.** The chain has no transaction payment (OPEN-4) and no issuance (OPEN-1).
+- **The Market view has no search and no indexer**, and transaction history waits on the indexer (ADR-028).
+- **Sessions record a placeholder IP address** (`0.0.0.0`, "not yet taken from the request", in
+  `src/handlers/auth.rs`).
+- **The launcher is unsigned and has no update channel** (L6). A new version is installed by hand.
+- **Avatars are not in ARQADE** (ADR-079 step 3, not built). The launcher's avatars are on `main` and wait for a
+  new build.
+- **The Nexus still shows nine frozen-app tiles** (Explorer, Staking, Sophia, Scatter, Resonance, Worlds, Agent
+  Foundry, Developers, Bounties), marked "local" or "forming".
+- **The three-sign-ups-per-address limit trusts Railway's `X-Real-IP`** (ADR-078). If QOR ID ever runs behind
+  another proxy, the header, and the limit with it, must be checked again.
 
 ## 3. Security track and other open findings
 
@@ -150,13 +181,24 @@ Details are in [`SECURITY.md`](SECURITY.md).
 | 6 | Agent endpoints unscoped; wallet link unbound and unproven | Done; verified end to end |
 | 7 | Domain-separated QOR ID challenge signing (launcher and `qor-auth`) | Done; also L1.5. Unit tests on both sides, and the e2e harness shows a bare-challenge signature refused at login and at key link (28 of 28 checks) |
 
-**Migration requirements, not patched:**
-- R-1: strict signature verification (§2).
-- R-2: refuse nesting cycles (custom chain `do_nest`; inventory §3.5).
+**Migration requirements:**
+- R-1: strict signature verification. Closed as met by standard behaviour (ADR-038; §5).
+- R-2: refuse nesting cycles. Met in `chain/`: `pallet-drc369` refuses one with the error `NestingCycle`, tested
+  in the pallet and the runtime. The custom chain's `do_nest` never refused them, and it is gone.
 
 **Other open findings:**
-- The removed secrets remain in git history; they are rotated. Deleted pre-realignment docs may hold other
-  credentials, which D-012 forbids reading, so run a history secret scanner.
+- The secrets removed on 2026-09-14 are rotated. **Nine credential-shaped values** (from
+  `docker/n8n/docker-compose.yml` and `docker/docker-compose.testnet.yml`) are not in the current tree or in the
+  public repository's history; they exist only in the private archive's history. Rotating them is still advised if
+  those services ever ran (`OWNER.md`). CI's security job fails on committed key material and on credentials in
+  configuration files.
+- **A recovery phrase was pasted into a chat on 5 October 2026; treat that key as exposed and replace it**
+  (`OWNER.md`).
+- **New surfaces since October:** avatar upload (an image parser on untrusted input, under size, frame and
+  dimension limits; ADR-079) and the OAuth client secrets in `QOR_OAUTH_CLIENTS` (stored as SHA-256 hashes;
+  ADR-073). Both are in the log check.
+- **The per-address sign-up limit trusts `X-Real-IP`**, which Railway sets (ADR-078); `X-Forwarded-For` is not
+  trusted.
 - ~~The RPC reports `finality: 2000` and every transaction as "finalized".~~ **Gone with `framework/` at
   M3.5.** `chain/` has real finality (ADR-018), and the launcher reports a transfer only once GRANDPA has
   finalised it.
@@ -172,7 +214,7 @@ Details are in [`SECURITY.md`](SECURITY.md).
 
   Still open:
   - some accounts cannot be recovered; they are named in `SECURITY.md` as accepted lockouts;
-  - sessions record no IP address or last activity;
+  - sessions record their last activity, but their IP address is a placeholder (`0.0.0.0`);
   - ~~a password-only account holds an `on_chain_address` no key can sign for~~. **Closed 2026-09-19**
     (ADR-017, ADR-039): registration stores no address, `hash_to_address` is removed, and migration 018
     cleared the derived addresses already stored.
@@ -192,58 +234,44 @@ Read this before the detail below. "Ready" means it can start today with nothing
 | **L3.1**, the launcher's chain client | **Done, 2026-09-20 (ADR-040)**, which completes M3.4 | Nobody | The client is `subxt` at 0.51, under ADR-033 rule 2, with every call built from the metadata the node serves. Proven against a development node: an approved transfer signed in the vault and finalised by GRANDPA, a declined one moving nothing, and two sent back to back. Two calls still refuse, and for reasons that live elsewhere: **transaction history** waits on ADR-028's indexer, and **the starter claim** waits on the economics (OPEN-1, OPEN-2). |
 | **Q-17**, the runtime's address type | **Decided and done, 2026-09-20 (ADR-041)** | Nobody | The owner chose `AccountIdLookup`, and it was carried out the same day: runtime and launcher in one commit, because a node and a client on opposite sides of the change refuse each other. 51 chain tests, 13 two-validator checks and the launcher's live test all pass on it. |
 | **L4**, the studio | **L4.2, L4.4, L4.5 done**; **half of L4.6 built 2026-09-23, unticked**; L4.1 started | Nobody, to continue; **the owner** for the listing vocabulary | Owned assets are listed from on-chain enumeration (L4.2), traded (L4.4, L4.5), and since 2026-09-23 a listing can be drafted for one — saved on this machine and published nowhere, so **L4.6 stays unticked** until M4.2, P5.5 and M5.4 give it somewhere to publish. The six categories it offers are a proposal for the owner to confirm (§4 item 17). Minting any file, and collections beyond a creator's singles, are L4.1's remainder. |
-| **L1.4**, host-side confirmation | Ready to verify | Nobody | Exercising the native dialogs in a running launcher (item 4 below). The code and its unit tests exist. |
+| **L1.4**, host-side confirmation | **Partly exercised** | Nobody | The owner approved real `qor://pay` tips in the host dialog on 5 and 6 October 2026. Still needed in a running launcher: a decline, and an endpoint change approved once and declined once (item 4 below). |
 | **L2.2**, the gates dashboard | Part verified, 2026-09-17 | Nobody | The numbers are now covered from both sides: the host against the real `GATES.toml`, and the view against a known fixture in a real rendering engine (`scripts/check-gates-view.mjs`, 34 checks, wired into CI and `npm run check`). What is left needs a person: running a suite with one approval and one refusal, and the `gh` readings (item 4 below). |
-| **L1.6**, launcher tests in CI | Blocked | **Owner** | The job is written and correct; **no job in this workflow has ever executed** (25 runs, 22 `startup_failure`, 3 `cancelled`, measured 2026-09-21). It becomes true when L1.7 does. |
-| **L1.7**, CI runs at all | Blocked | **Owner** | Settings, Billing and plans, then **read the Actions tab**: 22 runs are sitting there as `startup_failure`, 0s each, not an empty list (§1). Every release gate that reads CI is unreadable until a job actually executes. |
-| **L6, distribution** | Partly ready | **Owner**, for signing | Not started, and no chain dependency. The update channel and the QOR Installer can be built now. **Signed installers cannot**: they need a Windows code-signing identity and an Apple Developer ID, which the owner is obtaining (2026-09-17). Building them unsigned would ship the one thing an installer must not be. |
-| **The landing page** | **Deferred, 2026-09-17** | Nobody, until the owner wants it | The owner's decision: do not start it and do not extend frozen scope. If it is wanted it gets a roadmap item and its own decision first (item 8 below). |
-| **Live email to a real inbox** | Blocked | **Owner** | An inbox to send to, and the Resend webhook once QOR ID has a public address (item 6 below). |
-| **Deployment** | Blocked | **Owner** | ADR-015 is accepted and nothing is deployed. The devnet is never exposed (§2). |
-| **The pull request** | Blocked | **Owner** | The owner opens it. It is not opened from here. |
+| **L1.6**, launcher tests in CI | **Ticked 6 October 2026** | Nobody | The `launcher` job runs and passes in CI on `main` (every completed run since the merge of #6, 5 October 2026; on the merge of #13, run `37496555161`, 204 host tests passed and 7 were ignored). Ticked in `DIRECTION.md` against that evidence. |
+| **L1.7**, CI runs at all | **Ticked 6 October 2026** | Nobody | CI starts and passes on `main` (the merges of #12 and #13), and the `coverage` job uploads the `coverage` artifact `GATES.toml` reads. Ticked in `DIRECTION.md` against that evidence. |
+| **L6, distribution** | Partly done | **Owner**, for signing | Unsigned installers 0.1.7 and 0.1.8 were built locally and installed by the owner. **Signing and an update channel are not done.** Signing needs a Windows code-signing identity and an Apple Developer ID, which the owner was obtaining on 2026-09-17. |
+| **The landing page** | **Deferred, 2026-09-17** | Nobody, until the owner wants it | The owner's decision: do not start it and do not extend frozen scope. If it is wanted it gets a roadmap item and its own decision first (item 11 below). |
+| **Live email to a real inbox** | Blocked | **Owner** | The Resend webhook to `https://id.qorsync.dev/api/v1/webhooks/resend`, with its signing secret in Railway as `RESEND_WEBHOOK_SECRET` (item 7 below). Delivery to a real inbox is unconfirmed. |
+| **Deployment** | **Devnet stage done** | Nobody, for the devnet | QOR ID on Railway (ADR-063), Demiurge Devnet on Railway (ADR-068) and ARQADE on Vercel (ADR-074), all devnet-only with test CGT. No production network exists. |
 | **M2.1**, the owner's review of the inventory | **Ticked 2026-09-22** | Nobody | Against the owner's acknowledgement of a ten-line summary of the DRC-369 section, kept verbatim in the inventory. M2 is done. |
 | **M4.1**, the asset primitive | **Done 2026-09-22** (ADR-052) | Nobody | §4 item 14. Its deposits are placeholders (U-14) and its weights are placeholders owed to M7.2. |
 | **M4.2, M4.3, M4.5** | **Ready**; M4.2's royalty half **built 2026-09-29** (ADR-061) | Nobody; the owner ruled on ADR-061's two choices the same day (ADR-062) | None needs an economic value. M4.4 waits on U-4 and OPEN-4. |
-| **The freeze** (`beta.wire-format-frozen`) | Blocked | **Owner**, by an ADR each | Q-18 (eight royalty recipients, carried forward by the owner for GNOSIS's song credits) and Q-19 (whether an asset's root depends on its files alone). `beta.royalty-recipients` and `beta.manifest-identity` count them. |
-| **ADR-047** (the asset format) and **ADR-051** (QFX) | **Accepted 2026-09-22** | Nobody | M2.3 is ticked. Deciding is not freezing: ADR-047 now lists two open items before the freeze (Q-18, Q-19). |
-| **ADR-046, ADR-048, ADR-049, ADR-050** | Proposed | **Owner** | Accepting or rejecting each. The product gates and `P` tracks follow ADR-050's form ahead of it. |
-| **The QFX check narrowing** | **Approved 2026-09-22, retroactively** | Nobody | Logged in `GATES.toml` with the owner's rule: the design system governs the default theme and the chrome; QFX governs the canvas; the default must still pass `check-design.mjs` unchanged. |
-| **The product tracks** | Ready where an item names no dependency | Nobody | **P1.1 is done (2026-09-23)** and **P1.2 is done (2026-09-26)** (§4 items 18 and 19). P1.3 to P1.5, P2.2 to P2.5, P3.1, P4.1, P5.1 and P5.2 can start today, and P6.1 is a decision the owner can take today. P1.6 is half built. |
+| **The freeze** (`beta.wire-format-frozen`) | Blocked | **Owner**, by an ADR each | Q-19 (whether an asset's root depends on its files alone) and Q-20 (whether the media-type table is part of an asset's identity). `beta.manifest-identity` and `beta.media-types` count them. Q-18 was answered by ADR-057 on 2026-09-28: eight royalty recipients stay. |
+| **ADR-047** (the asset format) and **ADR-051** (QFX) | **Accepted 2026-09-22** | Nobody | M2.3 is ticked. Deciding is not freezing: the open items before the freeze are Q-19 and Q-20 (Q-18 was answered by ADR-057). |
+| **ADR-046, ADR-048, ADR-049, ADR-050** | **Accepted 2026-09-28** | Nobody | Accepted by the owner. |
+| **The QFX check narrowing** | **Approved 2026-09-22, retroactively**; widened by ADR-080 on 2026-10-06 | Nobody | Since ADR-080, `check-design.mjs` keeps only its colour-token, type-scale and tracking-scale rules, with no QFX or ceremony exemption; reduce motion and readability as painted still bind. Logged in `GATES.toml`'s change log with the owner's approval. |
+| **The product tracks** | Ready where an item names no dependency | Nobody | **P1.1 is done (2026-09-23)** and **P1.2 is done (2026-09-26)** (§4 items 18 and 19). P1.3 to P1.5, P2.2 to P2.5, P3.1, P4.1, P5.1 and P5.2 can start today, and P6.1 is a decision the owner can take today. P1.6 is half built. **P7 (ARQADE):** P7.1 to P7.4 are ticked (P7.4, tips, on 6 October 2026); P7.16 to P7.18 (ADR-078) are partly built — levels and tasks exist, and ring styles are drawn in the launcher on `main`, but themes as unlocks are not built, no grant is paid, ARQADE is not inside the launcher and there is no abuse watcher; ARQADE's avatars are not built. |
+| **Open owner questions** | Open | **Owner** | OPEN-1 to OPEN-4, U-4, U-14, U-15, U-16, U-17, U-18, Q-19 and Q-20 (`docs/economics/OPEN_QUESTIONS.md`, the migration inventory). |
+| **Legal review** | Open | **Owner** | A legal opinion on backing, paid games with prizes, the welcome grant, task rewards, and making CGT exchangeable, before any of them goes live. |
+| **Trademark clearance** | Open | **Owner** | An attorney's clearance opinion on the project name (`public-release.name-clearance`). |
+| **Vercel plan** | Hobby | **Owner** | Vercel's Hobby plan is for non-commercial use. Before ARQADE takes a real payment or pays out real CGT, it moves to a plan that allows commercial use (ADR-074). |
+| **The exposed key** | Open | **Owner** | A recovery phrase was pasted into a chat on 5 October 2026; treat that key as exposed and replace it (`OWNER.md`). |
+| **The nine credentials** | Open | **Owner** | Rotate them if those services ever ran (§3, `SECURITY.md`). |
+| **Cloudflare clean-up** | Open | **Owner** | Delete the `ci` record and the tunnel left from the retired operations stack. |
+| **A new launcher build** | Ready | Nobody | Build and install a launcher after 0.1.8, so the avatars and rings on `main` reach the owner. |
+| **The QFX backdrop library** | Ready | Nobody | The owner's request (§4 item 57): reactive backdrops (Drift, Aurora, Nebula, Lattice, Starfield, Liquid), combinable pointer effects, presets, and backdrops that evolve with the level. |
 
 Nothing above waits on another track finishing. L1, L2 and L6 run in parallel with M3, and always could.
 
 
-1. **Owner:** check Settings, Billing and plans, then the Actions tab. **Correction, 2026-09-21:** this
-   entry used to say no workflow run had started. That is wrong, and the wrong version sent you to look
-   for an empty list. **25 runs exist: 22 `startup_failure` and 3 `cancelled`, and no job has ever
-   executed.** Every failed run is 0s with `path: BuildFailed`, and runs are created even for pushes to
-   `session/*`, which matches no trigger in `ci.yml` — so GitHub fails before it evaluates triggers.
-   Actions is enabled at the repository level (`allowed_actions: all`) and **the repository is private**,
-   so minutes are billed.
-
-   **The workflow file was ruled out by experiment on 2026-09-21, run `35622108578`.** The competing
-   explanation was that `ci.yml` is invalid to GitHub's validator — which the blank workflow-name column
-   and runs on non-matching branches both fit. So a deliberately trivial `.github/workflows/probe.yml`
-   was pushed: a `name`, `on: push`, and one job running `echo ok` on `ubuntu-latest`. **It produced zero
-   `Probe` runs.** GitHub never registered the workflow; the single run created was the same synthetic
-   placeholder every other failure gets. A workflow that fails validation fails *as itself*, with its own
-   name attached. This fails before any workflow exists, so **`ci.yml` is not the cause** and no amount
-   of fixing it will help.
-
-   What remains is an account-level block, most likely a spending limit, and it is **still unconfirmed** —
-   reading billing needs a token scope this session does not have and none was requested. CI still cannot
-   report anything, and that much is unchanged.
-
-   `.github/workflows/probe.yml` is **kept deliberately**: once billing is sorted, one push tells you
-   whether jobs execute, without waiting on a full `chain/` build. Delete it the day a job runs.
+1. **Resolved: CI runs** (ADR-063, ADR-064). Until late September 2026 no job in the private repository's workflow
+   ever executed: every run failed at startup, and a trivial `probe.yml` failed the same way, which put the cause
+   above workflow parsing, at the account. CI now runs on the public `QOR-MATRIX/demiurge-chain`, `probe.yml` is
+   deleted, and CI is green on `main`.
 2. **L1.7's decisions are applied** (2026-09-14, logged in `GATES.toml`):
    - `framework/` audit: six named advisories exempt until M3.5. **Expired with the directory on
      2026-09-20.** CI now fails if `framework/` returns at all.
    - `qor-auth` audit: RUSTSEC-2023-0071 ignored. CI fails if `rsa` enters the compiled graph.
    - `build-blockchain.yml` removed.
-
-   Locally on Windows, every check the workflow runs passes. The Linux-only steps (Tauri system
-   dependencies) and the workflow itself are unconfirmed until Actions runs.
 3. **ADR-018 to ADR-032 are confirmed** (owner, 2026-09-17): they record the decisions the owner made, for the
    reasons they made them. **M3 is unblocked and started.** All four inputs arrived with the confirmation:
 
@@ -273,11 +301,6 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
      holds the string in class 36, the class a currency occupies. The screening covered identical marks only, by a
      non-lawyer, so an attorney's clearance opinion on the project name is now a Public Release gate criterion,
      `public-release.name-clearance`.
-   - **Decimals (U-1), blocking.** Written up as its own question with options and a recommendation: keep eighteen,
-     with the stale headroom argument in `denomination.rs` corrected and a rule that scaled arithmetic uses the SDK's
-     helpers. The owner decides this before the existential deposit's constant is written.
-   - **The existential deposit.** 100 CGT is proposed against the stated target (ADR-030). It needs the owner's value,
-     and U-1 decided first, so the number can be judged against a real unit.
    - **Linking an address is not chain identification (F-Q9).** Prefix 42 is shared, and the same account bytes are
      valid on every Substrate chain, so ADR-024's prefix check validates a shape and nothing more. The inventory
      records the options; the recommendation is that no route stores an address without proof of possession, over a
@@ -293,7 +316,8 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
      - the Ed25519 forgery test stays;
      - the pin stays on `polkadot-stable2606-1`;
      - dependency versions follow ADR-033.
-   - **M2.1** (the owner's review of the inventory) and **M2.3** (the DRC-369 wire format) remain unticked.
+   - **M2.1** (the owner's review of the inventory) and **M2.3** (the DRC-369 wire format) were both ticked on
+     22 September 2026 (items 13 and 14).
 4. **L2.2, the development dashboard, is implemented and unit-tested.**
    - The host (`src-tauri/src/gates.rs`) applies `GATES.toml`'s counting rules and nothing else. An
      unreadable signal is not met, never unmeasurable, unless the file says so for that kind.
@@ -315,8 +339,9 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
    Security item 7, L1.1, L1.2, L1.3 and L1.5 are done.
    **Owner:** the Veridian and Abyss themes lean neon, and the Veridian and Sanguine descriptions are not
    restrained (`docs/design/DESIGN_SYSTEM.md` §2). They are unchanged, pending your call.
-   L1.4 (host-side confirmation) is implemented and unit-tested, but stays unchecked until its native
-   dialogs are exercised in a running launcher: a transfer and an endpoint change, each approved once and
+   L1.4 (host-side confirmation) is implemented and unit-tested. **Since 5 and 6 October 2026 it is partly
+   exercised:** the owner approved real `qor://pay` tips in the host dialog. It stays unchecked until the rest of
+   its native dialogs are exercised in a running launcher: a transfer and an endpoint change, each approved once and
    declined once, against a local `demiurge-node --dev` (L3.1 gave the transfer dialog a real subject
    again; the starter claim now refuses before any dialog, so it is no longer one of these).
    Since ADR-016, unlocking also signs in to QOR ID with no dialog, and a
@@ -337,7 +362,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
    - **What is deliberately not done:** the challenge still names no network (ADR-039 point 7, inventory
      F-Q9). The launcher's two state-changing chain calls refused until L3.1, which landed the next day
      (item 9 below).
-6. The owner opens the pull request for this branch. It is not opened from here.
+6. *(Retired on 6 October 2026: work reaches `main` by pull request on `QOR-MATRIX/demiurge-chain`, §7.)*
 7. **Owner: Resend on `demiurge.cloud`.** QOR ID sends verification and reset messages through Resend's API,
    tested end to end against a local stand-in.
    - `demiurge.cloud` is verified and authorised in Resend (owner, 2026-09-15). Checked in public DNS the same
@@ -350,26 +375,25 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
      A key pasted into chat earlier was revoked. The variables:
      - `RESEND_API_KEY`: the key. Resend refuses it anything but sending;
      - `EMAIL_FROM`: `Demiurge-Cloud <noreply@demiurge.cloud>`;
-     - `BASE_URL`: QOR ID's own origin, `https://<qor-id-subdomain>.demiurge.cloud`. The name is a
-       placeholder, set by the owner at deployment. The value in the owner's user environment,
-       `https://demiurge.cloud`, is to be replaced then.
+     - `BASE_URL`: QOR ID's own origin. **Since 1 October 2026 QOR ID is at `https://id.qorsync.dev`** on
+       Railway, which holds its settings now; the `demiurge.cloud` subdomain planned here was not used.
    - `RESEND_API_URL` stays unset in any live environment.
    - **QOR ID serves the pages its links open on its own subdomain** (owner, 2026-09-15; recorded as a
      clarification of ADR-015).
      - Vercel serves marketing and the web surfaces only, and does not proxy or rewrite QOR ID's paths.
-     - Routing `demiurge.cloud` paths through Vercel to Fly would put a proxy and a rewrite layer between
-       people and one-use tokens.
+     - Routing paths through Vercel to QOR ID's host would put a proxy and a rewrite layer between people
+       and one-use tokens. (The Fly.io plan of the time is superseded: QOR ID runs on Railway, ADR-063.)
      - `BASE_URL` has no default. Email stays unconfigured unless it is an origin: HTTPS, or HTTP to this
        machine, with no path.
-   - **Resend webhooks, set up by the owner once QOR ID has a public HTTPS address.** Resend cannot deliver
-     to this machine, so not before deployment:
-     1. In Resend, open Webhooks and add an endpoint: `https://<QOR ID's address>/api/v1/webhooks/resend`.
+   - **Resend webhooks, set up by the owner.** QOR ID has had its public HTTPS address since 1 October 2026:
+     1. In Resend, open Webhooks and add an endpoint: `https://id.qorsync.dev/api/v1/webhooks/resend`.
      2. Select the events `email.bounced`, `email.complained` and `email.suppressed`. Others are recorded and
         ignored, so they are harmless but unnecessary.
-     3. Copy the endpoint's signing secret (`whsec_…`) into QOR ID's environment as `RESEND_WEBHOOK_SECRET`,
-        the same way as the API key, never in chat.
+     3. Copy the endpoint's signing secret (`whsec_…`) into Railway's settings for `qor-auth` as
+        `RESEND_WEBHOOK_SECRET`, never in chat.
 
-     Until then every delivery is refused with 503, and the service logs a warning at start.
+     Until then every delivery is refused with 503, and the service logs a warning at start. Whether the
+     secret is set today is unconfirmed here; it is listed in `OWNER.md` as still to do.
    - **Live run, 2026-09-15, to Resend's test address `delivered@resend.dev`:**
      - registration sent a verification message, which Resend marked delivered, and its link verified the
        address (a second use was refused);
@@ -381,7 +405,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
      - no link and no key reached the service log.
    - **Still to do:** the same run with a real inbox the owner names, now through the link pages. Receiving
      mail at `demiurge.cloud` is not set up, and is not to be as part of a test (§5). A live bounce report
-     cannot be part of it until the webhook endpoint exists.
+     cannot be part of it until the webhook is configured.
    - **Templates rewritten; copy approved by the owner as drafted** (2026-09-15).
      - All four messages share one layout in the Architect palette: tables and inline styles, no images,
        declared `color-scheme: dark`.
@@ -436,7 +460,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
    - **The live test is not in CI, and is not meant to be yet.** It is ignored without a node, so
      `cargo test` — which is what the `launcher` suite in `GATES.toml` runs — passes with or without one.
      Putting it in CI means building and running a chain node in the job, which is a tightening worth
-     making once CI runs at all (L1.7) and once the node's build time there is known.
+     making once the node's build cost in CI is known.
    - **What still needs a person:** the native dialog itself. The live test answers the prompt in code.
 10. **Q-17, the runtime's address type: decided and done** (2026-09-20). Written up in
     [`docs/architecture/ADDRESS_TYPE.md`](docs/architecture/ADDRESS_TYPE.md), decided by the owner the same
@@ -1024,6 +1048,9 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
 
 32. **The repository goes public as `demiurge-chain`; CI back to GitHub Actions; QOR ID moving to Railway, 29 September
     2026 (ADR-063). HALF DONE — the owner has three steps, then the assistant has five (below).**
+    *Since 1 October 2026 this is done: the repository is `QOR-MATRIX/demiurge-chain` (ADR-064), CI runs there and
+    is green, QOR ID is live on Railway at `https://id.qorsync.dev`, and work reaches `main` by pull request. The
+    owner steps and the branch names below are history.*
     The owner travels, so nothing may depend on their computer. The owner chose Railway for what must stay online and
     GitHub Actions for CI, with the repository public so Actions is free, published **without history** (option 1).
     - **Why not just flip the old repository public:** old credentials remain in its history, nine values in two
@@ -1262,7 +1289,8 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       cannot share a database; a `.gitattributes` `eol=lf` on `services/qor-auth/migrations/*.sql` would end it, and
       would in turn need the same checksum correction on the launcher's local database (`qor-local-pg`).
 
-33. **2 October 2026: unrecorded, half-finished work found in the tree, finished and verified. UNCOMMITTED.** The
+33. **2 October 2026: unrecorded, half-finished work found in the tree, finished and verified. UNCOMMITTED.** *(Since
+    committed; it is on `main`.)* The
     owner said "proceed". The working tree held a previous session's changes in three areas that `HANDOFF.md` did not
     mention, cut off mid-work. What they are, what was wrong, and what was run:
     - **Chain, `spec_version` 6.** `Drc369Royalties::buy_exact(collection, item, max_price, content)`, call index 4:
@@ -1651,7 +1679,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     redeploy the site.
 
 51. **5 October 2026: P7.3 live on QOR ID's side; ARQADE moved to Vercel (ADR-074). On branch
-    `session/arqade-vercel`, not merged.** The owner merged P7.3 (PR #1, `788d3ab`; QOR ID redeployed, `/oauth/authorize`
+    `session/arqade-vercel`, not merged then (merged as PR #2).** The owner merged P7.3 (PR #1, `788d3ab`; QOR ID redeployed, `/oauth/authorize`
     answering) and set Railway's `QOR_OAUTH_CLIENTS` for ARQADE (read back: the live page is titled "Sign in to ARQADE
     · QOR ID"; an unknown app still gets 400). The secret is in the session scratchpad, never in the repository. Sites
     then could not be published or checked from here (every route behind its sign-in wall; it moved itself to
@@ -1677,7 +1705,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     generic outage. Still to do: Neon, the Railway callback, the three `QOR_*` settings in Vercel.
 
 52. **5 October 2026: ADR-075, one name per QOR ID, no `#0001` (the owner's rule). On branch
-    `session/unique-usernames`, not merged: merging redeploys QOR ID and runs migration 019 on the live database.**
+    `session/unique-usernames`, not merged then (merged as PR #5): merging redeploys QOR ID and runs migration 019 on the live database.**
     The owner's three ARQADE sign-ins as `Godmode` were refused by QOR ID's password check (Railway HTTP log, 21:10,
     `POST /oauth/authorize` 401); every sign-up path for people always refused a taken name, so this was the password or
     the account's state, not a shared name (I said otherwise first, and corrected it). QOR ID: `User::qor_id()` and every
@@ -1690,7 +1718,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     196 tests, clippy, build. ARQADE's tests use plain names (41). **A rename flow is not built**: only agent accounts
     could have shared a name; read the count logged at deploy.
 
-53. **5 October 2026: QOR ID's account page; ADR-076 proposed (P7.4). On branch `session/account-page`, not merged.**
+53. **5 October 2026: QOR ID's account page; ADR-076 proposed (P7.4). On branch `session/account-page`, not merged then (merged as PR #7).**
     The owner was locked out because their account was created from a key (the launcher signs in with
     `keypair-login`), so it had no password and no email, and could neither reset nor change one; a password was set by
     hand in the database (the owner ran the SQL; a script made the hash locally) and the stored name had a stray space,
@@ -1704,7 +1732,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     chat; whatever account it controls must be treated as exposed and replaced (OWNER.md).
 
 54. **5 October 2026: P7.4 built, tips through the QOR Launcher (ADR-076 with ADR-077). On branch
-    `session/p7.4-qor-pay`, not merged.** ADR-077 corrects ADR-076 from the launcher's code: the host dialog approves
+    `session/p7.4-qor-pay`, not merged then (merged as PR #8).** ADR-077 corrects ADR-076 from the launcher's code: the host dialog approves
     (the owner chose it over Windows Hello, which no signature has used since ADR-056), no fee exists to show (OPEN-4),
     "devnet only" is a genesis check. The owner chose tips to a game's creator as the first use. **Launcher**: `src/pay.rs`
     (parse and check a `qor://pay` link: ARQADE's Ed25519 key in `KNOWN_APPS`, genesis, the 100,000 CGT cap, account,
@@ -1735,7 +1763,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     (the flaky "did not expose a page to inspect"). The owner wants CGT to become exchangeable; no current record says
     so yet, and it was offered as a record of its own with a legal review.
 
-56. **6 October 2026: ADR-078's first build, levels and tasks. On branch `session/levels`, not merged.** QOR ID:
+56. **6 October 2026: ADR-078's first build, levels and tasks. On branch `session/levels`, not merged then (merged as PR #11).** QOR ID:
     migration 020 (`progress_events` one row per account and task; `welcome_grants` unique per account, email and chain
     account, 100 CGT in Sparks as text; `signup_addresses` keyed hashes); `handlers/progress.rs` (tasks and XP, level
     50·L·(L+1), unlocks named, `award` once and records an owed grant when tutorial, verified email and linked key are all
@@ -1755,7 +1783,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     already earned (checked on sample accounts, twice, no change the second time); launcher 0.1.8 built
     (`QOR Launcher_0.1.8_x64-setup.exe`) to show the level.
 
-57. **6 October 2026: avatars (ADR-079) and effects allowed (ADR-080). On branch `session/adr-079`, not merged.**
+57. **6 October 2026: avatars (ADR-079) and effects allowed (ADR-080). On branch `session/adr-079`, not merged then (merged as PR #13).**
     ADR-079 accepted ("I accept ADR-07.", replying to it). QOR ID: migration 022 (`avatars` with a still first frame for
     GIFs, `avatar_reports`, `avatar_removals`); `avatar_image.rs` (the `image` crate, pure Rust, under limits: PNG, JPEG,
     WebP, GIF up to 4 MB, orientation applied, centre square, 256 x 256, re-encoded PNG or GIF, at most 120 frames and
@@ -1773,13 +1801,30 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     GATES.toml's change log as the owner's loosening). Rings glow from level 1. **Next, asked for by the owner:** a library
     of reactive QFX backdrops (Drift, Aurora, Nebula, Lattice, Starfield, Liquid), combinable pointer effects, presets,
     and backdrops that evolve with the level; and ARQADE's avatars.
+    *Merged to `main` the same day (PR #13, `9f8a818`), as were items 51 to 56 (PRs #2 to #12).*
+
+58. **6 October 2026: documentation brought up to date with the tree after the IBM Bob audit.** On branch
+    `session/docs-current`. **What was stale:** the status sections of the current documents had been written
+    before the work of ADR-063 to ADR-080 — the public repository and CI on GitHub Actions, QOR ID and the devnet on
+    Railway, ARQADE on Vercel, sign-in for apps, unique names, tips, levels and avatars — and still said so. This
+    file's §1 called CI blocked by a billing lock, QOR ID configured but not deployed, the launcher at 91 host tests
+    and production offline; its opening called item 32 half done, `id.qorsync.dev` down and the work on
+    `public-main`; items 51 to 57 said "on a branch, not merged". `SYSTEMS.md` called ARQADE not yet live on Vercel,
+    `SECURITY.md` placed the nine credentials in the tree, and QOR ID's `main.rs` module comment still described
+    `username#discriminator` names. **What was fixed:** all current documents were checked against the tree at
+    `9f8a818` and against live state, and corrected. Here: the opening and the reading list; §1 rewritten, with rows
+    for ARQADE, the decisions and what is not live; §2's chain identity, endpoint and a list of current gaps; §3's
+    R-1, R-2, credentials, sessions and new surfaces; §4.0 (L1.4 partly exercised; L1.6, L1.7 and P7.4 ticked in `DIRECTION.md` with their evidence; the
+    pull-request row removed; the owner's open decisions added); §4 items 1 to 11; §5's traps; §6 and §7. No
+    behaviour, ADR decision or gate criterion changed. **Next:** the owner re-runs the audit against `main` on GitHub once this
+    work is merged.
 
 ## 5. Traps, so nobody re-learns them
 
 **Launcher checks**
-- `npm run check` runs eight checks: design, accessibility, the gates view, the Projects view, the Inventory
-  view, the Gate and Windows Hello (`check-vault-gate.mjs`), QFX contrast and readability. It needs
-  `npm run build` first, because seven of them serve `dist`, and a
+- `npm run check` runs nine checks: design, accessibility, the gates view, the Projects view, the Inventory
+  view, the Market view (`check-market-view.mjs`), the Gate and Windows Hello (`check-vault-gate.mjs`), QFX
+  contrast and readability. It needs `npm run build` first, because eight of them serve `dist`, and a
   Chromium-family browser (set `BROWSER_PATH` for one that is not Edge or Chrome in the usual places).
   Readability takes about four minutes; `READABILITY_THEMES=numen` runs one theme while iterating.
 - **`?.` in a check's click turns a missing element into a silent pass.**
@@ -1840,7 +1885,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   it.
 - **The repository ignores every `package-lock.json` except the launcher's**, which is tracked since
   2026-09-29 because CI installs it with `npm ci` and all of its dependencies are ranges. Woodpecker's
-  second run failed at `npm ci` for want of it; GitHub Actions had the same step and never ran.
+  second run failed at `npm ci` for want of it.
   `chain/scripts/package.json` pins its two direct dependencies exactly and is installed with `npm install`,
   not `npm ci`.
 
@@ -1855,7 +1900,6 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   `CreateOrigin` refuses everyone. A test that dispatches any other `Nfts` call gets `CallFiltered`.
 - **CI runs `npm run check` itself, not a list of scripts** (since `7a3c8ea`). It used to name three, and
   two checks added later were never in the workflow. Add a check to `package.json` and CI has it.
-- They had only ever run on Windows, so their first Linux run is the first workflow run that starts.
 - **The QFX cases in `check-accessibility.mjs` count frame callbacks.** "Still" means no callback is
   scheduled, which a screenshot cannot show. A positive control proves the backdrop is drawing first;
   without it the still cases would pass on a dead canvas. Headless Edge gets a WebGL2 context even under
@@ -1866,7 +1910,8 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   Without it the tests that commit skip and say so; with `--features qontrol-no-skips`, as CI and the
   `qontrol` gate's suite run them, they fail. A skipped test reports ok, which is why the feature exists.
 - **The helper is found through `QONTROL_GIT_BIN`, beside the launcher executable, or in
-  `qontrol-git/target/`.** Nothing bundles it yet (no `externalBin`), so only a development build can commit.
+  `qontrol-git/target/`.** Since P1.2 the installer bundles it (`src-tauri/tauri.bundle.conf.json`,
+  `externalBin` `binaries/qontrol-git`).
 - **Write "Accepted" plainly at the start of an ADR index's Status cell.** The gates parser does not strip
   Markdown, so a cell reading `**Accepted**` counts as not accepted. ADR-045's row is written that way; no gate
   counts it today. Stripping emphasis in the parser would widen what counts as met, which is loosening.
@@ -1874,8 +1919,10 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   `P` headings only since `d4be885`; before it, every product item would have read as unmeasurable.
 - **Product gates may count chain items; chain gates never count product items.** They are appended after
   Public Release, because a `gate` criterion resolves against earlier gates only.
-- **`src/qfx/` is exempt from exactly two design rules**, the canvas rule and the pointer rule. A frame
-  loop anywhere else in `src/` still fails `check-design.mjs`.
+- **`check-design.mjs` has no effect rules and no exemptions since ADR-080** (6 October 2026). Glow, canvas,
+  pointer-reactive light and looping animation are allowed on every surface; the check enforces theme colour
+  tokens, the type scale and the tracking scale only. Reduce motion and readability as painted still bind, through
+  `check-accessibility.mjs` and `check-readability.mjs`.
 - **Ambience Off hides the canvas and the scrim in one rule.** Hiding only the scrim leaves a frame on
   screen with nothing over it, which was layer one's first defect.
 
@@ -1933,8 +1980,8 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   re-run on 2026-09-20 after ADR-041 changed the address type. **It is a CI job of its own since
   2026-09-20** (`two-validators`, `[ci].quality_gates`), which fails the run, so nothing sits unwatched
   between two manual runs again. It is a separate job because it needs the release build and the quality
-  gates do not; **what nobody knows yet is what that build costs on a runner**, since no job in this
-  workflow has ever executed (§1). The job carries `timeout-minutes: 90` rather than a guessed number.
+  gates do not. It runs on the nightly schedule and by hand (`ci.yml`), and carries `timeout-minutes: 90`
+  rather than a guessed number.
 - **A validator will not generate its own network key**, so both nodes are given `--node-key`. Without
   one a validator exits with `NetworkKeyNotFound`.
 - **The first validator runs with `--force-authoring`, deliberately.** A node with no peers stops
@@ -2044,13 +2091,15 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   prefix) or by `account_id` (`0x` hex), exactly one of the two. Hex in `address` is refused on purpose.
 - **A prefix check is not chain identification.** Many chains use 42. Do not describe it, or rely on it,
   as evidence of which chain an address came from (ADR-024, F-Q9).
-- **The challenge still names no network.** Binding it to a genesis hash waits for a deployed network
-  (ADR-039 point 7). The reason sits beside the domain tag in `src/handlers/auth.rs`.
+- **The challenge still names no network** (ADR-039 point 7). The reason in the code, beside the domain tag in
+  `src/handlers/auth.rs`, is that no network was deployed. Demiurge Devnet has been live since October (ADR-068),
+  so binding the challenge to a genesis hash is now an open item, not a wait.
 - **A node and a launcher from opposite sides of 2026-09-20 refuse each other.** ADR-041 changed the
   extrinsic's address from a bare `AccountId32` to a `MultiAddress`, so a node built before that commit
-  refuses what a launcher built after it signs, and the reverse. Rebuild both; nothing is deployed and
-  nothing holds value. The failure is loud: the client cannot even encode the call.
-- **The launcher talks to `chain/` and nothing else** (ADR-040). Point it at `ws://127.0.0.1:9944` with
+  refuses what a launcher built after it signs, and the reverse. Rebuild both. Only the devnet is deployed,
+  and it holds only test CGT. The failure is loud: the client cannot even encode the call.
+- **The launcher talks to `chain/` and nothing else** (ADR-040). Its default is Demiurge Devnet,
+  `wss://rpc.qorsync.dev`; for a local node, point it at `ws://127.0.0.1:9944` (`LOCAL_RPC`) with
   `chain/target/release/demiurge-node --dev`.
 - **The launcher's chain endpoint is a WebSocket address now.** `ws://` or `wss://`, because the client's
   transport is WebSocket and nothing else. A stored `http://` endpoint is upgraded on load rather than
@@ -2075,11 +2124,11 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
 - In `GATES.toml`, never write a URL for a service that has not actually been deployed.
 
 **qor-auth**
-- **Compiling needs a migrated Postgres,** because `sqlx` checks 16 queries at compile time. Create a
+- **Compiling needs a migrated Postgres,** because `sqlx` checks its `query!` macros at compile time. Create a
   throwaway database, apply `migrations/*.sql` to it with `psql` for the compile schema, and point
   `DATABASE_URL` at it. Run the service itself against a separate empty database, and let it apply its
   own migrations.
-- **The flat `DATABASE_URL` wins over `QOR_AUTH__DATABASE__URL`** at runtime (`src/config.rs:103-105`).
+- **The flat `DATABASE_URL` wins over `QOR_AUTH__DATABASE__URL`** at runtime (`src/config.rs`, about line 275).
   Unset it before starting the service, or it silently uses the build database.
 - **The `vyb-redis` container on 6379 requires a password.** Use a separate Redis for `qor-auth` tests.
 - **Registration shapes changed.** `POST /agents/register` and `POST /profile/link-wallet` take `pubkey`,
@@ -2269,21 +2318,24 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
 - About a hundred other pre-realignment files under `scripts/` do not touch dependencies. They are a
   separate, unurgent question.
 - `config/`, `testnet/`, `scripts/*.sh` and the root deploy scripts do not work against the current node.
-- **Six of them now reference a directory that does not exist**, since M3.5 deleted `framework/`:
-  `Dockerfile`, `docker/Dockerfile.node`, `docker/docker-compose.testnet.yml`,
-  `config/production/demiurge-node.service`, `testnet/systemd/*.service` and `fly.toml`. They were already
-  non-working, so nothing regressed; they were deliberately left out of the deletion commit, which was
-  scoped to `framework/` alone. **`fly.toml` is to be rewritten for `chain/` under ADR-015**, not deleted;
-  the others are a cleanup of their own.
+- **Five of them reference a directory that does not exist**, since M3.5 deleted `framework/`:
+  `Dockerfile`, `docker/Dockerfile.node`, `config/production/demiurge-node.service`,
+  `testnet/systemd/*.service` and `fly.toml` (a sixth, `docker/docker-compose.testnet.yml`, is gone from the
+  tree). They were already non-working, so nothing regressed; they were deliberately left out of the deletion
+  commit, which was scoped to `framework/` alone. The plan to rewrite `fly.toml` for `chain/` under ADR-015 is
+  moot: the devnet runs on Railway (ADR-068, `chain/DEPLOY-RAILWAY.md`). They are a cleanup of their own.
 
 ## 6. Local environment
+
+*Recorded between 14 and 21 September 2026 and not re-checked since. Read `docker ps -a` before relying on any
+container named here.*
 
 - **Cleaned up on 2026-09-14.**
   - The test containers `qor-db-1` and `qor-redis-e2e` are removed.
   - Their throwaway databases (`qor_auth_build`, `qor_auth_old008`, `qor_auth_e2e`) are dropped.
   - The volume `qor_qor_pgdata` was kept. It still holds the `qor` and `qor_test` databases that existed
     before these sessions.
-- **Docker Desktop is still running,** with the `vyb` stack it auto-started. Nothing in `vyb` was changed.
+- **Docker Desktop was running on 2026-09-15,** with the `vyb` stack it auto-started. Nothing in `vyb` was changed.
   It had stopped by the logout round (2026-09-14) and was started again for it, and again for the live email
   run (2026-09-15). It is installed at `%LOCALAPPDATA%\Programs\DockerDesktop`, not under Program Files.
 - **For the rounds of 2026-09-14 and 2026-09-15:** the temporary containers `qor-verify-pg` (port 55432) and
@@ -2313,9 +2365,13 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
 
 ## 7. Repository state
 
-- **Newest (29 September 2026, later): the public repository.** Local branch `public-main` tracks `public/main` on
-  `ALaustrup/demiurge-chain`: `e611c99` (import) and `2681a51` (CI and Railway records), then the commit holding this
-  entry. **New work is pushed to `public`.** `origin` is the private archive (§4 item 32).
+- **Now (6 October 2026): the public repository `QOR-MATRIX/demiurge-chain`** (ADR-064), whose `main` is at
+  `9f8a818` (PR #13). Work goes on a `session/*` branch and reaches `main` by pull request; PRs #1 to #13 are
+  merged. `origin` is the private archive and is not the current tree. This file's update (§4 item 58) is on
+  `session/docs-current`.
+- **Earlier (29 September 2026): the public repository's start.** Local branch `public-main` then tracked
+  `public/main` on `ALaustrup/demiurge-chain`: `e611c99` (import) and `2681a51` (CI and Railway records). The
+  repository moved to `QOR-MATRIX` on 1 October 2026 (ADR-064).
 - **Before that (29 September 2026): branch `session/trading-cards-2026-09-28`**, pushed to `origin` up to `3d63b43`, 64
   commits ahead of `main`. §4 items 18 to 24, listed below as not committed, were committed on 28 September
   (`a3109e2`, `928cab5`). **§4 item 31 is committed, on the owner's word, in three concerns:** the chain and the
@@ -2364,17 +2420,18 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   - `a8c22eb` — `GATES.toml`: L4.6 and P2.8 counted, and the correction of the 110 that was never measured.
   - the documents, in the commit this entry is part of: `DIRECTION.md`, the launcher `README.md`, `OWNER.md`,
     `docs/SYSTEMS.md` and this file.
-  - **Not pushed, and no pull request** — both remain the owner's (§4 item 6).
+  - **Not pushed, and no pull request, on 2026-09-23.** (Superseded: work now reaches `main` by pull request.)
 - **What was already in the tree when the session of 2026-09-23 began, written and never once run:** the
   trade window's two sides and lane, `partners.rs`, `Sigil.tsx`, the listing draft and its five Tauri
   commands, the Sell wiring, and the Inventory check's twenty new checks. Running it is what that session
   did, and it is how all three faults in §4 item 17 were found — none of them was visible by reading. The
   documents and the gate-coverage fix were written that day, after the evidence existed.
-- **Not committed: §4 item 18**, Qontrol's diffs — `qontrol/diff.rs`, the change to `qontrol/mod.rs` and
+- **Not committed when written; committed on 28 September 2026 in `928cab5`, in the private archive:
+  §4 item 18**, Qontrol's diffs — `qontrol/diff.rs`, the change to `qontrol/mod.rs` and
   `commands.rs`, ten host tests, `ipc.ts`, `Projects.tsx`, the Projects and readability checks, `GATES.toml`,
   `DIRECTION.md`, the Qontrol blueprint, the launcher `README.md`, `OWNER.md`, `docs/SYSTEMS.md` and this
   file. The owner commits.
-- **Not committed: §4 item 19**, Qontrol's git layer — `qontrol/guard.rs`, the changes to `qontrol/mod.rs`,
+- **Not committed when written; committed on 28 September 2026 with item 18: §4 item 19**, Qontrol's git layer — `qontrol/guard.rs`, the changes to `qontrol/mod.rs`,
   `commands.rs`, `sidecar.rs`, `tests.rs` and `lib.rs`, the helper's `main.rs`, `scripts/build-helper.mjs`,
   `src-tauri/tauri.bundle.conf.json`, `package.json`, `.gitignore` (the built helper and licence are not
   tracked), `ipc.ts`, `Projects.tsx`, the Projects and readability checks, and the same documents as item 18.
@@ -2442,5 +2499,6 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   - **The deletion of `framework/`**, on its own, after the owner confirmed it: 150 files, 49,058 lines,
     plus the CI guard against its return and M3.5 ticked. Scoped to `framework/` alone, by the owner's
     choice; the six deploy files that referred to it are a separate cleanup (§5).
-- **No pull request is opened; that is the owner's to ask for.**
+- **No pull request was opened then.** Since October 2026 work reaches `main` by pull request (the first entry
+  above).
 - The confirmation that gated M3 arrived on 2026-09-17 (§4 item 3), so nothing in the chain work waits on it any longer.

@@ -20,30 +20,50 @@ serious today:
 - **An access token alone can register an agent** (ADR-014, known gap). Until the controller's vault
   signs each agent authorisation (L5.1), anyone holding a controller's access token can register an
   agent for that controller. It is not a design choice, and L5.1 is a Beta gate criterion, so the public
-  testnet cannot open with it in place.
-- **CORS allows every origin** on the whole QOR ID API, including the admin routes. Replacing it with an
-  allowlist is done in this change; see "Cross-origin requests" below.
+  testnet cannot open with it in place. Still true on 6 October 2026: `POST /api/v1/agents/register` takes the
+  controller from the access token and checks only the agent key's own signature.
+- **A recovery phrase was pasted into a chat on 5 October 2026.** Treat that key as exposed and replace it. If it
+  is the devnet's sudo key, replace it with `sudo.setKey` from the current sudo account, signed in the owner's
+  wallet, then move anything the old account holds. The devnet holds nothing of value (ADR-037), but whoever has
+  its sudo key can replace its runtime.
 - **The wallet extension** (`apps/wallet-extension`) derives keys non-standardly. Keys created there
   cannot be recovered by any other wallet (D-011).
-- **Nine credential-shaped values are in the tree and covered by no rotation record:**
-  `docker/n8n/docker-compose.yml` lines 8, 31, 36 and 41 (a Postgres password, its duplicate, a 64-hex
-  n8n master encryption key and a basic-auth password), and `docker/docker-compose.testnet.yml` lines
-  25, 59, 89, 119 and 184 (four raw libp2p node secret keys and a Grafana admin password). Found on
-  21 September 2026 by a full-history scan. **They must be rotated before this repository is made public
-  or anything is deployed.** If the n8n stack was ever started with that encryption key, rotating the key
-  alone makes its stored credentials undecryptable rather than safe — they have to be re-entered.
-  CI's credential scan cannot see them: its pathspec is `*.toml`, `*.env`, `*.env.*`, and both files are
-  `.yml`.
+- **Nine credential-shaped values from the private archive's history are covered by no rotation record.**
+  They were in `docker/n8n/docker-compose.yml` (a Postgres password, its duplicate, a 64-hex n8n master
+  encryption key and a basic-auth password) and `docker/docker-compose.testnet.yml` (four raw libp2p node
+  secret keys and a Grafana admin password). Found on 21 September 2026 by a full-history scan. **Neither file
+  is in today's tree, and neither is in the public repository's history**; they exist only in the history of
+  the private archive. **If those services were ever run, rotate the values.** If the n8n stack was ever started
+  with that encryption key, rotating the key alone makes its stored credentials undecryptable rather than safe —
+  they have to be re-entered. The list is below, under "Nine more values".
 
-**History note, same scan.** Apart from those nine and the three already recorded below, this
-repository's history is clean: 130 commits from a single squashed import, with no SSH or PEM private
-key, no AWS key, no GitHub token, no Slack, Stripe, Resend, Google or Anthropic key, no signed JWT and
-no mnemonic. Making the history public needs the nine rotated — **not** a history rewrite.
+**History note, same scan (21 September 2026), about the private archive.** Apart from those nine and the
+three already recorded below, the private archive's history was clean: 130 commits from a single squashed
+import, with no SSH or PEM private key, no AWS key, no GitHub token, no Slack, Stripe, Resend, Google or
+Anthropic key, no signed JWT and no mnemonic. The public repository was published without that history
+(ADR-063).
+
+- **New live surfaces.** QOR ID is public at `https://id.qorsync.dev` (since 1 October 2026), and the devnet's
+  RPC node at `wss://rpc.qorsync.dev` (since 3 October 2026). Each surface below is reachable from the internet, and none
+  has been audited.
+  - **Sign-in for other apps** (ADR-073): OAuth 2.1 code with PKCE at `/oauth/authorize`, `/oauth/token`,
+    `/oauth/userinfo` and `/oauth/revoke`, with clients and their exact redirect URIs in `QOR_OAUTH_CLIENTS`,
+    and refresh tokens rotated on every use. ARQADE is the one registered client.
+  - **Avatar uploads** (ADR-079, migration 022): an uploaded image is re-encoded at 256 x 256 and served to
+    anyone at `/avatars/{hash}`. Any signed-in account can report one, and administrators review reports and
+    remove avatars.
+  - **Signed `qor://pay` requests** (ADR-076, ADR-077): ARQADE's server signs a payment request, and the
+    launcher checks the signature, the genesis hash and the 100,000 CGT cap, then asks in its host dialog.
+  - **Three sign-ups per network address** (ADR-078, migration 020): the limit reads `X-Real-IP`, which it
+    trusts because Railway's edge sets it. Behind any other proxy, that header is whatever the client sends,
+    and without it (a direct local run) no limit applies.
 - **No limit on concurrent QOR ID sessions.** A `max_sessions` setting existed but was never enforced. It
   was removed rather than left to imply a protection that does not exist.
 - **QOR ID weaknesses that remain** (2026-09-15, not fixed). None reports work it did not do.
   - Some accounts cannot be recovered at all. They are named below under "Accepted lockouts in QOR ID".
-  - Sessions record no IP address and no last activity.
+  - Sessions record no real IP address: the address stored is a placeholder (`0.0.0.0`), so it is not
+    shown. Since 2 October 2026 each session records when it was last used (sign-in or refresh), shown as
+    `last_used_at`.
   - ~~A password-only account holds an `on_chain_address` derived from a hash, which no key can sign for.~~
     **Closed on 2026-09-19** (ADR-017, ADR-039). Registration creates no address, `hash_to_address` is
     removed so nothing can derive one again, the profile reports no chain account until a key is proven, and
@@ -60,10 +80,13 @@ no mnemonic. Making the history public needs the nine rotated — **not** a hist
       both delivered, the reset message some minutes after the verification message.
     - `demiurge.cloud` itself has no MX record, so no address at it can receive mail.
     - QOR ID serves the pages the links open (`/verify-email` and `/reset-password`) on its own subdomain
-      (ADR-015, clarified 2026-09-15). The name is set at deployment. `BASE_URL` has no default, and email
-      stays unconfigured unless it is an origin: HTTPS, or HTTP to this machine, with no path.
-    - Resend's bounce and complaint reports are handled and verified, but none has been received live: Resend
-      can only deliver them to a public address, and the endpoint is not yet set up in the Resend dashboard.
+      (ADR-015, clarified 2026-09-15). The name is set at deployment: `BASE_URL` is `https://id.qorsync.dev`
+      (`services/qor-auth/DEPLOY-RAILWAY.md`). `BASE_URL` has no default, and email stays unconfigured unless it
+      is an origin: HTTPS, or HTTP to this machine, with no path.
+    - Resend's bounce and complaint reports are handled and verified, but none has been received live. QOR ID
+      has had a public address since 1 October 2026; that the endpoint is set up in the Resend dashboard and
+      `RESEND_WEBHOOK_SECRET` is set in Railway is **not confirmed** (an owner step). Without the secret every
+      delivery is refused with 503.
 - **There is deliberately no Dependabot, and no `.github/dependabot.yml`.** Automated dependency pull
   requests would fight [ADR-033](docs/decisions/ADR-033-dependency-versions.md) rule 1: the pinned SDK
   release governs every version it dictates, and its transitive pins are not overridden. A bot proposing
@@ -120,8 +143,9 @@ no mnemonic. Making the history public needs the nine rotated — **not** a hist
     account nobody holds a secret for. Migration 018 cleared them, which lets a password account link its
     new key.
   - **An account created by key sign-in before that day cannot sign in afterwards.** Its password is a
-    random value nobody knows and its key no longer verifies, so it has to be created again. Nothing is
-    deployed and no network holds value, so the accounts this touches are development accounts.
+    random value nobody knows and its key no longer verifies, so it has to be created again. No network
+    holds value, and QOR ID was first deployed on 1 October 2026, after the change, so the accounts this
+    touches are development accounts.
 
   Temporary refusals are not lockouts:
   - the sign-in lockout after failed attempts expires;
@@ -143,9 +167,10 @@ and carries forward as a requirement for the Polkadot SDK chain and QOR ID (ADR-
   database password and both JWT secrets must be rotated before any deployment. **The owner confirmed
   the rotation on 14 September 2026** (`HANDOFF.md` §3). Production values come from the environment
   (`QOR_AUTH__DATABASE__URL`, `QOR_AUTH__JWT__ACCESS_SECRET`, `QOR_AUTH__JWT__REFRESH_SECRET`).
-- **Nine more values are in the tree and are NOT rotated.** Found on 21 September 2026 by a full-history
-  scan, and covered by no record until now. **This list is the record.** Each is named by file and
-  variable; no value is written here or anywhere else in this repository's documentation.
+- **Nine more values, in the private archive's history, are NOT recorded as rotated.** Found on 21 September
+  2026 by a full-history scan of the private archive, when they were still in its tree. **This list is the
+  record.** Each is named by file and variable, with the line it was on then; no value is written here or
+  anywhere else in this repository's documentation.
 
   | File | Line | Variable |
   | --- | --- | --- |
@@ -156,19 +181,20 @@ and carries forward as a requirement for the Polkadot SDK chain and QOR ID (ADR-
   | `docker/docker-compose.testnet.yml` | 25, 59, 89, 119 | `NODE_KEY` (four libp2p node secret keys) |
   | `docker/docker-compose.testnet.yml` | 184 | `GF_SECURITY_ADMIN_PASSWORD` |
 
-  **Neither file is in the public repository** (ADR-063, 29 September 2026): `ALaustrup/demiurge-chain` was published
-  from today's tree without history and without these two files, which its `.gitignore` names. They remain in the
-  private archive, `ALaustrup/demiurge-cloud`, and must still be rotated before anything that uses them is run.
+  **Neither file is in today's tree or in the public repository's history.** The public repository, now
+  `QOR-MATRIX/demiurge-chain` (ADR-063, moved by ADR-064), was published on 29 September 2026 from the tree
+  without history and without these two files, which its `.gitignore` names. They exist only in the history of
+  the private archive, `ALaustrup/demiurge-cloud`. **If those services were ever run, rotate the values.**
   `N8N_ENCRYPTION_KEY` is the one to treat most carefully: it is the master key n8n uses to decrypt every
   credential it stores, so if that stack was ever started, rotating the key makes the stored credentials
-  **undecryptable rather than safe** — each one has to be re-entered afterwards. Whether those two files
-  are kept or deleted is a separate decision; `docs/DIRECTION.md` already reserves
-  `docker-compose.testnet.yml` as a pending cleanup for a different reason.
+  **undecryptable rather than safe** — each one has to be re-entered afterwards.
 
-  **CI cannot see any of them**, which is why nobody noticed: the credential scan's pathspec is
-  `*.toml`, `*.env`, `*.env.*`, and both files are `.yml`; it matches two lowercase TOML key names; and
-  it reads the checked-out tree, never history. Widening it is a tightening and is worth doing — but
-  sequence it **after** the rotation, or the gate lands red on values nobody has dealt with yet.
+  **CI's credential scan would not have seen them**, which is why nobody noticed: its pathspec is still
+  `*.toml`, `*.env`, `*.env.*` (`.github/workflows/ci.yml`), and both files were `.yml`; it matches two
+  lowercase TOML key names; and it reads the checked-out tree, never history. Widening the pathspec is a
+  tightening and is still worth doing, so that a credential in a `.yml` file is caught next time. Checked on
+  6 October 2026: the same pattern over `*.yml` today finds one line, the throwaway database URL CI's own build
+  uses on `localhost` (`ci.yml`), which a widened scan would have to tell apart first.
 - **Seeded administrator removed.** Migration 008 no longer seeds the `godmode` account or its recovery
   code. On a database that ran the original 008:
   - migration 010 disables the account;
@@ -230,8 +256,11 @@ and carries forward as a requirement for the Polkadot SDK chain and QOR ID (ADR-
   - The chain node and QOR ID endpoints change only after the same kind of approval, which names the
     current and the requested address.
   - The webview no longer holds any dialog permission, so it cannot draw a look-alike prompt.
-  - Unit-tested with a scripted confirmer. **The native dialogs have not yet been exercised in a running
-    launcher**, so roadmap item L1.4 stays unchecked until they are.
+  - Unit-tested with a scripted confirmer. **One native dialog has been used in a running launcher:** on 5 and
+    6 October 2026 the owner approved `qor://pay` tips in the host dialog of an installed launcher 0.1.7. The
+    rest of the list in `HANDOFF.md` — a transfer and an endpoint change, each approved once and declined once,
+    and a declined `qor://pay` request — is not recorded as tried, so roadmap item L1.4 stays unchecked until it
+    is.
 - **QOR ID no longer reports work it did not do.** Found while bringing `qor-auth` under the new format and
   lint gates (L1.7):
   - `POST /api/v1/zk/verify` answered `valid: true` for any non-empty hex string, and the attestation
@@ -264,7 +293,8 @@ and carries forward as a requirement for the Polkadot SDK chain and QOR ID (ADR-
   - `GET /api/v1/profile/sessions` always returned an empty list, and `DELETE
     /api/v1/profile/sessions/{id}` answered 204 without deleting anything.
   - The list now shows the caller's live sessions and marks the current one. It omits the IP address and
-    last activity, because neither is recorded.
+    last activity, because neither is recorded. *(Since 2 October 2026 it shows `last_used_at`; the IP
+    address is still a placeholder and still omitted.)*
   - Revoking deletes one of the caller's sessions, so its access and refresh tokens stop working at once.
     Another user's session and an unknown id are both 404.
   - Verified on 2026-09-14 with `services/qor-auth/scripts/e2e/sessions.mjs` (20 checks; the previous
@@ -300,8 +330,9 @@ and carries forward as a requirement for the Polkadot SDK chain and QOR ID (ADR-
   - **Email password reset** sent two SQL statements as one prepared statement (42601), so it always failed.
     It is now one transaction of two statements, and a token can be spent once. The new test failed on the
     previous code with the same error.
-  - **Profile stubs.** Profile update and avatar upload return 501, and the profile no longer returns a
-    balance it did not read.
+  - **Profile stubs.** Profile update returns 501, and the profile no longer returns a balance it did not
+    read. Avatar upload also returned 501 until 6 October 2026, when it was built (ADR-079, migration 022):
+    `POST /api/v1/profile/avatar` re-encodes the image and stores it.
 - **Account recovery and sign-in hardened** (2026-09-15). Each fix has tests against a real Postgres; those
   that need Redis run in CI with `--include-ignored`.
   - **Email through Resend.**
@@ -425,8 +456,10 @@ and carries forward as a requirement for the Polkadot SDK chain and QOR ID (ADR-
     - a permanent bounce stops reset links, is acted on once when repeated, and shows in the profile;
     - a complaint stops sending;
     - no address, link, key or secret reached the service log.
-  - **Not yet received live.** Resend can deliver only to a public address, which QOR ID does not have until
-    it is deployed, and the endpoint is not set up in the Resend dashboard (HANDOFF §4).
+  - **Not yet received live.** Resend can deliver only to a public address; QOR ID has one,
+    `https://id.qorsync.dev`, since 1 October 2026. That the endpoint is set up in the Resend dashboard and
+    `RESEND_WEBHOOK_SECRET` is set on the Railway service is **not confirmed**; both are owner steps
+    (`HANDOFF.md` §4.0, `services/qor-auth/DEPLOY-RAILWAY.md`).
   - **Unmarking is admin-only** (`POST /api/v1/admin/email-suppressions/unmark`).
     - A god account cannot clear an address that is its own or pending on its own account. If the
       account holder could clear its own mark, the mark would mean nothing.
@@ -570,6 +603,12 @@ deployment fact rather than an engineering choice. An origin that is not on the 
   browser frontend. It does not mean "allow everything".
 - **The launcher and agents are unaffected.** They are not browsers, they send no `Origin`, and CORS
   does not apply to them.
+- **Production allows only the loopback defaults** (6 October 2026). The list can be set only in
+  `config/production.toml`, which does not set it. Setting it from the environment as
+  `QOR_AUTH__SERVER__ALLOWED_ORIGINS` stops QOR ID from starting. The `config` crate (0.14.1) is given no list
+  separator in `config.rs`, so it refuses a string where it expects a list. This was tested with one value, a
+  comma-separated list, an empty value and the `__0` form. Nothing needs a public origin today: QOR ID's own pages
+  are same-origin, and ARQADE calls QOR ID from its server, not from the browser.
 - **Four tests hold it**, and they were proven to fail first: with `allow_origin(Any)` restored, three
   of the four fail, including one whose only job is that a wildcard never comes back.
 

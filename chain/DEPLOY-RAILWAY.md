@@ -3,8 +3,10 @@
 The record of how `Demiurge Devnet` runs on Railway (ADR-068): what exists, how it was made, and what to do
 again. The plan and its reasons are [`../docs/architecture/DEVNET_PLAN.md`](../docs/architecture/DEVNET_PLAN.md).
 
-**Status, 3 October 2026: live.** All seven steps done; `Demiurge Devnet` answers at `wss://rpc.qorsync.dev`. Steps 1 to 4 below were done first. Three nodes run on Railway, each holding its own keys and waiting
-for a chain specification. No chain is running yet and nothing is public.
+**Status: live since 3 October 2026.** All seven steps are done. `Demiurge Devnet` answers at
+`wss://rpc.qorsync.dev` (HTTP JSON-RPC on the same host): two validators and an RPC node on Railway, genesis
+`0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a`, `spec_version` 8 since the owner's sudo runtime
+upgrades of 4 October 2026 (the last entries of "What exists").
 
 ## The rule for secrets
 
@@ -100,3 +102,13 @@ Project `demiurge`, environment `production`, beside `qor-auth`, `Postgres` and 
   `5DMPEXVc…qLxK` through polkadot.js Apps against `wss://rpc.qorsync.dev`. Read back after finalised #969: launcher
   100,000, faucet 900,000, sudo 100, total issuance unchanged at 1,000,100 CGT; five accounts exist (those three and
   the two validators' session accounts at 0).
+- **4 October 2026, `spec_version` 7: the ARQ Wallet.** The upgrade was rehearsed first against a copy of the devnet's
+  own runtime (`scripts/rehearse-upgrade.mjs`). The owner then signed `sudo.sudoUncheckedWeight(system.setCode(wasm))`
+  with the sudo account in polkadot.js Apps. Read back from `wss://rpc.qorsync.dev`: spec_version 7,
+  `transaction_version` 2, `:code` 516,222 bytes and the rehearsed file's SHA-256, `Sudo::Key` unchanged, `ArqWallet`
+  at index 11 with 12 calls, finality advancing with both validators authoring, readiness 200.
+- **4 October 2026, `spec_version` 8: ARQ Wallet rounds.** Rehearsed against the devnet's live version-7 runtime, then
+  signed by the owner the same way. Read back: spec_version 8, `:code` 516,949 bytes and the rehearsed file's
+  SHA-256, `Sudo::Key` unchanged, `ArqWallet` with 15 calls, `open_round` among them, finality advancing, readiness
+  200. **Neither upgrade needed a new image or a redeploy:** the runtime runs as wasm from chain state, so the services
+  stayed on `sha-f836075`, and the genesis is unchanged.

@@ -51,8 +51,9 @@ cargo build --release --features sudo
   `--base-path`, to keep a chain between runs.
 - `--features sudo` builds `pallet-sudo` in. It is **development and test networks only** (ADR-037), and
   the mainnet shape is the same command without it.
-- The RPC listens on `127.0.0.1:9944`, and the launcher points at `ws://127.0.0.1:9944`. The endpoint is
-  a **WebSocket** address (ADR-040); `http://` is not a chain endpoint any more.
+- The RPC listens on `127.0.0.1:9944`. The launcher points at Demiurge Devnet by default; §5 points it at
+  `ws://127.0.0.1:9944` instead. The endpoint is a **WebSocket** address (ADR-040); `http://` is not a
+  chain endpoint any more.
 
 Check which chain answered, which is the one question worth asking of a node:
 
@@ -168,21 +169,38 @@ Sessions are held in Redis, not Postgres, and `SessionService::record_use` needs
 ```bash
 cd tools/qor-launcher
 npm install
-QOR_RPC_URL=http://127.0.0.1:9944 \
+QOR_RPC_URL=ws://127.0.0.1:9944 \
 QOR_AUTH_URL=http://127.0.0.1:8080/api/v1 \
 npm run app:dev
 ```
 
-Those two environment variables exist because the Gate runs *before* the shell: until you have signed
-in you cannot reach Settings, so without an override a fresh install has no way to be pointed at a
-local stack in order to sign in.
+Without them a fresh launcher points at Demiurge Devnet (`wss://rpc.qorsync.dev`) and the live QOR ID
+(`https://id.qorsync.dev/api/v1`). The two variables point this run at the local stack instead, and are
+deliberately not saved (`src-tauri/src/config.rs`). Nothing waits on signing in: the shell opens once the
+vault is open, and QOR ID signs in when it can (ADR-056). To make the local stack stick, choose it in the
+Gate's connection chooser, or set the chain endpoint in the Chain surface and QOR ID's in Settings; each change
+asks for approval in a host dialog and is saved beside the vault. An old `http://` chain address is upgraded
+to `ws://`.
 
-**Projects (Qontrol) commits through a helper that is not bundled yet.** Build it once before starting
-the launcher, or the Projects surface opens and reads repositories but says committing is off:
+**Projects (Qontrol) commits through a helper, `qontrol-git`.** An installer carries it since 26 September
+2026: `npm run app:build` builds it first (`scripts/build-helper.mjs`) and bundles it
+(`src-tauri/tauri.bundle.conf.json`). A development run (`npm run app:dev`) does not, so build it once
+first, or the Projects surface opens and reads repositories but says committing is off:
 
 ```bash
 cargo build --manifest-path tools/qor-launcher/qontrol-git/Cargo.toml
 ```
+
+The launcher finds it in `qontrol-git/target/debug` or `target/release`; `QONTROL_GIT_BIN` names another
+place.
+
+**Signing in to a local ARQADE** (`products/arqade`) needs QOR ID to know it as an app. Start QOR ID with
+`QOR_OAUTH_CLIENTS` registering it with a loopback redirect URI, which QOR ID accepts over plain `http`
+(`localhost`, `127.0.0.1` or `[::1]`), for example
+`[{"id":"arqade","name":"ARQADE","redirect_uris":["http://localhost:3000/api/auth/callback"],"secret_sha256":"<SHA-256 of your local secret, hex>"}]`,
+and give ARQADE's `.env.local` the matching `QOR_CLIENT_ID`, `QOR_CLIENT_SECRET` (a local value of at least 32
+characters, never the production one), `QOR_REDIRECT_URI` and `QOR_ID_URL=http://127.0.0.1:8080`
+(`products/arqade/README.md`).
 
 ## Notes
 
@@ -190,7 +208,9 @@ cargo build --manifest-path tools/qor-launcher/qontrol-git/Cargo.toml
   and calls no chain (migration inventory R-3); `register` no longer has a `starter_cgt_minted` field. The
   launcher's starter claim refuses, and says why: the chain has no issuance mechanism, because OPEN-1 and
   OPEN-2 are undecided. On a `--dev` node, fund an account by transferring to it from a development
-  account endowed in the chain specification.
+  account endowed in the chain specification. Since ADR-078 QOR ID records a 100 CGT welcome grant as
+  **owed** once an account has finished the tutorial, verified an email address and linked a key; it moves
+  no CGT itself, and nothing pays an owed grant yet.
 - **Email** goes through Resend. Set `RESEND_API_KEY`, `EMAIL_FROM` (a sender on a domain verified in
   Resend) and `BASE_URL` (where the links point). Without the first two, `forgot-password` answers 503 and
   registration sends no verification email. No email content is ever logged.

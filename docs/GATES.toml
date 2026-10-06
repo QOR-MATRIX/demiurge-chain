@@ -695,6 +695,12 @@ change = "tools/qor-launcher/scripts/check-design.mjs drops its five effect rule
 reason = "ADR-080. The rules guarded against a generic template look, not against effects; the owner allows effects on every surface. Reduce motion and readability as painted still bind."
 approved_by = "owner, 2026-10-06: \"There should not be a bunch of rules stating you cannot use drawing canvas, glowing, neon. These are all perfectly fine to use, I just didnt want things to turn out like a cookie-cutter AI template that it usually does.\""
 
+[[change_log]]
+date = "2026-10-06"
+type = "correction"
+change = "Descriptive text only; no criterion, kind, met condition, threshold, done flag or list changes. [ci].quality_gates names the nine checks npm run check runs. ADR-050 and the other substrate records are described as accepted. alpha.security-track's note on 7.1.4 says the tree substantiates it again (pallet-drc369's authorised mint and owner-of-both nesting tests, required by alpha.pallets). alpha.chain-tests' comment says R-2 is in alpha.pallets and multi-validator agreement is the two-validators job. alpha.multi-validator's evidence names its first Actions results. alpha.no-dependency-patching's text points at ci.yml's step instead of the deleted .woodpecker/security.yaml. public-release.single-provider-revisited names Railway beside Fly. Market's note says its first slice and check-market-view.mjs exist. The arqade gate's comments record that ADR-076 to ADR-079 and P7.16 to P7.18 are not counted. The same day DIRECTION.md ticks L1.6, L1.7 and P7.4 with their evidence, so alpha.launcher, qfx.depends and arqade.roadmap read more units met; that is the roadmap kind working as defined, not a change here."
+reason = "The text had gone stale against the tree: Woodpecker gone since 2026-09-29, ADR-046 to ADR-050 accepted on 2026-09-28, Market and nesting built. Rewording a done = false criterion's reference is not marking it; alpha.no-dependency-patching stays done = false for the owner to assert."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -739,7 +745,7 @@ quality_gates = [
   "chain/: cargo fmt --all --check; cargo clippy --workspace --all-targets -D warnings; cargo test --workspace --locked, WITHOUT SKIP_WASM_BUILD, which cannot build a chain specification and is never evidence. On Rust 1.98.1, pinned by chain/rust-toolchain.toml since 2026-10-04 (ADR-072)",
   "chain/: two validators agree, finalise and catch up. A job of its own, because it needs a release build with the sudo feature: cargo build -p demiurge-node --release --features sudo --locked, then node scripts/check-two-validators.mjs. It fails the run; criterion alpha.multi-validator reads it. Since 2026-09-21 it runs NIGHTLY (03:00 UTC) and on workflow_dispatch, not on every push",
   "services/qor-auth: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test -- --include-ignored, against a migrated Postgres 16 and a Redis 7.4",
-  "tools/qor-launcher: npm ci, frontend build and npm run check (design, accessibility, gates view, Projects view, QFX contrast); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
+  "tools/qor-launcher: npm ci, frontend build and npm run check, nine checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
   "cargo audit of services/qor-auth, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside the compiled graph (services/qor-auth/.cargo/audit.toml)",
   "cargo audit of tools/qor-launcher/src-tauri",
   "cargo audit of tools/qor-launcher/qontrol-git, the libgit2 helper",
@@ -801,7 +807,7 @@ command = "cargo test"
 
 # The product suites (see THE PRODUCT GATES at the end). Qontrol's code and
 # QFX's are launcher code today, so their suites run in tools/qor-launcher. QOR
-# Engine and GNOSIS have no directory yet (ADR-050, Proposed), so their suites
+# Engine and GNOSIS have no directory yet (ADR-050, accepted 2026-09-28), so their suites
 # have none either and stay unmeasurable until products/<name> exists.
 
 [suites.qontrol]
@@ -855,17 +861,17 @@ nothing holds value."""
   kind = "adr"
   adrs = ["ADR-013", "ADR-014", "ADR-015"]
 
-  # 7.1.4 needs the owner's eye, and is deliberately left counted for now.
-  # It reads "Authorise DRC-369 mint, and require owning the parent to nest",
-  # and it is ticked -- but the code it was ticked against was the custom
-  # chain's DRC-369 module, deleted with framework/ at M3.5. No DRC-369 code
-  # exists in active scope, so the tick cannot be substantiated in the tree,
-  # and the work returns as M4.1, M4.2 and M4.5.
+  # 7.1.4 reads "Authorise DRC-369 mint, and require owning the parent to
+  # nest". It was first ticked against the custom chain's DRC-369 module,
+  # deleted with framework/ at M3.5, and for a time no DRC-369 code existed in
+  # active scope to substantiate it; it stayed counted because removing a unit
+  # is loosening, the owner's separate decision.
   #
-  # It stays counted because REMOVING a unit from a gate is loosening, and
-  # loosening is the owner's separate decision under the rule at the top of
-  # this file. Leaving it with this note is the documentation fix; taking it
-  # out is the decision. Recorded so it is not mistaken for an oversight.
+  # Since 2026-10-01 the tree substantiates it again: pallet-drc369 refuses an
+  # unsigned or root mint (an_unsigned_or_root_mint_is_refused, since M4.1)
+  # and lets only the owner of both assets nest one in the other
+  # (only_the_owner_of_both_assets_may_nest_them, ADR-065). Both are required
+  # by alpha.pallets below. (Note of 2026-10-06; the criterion is unchanged.)
   [[gates.criteria]]
   id = "alpha.security-track"
   kind = "roadmap"
@@ -976,10 +982,11 @@ nothing holds value."""
   suite = "chain"
   # The chain's acceptance tests (MIGRATION_INVENTORY section 9). Filled in on
   # 2026-09-18, as they were written, and extended the same day with block
-  # import and replay refusal. R-2, refusing nesting cycles, joins this list with
-  # pallet-drc369 at M4. Multi-validator agreement needs real nodes and is not
-  # here yet; the parent-hash rule cannot be covered from inside the runtime at
-  # all (see the note in block_import.rs).
+  # import and replay refusal. R-2, refusing nesting cycles, is required by
+  # alpha.pallets (ADR-065). Multi-validator agreement needs real nodes, so it
+  # is not here: it is CI's two-validators job, read by alpha.multi-validator.
+  # The parent-hash rule cannot be covered from inside the runtime at all (see
+  # the note in block_import.rs).
   require = [
     # The defect that made the custom chain untrusted, by all three routes.
     "a_transfer_to_oneself_creates_no_cgt",
@@ -1076,7 +1083,7 @@ nothing holds value."""
   kind = "check"
   says = "chain/scripts/check-two-validators.mjs passes: two validators on the local chain specification find each other, produce blocks, hold the same block at a common height, finalise through GRANDPA and agree on what is finalised; and a validator killed and restarted catches up and agrees about the blocks produced while it was away."
   done = true
-  evidence = "13 of 13 checks passed on 2026-09-18, against the release build of demiurge-node with the sudo feature. Accepted as evidence by the owner the same day, recorded in HANDOFF.md, and re-run on 2026-09-20 after ADR-041 changed the runtime's address type. Since 2026-09-20 it is a CI job of its own ([ci].quality_gates) that fails the run, so this is no longer a single dated run: the first CI result replaces it as evidence once Actions starts."
+  evidence = "13 of 13 checks passed on 2026-09-18, against the release build of demiurge-node with the sudo feature. Accepted as evidence by the owner the same day, recorded in HANDOFF.md, and re-run on 2026-09-20 after ADR-041 changed the runtime's address type. Since 2026-09-20 it is a CI job of its own ([ci].quality_gates) that fails the run, so this is no longer a single dated run. It runs on GitHub Actions since 2026-09-29 (ADR-063), nightly and on demand; the two-validators job passed in the nightly runs of 2026-10-05 (37295252368) and 2026-10-06 (37446732699)."
 
   # Nothing repoints the dependency graph. ADR-033: "The SDK's transitive pins are not overridden,
   # with [patch] or otherwise." Seven scripts that did exactly that were deleted on 2026-09-17 and
@@ -1085,7 +1092,7 @@ nothing holds value."""
   [[gates.criteria]]
   id = "alpha.no-dependency-patching"
   kind = "check"
-  says = "CI fails if any tracked manifest contains a [patch] section, or if anything tracked references the owner's personal Substrate fork or any substrate git repository; the exact patterns are in .woodpecker/security.yaml and are not repeated here, because this file is scanned too. Three files are excluded and all are visible in any diff that widens them: .woodpecker/security.yaml and .github/workflows/ci.yml, which must contain the patterns to search for them, and HANDOFF.md, which records the deletions and the rule."
+  says = "CI fails if any tracked manifest contains a [patch] section, or if anything tracked references the owner's personal Substrate fork or any substrate git repository; the exact patterns are in .github/workflows/ci.yml, in the security job's step \"Fail if anything repoints the dependency graph\", and are not repeated here, because this file is scanned too. Two files are excluded and both are visible in any diff that widens them: .github/workflows/ci.yml, which must contain the patterns to search for them, and HANDOFF.md, which records the deletions and the rule."
   done = false
   evidence = ""
 
@@ -1311,7 +1318,7 @@ the platform (the Mesh, Library, Market and Social) is live on it."""
   [[gates.criteria]]
   id = "public-release.single-provider-revisited"
   kind = "check"
-  says = "The single-provider risk accepted in ADR-015 has been revisited: backups are held off Fly, and validators run on more than one provider."
+  says = "The single-provider risk accepted in ADR-015 has been revisited: backups are held off the provider that hosts the network (Fly when ADR-015 accepted the risk; Railway since ADR-063 and ADR-068), and validators run on more than one provider."
   done = false
   evidence = ""
 
@@ -1387,8 +1394,8 @@ the platform (the Mesh, Library, Market and Social) is live on it."""
 # THE PRODUCT GATES: one per product (DIRECTION.md, the product tracks)
 # ===========================================================================
 #
-# Added 2026-09-21 at the owner's instruction, in the form ADR-050 (Proposed)
-# describes. They come after Public Release on purpose: a product gate may count
+# Added 2026-09-21 at the owner's instruction, in the form ADR-050 (accepted
+# 2026-09-28) describes. They come after Public Release on purpose: a product gate may count
 # chain items, and a chain gate never counts a product item or names a product
 # gate. NOTHING BELOW CHANGES ALPHA, BETA OR PUBLIC RELEASE, and a slipping
 # product cannot make the chain look further from mainnet.
@@ -1399,9 +1406,11 @@ the platform (the Mesh, Library, Market and Social) is live on it."""
 # depends on, rather than naming a whole chain gate, so a product is not held by
 # a criterion it does not need, such as a name clearance or a published genesis.
 #
-# The decisions criteria list the Proposed substrate records each product builds
-# on. No record defines any of the six products yet; when one is written it joins
-# its product's list. `adrs = []` is never written.
+# The decisions criteria list the substrate records each product builds on
+# (ADR-046 to ADR-051, all accepted: ADR-047 and ADR-051 on 2026-09-22, the rest
+# on 2026-09-28). Of the seven products only ARQADE has records that define it
+# (ADR-069 and those after it); when a record defining another is written it
+# joins its product's list. `adrs = []` is never written.
 
 [[gates]]
 id = "qontrol"
@@ -1603,8 +1612,10 @@ themes."""
   kind = "open_question"
   questions = ["U-7", "U-15"]
 
-  # No tests criterion until Market has code. Its first tests join this gate in
-  # the change that writes them.
+  # No tests criterion yet. Market's first slice is launcher code since
+  # 2026-10-02 (src/views/Market.tsx, src-tauri/src/chain/market.rs), checked by
+  # scripts/check-market-view.mjs (127 checks), which CI runs through
+  # npm run check; no criterion here reads it. Adding one is a tightening.
 
 [[gates]]
 id = "stream"
@@ -1649,6 +1660,11 @@ player's own Vault, and a developer SDK with which others publish games."""
 
   # ADR-069 defines ARQADE; ADR-043 is browser sign-in, which it cannot do
   # without. Both accepted by the owner on 4 October 2026.
+  #
+  # Not counted yet, as of 2026-10-06: ADR-076 to ADR-079 (all accepted) here,
+  # and P7.16 to P7.18 in arqade.roadmap below. Counting them adds units, which
+  # is a tightening; it is left to the change that decides to make it, so this
+  # note records the gap rather than closing it.
   [[gates.criteria]]
   id = "arqade.decisions"
   kind = "adr"

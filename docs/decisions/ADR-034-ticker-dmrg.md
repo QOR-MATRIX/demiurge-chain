@@ -1,6 +1,8 @@
 # ADR-034: The ticker is DMRG; the name stays Creator-God Token
 
-**Status:** Accepted, 17 September 2026, by the project owner.
+**Status:** Accepted, 17 September 2026, by the project owner. **Superseded by
+[ADR-045](ADR-045-the-ticker-returns-to-cgt.md)** (21 September 2026): the ticker returned to `CGT`. The text below is
+kept as accepted.
 **Follows:** [ADR-008](ADR-008-language-discipline.md) (the currency is infrastructure, not an instrument),
 [ADR-013](ADR-013-polkadot-sdk-migration.md) (the custom chain is being replaced),
 [ADR-024](ADR-024-ss58-addresses-prefix-42-until-mainnet.md) (where the collision was found).

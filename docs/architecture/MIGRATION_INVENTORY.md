@@ -1,9 +1,9 @@
 # Migration inventory: the custom chain onto the Polkadot SDK
 
-**Status:** Written 14 September 2026 under [ADR-013](../decisions/ADR-013-polkadot-sdk-migration.md). **Seventeen of
+**Status:** Written 14 September 2026 under [ADR-013](../decisions/ADR-013-polkadot-sdk-migration.md). **Eighteen of
 its twenty questions are decided** (§8, Resolution status): Q-16 by ADR-017 and Q-1 to Q-15 by ADR-018 to ADR-032, all on
 15 September 2026; **Q-17 was added and decided on 20 September 2026** (ADR-041); **Q-18, Q-19 and Q-20 were added on 22
-September 2026; Q-18 was decided on 28 September 2026 (ADR-057, eight stays), and Q-19 and Q-20 are open**, and the format cannot be frozen until all three are answered. Every claim was re-checked against the pinned
+September 2026; Q-18 was decided on 28 September 2026 (ADR-057, eight stays), and Q-19 and Q-20 are open**, and the format cannot be frozen until both are answered. Every claim was re-checked against the pinned
 release, `polkadot-stable2606-1`, and corrected where needed (ADR-022). **The owner confirmed on 17 September 2026 that
 ADR-018 to ADR-032 read correctly**, which lifted the hold this line used to carry. **The owner reviewed this document on
 22 September 2026, through a ten-line summary of its DRC-369 section, and roadmap item M2.1 was ticked against that
@@ -529,8 +529,9 @@ This list keeps the inventory honest about the other direction.
 
 ## 8. Open questions for the owner
 
-Seventeen are decided: see Resolution status below, and the ADR named there. Q-17 was added and decided on
-20 September 2026. **Q-18, Q-19 and Q-20 were added on 22 September 2026 and are open.** The table keeps the questions as they
+Eighteen are decided: see Resolution status below, and the ADR named there. Q-17 was added and decided on
+20 September 2026. **Q-18, Q-19 and Q-20 were added on 22 September 2026; Q-18 was decided on 28 September 2026
+(ADR-057), and Q-19 and Q-20 are open.** The table keeps the questions as they
 were asked.
 
 | # | Question | Options | Blocks |
@@ -599,11 +600,11 @@ or defects it must not have.
 | `framework/modules/balances/tests/balances_test.rs`, `framework/core/tests/block_execution_test.rs` | 11 + 1 | Transfer and existential deposit rules. `test_self_transfer_is_refused_and_creates_nothing` and `a_self_transfer_module_call_creates_no_cgt` (added 2026-09-14) pin that a self-transfer creates no CGT. |
 | `framework/modules/energy/tests/energy_test.rs` | 7 | Allowance accounting, to revisit under U-4 |
 | `framework/modules/session-keys/tests/session_keys_test.rs` | 7 | Authorise, revoke, expiry |
-| DRC-369 tests in `nft.rs`, `royalty.rs`, `physics.rs` | about 12 relevant | State and XP, nesting, royalty arithmetic. `a_transaction_cannot_mint_into_another_account` and `nesting_under_a_parent_the_caller_does_not_own_is_refused` (added 2026-09-14) pin the mint and parent-ownership checks. Since 22 September 2026 `pallet-drc369` pins the authorised mint itself, in `an_unsigned_or_root_mint_is_refused` and `a_mint_goes_to_the_signer_in_the_signers_own_collection` (M4.1). **No test yet refuses a nesting cycle (R-2)**; it arrives with nesting. |
+| DRC-369 tests in `nft.rs`, `royalty.rs`, `physics.rs` | about 12 relevant | State and XP, nesting, royalty arithmetic. `a_transaction_cannot_mint_into_another_account` and `nesting_under_a_parent_the_caller_does_not_own_is_refused` (added 2026-09-14) pin the mint and parent-ownership checks. Since 22 September 2026 `pallet-drc369` pins the authorised mint itself, in `an_unsigned_or_root_mint_is_refused` and `a_mint_goes_to_the_signer_in_the_signers_own_collection` (M4.1). **R-2 is met since nesting landed (ADR-065)**: `a_two_asset_cycle_is_refused` and `a_longer_cycle_is_refused` in `pallet-drc369`. |
 | Requirement R-1 (strict signature verification) | **3 in `chain/runtime/tests/acceptance.rs`** (2026-09-18) | **Met by standard behaviour (ADR-038).** Sr25519, the account key scheme, refuses the forgery on 64 of 64 messages; Ed25519 accepts it under ZIP-215, which is a specification followed on purpose rather than the custom chain's accident, and which harms nobody because no secret key produces such an address. See §3.1's R-1 note. `services/qor-auth` has the same test for QOR ID's own verification (`a_forged_signature_for_a_small_order_key_is_rejected`). |
 | Requirement R-4 (the ticker is `CGT` in names, not only on screen) | none; the custom chain is deliberately left reading `cgt` in names | A check that no identifier, call, event, storage item, RPC method or constant in the runtime or its clients contains `cgt`, and that the chain's `system_properties` reports `CGT` with the decided decimals. Greppable by design (ADR-032). |
 | Requirement R-3 (no CGT created from outside the chain) | none in the custom chain | The new chain needs tests that total issuance changes only through calls with a chain-side authorised origin, and that any starter-grant call is refused where grants are off. QOR ID keeps an end-to-end check that registration sends nothing to a chain node (`services/qor-auth/scripts/e2e/registration-mints-nothing.mjs`). |
-| The M1 live devnet checks (`scripts/run-local-stack.md` §3) | 5 checks | A transfer settles identically on every validator; replay refused; direct write refused; a killed validator resyncs |
+| The M1 live devnet checks (`scripts/run-local-stack.md` §3, now the Substrate two-validator script) | 13 checks | A transfer settles identically on every validator; replay refused; direct write refused; a killed validator resyncs |
 
 Test counts come from counting test attributes, so they are approximate. Nothing was compiled for this
 document.

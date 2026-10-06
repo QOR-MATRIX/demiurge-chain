@@ -9,6 +9,8 @@
 - [ ] No deleted documentation was restored or relied on
 - [ ] `cd chain && cargo test --workspace` passes, without `SKIP_WASM_BUILD`
 - [ ] Launcher tests pass, if `tools/qor-launcher` changed
+- [ ] QOR ID tests pass (`--include-ignored`, against Postgres and Redis), if `services/qor-auth` changed
+- [ ] ARQADE tests pass (`cd products/arqade && npm test`), if `products/arqade` changed
 - [ ] Affected current documents updated in this change
 - [ ] CGT amounts are integer Sparks (18 decimals); no floating point
 - [ ] No new path that creates CGT outside `--dev`

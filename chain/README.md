@@ -6,8 +6,12 @@ the custom Rust devnet that lived in `framework/`, which was retired and deleted
 
 ## State
 
-**M3, second increment: the chain produces and finalises blocks, and a client outside it now uses both.**
-Run on 2026-09-17: a development node authored blocks with Aura and GRANDPA finalised them, which is the
+**Today (6 October 2026):** `spec_version` 8, with DRC-369 assets (royalties, remix provenance and nesting) over
+`pallet-nfts`, `pallet-utility`'s atomic batch and the ARQ Wallet. **150 workspace tests** passed with the wasm built on
+4 October 2026, when `chain/` last changed. **Demiurge Devnet** runs it at `wss://rpc.qorsync.dev` (ADR-068, "The
+devnet image" below). No fees, no issuance, no mainnet.
+
+**How it began.** Run on 2026-09-17: a development node authored blocks with Aura and GRANDPA finalised them, which is the
 first finality this project has had. The custom devnet it replaced had none and reported every transaction as
 finalized regardless; it was deleted at M3.5.
 
@@ -19,13 +23,12 @@ depend on this runtime, and the first end-to-end use of its finality.
 | Piece | State |
 | --- | --- |
 | `runtime/` (`demiurge-runtime`) | System, timestamp, Aura (ADR-019), GRANDPA (ADR-018), balances, session and the validator set (ADR-020), `pallet-nfts` as the asset ledger (ADR-025), `pallet-drc369`, `pallet-utility` for the atomic batch a trade needs (ADR-053), `pallet-drc369-royalties` (ADR-061), `pallet-arq-wallet` (ADR-070), and `pallet-sudo` behind a feature (ADR-037). `spec_version` 8 (also on the devnet since 4 October 2026), `transaction_version` 2 |
-| `node/` (`demiurge-node`) | Runs. Aura authoring, GRANDPA voting, standard RPC, `dev` and `local` chain specifications, the SDK's `key` subcommand, and `devnet_chain_spec` for the hosted devnet (not yet a built-in `--chain`: see "The devnet image") |
+| `node/` (`demiurge-node`) | Runs. Aura authoring, GRANDPA voting, standard RPC, `dev` and `local` chain specifications, the SDK's `key` subcommand, and the hosted devnet's specification: `devnet_chain_spec`, and the built-in `--chain demiurge_devnet` (`devnet_built_in`), see "The devnet image" |
 | `pallets/validator-set` (`pallet-validator-set`) | **Mounted.** A governance-chosen set acting as `pallet-session`'s session manager (ADR-020). Its own tests cover every governance path and the three guards against a halted chain. The chain's validators come from it, verified by reading `Session::Validators` from a running node |
 | `pallets/drc369` (`pallet-drc369`) | **Mounted, M4.1 only** (2026-09-22). The content reference (ADR-047's 41 bytes), the pinned commit, revision and the one-way switch to permanent, one singles collection per creator, owner enumeration and the `Drc369Api` runtime API. Every config value's source is in `runtime/src/assets.rs` and ADR-052; the deposits are placeholders (U-14) and the weights are placeholders owed to M7.2. Since 2026-09-29 it also records remix provenance at mint — `derived_from` and `remix_depth`, bounded at 16 (ADR-061). **Since 2026-10-01 it nests** (M4.2's nesting, M4.5's requirement R-2): `nest` and `unnest`, only by the owner of both assets, a cycle refused by a walk of at most eight steps, at most eight levels and sixty-four assets held (ADR-047 decision 13 row 7), and it is `pallet-nfts`'s `Locker`, so a nested asset and the asset holding it cannot be transferred, sold or burned until it is taken out. No deposit of its own. State and XP and physics are not started |
 | `pallets/drc369-royalties` (`pallet-drc369-royalties`) | **Mounted as `Drc369Royalties`** (2026-09-29, M4.2's royalty half, ADR-061). Royalty terms set by an asset's creator while they hold it — up to eight recipients and a remix share that never rises once the work is remixed (ADR-062) — and a listing bought and settled in CGT that pays a remix's direct source, then the asset's recipients, then the seller, in one transaction. Every amount comes from one pure function, `split`, pinned at `u128::MAX`. No platform share, no fee, no deposit of its own; weights are placeholders owed to M7.2 |
 | `pallets/arq-wallet` (`pallet-arq-wallet`) | **Mounted as `ArqWallet` at index 11** (2026-10-04, ADR-070, ARQADE's P7.11). One keyless payout account per published game, derived from its DRC-369 Cartridge (`PalletId` `dmg/arqw`) and governed by whoever holds the Cartridge: a policy on chain (largest payout, epoch budget, cap per recipient, rule versions), tightened at once and loosened only after its delay; a payout authority that can only pay within it; each outcome paid once inside an outcome window; payouts that cannot reach a player owed and claimable, and never withdrawn; withdrawals delayed and never taking the deposit or what is owed. **Since `spec_version` 8, rounds**: a prize held before a paid round opens, settled to winners or released, never stranded. Its protocol bounds are **U-16 placeholders** marked in `runtime/src/assets.rs`; weights are placeholders owed to M7.2. **On Demiurge Devnet since 4 October 2026** (spec_version 7, then 8 with rounds the same day, each set by the owner's sudo key after a rehearsal) |
 | `pallet-sponsorship`, `pallet-agent-caps` | Not written yet. Names confirmed by the owner on 2026-09-17 and checked for collisions |
-
 
 **Rust is pinned to 1.98.1** by `rust-toolchain.toml` (ADR-072): Rust 1.99's clippy lints code the pinned SDK's pallet
 macros generate. rustup installs 1.98.1, `clippy`, `rustfmt` and `wasm32v1-none` on the first `cargo` run here. The pin
@@ -67,7 +70,8 @@ declined 2606-2 once, for the same reason.
 
 **A move is proposed once the node and `pallet-validator-set` are in and the chain is producing blocks
 under a governance-chosen validator set — not before.** This paragraph exists so the next person reads the
-pin as deliberate rather than forgotten.
+pin as deliberate rather than forgotten. That condition has been met since M3.5 (20 September 2026); on 6 October 2026
+the pin is still `=2606.1.0` (`Cargo.toml`), and a move is still its own task under ADR-033 rule 3.
 
 ## Which chain is this
 
@@ -82,7 +86,8 @@ To ask a running node which chain it is, which is still worth doing:
 curl -s -H 'Content-Type: application/json'   -d '{"jsonrpc":"2.0","id":1,"method":"system_chain","params":[]}' http://127.0.0.1:9944
 ```
 
-This chain answers `"Demiurge Development"` or `"Demiurge Local Testnet"`. The launcher asks
+This chain answers `"Demiurge Development"`, `"Demiurge Local Testnet"` or, on the hosted devnet,
+`"Demiurge Devnet"`. The launcher asks
 automatically and shows the answer in its Chain surface (ADR-040).
 
 ## Building it
@@ -140,13 +145,24 @@ as an argument, which a process list or a shell history shows.
 ## The devnet image
 
 The hosted devnet is `docs/architecture/DEVNET_PLAN.md`. Host Railway, two validators and a separate RPC node,
-chain `Demiurge Devnet` (`demiurge_devnet`, type `Live`): the owner's decisions of 3 October 2026. **Nothing is
-deployed yet**, and there is no built-in `--chain demiurge_devnet`: the validators' public keys come from their
-first boot, so the specification is written after it (the plan's §1.4).
+chain `Demiurge Devnet` (`demiurge_devnet`, type `Live`): the owner's decisions of 3 October 2026. **It is live
+since 3 October 2026** at `wss://rpc.qorsync.dev` (ADR-068), genesis
+`0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a`, at `spec_version` 8 since the owner's sudo
+upgrades of 4 October 2026. How it was deployed, and every public key in it, is
+[`DEPLOY-RAILWAY.md`](DEPLOY-RAILWAY.md).
+
+**To run a node of that network, start it from the committed raw specification**, `specs/demiurge_devnet.raw.json`
+(the image holds it at `/etc/demiurge/demiurge_devnet.raw.json`). `--chain demiurge_devnet` is built in
+(`devnet_built_in`): it builds the specification from the devnet's public values and the runtime **this binary**
+carries, and a runtime is part of genesis, so it reproduces the live genesis only from a build identical to the
+`spec_version` 6 one that genesis was made with (committed in `f836075`). Any later build gives another genesis. The raw
+file is what every node of the network starts from, and runtime upgrades since have changed the runtime in state, not
+the genesis.
 
 | Piece | What |
 | --- | --- |
-| `node/src/chain_spec.rs`, `devnet_chain_spec(validators, sudo, faucet)` | The specification, from public keys and addresses. Genesis holds exactly two balances: the faucet's test CGT, the same marked placeholder as `DEVELOPMENT_ENDOWMENT` (1,000,000 CGT), and the sudo account's existential deposit so it can sign. Validators hold nothing. Its tests pin the name, id and type, the two balances against the runtime's own genesis build, the validators and sudo key, its refusals, and that no SDK keyring key appears in it, readable or raw |
+| `specs/demiurge_devnet.raw.json` | The devnet's raw specification (5.2 MB), built with the `sudo` feature at `spec_version` 6 on 3 October 2026; its genesis is the live network's |
+| `node/src/chain_spec.rs`, `devnet_chain_spec(validators, sudo, faucet)` and `devnet_built_in()` | The specification, from public keys and addresses; `devnet_built_in` gives it the devnet's own (the `devnet` module), and is what `--chain demiurge_devnet` loads. Genesis holds exactly two balances: the faucet's test CGT, the same marked placeholder as `DEVELOPMENT_ENDOWMENT` (1,000,000 CGT), and the sudo account's existential deposit so it can sign. Validators hold nothing. Its tests pin the name, id and type, the two balances against the runtime's own genesis build, the validators and sudo key, its refusals, and that no SDK keyring key appears in it, readable or raw |
 | `Dockerfile` | Multi-stage. The builder is CI's recipe; the runtime stage is `debian:bookworm-slim` with the binary, the boot script, `jq` and `setpriv`. Ports 9944 (RPC) and 30333 (peer-to-peer). Data at `/data` |
 | `.dockerignore` | Keeps `target/` and `node_modules/` out of the build context |
 | `docker/entrypoint.sh` | The first-boot script. Its header documents every variable |
@@ -166,12 +182,13 @@ docker build -f chain/Dockerfile -t demiurge-node chain
   `DEMIURGE_RPC_MAX_SUBSCRIPTIONS_PER_CONNECTION` and `DEMIURGE_RPC_MAX_BATCH_REQUEST_LEN`, each passed only when
   set. No number is chosen yet: the plan sets them from measurement.
 
-**A public name needs `DEMIURGE_RPC_CORS=all` on the RPC node, which is not yet decided.** In the pinned
+**A public name needs `DEMIURGE_RPC_CORS=all` on the RPC node, and it is set there** (`devnet-rpc`,
+[`DEPLOY-RAILWAY.md`](DEPLOY-RAILWAY.md)); the validators have no public name and do not set it. In the pinned
 `sc-rpc-server` 31.0.0 (`utils.rs`, `host_filtering`) any `--rpc-cors` list, the default included, also turns on a
 Host-header filter that admits only `localhost`, `127.0.0.1` and `[::1]` on the RPC port. Measured on 3 October
 2026: with the default, `GET /health/readiness` sent as `Host: rpc.qorsync.dev` answered **403**; with
-`--rpc-cors all` it answered 200. So the plan's "`--rpc-cors` left default" would refuse every request through
-the host's edge. The script passes `DEMIURGE_RPC_CORS` as `--rpc-cors` only when it is set.
+`--rpc-cors all` it answered 200. So the plan's "`--rpc-cors` left default" would have refused every request
+through the host's edge. The script passes `DEMIURGE_RPC_CORS` as `--rpc-cors` only when it is set.
 
 Both get `--base-path /data --node-key-file /data/node-key --allow-private-ip --no-telemetry`, and
 `--bootnodes` from `DEMIURGE_BOOTNODES` (space-separated). `--allow-private-ip` is there because the nodes peer only
@@ -196,7 +213,8 @@ specification made by `devnet_chain_spec` from two such validators' keys then ra
 on a Docker network: both validators authored, they agreed on the best block, GRANDPA finalised, the RPC node
 answered `system_chain` with `"Demiurge Devnet"` and `system_chainType` with `"Live"`, refused
 `author_rotateKeys` and `author_insertKey` ("RPC call is unsafe to be called externally"), and answered
-`/health/readiness` with 200. Nothing was deployed and no specification was committed.
+`/health/readiness` with 200. At that point nothing had been deployed and no specification committed; both
+followed the same day (`DEPLOY-RAILWAY.md`).
 
 ## The two runtime configurations
 
@@ -221,6 +239,8 @@ both, because fees are OPEN-4.
 `Drc369RoyaltiesApi` (`spec_version` 6, 2026-10-02) grew both. On **2026-10-02** a release node built without the
 `sudo` feature, at `spec_version` 6, served **99,901 bytes** of metadata with no `Sudo` in it: that is the mainnet
 shape. **The development shape (`--features sudo`) was not re-measured**; its last measurement is the 98,230 above.
+**Neither shape has been re-measured since `spec_version` 6.** `ArqWallet` (`spec_version` 7, and 8 with rounds, both
+4 October 2026) added a pallet to both, so every number in this section is for an older runtime than the current one.
 
 On 2026-09-22, after M4.6 added `pallet-utility` (`spec_version` 3), they were 92,323 and 90,417. Earlier that day, after M4.1 added `pallet-nfts` and `pallet-drc369` (`spec_version` 2), they were
 86,259 and 84,316 — and a node still carrying that runtime served exactly 86,259 bytes when it was restarted

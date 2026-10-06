@@ -6,11 +6,11 @@
  *
  * # What this file is allowed to do, and what it is not
  *
- * The design system governs the chrome. QFX governs the canvas. That boundary
- * is why `scripts/check-design.mjs` — which forbids canvases, frame loops and
- * pointer-reactive effects everywhere else in `src/` — exempts `src/qfx/`, and
- * why the exemption is narrow: this directory carries *stricter* obligations
- * than the chrome does, not looser ones.
+ * The design system governs the chrome. QFX governs the canvas. Until ADR-080
+ * (6 October 2026) `scripts/check-design.mjs` forbade canvases, frame loops and
+ * pointer-reactive effects everywhere else in `src/` and exempted `src/qfx/`;
+ * effects are now allowed everywhere. The obligations below stand: this
+ * directory carries *stricter* duties than the chrome does, not looser ones.
  *
  * Three of them, all enforced rather than intended:
  *

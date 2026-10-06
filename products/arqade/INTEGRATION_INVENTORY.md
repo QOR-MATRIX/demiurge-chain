@@ -4,7 +4,8 @@
 from, who may use it, where it persists, what happens when it fails, and how it was verified. Required by P7.1
 (`docs/DIRECTION.md`) and the blueprint's §4 (`docs/blueprints/arqade.md`). Written 5 October 2026 against
 `products/arqade/` as it is in the tree; checked in a running build (on Sites, the site's own workerd runtime; since ADR-074, `next start` with Postgres, driven in headless
-Chrome) the same day.
+Chrome) the same day. Updated 6 October 2026 for tips, levels and the first-match task; the site is live on Vercel at
+<https://qor-arqade-tau.vercel.app>.
 
 **Read with.** `IMPLEMENTATION.md` (what is built), the SDK's `README.md`. When a control changes, its row changes in
 the same commit.
@@ -14,8 +15,8 @@ the same commit.
 | Source | What lives there | Who can change it |
 | --- | --- | --- |
 | **The browser** (`localStorage`) | `demiurge.local.v1`: practice Energy, practice tokens, plays, best scores, session ledger. `demiurge.portal.v1`: intro seen. `demiurge.project.v1`: the creator's draft. `demiurge.muted`: muted chat players. Keys kept from before the rename, so nobody loses progress | The visitor, on this device only. **None of it has value or reaches the chain** |
-| **The arcade service** (Postgres, ADR-074) | Players (QOR ID accounts, by QOR ID), matches, standings, chat messages, reports | The server, from authenticated requests; rules in `lib/arena-engine.ts`, writes in `lib/arena-store.ts` |
-| **Demiurge Devnet** (`https://rpc.qorsync.dev`, read-only) | Finalized and best block, any account's test CGT and DRC-369 assets | Nobody, from here. ARQADE signs nothing; the genesis is checked before every read |
+| **The arcade service** (Postgres, ADR-074; `db/migrations/`) | Players (QOR ID accounts, by QOR ID), matches, standings, chat messages, reports, QOR ID sign-in and session tables (`qor_logins`, `qor_sessions`; `0001`); tips (`0002`); whether a player's first match was reported to QOR ID (`players.first_match_reported`; `0003`) | The server, from authenticated requests; rules in `lib/arena-engine.ts`, writes in `lib/arena-store.ts`, sign-in in `lib/qor-session.ts`, tips in `lib/tips.ts` |
+| **Demiurge Devnet** (`https://rpc.qorsync.dev`) | Finalized and best block, any account's test CGT and DRC-369 assets; a tip's payment, found in a finalised block | ARQADE holds no chain key and submits nothing; it signs only `qor://pay` requests, which the player's launcher pays. The genesis is checked before every read |
 | **The code** | The four solo games, their rules and copy | A release |
 
 ## Shell and navigation
@@ -27,7 +28,7 @@ the same commit.
 | "Your cybercade · Season Zero" | Static copy | — | — | — | Read in the code |
 | Top bar Energy count | Browser (`demiurge.local.v1`) | Visitor | Browser | Unreadable storage resets to the initial 1,000 practice Energy | `page.tsx` validates every stored field |
 | **Connect QOR ID** | Opens the QOR Identity view, where **Sign in with QOR ID** starts the sign-in on QOR ID's own page (P7.3) | Anyone | — | — | Chrome: opens the view |
-| Live strip ("network … online", open lobbies, Global rankings) | Arcade service (`/api/live`, polled every 2 s while visible) | Signed in with QOR ID | — | Shows "connecting" and "—" when the service is unreachable or the visitor is not signed in | `tests/arena.test.mjs`; locally it shows "connecting" (no host sign-in) |
+| Live strip ("network … online", open lobbies, Global rankings) | Arcade service (`/api/live`, polled every 2 s while visible) | Signed in with QOR ID | — | Shows "connecting" and "—" when the service is unreachable or the visitor is not signed in | `tests/arena.test.mjs`; it shows "Network connecting" when not signed in with QOR ID (`/api/live` answers 401, and the notice says to sign in) |
 | Sidebar panel "Demiurge Devnet · Read-only · see QOR Identity" | Static pointer. **Was "Chain connection pending", which never read anything; replaced 5 Oct** | — | — | — | Chrome |
 | Sidebar name · "QOR verified" | Arcade service: the signed-in QOR ID | Signed in with QOR ID | Server | Not signed in: "Guest · Not signed in" | `tests/arena.test.mjs` (identity is server-derived) |
 | Portal intro and its notice | Code; seen flag in browser | Anyone | Browser | Storage blocked: the intro shows every visit | Chrome |
@@ -59,6 +60,7 @@ the same commit.
 | Board moves, legal-move hints, 90-second turns, **Concede match**, rematch (**Find another match**), **Back to lobby** | Server rules (`lib/arena-engine.ts`) | The two players; spectators read | Server | A refused move leaves the board unchanged | Tests: 100 Reversi games, Flux wins and illegal moves, exactly-once results, timeouts |
 | Leaderboard (global top 100, per game) | Server standings | Anyone signed in with QOR ID | Server | "Offline" when unreachable | Tests: aggregation before the limit |
 | World chat: send, **Delete** own message, **Mute player**, **Report**, unread count | Server; mute list in browser | Signed in with QOR ID; delete only one's own | Server; mute in browser | Draft kept on failure; two-second send limit | Tests: identity, rate limits, ownership |
+| First finished match, reported to QOR ID as a task (ADR-078; no control) | Server (`app/api/matches/[id]/route.ts`, `reportTask` to QOR ID's `/oauth/progress`) | The two players, not spectators | `players.first_match_reported` (once); the XP at QOR ID | A failed report is dropped and never fails the move; QOR ID grants the XP once however often told | `tests/qor-session.test.mjs` (a task is reported with the app's secret and the player's token, and not without a session) |
 
 **Not yet:** polling, not WebSockets.
 
@@ -80,7 +82,7 @@ the same commit.
 
 | Control | Source | Permission | Persists | On failure | Verified |
 | --- | --- | --- | --- | --- | --- |
-| QOR authentication / Verified account / Chain account / CGT settlement rows; **Sign in with QOR ID**, **Sign out** (P7.3) | QOR ID, through ARQADE's server (`/api/auth/me`, which asks `/oauth/userinfo`); CGT settlement is still **Not connected** | Anyone may sign in; sign-out from this site's own pages only | Server-side session (D1, keyed by the cookie's hash), one HttpOnly cookie | Unconfigured site: "Not configured", no button. QOR ID unreachable: says so. A refused sign-in: "did not complete. Nothing was shared" | `tests/qor-session.test.mjs`; end to end in Chrome against a local QOR ID, 5 Oct |
+| QOR authentication / Verified account / Chain account / CGT settlement rows; **Sign in with QOR ID**, **Sign out** (P7.3) | QOR ID, through ARQADE's server (`/api/auth/me`, which asks `/oauth/userinfo`); CGT settlement is still **Not connected** | Anyone may sign in; sign-out from this site's own pages only | Server-side session (Postgres `qor_sessions`, keyed by the cookie's hash), one HttpOnly cookie | Unconfigured site: "Not configured", no button. QOR ID unreachable: says so. A refused sign-in: "did not complete. Nothing was shared" | `tests/qor-session.test.mjs`; end to end in Chrome against a local QOR ID, 5 Oct |
 | **Tip a creator** (Play Now; ADR-071 tips, ADR-076, ADR-077): game, amount, **Tip with the QOR Launcher**; waiting, paid or expired | ARQADE signs a `qor://pay` request (`/api/pay/tip`); the player's launcher shows it in its host dialog and pays transfer and remark in one `batch_all`; ARQADE finds both in one extrinsic of a finalised block (`/api/pay/[id]`) | Signed in with QOR ID; at most 5 open requests; 100,000 CGT a tip at most; devnet only | Server (Postgres `tips`); the payment on chain | Not configured: says so. No launcher: the link does nothing and the request expires, nothing paid | `tests/pay.test.mjs` (6); a real batch found, and a forgery, wrong amount and wrong recipient refused, on a local dev chain, 5 Oct |
 | **Level** row on the QOR Identity card; the **level bubble** on the sidebar avatar (ADR-078) | QOR ID, through `/api/auth/me` (userinfo's `progress`) | Signed in with QOR ID | QOR ID | Signed out: not shown | Chrome against a local QOR ID, 6 Oct: 10 XP after signing in |
 | **Open Demiurge portal** | Link to `demiurge.cloud` | — | — | — | — |
@@ -110,5 +112,5 @@ the same commit.
 
 ## What is deliberately absent
 
-No signing, no payment, no CGT payout, no asset award and no ranking from solo play. Each is a later P7
-step, named in `docs/DIRECTION.md`.
+No CGT payout, no prizes, no purchases, no asset award and no ranking from solo play; the only payment is a devnet tip
+through the launcher. Each of the rest is a later P7 step, named in `docs/DIRECTION.md`.
