@@ -915,6 +915,49 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         .await;
     assert_eq!(r.status, StatusCode::OK, "{}", r.body);
 
+    // Levels and tasks (ADR-078): the summary, the launcher's tutorial report, and an app's report, which carries the
+    // app's secret and a person's token. A fresh sign-in: the password change above ended every session.
+    let r = client
+        .json(
+            "/api/v1/auth/login",
+            json!({ "identifier": username, "password": new_password }),
+            None,
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    let progress_token = r.json()["access_token"]
+        .as_str()
+        .expect("access token")
+        .to_string();
+    secrets.push(progress_token.clone());
+    if let Some(refresh) = r.json()["refresh_token"].as_str() {
+        secrets.push(refresh.to_string());
+    }
+    let r = client
+        .get("/api/v1/profile/progress", Some(&progress_token))
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    let r = client
+        .json(
+            "/api/v1/profile/progress/tutorial",
+            json!({}),
+            Some(&progress_token),
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    let r = client
+        .form(
+            "/oauth/progress",
+            &[
+                ("client_id", "logcheck-app"),
+                ("client_secret", client_secret.as_str()),
+                ("token", progress_token.as_str()),
+                ("task", "first-match"),
+            ],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::FORBIDDEN, "{}", r.body);
+
     // A hash of the password is not the password, but it is still not for a log.
     let hash: String = sqlx::query_scalar("SELECT password_hash FROM users WHERE username = $1")
         .bind(username)
@@ -949,6 +992,9 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         "/account/password",
         "/account/email",
         "/api/v1/profile/password",
+        "/api/v1/profile/progress",
+        "/api/v1/profile/progress/tutorial",
+        "/oauth/progress",
     ] {
         assert!(
             log.contains(expected),

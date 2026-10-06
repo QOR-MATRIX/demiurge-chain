@@ -403,6 +403,7 @@ pub async fn verify_email(
     .bind(user.id)
     .execute(&state.db)
     .await?;
+    crate::handlers::progress::award(&state.db, user.id, "verify-email").await?;
 
     Ok(Json(json!({
         "message": "Email verified successfully",
@@ -417,7 +418,7 @@ pub async fn verify_email(
 /// recovery routes. If another account has registered the address meanwhile, the
 /// confirmation is refused.
 async fn confirm_pending_email(state: &AppState, token: &str) -> AppResult<Json<Value>> {
-    let confirmed: Option<String> = sqlx::query_scalar(
+    let confirmed: Option<(uuid::Uuid, String)> = sqlx::query_as(
         r#"
         UPDATE users
         SET email = pending_email,
@@ -431,7 +432,7 @@ async fn confirm_pending_email(state: &AppState, token: &str) -> AppResult<Json<
         WHERE pending_email_token = $1
           AND pending_email_expires_at > NOW()
           AND status = 'active'
-        RETURNING username
+        RETURNING id, username
         "#,
     )
     .bind(token)
@@ -447,9 +448,10 @@ async fn confirm_pending_email(state: &AppState, token: &str) -> AppResult<Json<
         }
     })?;
 
-    let username = confirmed.ok_or(AppError::ValidationError(
+    let (confirmed_id, username) = confirmed.ok_or(AppError::ValidationError(
         "Invalid or expired verification token".into(),
     ))?;
+    crate::handlers::progress::award(&state.db, confirmed_id, "verify-email").await?;
     Ok(Json(json!({
         "message": "Email verified successfully",
         "qor_id": username.to_lowercase(),
@@ -1357,6 +1359,7 @@ pub(crate) async fn link_verified_key(
     .bind(user_id)
     .fetch_one(&state.db)
     .await?;
+    crate::handlers::progress::award(&state.db, user_id, "link-key").await?;
 
     Ok(json!({
         "message": "Key linked",

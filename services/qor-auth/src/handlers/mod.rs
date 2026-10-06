@@ -7,6 +7,7 @@ pub mod health;
 pub mod oauth;
 pub mod pages;
 pub mod profile;
+pub mod progress;
 pub mod webhooks;
 pub mod zk;
 // The music handlers do not compile and never have. They are written against a

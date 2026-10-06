@@ -174,6 +174,8 @@ pub(crate) fn router(state: Arc<AppState>) -> Router {
             post(handlers::account::change_password_page),
         )
         .route("/account/email", post(handlers::account::change_email_page))
+        // An app's server reports a task it checked (ADR-078).
+        .route("/oauth/progress", post(handlers::progress::app_progress))
         // Sign-in for other apps by redirect (ADR-043, ADR-073): QOR ID's own page, then a code, then
         // tokens for the app's server. Never `*` in CORS: these are page and server-to-server calls.
         .route(
@@ -260,7 +262,8 @@ fn cors_layer(config: &config::AppConfig) -> CorsLayer {
 fn auth_routes() -> Router<Arc<AppState>> {
     Router::new()
         // Traditional password auth
-        .route("/register", post(handlers::auth::register))
+        // The owner's limit of three accounts per network address wraps both sign-ups (ADR-078).
+        .route("/register", post(handlers::progress::register_limited))
         .route("/login", post(handlers::auth::login))
         .route("/refresh", post(handlers::auth::refresh_token))
         .route("/logout", post(handlers::auth::logout))
@@ -280,7 +283,10 @@ fn auth_routes() -> Router<Arc<AppState>> {
         // Keypair-based auth (Nostr-style)
         .route("/challenge", get(handlers::auth::get_challenge))
         .route("/keypair-login", post(handlers::auth::keypair_login))
-        .route("/keypair-register", post(handlers::auth::keypair_register))
+        .route(
+            "/keypair-register",
+            post(handlers::progress::keypair_register_limited),
+        )
         // Binds a key to the account in the access token, so it requires one.
         .route(
             "/link-keypair",
@@ -307,6 +313,11 @@ fn profile_routes() -> Router<Arc<AppState>> {
         )
         .route("/email", post(handlers::profile::request_email_change))
         .route("/password", post(handlers::account::change_password_api))
+        .route("/progress", get(handlers::progress::get_progress))
+        .route(
+            "/progress/tutorial",
+            post(handlers::progress::tutorial_done),
+        )
         .layer(from_fn(crate::middleware::auth::require_auth))
 }
 
