@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 55 (6 October 2026): ADR-078 accepted, levels, tasks and a 100 CGT welcome grant; item 54 (5 October 2026): P7.4 built, tips through the QOR Launcher (ADR-076, ADR-077); item 53: QOR ID account page; ADR-076 accepted (cap 100,000 CGT); item 52: one name per QOR ID, no #0001 (ADR-075), on a branch; item 51: QOR ID sign-in live for apps; ARQADE moved to Vercel with Postgres (ADR-074), on a branch; item 50: P7.3 built, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 56 (6 October 2026): levels and tasks built (ADR-078), on a branch; item 55 (6 October 2026): ADR-078 accepted, levels, tasks and a 100 CGT welcome grant; item 54 (5 October 2026): P7.4 built, tips through the QOR Launcher (ADR-076, ADR-077); item 53: QOR ID account page; ADR-076 accepted (cap 100,000 CGT); item 52: one name per QOR ID, no #0001 (ADR-075), on a branch; item 51: QOR ID sign-in live for apps; ARQADE moved to Vercel with Postgres (ADR-074), on a branch; item 50: P7.3 built, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1734,6 +1734,23 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     "The Arcade" renamed "Play Now" (PR #9); the launcher's browser checks stopped giving up before the page existed
     (the flaky "did not expose a page to inspect"). The owner wants CGT to become exchangeable; no current record says
     so yet, and it was offered as a record of its own with a legal review.
+
+56. **6 October 2026: ADR-078's first build, levels and tasks. On branch `session/levels`, not merged.** QOR ID:
+    migration 020 (`progress_events` one row per account and task; `welcome_grants` unique per account, email and chain
+    account, 100 CGT in Sparks as text; `signup_addresses` keyed hashes); `handlers/progress.rs` (tasks and XP, level
+    50·L·(L+1), unlocks named, `award` once and records an owed grant when tutorial, verified email and linked key are all
+    there; `summary`; `/api/v1/profile/progress`, `/api/v1/profile/progress/tutorial`; `/oauth/progress` for an app's
+    own tasks with its secret and a live token issued to it; `register_limited`/`keypair_register_limited` wrap sign-up
+    with the three-per-address limit, the address from Railway's **`X-Real-IP`** (Railway's documentation;
+    `X-Forwarded-For` is not trusted), as an HMAC). Hooks: verify-email in both verification paths, link-key in
+    `link_verified_key` and key sign-up, sign-in-arqade in `authorize_submit`; userinfo carries `progress`. 157 tests;
+    the log check drives the three routes; a planted fault (a grant without a verified email) failed a test. Launcher:
+    `components/chrome/Level.tsx` (bubble, XP bar), `qor_progress`, `qor_tutorial_done`, the tutorial reports itself.
+    ARQADE: `reportTask` (`lib/qor-session.ts`), a first match (players.first_match_reported, migration 0003) and a
+    first paid tip reported; the bubble and the level row. 48 tests. **Checked in Chrome** against a local QOR ID and
+    Postgres: signing in to ARQADE granted 10 XP; the bubble showed 0 and the card "Level 0 · 10/100 XP · Next: Ring
+    style: Ember". **Not built yet:** drawing ring styles and themes as unlocks, paying owed grants, ARQADE inside the
+    launcher, the abuse watcher.
 
 ## 5. Traps, so nobody re-learns them
 

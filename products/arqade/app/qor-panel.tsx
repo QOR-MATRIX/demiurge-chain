@@ -3,7 +3,8 @@
 // Sign-in happens on QOR ID's own page; this site's server holds the tokens and the browser only a cookie.
 import { useEffect, useState } from 'react';
 
-type Me = { configured: boolean; signedIn: boolean; username?: string; qorId?: string; chainAccount?: string | null; accountUrl?: string | null; error?: string };
+type Progress = { level: number; xp: number; level_xp: number; next_level_xp: number; next_unlock: string | null };
+type Me = { configured: boolean; signedIn: boolean; username?: string; qorId?: string; chainAccount?: string | null; accountUrl?: string | null; progress?: Progress | null; error?: string };
 
 const NOTICES: Record<string, string> = {
   unconfigured: 'QOR ID sign-in is not configured for this site yet.',
@@ -59,6 +60,7 @@ export function QorPanel() {
         <span>{me?.signedIn ? (me.chainAccount ? `${me.chainAccount.slice(0, 6)}…${me.chainAccount.slice(-4)}` : 'No key linked yet') : '—'}</span>
       </div>
       <div className="integration-row"><span>CGT settlement</span><span>Not connected</span></div>
+      {me?.signedIn && me.progress && <LevelRow progress={me.progress} />}
       {notice && <p role="status" className="qor-notice">{notice}</p>}
       {me?.signedIn ? (
         <button className="secondary" onClick={() => void signOut()} disabled={busy}>{busy ? 'Signing out…' : 'Sign out'}</button>
@@ -69,6 +71,23 @@ export function QorPanel() {
         <p className="muted qor-hint"><a href={me.accountUrl} target="_blank" rel="noopener noreferrer">Manage your QOR ID</a>: change your password or add an email address, on the QOR ID site.</p>
       )}
       {me?.signedIn && !me.chainAccount && <p className="muted qor-hint">Link a key from the QOR Launcher to give this account a chain identity.</p>}
+    </div>
+  );
+}
+
+/** Level and XP towards the next one, as QOR ID keeps them across every app (ADR-078). */
+function LevelRow({ progress }: { progress: Progress }) {
+  const span = Math.max(1, progress.next_level_xp - progress.level_xp);
+  const into = Math.min(span, Math.max(0, progress.xp - progress.level_xp));
+  return (
+    <div className="integration-row level-row">
+      <span>Level</span>
+      <span>
+        <b>{progress.level}</b> · {into}/{span} XP{progress.next_unlock ? ` · Next: ${progress.next_unlock}` : ''}
+        <span className="xp-bar" role="progressbar" aria-label={`Experience towards level ${progress.level + 1}`} aria-valuemin={0} aria-valuemax={span} aria-valuenow={into}>
+          <span style={{ width: `${Math.round((into / span) * 100)}%` }} />
+        </span>
+      </span>
     </div>
   );
 }

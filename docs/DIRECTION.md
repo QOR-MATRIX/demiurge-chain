@@ -987,8 +987,18 @@ here sets an economic value; payouts are U-16.
 16. [ ] Levels and tasks across the ecosystem (ADR-078): one level and XP per QOR ID, granted only by QOR ID or an app's
     server for checked tasks, each once; the level bubble and the XP bar in the launcher and ARQADE; ring styles and
     themes as unlocks; at most three accounts per network address. Depends on nothing.
+
+    **Built 6 October 2026, not yet live.** QOR ID: `progress_events`, `welcome_grants`, `signup_addresses`
+    (migration 020); `GET /api/v1/profile/progress`, `POST /api/v1/profile/progress/tutorial`, `POST /oauth/progress`
+    (an app's own tasks, with its secret and the player's token); XP for a verified email, a linked key and a sign-in to
+    ARQADE; userinfo carries the progress; three sign-ups per address in 30 days, read from Railway's `X-Real-IP`, kept as
+    a keyed hash. 157 tests. The launcher: the level bubble on the avatar, the XP bar with the next unlock, the tutorial
+    reported. ARQADE: the bubble, the level row on the QOR Identity card, a first match and a first tip reported.
+    Checked end to end in Chrome against a local QOR ID: signing in to ARQADE granted 10 XP and the card showed it.
+    Ring styles and themes are named as unlocks; drawing them is next.
 17. [ ] The welcome grant (ADR-078): 100 CGT once per new QOR ID when the tutorial, the email and a key are confirmed,
     from the Welcome account; test CGT on the devnet first. Real CGT depends on U-18 and the owner's legal review.
+    **Owed grants are recorded** by QOR ID (6 October 2026); paying them from the Welcome account is not built.
 18. [ ] ARQADE inside the launcher (ADR-078 decision 5): a Play section, signed in with the launcher's QOR ID, payments
     approved in the host dialog. Depends on P7.4.
 
