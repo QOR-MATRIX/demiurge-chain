@@ -1,8 +1,9 @@
 # ADR-078: Levels, tasks and a welcome grant across the ecosystem, and ARQADE inside the launcher
 
-**Status:** **Proposed**, 6 October 2026, for the owner to accept or change. Nothing in it is built. Decisions 1, 6, 7
-and 9 are the owner's direction of 5 and 6 October 2026; the rest are recommendations. It decides one value, decision 6's
-amount, and that one is the owner's, with a constraint stated there. It opens U-18 for the rest.
+**Status:** **Accepted**, 6 October 2026, by the project owner: "I accept ADR-078 with 100 CGT", setting decision 6's
+N to 100 CGT. Proposed the same day. Decisions 1, 6, 7 and 9 are the owner's direction of 5 and 6 October 2026; the rest
+were recommendations, accepted as written. Glowing ring styles (decision 4) were not decided: until the owner decides,
+ring styles are colour and pattern only. It opens U-18 for the rest. Not yet built.
 
 ## Context
 
@@ -62,6 +63,10 @@ What this must respect:
    CGT exactly the account opens with nothing to spend (the existential deposit above), so the grant does what it is for
    only if **N is above 100**: N - 100 is what the user can spend. One grant per email address and per key, as well as per
    account.
+
+   **Set on acceptance: N = 100 CGT**, by the owner, told the above. The grant opens every new player's chain account, so
+   a first reward, tip or prize can land in it; it leaves nothing to spend until one does. Raising N is a change of this
+   value only.
 7. **The grant is paid from a Welcome account, with no daily cap** (the owner's choice), by a server that holds that
    account's key and nothing else. The Welcome account's balance is then the only cap: when it is empty, grants stop and
    are owed until it is refilled. It never creates CGT. **On Demiurge Devnet, with test CGT, from the faucet, now;** with
@@ -88,6 +93,6 @@ What this must respect:
 - **Production CGT** for the grant, task rewards and game prizes waits on U-16, U-18, the legal review, and a production
   chain: today there is only the devnet.
 
-## For the owner
+## Not decided here
 
-Accept as written, or change it, and set **N**, the welcome grant (above 100 CGT, for there to be anything to spend).
+Whether ring styles may glow (decision 4), and U-18.

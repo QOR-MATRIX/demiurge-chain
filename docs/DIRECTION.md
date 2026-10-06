@@ -984,6 +984,13 @@ here sets an economic value; payouts are U-16.
 15. [ ] Agentic creation: ARQADE's tools on ADR-010's MCP server, used by an external LLM under an agent key the
     developer authorised; the model prepares, the developer signs what is public or moves CGT. Depends on M5.3, and on
     M5.2 for capped agent signing.
+16. [ ] Levels and tasks across the ecosystem (ADR-078): one level and XP per QOR ID, granted only by QOR ID or an app's
+    server for checked tasks, each once; the level bubble and the XP bar in the launcher and ARQADE; ring styles and
+    themes as unlocks; at most three accounts per network address. Depends on nothing.
+17. [ ] The welcome grant (ADR-078): 100 CGT once per new QOR ID when the tutorial, the email and a key are confirmed,
+    from the Welcome account; test CGT on the devnet first. Real CGT depends on U-18 and the owner's legal review.
+18. [ ] ARQADE inside the launcher (ADR-078 decision 5): a Play section, signed in with the launcher's QOR ID, payments
+    approved in the host dialog. Depends on P7.4.
 
 ## 8. Scope
 

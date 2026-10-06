@@ -281,8 +281,8 @@ devnet it is built and tested with test CGT and values marked as placeholders.
 Opened on 6 October 2026 by ADR-078, when the owner asked for CGT rewards for completing tasks across the ecosystem and a
 small welcome grant on finishing the tutorial. Levels and XP are settled there and touch no CGT. What is not:
 
-- **The welcome grant's amount, N.** The owner's, above 100 CGT (the existential deposit), or the account opens with
-  nothing to spend. Asked of the owner with ADR-078.
+- ~~The welcome grant's amount~~: **set by the owner on 6 October 2026 at 100 CGT** (ADR-078), knowing an account at
+  exactly the existential deposit opens with nothing to spend.
 - **Who funds the Welcome account** with real CGT, and whether task rewards beyond the grant pay CGT at all, and how much.
 - **The ten-minute boost**: what it multiplies and by how much.
 - **Whether a reward is a payment for work, a licence, or neither** (ADR-008), which decides whether it passes the spend
