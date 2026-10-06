@@ -7,14 +7,17 @@ export const dynamic = 'force-dynamic';
 // shows here at once. The live arcade accepts an answer up to 30 seconds old (ADR-074).
 export async function GET(request: Request) {
   const held = cookie(request.headers.get('cookie'), SESSION_COOKIE);
-  const configured = configFrom(process.env) !== null;
+  const config = configFrom(process.env);
+  const configured = config !== null;
+  // QOR ID's own account page: change the password, add an email address.
+  const accountUrl = config ? new URL('/account', config.issuer).toString() : null;
   try {
     const profile = held ? await currentProfile(deps(), held) : null;
     const headers = new Headers({ 'Cache-Control': 'no-store' });
     if (held && !profile) headers.append('Set-Cookie', setCookie(SESSION_COOKIE, '', 0, new URL(request.url).protocol === 'https:'));
     return Response.json(
       profile
-        ? { configured: true, signedIn: true, username: profile.username, qorId: profile.qorId, chainAccount: profile.chainAccount }
+        ? { configured: true, signedIn: true, username: profile.username, qorId: profile.qorId, chainAccount: profile.chainAccount, accountUrl }
         : { configured, signedIn: false },
       { headers },
     );

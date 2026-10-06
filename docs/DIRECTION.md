@@ -938,6 +938,10 @@ here sets an economic value; payouts are U-16.
    database and ARQADE's Vercel callback is registered at QOR ID.
 4. [ ] A player approves a CGT payment from their own Vault, previewed and finalised, never with a key held by
    ARQADE. Depends on the signing path ADR-069 decision 5 chooses, with its own record, and for production on M5.2.
+
+   **Accepted 5 October 2026: [ADR-076](decisions/ADR-076-arqade-hands-payments-to-the-launcher.md)** (option A for
+   devnet play): a signed `qor://pay` link, the launcher's host dialog, the result read from finalised blocks; devnet
+   only, at most 100,000 CGT per request. Not yet built.
 5. [ ] Paid play on the devnet: a test-CGT entry finalised, one session authorised, the result validated by the
    server, and one DRC-369 trophy and one funded test-CGT payout delivered exactly once, surviving reload and retry.
    Depends on P7.3 and P7.4; the payout comes from the game's ARQ Wallet once P7.11 exists.

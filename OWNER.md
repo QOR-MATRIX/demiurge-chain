@@ -19,8 +19,9 @@ The code is public at `github.com/QOR-MATRIX/demiurge-chain` (your organisation)
 - **The chain.** Makes and finalises blocks — *finalise: agree a block can never be undone* — holds assets,
   sends, sells with royalties, nests one asset in another, and refuses a purchase if the seller changed the
   work after you looked. **150 tests pass** (4 October, the ARQ Wallet's included).
-- **Sign-in (QOR ID)** at `id.qorsync.dev`, beside its database in Virginia. **145 tests pass** (5 October). Your QOR ID is now just your name, with no `#0001`, and no two
-  accounts can share a name (ADR-075, your rule; waiting on your merge). Since
+- **Sign-in (QOR ID)** at `id.qorsync.dev`, beside its database in Virginia. **149 tests pass** (5 October). Your QOR ID is just your name, with no `#0001`, and no two
+  accounts share a name (ADR-075, live). **`id.qorsync.dev/account`** — *QOR ID's own account page* — changes
+  your password or adds an email address (waiting on your merge). Since
   5 October it also signs people in to **other websites** on its own page, and ARQADE is registered with it.
 - **The launcher 0.1.6.** Keys, sign-in, sending, minting, Inventory, trading, selling, buying, and a
   **Market** of everything listed. Its next build points at the devnet by default. **195 tests pass.**
@@ -49,20 +50,23 @@ or give anyone test CGT except by you sending it from the faucet.
 
 ## What only you can do
 
-1. **Put ARQADE on Vercel**, one step at a time with me: merge the `session/arqade-vercel` pull request, import the
+1. **Merge pull request #7**, then open `id.qorsync.dev/account` and **add your email address**, so a forgotten
+   password can be reset. You accepted **ADR-076** (*paying on ARQADE through the launcher*, at most 100,000 test CGT
+   a payment); I build it next.
+2. **Put ARQADE on Vercel**, one step at a time with me: merge the `session/arqade-vercel` pull request, import the
    repository in Vercel (folder `products/arqade`), add a free Neon database there, then one Railway setting and three
    Vercel settings. Vercel's free plan is for non-commercial use; it must change before ARQADE takes any payment.
-2. **Send yourself test CGT:** open `https://polkadot.js.org/apps/?rpc=wss://rpc.qorsync.dev`, allow your wallet,
+3. **Send yourself test CGT:** open `https://polkadot.js.org/apps/?rpc=wss://rpc.qorsync.dev`, allow your wallet,
    then Accounts → **Devnet faucet** → Send → to your launcher address `5DMPEX…qLxK`.
-3. **Get a legal opinion** on backing (crowdfunding) and on paid games with prizes before either goes live.
+4. **Get a legal opinion** on backing (crowdfunding) and on paid games with prizes before either goes live.
    Still open for ARQADE: its look (v0), its web address, and the rest of **U-16** — *whether paying to enter may win a
    prize, and the platform's minimum waiting times on an ARQ Wallet*.
-4. **Take your Resend key out of this PC's environment**; Railway holds it now.
-5. **Bounce reports**: a Resend webhook to `https://id.qorsync.dev/api/v1/webhooks/resend`, its `whsec_…`
+5. **Take your Resend key out of this PC's environment**; Railway holds it now.
+6. **Bounce reports**: a Resend webhook to `https://id.qorsync.dev/api/v1/webhooks/resend`, its `whsec_…`
    secret into Railway as `RESEND_WEBHOOK_SECRET`.
-6. **In Cloudflare**, delete the `ci` record and the tunnel.
-7. **Revoke the old SSH key** (`admin@pleroma`) and **rotate the nine credentials** in `SECURITY.md`.
-8. **Open economic questions**: the 15% for selling, deposit amounts (U-14), Q-19 and Q-20, U-16.
+7. **In Cloudflare**, delete the `ci` record and the tunnel.
+8. **Revoke the old SSH key** (`admin@pleroma`) and **rotate the nine credentials** in `SECURITY.md`.
+9. **Open economic questions**: the 15% for selling, deposit amounts (U-14), Q-19 and Q-20, U-16.
 
 ## What it costs per month
 

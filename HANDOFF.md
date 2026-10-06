@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 52 (5 October 2026): one name per QOR ID, no #0001 (ADR-075), on a branch; item 51: QOR ID sign-in live for apps; ARQADE moved to Vercel with Postgres (ADR-074), on a branch; item 50: P7.3 built, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 53 (5 October 2026): QOR ID account page; ADR-076 accepted (cap 100,000 CGT); item 52: one name per QOR ID, no #0001 (ADR-075), on a branch; item 51: QOR ID sign-in live for apps; ARQADE moved to Vercel with Postgres (ADR-074), on a branch; item 50: P7.3 built, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1689,6 +1689,19 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     name alone, its name rules now match QOR ID's (no hyphen), a tutorial finished under `name#0001` stays finished;
     196 tests, clippy, build. ARQADE's tests use plain names (41). **A rename flow is not built**: only agent accounts
     could have shared a name; read the count logged at deploy.
+
+53. **5 October 2026: QOR ID's account page; ADR-076 proposed (P7.4). On branch `session/account-page`, not merged.**
+    The owner was locked out because their account was created from a key (the launcher signs in with
+    `keypair-login`), so it had no password and no email, and could neither reset nor change one; a password was set by
+    hand in the database (the owner ran the SQL; a script made the hash locally) and the stored name had a stray space,
+    fixed the same way. Built: `handlers/account.rs`, `GET /account` (two forms, each needing the current password),
+    `POST /account/password`, `POST /account/email` (reuses `request_email_change`; its limits are now said on the page,
+    not "Something went wrong"), `POST /api/v1/profile/password`; a change ends every session and cancels a pending
+    email change. All three joined the log check. 149 tests, clippy, fmt; a planted fault (no sign-out) failed a test.
+    ARQADE's identity card links to the page (`accountUrl` from `/api/auth/me`) and shows the QOR ID once.
+    **ADR-076, accepted by the owner the same day with a cap of 100,000 CGT per request**: a signed `qor://pay` link, the launcher's host dialog, the result read from finalised blocks,
+    devnet only. **Also:** the owner pasted a 24-word recovery phrase into the
+    chat; whatever account it controls must be treated as exposed and replaced (OWNER.md).
 
 ## 5. Traps, so nobody re-learns them
 

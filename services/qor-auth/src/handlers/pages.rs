@@ -70,6 +70,8 @@ main { max-width: 480px; margin: 0 auto; }
 .eyebrow { margin: 0 0 16px; font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #93A0AE; }
 .panel { background: #12151C; border: 1px solid #333A47; border-radius: 2px; padding: 32px; }
 h1 { margin: 0 0 16px; font-size: 24px; line-height: 1.3; font-weight: 600; color: #FFFFFF; }
+h2 { margin: 0 0 12px; font-size: 17px; line-height: 1.3; font-weight: 600; color: #FFFFFF; }
+a { color: #FF9142; }
 p { margin: 0 0 16px; }
 .muted { color: #93A0AE; font-size: 13px; }
 .after { margin: 16px 0 0; }
@@ -77,8 +79,8 @@ p { margin: 0 0 16px; }
 hr { border: 0; border-top: 1px solid #232936; margin: 24px 0; }
 form { margin: 24px 0 0; }
 label { display: block; margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #93A0AE; }
-input[type=password], input[type=text] { display: block; width: 100%; margin: 0 0 16px; padding: 10px 12px; background: #0E1117; border: 1px solid #333A47; border-radius: 2px; color: #FFFFFF; font: inherit; }
-input[type=password]:focus, input[type=text]:focus { outline: none; border-color: #FF6A00; }
+input[type=password], input[type=text], input[type=email] { display: block; width: 100%; margin: 0 0 16px; padding: 10px 12px; background: #0E1117; border: 1px solid #333A47; border-radius: 2px; color: #FFFFFF; font: inherit; }
+input[type=password]:focus, input[type=text]:focus, input[type=email]:focus { outline: none; border-color: #FF6A00; }
 button { display: inline-block; padding: 12px 24px; background: #FF6A00; border: 0; border-radius: 2px; color: #06070A; font: inherit; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
 button:hover { background: #FF9142; }
 button:focus-visible, input:focus-visible { outline: 3px solid #FF9142; outline-offset: 2px; }
@@ -86,7 +88,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid #FF9142; outline-
 "#;
 
 /// A page, with the headers every link page carries.
-fn page(status: StatusCode, title: &str, body: &str) -> Response {
+pub(crate) fn page(status: StatusCode, title: &str, body: &str) -> Response {
     page_sending_to(status, title, body, None)
 }
 
@@ -162,7 +164,7 @@ pub(crate) fn page_sending_to(
 }
 
 /// Anything that is not the link's own outcome. Nothing is described as done.
-fn failure(error: AppError) -> Response {
+pub(crate) fn failure(error: AppError) -> Response {
     match error {
         AppError::ServiceUnavailable(_) => page(
             StatusCode::SERVICE_UNAVAILABLE,
