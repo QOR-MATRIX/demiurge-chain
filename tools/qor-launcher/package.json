@@ -1,7 +1,7 @@
 {
   "name": "@demiurge/qor-launcher",
   "private": true,
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "QOR Launcher - the sovereign gateway to the Demiurge ecosystem",
   "type": "module",
   "scripts": {

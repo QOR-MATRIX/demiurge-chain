@@ -1751,6 +1751,9 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     Postgres: signing in to ARQADE granted 10 XP; the bubble showed 0 and the card "Level 0 · 10/100 XP · Next: Ring
     style: Ember". **Not built yet:** drawing ring styles and themes as unlocks, paying owed grants, ARQADE inside the
     launcher, the abuse watcher.
+    **Then:** migration 021 credits accounts created before levels with the verify-email and link-key XP they had
+    already earned (checked on sample accounts, twice, no change the second time); launcher 0.1.8 built
+    (`QOR Launcher_0.1.8_x64-setup.exe`) to show the level.
 
 ## 5. Traps, so nobody re-learns them
 
