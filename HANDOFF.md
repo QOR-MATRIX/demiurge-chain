@@ -1,6 +1,6 @@
 # Handoff
 
-**Newest: §4 item 53 (5 October 2026): QOR ID account page; ADR-076 accepted (cap 100,000 CGT); item 52: one name per QOR ID, no #0001 (ADR-075), on a branch; item 51: QOR ID sign-in live for apps; ARQADE moved to Vercel with Postgres (ADR-074), on a branch; item 50: P7.3 built, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
+**Newest: §4 item 54 (5 October 2026): P7.4 built, tips through the QOR Launcher (ADR-076, ADR-077); item 53: QOR ID account page; ADR-076 accepted (cap 100,000 CGT); item 52: one name per QOR ID, no #0001 (ADR-075), on a branch; item 51: QOR ID sign-in live for apps; ARQADE moved to Vercel with Postgres (ADR-074), on a branch; item 50: P7.3 built, QOR ID signs people in to ARQADE; item 49: P7.1 done, ARQADE renamed, inventory written, lint a gate; item 48: P7.2 done, ARQADE reads any account from the devnet; item 47: Demiurge Devnet at spec_version 8, rounds live; item 46: rounds with held prizes and the SDK's wallet module; item 45: Demiurge Devnet upgraded to spec_version 7 by the owner, the ARQ Wallet live; item 44: the upgrade rehearsed; item 43: the chain pinned to Rust 1.98.1 (ADR-072, the owner's option A); item 42: merged to `main`; the chain CI job red since Rust 1.99, the owner's call; item 41: `pallet-arq-wallet` built and tested, not on the devnet; item 40: ADR-070 and ADR-071 accepted, the wallet named ARQ Wallet; item 39: ARQADE as a self-publishing store (ADR-071, Proposed); item 38: Game Vaults designed (ADR-070, Proposed) and the ARQADE SDK started; item 37: ARQADE in `products/arqade/`, reading the devnet; item 36 the same day: ARQADE, the gaming platform the owner named, reconciled with the tree — a
 corrected brief (`docs/blueprints/arqade.md`), ADR-069 (Proposed), track P7, gate `arqade`, U-16 and gaps G-14 to G-16.
 Documents only; no code changed.** Before it, §4 item 33 (2 October 2026): half-finished, unrecorded work found in the tree was finished and
 verified (chain `spec_version` 6 with `buy_exact`; the launcher's Market host read; QOR ID's last-used sessions and
@@ -1702,6 +1702,25 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     **ADR-076, accepted by the owner the same day with a cap of 100,000 CGT per request**: a signed `qor://pay` link, the launcher's host dialog, the result read from finalised blocks,
     devnet only. **Also:** the owner pasted a 24-word recovery phrase into the
     chat; whatever account it controls must be treated as exposed and replaced (OWNER.md).
+
+54. **5 October 2026: P7.4 built, tips through the QOR Launcher (ADR-076 with ADR-077). On branch
+    `session/p7.4-qor-pay`, not merged.** ADR-077 corrects ADR-076 from the launcher's code: the host dialog approves
+    (the owner chose it over Windows Hello, which no signature has used since ADR-056), no fee exists to show (OPEN-4),
+    "devnet only" is a genesis check. The owner chose tips to a game's creator as the first use. **Launcher**: `src/pay.rs`
+    (parse and check a `qor://pay` link: ARQADE's Ed25519 key in `KNOWN_APPS`, genesis, the 100,000 CGT cap, account,
+    label, id, expiry within fifteen minutes, paid-once in `paid-requests.json`), `src/chain/pay.rs` (`pay_request`:
+    genesis re-checked, `batch_all` of `transfer_keep_alive` and `remark_with_event`, through `sign_and_finalise`, prompt
+    built from checked values), `lib.rs` (deep-link and single-instance plugins, `handle_pay_link`, a native outcome
+    message), `QorError::PaymentRefused`. 204 tests (8 new); a planted fault (no signature check) failed one. **ARQADE**:
+    `lib/pay.ts` (request in the launcher's field order, Ed25519 by WebCrypto, `paymentIn`: the remark's event and the
+    transfer from its sender, to the recipient, of the amount, in one extrinsic that did not fail), `lib/pay-chain.ts`
+    (`@polkadot/api` over HTTP, genesis-checked; **`@polkadot/api` renames the event field `hash` to `hash_`**, which
+    the first real-chain run caught), `lib/tips.ts`, `/api/pay/tip`, `/api/pay/[id]`, `app/tip-panel.tsx`, migration
+    `0002_tips`. 47 tests; a planted fault (no same-extrinsic check) failed one. **The two are pinned together**: a
+    link made by ARQADE's code with a test key is a constant in the launcher's tests, and ARQADE's test checks it is
+    still that link. ARQADE's signing key was generated locally; its public half is in `KNOWN_APPS`, its private half in
+    the session scratchpad until the owner sets `QOR_PAY_SIGNING_KEY` in Vercel. **To go live**: merge; Vercel
+    `QOR_PAY_SIGNING_KEY` and `QOR_PAY_TIP_ADDRESS`; build and install the launcher (the installer registers `qor://`).
 
 ## 5. Traps, so nobody re-learns them
 

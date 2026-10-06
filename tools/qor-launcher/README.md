@@ -235,6 +235,17 @@ be for: it ported the custom devnet's byte layout by hand, and went with it.
 
 ---
 
+### Payments asked by websites: `qor://pay` (ADR-076, ADR-077)
+
+A website can ask the launcher to pay, never make it pay. The `qor` scheme is registered by `tauri-plugin-deep-link`;
+a link clicked while the launcher runs reaches it through `tauri-plugin-single-instance`. `src/pay.rs` checks a link
+before anything is shown: signed with the Ed25519 key of an app in `KNOWN_APPS` (ARQADE's only, today), Demiurge Devnet
+by genesis, a whole number of Sparks up to 100,000 CGT, a valid account, a short label, unexpired and valid for at most
+fifteen minutes, and not already paid (`paid-requests.json` in the app data directory). Only then does the host dialog
+show who asks, the amount, the recipient, that there is no fee, and the balance after. `src/chain/pay.rs` checks the
+connected chain's genesis again and pays the transfer and a `remark_with_event` naming the request in one `batch_all`,
+from the vault's first account. Any other link, or an unknown app, is refused with a message, and nothing is signed.
+
 ## Release gates (development dashboard)
 
 The Gates surface shows Alpha, Beta and Public Release progress, computed by

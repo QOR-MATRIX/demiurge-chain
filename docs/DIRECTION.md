@@ -941,7 +941,14 @@ here sets an economic value; payouts are U-16.
 
    **Accepted 5 October 2026: [ADR-076](decisions/ADR-076-arqade-hands-payments-to-the-launcher.md)** (option A for
    devnet play): a signed `qor://pay` link, the launcher's host dialog, the result read from finalised blocks; devnet
-   only, at most 100,000 CGT per request. Not yet built.
+   only, at most 100,000 CGT per request. Corrected by [ADR-077](decisions/ADR-077-corrections-to-adr-076.md): the host
+   dialog approves it (not Windows Hello), no fee is shown because none is charged, the devnet is checked by genesis.
+
+   **Built 5 October 2026, not yet live**, with tips to a game's creator as its first use (the owner's choice; ADR-071's
+   tips). Launcher: `src/pay.rs` and `src/chain/pay.rs`, the `qor` scheme; 8 tests, among them ARQADE's own link pinned.
+   ARQADE: the signed request, the scan of finalised blocks, the Tip panel, migration `0002`; 6 tests. A real `batch_all`
+   on a local dev chain was found, and a forgery, a wrong amount and a wrong recipient were not. **Live** once merged,
+   ARQADE's key and the tip address are set in Vercel, and the new launcher is installed.
 5. [ ] Paid play on the devnet: a test-CGT entry finalised, one session authorised, the result validated by the
    server, and one DRC-369 trophy and one funded test-CGT payout delivered exactly once, surviving reload and retry.
    Depends on P7.3 and P7.4; the payout comes from the game's ARQ Wallet once P7.11 exists.

@@ -321,6 +321,18 @@ mod tests {
         assert_eq!(paid.remark(), "qor-pay:arqade:0123456789abcdef");
     }
 
+    /// A link made by ARQADE's own code (`products/arqade/lib/pay.ts`, `payLink`) with this test key, pinned here so
+    /// the two cannot drift apart: `products/arqade/tests/pay.test.mjs` makes the same link and checks it is this one.
+    const ARQADE_LINK: &str = "qor://pay?r=7b2276223a312c22617070223a22617271616465222c226964223a223031323334353637383961626364656630313233343536373839616263646566222c22746f223a223547727776614546357a58623236467a397263517044575335374374455248704e6568584350634e6f48474b75745159222c22616d6f756e74223a2235303030303030303030303030303030303030222c226c6162656c223a2254697020666f7220466c757820466f7572222c2267656e65736973223a22307839333465326361613336666261353438656535663531313935633264303239303937666262613034303065366538303563613866336530373934376132353461222c22657870223a313830303030303330307d&s=29b04050ade965c33165c5c5a6258e33bb91f3ed45d51b20607fcec8d0349e06b115818e778c7acfdfbbc1073748fb6bba746fed022ab4f2d86077c1f809880d";
+
+    #[test]
+    fn a_link_made_by_arqades_code_is_accepted() {
+        let paid = parse_with(ARQADE_LINK).expect("ARQADE's link");
+        assert_eq!(paid.id, "0123456789abcdef0123456789abcdef");
+        assert_eq!(paid.amount_sparks, 5 * 10u128.pow(18));
+        assert_eq!(paid.label, "Tip for Flux Four");
+    }
+
     #[test]
     fn a_forged_or_altered_request_is_refused() {
         let bytes = request(serde_json::json!({}));
