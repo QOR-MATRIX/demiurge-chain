@@ -33,6 +33,7 @@ import {
   type Surface as SurfaceId,
 } from '../../state/store';
 import { Surface } from '../ui/Surface';
+import { LevelBubble, XpBar, useProgress } from './Level';
 
 interface Item {
   id: SurfaceId;
@@ -62,6 +63,7 @@ export function Rail() {
   const account = useQor(selectActiveAccount);
   const balance = useQor(selectActiveBalance);
   const standing = useAscent().standing;
+  const progress = useProgress(Boolean(session));
 
   return (
     <nav
@@ -110,7 +112,10 @@ export function Rail() {
           onClick={() => go('vault')}
           className="flex w-full items-center gap-3 p-3 text-left"
         >
-          <CircleUser size={22} strokeWidth={1.5} className="flex-none text-accent" />
+          <span className="relative flex-none">
+            <CircleUser size={22} strokeWidth={1.5} className="text-accent" />
+            <LevelBubble progress={progress} />
+          </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-ui font-semibold text-ink">
               {session?.qor_id ?? 'Not signed in'}
@@ -118,6 +123,7 @@ export function Rail() {
             <span className="numeric block truncate text-micro text-ink-muted">
               {balance?.display ?? (account ? shortAddress(account.address) : standing)}
             </span>
+            <XpBar progress={progress} />
           </span>
         </Surface>
       </div>

@@ -27,7 +27,9 @@ export type Db = {
 
 export type Deps = { db: Db; fetch: typeof fetch; now: () => number; config: QorConfig | null };
 
-export type Profile = { sub: string; qorId: string; username: string; chainAccount: string | null };
+/** Level and XP as QOR ID keeps them (ADR-078); present when QOR ID was just asked. */
+export type Progress = { level: number; xp: number; level_xp: number; next_level_xp: number; next_unlock: string | null };
+export type Profile = { sub: string; qorId: string; username: string; chainAccount: string | null; progress?: Progress };
 
 export const LOGIN_COOKIE = 'arq_login';
 export const SESSION_COOKIE = 'arq_session';
@@ -109,9 +111,9 @@ async function whoIs(deps: Deps, access: string): Promise<Profile | null> {
   const r = await deps.fetch(new URL('/oauth/userinfo', config.issuer), { headers: { authorization: `Bearer ${access}` } });
   if (r.status === 401) return null;
   if (!r.ok) throw new QorError(503, 'QOR ID could not be reached. Try again in a moment.');
-  const u = (await r.json()) as { sub?: string; qor_id?: string; username?: string; chain_account?: string | null };
+  const u = (await r.json()) as { sub?: string; qor_id?: string; username?: string; chain_account?: string | null; progress?: Progress };
   if (!u.sub || !u.qor_id || !u.username) throw new QorError(503, 'QOR ID answered unexpectedly.');
-  return { sub: u.sub, qorId: u.qor_id, username: u.username, chainAccount: u.chain_account ?? null };
+  return { sub: u.sub, qorId: u.qor_id, username: u.username, chainAccount: u.chain_account ?? null, ...(u.progress ? { progress: u.progress } : {}) };
 }
 
 /**
@@ -224,6 +226,26 @@ export async function logout(deps: Deps, sessionCookie: string | null): Promise<
       body: new URLSearchParams({ client_id: deps.config.clientId, client_secret: deps.config.clientSecret, token: row.refresh_token }).toString(),
     }).catch(() => undefined);
   }
+}
+
+/**
+ * Tell QOR ID that the signed-in person did one of ARQADE's tasks (ADR-078: a first match, a first payment). QOR ID
+ * checks ARQADE's secret, that the token is live and ARQADE's, and that the task is ARQADE's to report, and grants its XP
+ * once however often it is told. A failure changes nothing for the player, so it is reported, not thrown.
+ */
+export async function reportTask(deps: Deps, sessionCookie: string | null, task: 'first-match' | 'first-payment'): Promise<boolean> {
+  if (!sessionCookie || !deps.config) return false;
+  const row = await deps.db
+    .prepare('SELECT access_token FROM qor_sessions WHERE id = ?')
+    .bind(await sha256url(sessionCookie))
+    .first<{ access_token: string }>();
+  if (!row) return false;
+  const r = await deps.fetch(new URL('/oauth/progress', deps.config.issuer), {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: deps.config.clientId, client_secret: deps.config.clientSecret, token: row.access_token, task }).toString(),
+  }).catch(() => null);
+  return !!r?.ok;
 }
 
 /** The settings from the server's environment, or null when sign-in is not set up. */

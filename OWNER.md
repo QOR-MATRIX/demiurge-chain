@@ -41,8 +41,9 @@ or give anyone test CGT except by you sending it from the faucet.
 
 ## Next, in order
 
-1. **Levels, XP and the welcome grant** (ADR-078): the level bubble and XP bar in the launcher and ARQADE, simple tasks,
-   cosmetic unlocks, and 100 test CGT for each new account once its tutorial, email and key are confirmed.
+1. **Levels, XP and the welcome grant** (ADR-078). **Built, waiting on your merge:** the level bubble and XP bar in the
+   launcher and ARQADE, and XP for the tutorial, your email, your key, signing in to ARQADE, a first match and a first
+   tip. Next: drawing the unlocks, and paying the 100 test CGT welcome grants that QOR ID now records as owed.
 2. **ARQADE inside the launcher**: a Play section, signed in, payments approved in the launcher's own window.
 3. **CGT rewards for multiplayer wins**, from ARQADE's ARQ Wallet — *the game's own payout account* — on the devnet.
 4. **A faucet page**, and **the indexer** — *a service that reads the chain so the Market can search*.

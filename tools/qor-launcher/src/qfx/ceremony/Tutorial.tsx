@@ -15,6 +15,7 @@ import { ArrowLeft, ArrowRight, Sparkles, X } from 'lucide-react';
 import { wantsLessMotion } from '../../lib/a11y';
 import './ceremony.css';
 import { useQor } from '../../state/store';
+import { identity } from '../../lib/ipc';
 
 const KEY = (qorId: string) => `qor.tutorial.done:${qorId}`;
 
@@ -117,6 +118,9 @@ export function Tutorial({
     } catch {
       /* the tutorial offers itself again next time; nothing else depends on it */
     }
+    // QOR ID grants the tutorial's XP once (ADR-078). Signed out or offline, it is simply not granted yet; the
+    // tutorial is not held up for it.
+    void identity.tutorialDone().catch(() => undefined);
     onClose(true);
   }, [onClose, qorId]);
 

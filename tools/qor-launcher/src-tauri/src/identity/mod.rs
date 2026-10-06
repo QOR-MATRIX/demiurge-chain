@@ -357,6 +357,57 @@ impl IdentityClient {
         Ok(session)
     }
 
+    /// The signed-in account's level, XP, tasks and next unlock, as QOR ID keeps them (ADR-078). QOR ID is the only
+    /// place XP is granted; the launcher shows it.
+    pub async fn progress(&self) -> QorResult<serde_json::Value> {
+        self.with_fresh_token(
+            |token| {
+                self.http
+                    .get(self.url("profile/progress"))
+                    .bearer_auth(token)
+                    .send()
+            },
+            "profile/progress",
+        )
+        .await
+    }
+
+    /// Tell QOR ID the tutorial is finished. It grants the tutorial's XP once (ADR-078); a second report changes
+    /// nothing. Returns the progress after it.
+    pub async fn tutorial_done(&self) -> QorResult<serde_json::Value> {
+        self.with_fresh_token(
+            |token| {
+                self.http
+                    .post(self.url("profile/progress/tutorial"))
+                    .bearer_auth(token)
+                    .send()
+            },
+            "profile/progress/tutorial",
+        )
+        .await
+    }
+
+    /// Send a request with the access token, and once more after a refresh if QOR ID says the token is spent.
+    async fn with_fresh_token<F, Fut>(&self, send: F, context: &str) -> QorResult<serde_json::Value>
+    where
+        F: Fn(String) -> Fut,
+        Fut: std::future::Future<Output = reqwest::Result<reqwest::Response>>,
+    {
+        let response = send(read_token(TokenKind::Access)?)
+            .await
+            .map_err(|e| QorError::Network(e.to_string()))?;
+        match read_json(response, context).await {
+            Err(QorError::NotAuthenticated) => {
+                self.refresh().await?;
+                let response = send(read_token(TokenKind::Access)?)
+                    .await
+                    .map_err(|e| QorError::Network(e.to_string()))?;
+                read_json(response, context).await
+            }
+            other => other,
+        }
+    }
+
     /// Exchange the refresh token for a new access token.
     pub async fn refresh(&self) -> QorResult<Session> {
         let refresh_token = read_token(TokenKind::Refresh)?;

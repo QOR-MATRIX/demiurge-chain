@@ -414,6 +414,12 @@ pub async fn authorize_submit(
             "QOR ID is unavailable. Try again in a moment.",
         );
     }
+    // A sign-in to ARQADE is one of ADR-078's tasks. Its XP is not worth failing a sign-in over.
+    if pending.client_id == "arqade"
+        && let Err(e) = crate::handlers::progress::award(&state.db, user.id, "sign-in-arqade").await
+    {
+        tracing::warn!("the ARQADE sign-in task could not be recorded: {e}");
+    }
     back_to(
         &pending.redirect_uri,
         &[("code", &code), ("state", &pending.state)],
@@ -451,7 +457,7 @@ fn invalid_grant() -> Response {
 }
 
 /// The app, if it proved itself: its id, and its secret when it has one.
-fn authenticated_client(
+pub(crate) fn authenticated_client(
     state: &AppState,
     id: Option<&str>,
     secret: Option<&str>,
@@ -648,6 +654,8 @@ pub async fn userinfo(
             "username": username,
             "chain_account": chain_account,
             "client_id": claims.cid,
+            // The person's level, the same in every app (ADR-078).
+            "progress": crate::handlers::progress::summary(&state.db, user_id).await?,
         }))
         .into_response(),
     ))

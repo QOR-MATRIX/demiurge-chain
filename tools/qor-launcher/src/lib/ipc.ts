@@ -44,6 +44,19 @@ export type QorErrorKind =
   | 'payment_refused'
   | 'internal';
 
+/** An account's level and XP, as QOR ID keeps them (ADR-078). */
+export interface Progress {
+  level: number;
+  xp: number;
+  /** Total XP at which the current level began, and the next one begins. */
+  level_xp: number;
+  next_level_xp: number;
+  next_unlock: string | null;
+  unlocked: string[];
+  tasks: { key: string; name: string; xp: number; done: boolean }[];
+  welcome: { amount_cgt: string; status: 'not_yet' | 'owed' | 'paid' };
+}
+
 export interface AccountView {
   /** SS58 at the chain's prefix: what a person reads, copies and pastes. */
   address: string;
@@ -794,6 +807,10 @@ export const identity = {
     call<boolean>('qor_username_available', { username }),
   linkWallet: (address: string) => call<Session>('qor_link_wallet', { address }),
   restore: () => call<Session>('qor_restore'),
+  /** Level, XP, tasks and next unlock, kept by QOR ID (ADR-078). */
+  progress: () => call<Progress>('qor_progress'),
+  /** The tutorial is finished: XP once. */
+  tutorialDone: () => call<Progress>('qor_tutorial_done'),
   /** Try QOR ID again with the open vault, as opening it does. */
   signIn: () => call<Arrival>('qor_sign_in'),
   logout: () => call<void>('qor_logout'),

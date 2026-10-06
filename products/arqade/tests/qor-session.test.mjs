@@ -33,6 +33,7 @@ function qorId(){
       const sub=s.access.get((init.headers?.authorization||'').replace('Bearer ',''));
       return sub?Response.json({sub,qor_id:'player',username:'player',chain_account:null}):new Response(null,{status:401});
     }
+    if(u.pathname==='/oauth/progress'){if(form.get('client_secret')!==CONFIG.clientSecret)return new Response(null,{status:401});s.reports=[...(s.reports||[]),{token:form.get('token'),task:form.get('task')}];return s.access.has(form.get('token'))?Response.json({level:0}):new Response(null,{status:401})}
     if(u.pathname==='/oauth/revoke'){s.revoked.push(form.get('token'));s.refresh.delete(form.get('token'));return new Response(null,{status:200})}
     return new Response(null,{status:404});
   };
@@ -156,4 +157,16 @@ test('sign-in is off unless the site is configured with a client and a real secr
   assert.equal(c.issuer,'https://id.qorsync.dev');
   assert.equal(Q.cookie('a=1; arq_session=abc; b=2','arq_session'),'abc');
   assert.match(Q.setCookie('arq_session','v',60,true),/HttpOnly; SameSite=Lax; Max-Age=60; Secure$/);
+});
+
+test('a task is reported to QOR ID with the secret of the app and the token of the player, and not without a session',async()=>{
+  const {db}=await database();const q=qorId();
+  const {session}=await signedIn(db,q);
+  assert.equal(await Q.reportTask(deps(db,q),session,'first-match'),true);
+  assert.equal(q.reports.length,1);
+  assert.equal(q.reports[0].task,'first-match');
+  assert.ok(q.access.has(q.reports[0].token),'the access token QOR ID issued to this session');
+  assert.equal(await Q.reportTask(deps(db,q),null,'first-match'),false,'no session, nothing reported');
+  assert.equal(await Q.reportTask(deps(db,q),'not a session','first-match'),false);
+  assert.equal(q.reports.length,1);
 });

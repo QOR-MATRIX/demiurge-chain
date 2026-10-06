@@ -246,6 +246,12 @@ show who asks, the amount, the recipient, that there is no fee, and the balance 
 connected chain's genesis again and pays the transfer and a `remark_with_event` naming the request in one `batch_all`,
 from the vault's first account. Any other link, or an unknown app, is refused with a message, and nothing is signed.
 
+### Level and XP (ADR-078)
+
+The rail's avatar carries the account's level in a small bubble, and an XP bar under the name with the next unlock.
+Both are read from QOR ID (`GET /api/v1/profile/progress`, `qor_progress`), which is the only place XP is granted;
+finishing the tutorial reports it once (`qor_tutorial_done`). Signed out, nothing is shown.
+
 ## Release gates (development dashboard)
 
 The Gates surface shows Alpha, Beta and Public Release progress, computed by

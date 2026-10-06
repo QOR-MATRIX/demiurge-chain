@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     if (held && !profile) headers.append('Set-Cookie', setCookie(SESSION_COOKIE, '', 0, new URL(request.url).protocol === 'https:'));
     return Response.json(
       profile
-        ? { configured: true, signedIn: true, username: profile.username, qorId: profile.qorId, chainAccount: profile.chainAccount, accountUrl }
+        ? { configured: true, signedIn: true, username: profile.username, qorId: profile.qorId, chainAccount: profile.chainAccount, accountUrl, progress: profile.progress ?? null }
         : { configured, signedIn: false },
       { headers },
     );

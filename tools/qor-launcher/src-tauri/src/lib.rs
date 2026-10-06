@@ -1092,6 +1092,20 @@ async fn qor_restore(state: tauri::State<'_, AppState>) -> Result<Session, QorEr
     state.identity.restore().await
 }
 
+/// The signed-in account's level and XP (ADR-078).
+#[tauri::command]
+async fn qor_progress(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, QorError> {
+    state.identity.progress().await
+}
+
+/// The tutorial is finished: QOR ID grants its XP once (ADR-078).
+#[tauri::command]
+async fn qor_tutorial_done(
+    state: tauri::State<'_, AppState>,
+) -> Result<serde_json::Value, QorError> {
+    state.identity.tutorial_done().await
+}
+
 #[tauri::command]
 async fn qor_logout(state: tauri::State<'_, AppState>) -> Result<(), QorError> {
     state.identity.logout().await;
@@ -1377,6 +1391,8 @@ pub fn run() {
             qor_username_available,
             qor_link_wallet,
             qor_restore,
+            qor_progress,
+            qor_tutorial_done,
             qor_logout,
             qor_set_auth_endpoint,
             gates_report,
