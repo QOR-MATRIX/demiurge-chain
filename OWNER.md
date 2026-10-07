@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 6 October 2026. One page, rewritten every session.
+For Andrew, 7 October 2026. One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -22,13 +22,14 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **Launcher 0.1.8**, unsigned — *Windows warns on install*: keys, sending, minting, selling,
   the Market, `qor://pay` — *a website's payment request* — since 0.1.7, and a level bubble.
   204 tests and 9 screen checks pass. **On main, for the next build:** your avatar.
-- **CI** — *automatic build and test* — is green on main since 5 October.
+- **CI** — *automatic build and test* — is green on main. Two runs failed on 6 and 7 October
+  when Chrome started slowly on GitHub's machines; the checks now wait 30 seconds for it.
 
 **Not built:** fees, new CGT, a production network, Market search, paying the welcome
 grants QOR ID records as owed, avatars in ARQADE, ARQADE inside the launcher, agent rails
 — *spending limits for AI agents* — and the Mesh — *players hosting what they own*.
 
-## Decided today
+## Decided 6 October
 
 **QQ is QOR Engine** (ADR-081 — *decision record 81*). QQ is an engine and editor for small games
 built on visual effects, in the launcher and on ARQADE. An AI can drive it, and it generates

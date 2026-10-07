@@ -175,7 +175,8 @@ const browser = spawn(
 );
 
 let target;
-for (let i = 0; i < 100 && !target; i++) {
+// About 30 s: a CI runner has taken more than 10 s to give Chrome its first page (6 October 2026).
+for (let i = 0; i < 300 && !target; i++) {
   try {
     const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
     target = list.find((t) => t.type === 'page');
