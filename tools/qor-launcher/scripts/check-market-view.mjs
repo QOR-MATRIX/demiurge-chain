@@ -294,7 +294,8 @@ const finish = async () => {
 
 try {
   let target;
-  for (let i = 0; i < 100 && !target; i++) {
+  // About 30 s: a CI runner has taken more than 10 s to give Chrome its first page (6 October 2026).
+  for (let i = 0; i < 300 && !target; i++) {
     // Pause before every retry, not only after a refused connection: the browser can answer before its page
     // exists, and the loop then gave up within milliseconds on a slow runner (CI, 6 October 2026).
     if (i > 0) await sleep(100);
