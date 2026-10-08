@@ -9,6 +9,9 @@
 //! - GET  /oauth/userinfo  — who an access token belongs to, answered by QOR ID itself, so an app's
 //!   server never needs QOR ID's signing secret
 //! - POST /oauth/revoke    — sign out: the app's session ends
+//! - POST /api/v1/oauth/handoff — the launcher, with the person's own session, gets the code the sign-in page would
+//!   have issued for an app's authorize address (DIRECTION P7.18), so a person who signs in with a key and has no
+//!   password can still sign in to an app the launcher opened
 //!
 //! The person types their password on QOR ID's origin only. The app never sees it, and never holds a
 //! 30-day refresh token: its session lives `oauth.session_lifetime_secs`, and each refresh token works
@@ -206,68 +209,186 @@ fn sign_in_page(
     )
 }
 
+/// Why an authorization request was refused. Until the app and its redirect URI are known to belong together, nothing
+/// is sent anywhere and the refusal is QOR ID's own page; after that it goes back to the app, as OAuth expects.
+enum Refusal {
+    Page(&'static str),
+    App {
+        redirect_uri: String,
+        state: String,
+        description: &'static str,
+    },
+}
+
+impl Refusal {
+    fn page(self) -> Response {
+        match self {
+            Refusal::Page(message) => refused_page(StatusCode::BAD_REQUEST, message),
+            Refusal::App {
+                redirect_uri,
+                state,
+                description,
+            } => {
+                let mut params = vec![
+                    ("error", "invalid_request"),
+                    ("error_description", description),
+                ];
+                if !state.is_empty() {
+                    params.push(("state", state.as_str()));
+                }
+                back_to(&redirect_uri, &params)
+            }
+        }
+    }
+
+    fn message(&self) -> &'static str {
+        match self {
+            Refusal::Page(message) => message,
+            Refusal::App { description, .. } => description,
+        }
+    }
+}
+
+/// An authorization request checked: a registered app, one of its exact redirect URIs, `code` with PKCE S256, and a
+/// `state`. The same checks for QOR ID's sign-in page and for the launcher's handoff.
+fn check_authorize(
+    state: &AppState,
+    q: &AuthorizeQuery,
+) -> Result<(OAuthClient, Pending), Refusal> {
+    let client = q
+        .client_id
+        .as_deref()
+        .and_then(|id| state.config.oauth.client(id))
+        .cloned()
+        .ok_or(Refusal::Page(
+            "This sign-in link is not for an app QOR ID knows.",
+        ))?;
+    let redirect_uri = match q.redirect_uri.as_deref() {
+        Some(uri) if client.redirect_uris.iter().any(|r| r == uri) => uri.to_string(),
+        _ => {
+            return Err(Refusal::Page(
+                "This sign-in link would return you to an address the app did not register.",
+            ));
+        }
+    };
+    let app_state = q.state.clone().unwrap_or_default();
+    let invalid = |description| Refusal::App {
+        redirect_uri: redirect_uri.clone(),
+        state: app_state.clone(),
+        description,
+    };
+    if q.response_type.as_deref() != Some("code") {
+        return Err(invalid("response_type must be code"));
+    }
+    if q.code_challenge_method.as_deref() != Some("S256") {
+        return Err(invalid("code_challenge_method must be S256"));
+    }
+    let challenge = match q.code_challenge.as_deref() {
+        Some(c) if pkce_shaped(c) => c.to_string(),
+        _ => return Err(invalid("code_challenge is required")),
+    };
+    if app_state.is_empty() || app_state.len() > 512 {
+        return Err(invalid("state is required, at most 512 characters"));
+    }
+    let pending = Pending {
+        client_id: client.id.clone(),
+        redirect_uri,
+        state: app_state,
+        code_challenge: challenge,
+    };
+    Ok((client, pending))
+}
+
+/// Start the app's session for `user` and store the single-use code that names it, bound to the request's PKCE
+/// challenge and redirect URI. `how` is the sign-in's method as the account's history records it.
+async fn issue_code(
+    state: &AppState,
+    user: &crate::models::User,
+    client: &OAuthClient,
+    pending: &Pending,
+    how: &str,
+) -> Result<String, (StatusCode, &'static str)> {
+    let sessions = SessionService::new(state.redis.clone(), state.config.jwt.clone());
+    let device = format!("oauth:{}", client.id);
+    let session = match sessions
+        .create_app_session(
+            NewSession {
+                user_id: user.id,
+                qor_id: &user.qor_id(),
+                role: Some(user.role.as_str()),
+                device_id: &device,
+                ip_address: "0.0.0.0",
+                user_agent: None,
+                scopes: crate::models::Session::default_scopes(),
+            },
+            &client.id,
+            state.config.oauth.session_lifetime_secs,
+        )
+        .await
+    {
+        Ok(session) => session,
+        Err(_) => {
+            return Err((
+                StatusCode::SERVICE_UNAVAILABLE,
+                "QOR ID is unavailable. Try again in a moment.",
+            ));
+        }
+    };
+
+    let code = random_hex();
+    let issued = Issued {
+        session_id: session.session_id,
+        client_id: client.id.clone(),
+        redirect_uri: pending.redirect_uri.clone(),
+        code_challenge: pending.code_challenge.clone(),
+        role: user.role.as_str().to_string(),
+    };
+    let Ok(json) = serde_json::to_string(&issued) else {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "QOR ID could not finish the sign-in.",
+        ));
+    };
+    if redis_set(
+        state,
+        &format!("oauth_code:{code}"),
+        state.config.oauth.code_ttl_secs,
+        &json,
+    )
+    .await
+    .is_err()
+    {
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            "QOR ID is unavailable. Try again in a moment.",
+        ));
+    }
+    if record_sign_in(&state.db, user.id, how).await.is_err() {
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            "QOR ID is unavailable. Try again in a moment.",
+        ));
+    }
+    // A sign-in to ARQADE is one of ADR-078's tasks. Its XP is not worth failing a sign-in over.
+    if pending.client_id == "arqade"
+        && let Err(e) = crate::handlers::progress::award(&state.db, user.id, "sign-in-arqade").await
+    {
+        tracing::warn!("the ARQADE sign-in task could not be recorded: {e}");
+    }
+    Ok(code)
+}
+
 /// GET /oauth/authorize
 pub async fn authorize_page(
     State(state): State<Arc<AppState>>,
     Query(q): Query<AuthorizeQuery>,
 ) -> Response {
-    // Until the app and its redirect URI are known, nothing is sent anywhere.
-    let client = match q
-        .client_id
-        .as_deref()
-        .and_then(|id| state.config.oauth.client(id))
-    {
-        Some(client) => client.clone(),
-        None => {
-            return refused_page(
-                StatusCode::BAD_REQUEST,
-                "This sign-in link is not for an app QOR ID knows.",
-            );
-        }
+    let (client, pending) = match check_authorize(&state, &q) {
+        Ok(checked) => checked,
+        Err(refusal) => return refusal.page(),
     };
-    let redirect_uri = match q.redirect_uri.as_deref() {
-        Some(uri) if client.redirect_uris.iter().any(|r| r == uri) => uri.to_string(),
-        _ => {
-            return refused_page(
-                StatusCode::BAD_REQUEST,
-                "This sign-in link would return you to an address the app did not register.",
-            );
-        }
-    };
-
-    // From here an error goes back to the app, as OAuth expects.
-    let app_state = q.state.clone().unwrap_or_default();
-    let invalid = |description: &str| {
-        let mut params = vec![
-            ("error", "invalid_request"),
-            ("error_description", description),
-        ];
-        if !app_state.is_empty() {
-            params.push(("state", app_state.as_str()));
-        }
-        back_to(&redirect_uri, &params)
-    };
-    if q.response_type.as_deref() != Some("code") {
-        return invalid("response_type must be code");
-    }
-    if q.code_challenge_method.as_deref() != Some("S256") {
-        return invalid("code_challenge_method must be S256");
-    }
-    let challenge = match q.code_challenge.as_deref() {
-        Some(c) if pkce_shaped(c) => c.to_string(),
-        _ => return invalid("code_challenge is required"),
-    };
-    if app_state.is_empty() || app_state.len() > 512 {
-        return invalid("state is required, at most 512 characters");
-    }
-
+    let redirect_uri = pending.redirect_uri.clone();
     let request = random_hex();
-    let pending = Pending {
-        client_id: client.id.clone(),
-        redirect_uri: redirect_uri.clone(),
-        state: app_state,
-        code_challenge: challenge,
-    };
     let stored = serde_json::to_string(&pending).map_err(|e| AppError::InternalError(e.into()));
     match stored {
         Ok(json) => {
@@ -353,73 +474,10 @@ pub async fn authorize_submit(
         _ => return expired(),
     }
 
-    let sessions = SessionService::new(state.redis.clone(), state.config.jwt.clone());
-    let device = format!("oauth:{}", client.id);
-    let session = match sessions
-        .create_app_session(
-            NewSession {
-                user_id: user.id,
-                qor_id: &user.qor_id(),
-                role: Some(user.role.as_str()),
-                device_id: &device,
-                ip_address: "0.0.0.0",
-                user_agent: None,
-                scopes: crate::models::Session::default_scopes(),
-            },
-            &client.id,
-            state.config.oauth.session_lifetime_secs,
-        )
-        .await
-    {
-        Ok(session) => session,
-        Err(_) => {
-            return refused_page(
-                StatusCode::SERVICE_UNAVAILABLE,
-                "QOR ID is unavailable. Try again in a moment.",
-            );
-        }
+    let code = match issue_code(&state, &user, &client, &pending, "oauth").await {
+        Ok(code) => code,
+        Err((status, message)) => return refused_page(status, message),
     };
-
-    let code = random_hex();
-    let issued = Issued {
-        session_id: session.session_id,
-        client_id: client.id.clone(),
-        redirect_uri: pending.redirect_uri.clone(),
-        code_challenge: pending.code_challenge.clone(),
-        role: user.role.as_str().to_string(),
-    };
-    let Ok(json) = serde_json::to_string(&issued) else {
-        return refused_page(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "QOR ID could not finish the sign-in.",
-        );
-    };
-    if redis_set(
-        &state,
-        &format!("oauth_code:{code}"),
-        state.config.oauth.code_ttl_secs,
-        &json,
-    )
-    .await
-    .is_err()
-    {
-        return refused_page(
-            StatusCode::SERVICE_UNAVAILABLE,
-            "QOR ID is unavailable. Try again in a moment.",
-        );
-    }
-    if record_sign_in(&state.db, user.id, "oauth").await.is_err() {
-        return refused_page(
-            StatusCode::SERVICE_UNAVAILABLE,
-            "QOR ID is unavailable. Try again in a moment.",
-        );
-    }
-    // A sign-in to ARQADE is one of ADR-078's tasks. Its XP is not worth failing a sign-in over.
-    if pending.client_id == "arqade"
-        && let Err(e) = crate::handlers::progress::award(&state.db, user.id, "sign-in-arqade").await
-    {
-        tracing::warn!("the ARQADE sign-in task could not be recorded: {e}");
-    }
     back_to(
         &pending.redirect_uri,
         &[("code", &code), ("state", &pending.state)],
@@ -698,6 +756,93 @@ pub async fn revoke(State(state): State<Arc<AppState>>, Form(form): Form<RevokeF
         }
     }
     no_store(StatusCode::OK.into_response())
+}
+
+/// The launcher's request to sign the person into an app with its own session.
+#[derive(Deserialize)]
+pub struct HandoffRequest {
+    /// The app's `/oauth/authorize` address, exactly as the app sent its window there.
+    authorize_url: String,
+}
+
+/// POST /api/v1/oauth/handoff
+///
+/// The QOR Launcher signs the person into an app it opened in a window of its own (ARQADE, DIRECTION P7.18) with the
+/// session the launcher already holds, where a password page would otherwise stand: many people sign in to the
+/// launcher with a key and have no password at all. The launcher stops the window on its way to `/oauth/authorize`,
+/// sends that address here with its own token, and gets back the app's redirect, which it then loads in the window.
+///
+/// Nothing new travels in an address. The code is the same single-use code the sign-in page issues, bound to the
+/// app's PKCE challenge, whose verifier only the app holds, and to its registered redirect URI: a code read from a log
+/// on the way exchanges for nothing. The request is checked exactly as the sign-in page checks it.
+///
+/// Only a person's own session may do this. An app's session (one an app holds through this module) is refused, so
+/// no app can use the token it was given to sign itself, or another app, in again.
+pub async fn handoff(
+    State(state): State<Arc<AppState>>,
+    axum::Extension(user_id): axum::Extension<Uuid>,
+    axum::Extension(current): axum::Extension<crate::middleware::auth::CurrentSession>,
+    Json(req): Json<HandoffRequest>,
+) -> Response {
+    let refused = |status: StatusCode, message: &str| {
+        no_store((status, Json(json!({ "error": message }))).into_response())
+    };
+
+    let Ok(url) = reqwest::Url::parse(&req.authorize_url) else {
+        return refused(StatusCode::BAD_REQUEST, "not a sign-in address");
+    };
+    if url.path() != "/oauth/authorize" {
+        return refused(StatusCode::BAD_REQUEST, "not a sign-in address");
+    }
+    let Ok(uri) =
+        format!("/oauth/authorize?{}", url.query().unwrap_or_default()).parse::<axum::http::Uri>()
+    else {
+        return refused(StatusCode::BAD_REQUEST, "not a sign-in address");
+    };
+    let Ok(Query(query)) = Query::<AuthorizeQuery>::try_from_uri(&uri) else {
+        return refused(StatusCode::BAD_REQUEST, "not a sign-in address");
+    };
+    let (client, pending) = match check_authorize(&state, &query) {
+        Ok(checked) => checked,
+        Err(refusal) => return refused(StatusCode::BAD_REQUEST, refusal.message()),
+    };
+
+    let sessions = SessionService::new(state.redis.clone(), state.config.jwt.clone());
+    match sessions.get_session(current.0).await {
+        Ok(Some(session)) if session.client_id.is_none() => {}
+        Ok(_) => {
+            return refused(
+                StatusCode::FORBIDDEN,
+                "only your own session can sign you in to an app",
+            );
+        }
+        Err(_) => return refused(StatusCode::SERVICE_UNAVAILABLE, "QOR ID is unavailable"),
+    }
+
+    let user = match sqlx::query_as::<_, crate::models::User>("SELECT * FROM users WHERE id = $1")
+        .bind(user_id)
+        .fetch_optional(&state.db)
+        .await
+    {
+        Ok(Some(user)) if user.status == crate::models::UserStatus::Active && !user.is_locked() => {
+            user
+        }
+        Ok(_) => return refused(StatusCode::FORBIDDEN, "this account cannot sign in"),
+        Err(_) => return refused(StatusCode::SERVICE_UNAVAILABLE, "QOR ID is unavailable"),
+    };
+
+    let code = match issue_code(&state, &user, &client, &pending, "launcher").await {
+        Ok(code) => code,
+        Err((status, message)) => return refused(status, message),
+    };
+    let Ok(mut redirect) = reqwest::Url::parse(&pending.redirect_uri) else {
+        return refused(StatusCode::BAD_REQUEST, "not a sign-in address");
+    };
+    redirect
+        .query_pairs_mut()
+        .append_pair("code", &code)
+        .append_pair("state", &pending.state);
+    no_store(Json(json!({ "redirect": redirect.as_str() })).into_response())
 }
 
 #[cfg(test)]
@@ -1257,6 +1402,173 @@ mod tests {
         assert!(
             config.validate().is_err(),
             "a secret hash that is not 64 hex characters"
+        );
+    }
+
+    /// The person's own session, as the launcher holds one: signed in through the API, not through an app.
+    async fn own_session(app: &Router, username: &str) -> String {
+        let r = send(
+            app,
+            Request::post("/api/v1/auth/login")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({ "identifier": username, "password": PASSWORD }).to_string(),
+                ))
+                .expect("request"),
+        )
+        .await;
+        assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+        r.json()["access_token"]
+            .as_str()
+            .expect("a token")
+            .to_string()
+    }
+
+    async fn handoff_with(app: &Router, token: Option<&str>, authorize: &str) -> Reply {
+        let mut request =
+            Request::post("/api/v1/oauth/handoff").header("content-type", "application/json");
+        if let Some(token) = token {
+            request = request.header("authorization", format!("Bearer {token}"));
+        }
+        send(
+            app,
+            request
+                .body(Body::from(
+                    json!({ "authorize_url": authorize }).to_string(),
+                ))
+                .expect("request"),
+        )
+        .await
+    }
+
+    fn on_qor_id(path_and_query: &str) -> String {
+        format!("https://id.test{path_and_query}")
+    }
+
+    #[sqlx::test]
+    #[ignore = "needs a Redis at QOR_AUTH_TEST_REDIS_URL"]
+    async fn the_launcher_signs_a_person_into_an_app_with_its_own_session(db: PgPool) {
+        let app = app(db);
+        register(&app, "handoffplayer").await;
+        let own = own_session(&app, "handoffplayer").await;
+
+        let r = handoff_with(
+            &app,
+            Some(&own),
+            &on_qor_id(&authorize_url("arqade", CALLBACK, &s256(VERIFIER), "st-h")),
+        )
+        .await;
+        assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+        assert_eq!(
+            r.headers
+                .get(header::CACHE_CONTROL)
+                .and_then(|v| v.to_str().ok()),
+            Some("no-store")
+        );
+        let redirect =
+            reqwest::Url::parse(r.json()["redirect"].as_str().expect("a redirect")).expect("a URL");
+        assert!(redirect.as_str().starts_with(CALLBACK), "{redirect}");
+        let param = |name: &str| {
+            redirect
+                .query_pairs()
+                .find(|(k, _)| k == name)
+                .map(|(_, v)| v.into_owned())
+        };
+        assert_eq!(param("state").as_deref(), Some("st-h"));
+        let code = param("code").expect("a code");
+
+        // The code is bound to the app's PKCE challenge: without the verifier it is worth nothing, and it works once.
+        let wrong = exchange(
+            &app,
+            &code,
+            "not-the-verifier-not-the-verifier-not-the-verifier",
+            SECRET,
+        )
+        .await;
+        assert_eq!(wrong.status, StatusCode::BAD_REQUEST, "{}", wrong.body);
+        let r = handoff_with(
+            &app,
+            Some(&own),
+            &on_qor_id(&authorize_url("arqade", CALLBACK, &s256(VERIFIER), "st-h2")),
+        )
+        .await;
+        let redirect =
+            reqwest::Url::parse(r.json()["redirect"].as_str().expect("a redirect")).expect("a URL");
+        let code = redirect
+            .query_pairs()
+            .find(|(k, _)| k == "code")
+            .map(|(_, v)| v.into_owned())
+            .expect("a code");
+        let tokens = exchange(&app, &code, VERIFIER, SECRET).await;
+        assert_eq!(tokens.status, StatusCode::OK, "{}", tokens.body);
+        let me = userinfo(
+            &app,
+            tokens.json()["access_token"].as_str().expect("access"),
+        )
+        .await;
+        assert_eq!(me.status, StatusCode::OK, "{}", me.body);
+        assert_eq!(me.json()["username"], json!("handoffplayer"));
+        assert!(exchange(&app, &code, VERIFIER, SECRET).await.status == StatusCode::BAD_REQUEST);
+    }
+
+    #[sqlx::test]
+    #[ignore = "needs a Redis at QOR_AUTH_TEST_REDIS_URL"]
+    async fn an_apps_session_cannot_sign_anyone_in(db: PgPool) {
+        let app = app(db);
+        register(&app, "appsession").await;
+        let code = sign_in(&app, "appsession").await;
+        let tokens = exchange(&app, &code, VERIFIER, SECRET).await;
+        let app_access = tokens.json()["access_token"]
+            .as_str()
+            .expect("access")
+            .to_string();
+
+        let r = handoff_with(
+            &app,
+            Some(&app_access),
+            &on_qor_id(&authorize_url("arqade", CALLBACK, &s256(VERIFIER), "st-x")),
+        )
+        .await;
+        assert_eq!(r.status, StatusCode::FORBIDDEN, "{}", r.body);
+        assert!(r.json().get("redirect").is_none());
+    }
+
+    #[sqlx::test]
+    #[ignore = "needs a Redis at QOR_AUTH_TEST_REDIS_URL"]
+    async fn a_handoff_is_checked_as_the_sign_in_page_checks_it(db: PgPool) {
+        let app = app(db);
+        register(&app, "checkedhandoff").await;
+        let own = own_session(&app, "checkedhandoff").await;
+        let challenge = s256(VERIFIER);
+
+        assert_eq!(
+            handoff_with(
+                &app,
+                None,
+                &on_qor_id(&authorize_url("arqade", CALLBACK, &challenge, "s"))
+            )
+            .await
+            .status,
+            StatusCode::UNAUTHORIZED
+        );
+        for bad in [
+            authorize_url("not-an-app", CALLBACK, &challenge, "s"),
+            authorize_url("arqade", "https://elsewhere.test/callback", &challenge, "s"),
+            authorize_url("arqade", CALLBACK, "short", "s"),
+            authorize_url("arqade", CALLBACK, &challenge, ""),
+            authorize_url("arqade", CALLBACK, &challenge, "s").replace("S256", "plain"),
+            authorize_url("arqade", CALLBACK, &challenge, "s")
+                .replace("response_type=code", "response_type=token"),
+            authorize_url("arqade", CALLBACK, &challenge, "s")
+                .replace("/oauth/authorize", "/oauth/token"),
+        ] {
+            let r = handoff_with(&app, Some(&own), &on_qor_id(&bad)).await;
+            assert_eq!(r.status, StatusCode::BAD_REQUEST, "{bad}: {}", r.body);
+            assert!(r.json().get("redirect").is_none(), "{bad}");
+        }
+        assert_eq!(
+            handoff_with(&app, Some(&own), "not a url").await.status,
+            StatusCode::BAD_REQUEST
         );
     }
 }

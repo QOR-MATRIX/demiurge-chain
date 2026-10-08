@@ -146,7 +146,9 @@ pub struct Project {
     pub can_commit: bool,
 }
 
-fn open(path: &Path) -> Result<gix::Repository, QontrolError> {
+/// Open the repository at `path`; a folder that is not one is refused. QQ checks a project with this before it
+/// writes a scene into it.
+pub(crate) fn open(path: &Path) -> Result<gix::Repository, QontrolError> {
     gix::open(path)
         .map_err(|e| QontrolError::NotARepository(format!("{path:?} is not a repository: {e}")))
 }

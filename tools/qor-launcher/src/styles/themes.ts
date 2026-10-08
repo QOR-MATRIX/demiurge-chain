@@ -256,3 +256,18 @@ export function storedTheme(): string {
   }
   return DEFAULT_THEME;
 }
+
+/**
+ * QQ's starter palette (ADR-082). The colours a new QQ scene and a newly added
+ * entity begin with, before the creator chooses their own. They are the game's,
+ * not the interface's: a scene keeps its colours whatever theme the launcher
+ * wears, so these are fixed values rather than theme variables.
+ */
+export const QQ_PALETTE = {
+  background: '#07080c',
+  ember: '#ff6a00',
+  spark: '#ffb15c',
+  glint: '#ffd27a',
+  ice: '#5ad1ff',
+  slate: '#2b3140',
+} as const;

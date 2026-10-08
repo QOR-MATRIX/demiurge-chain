@@ -1,13 +1,16 @@
 # Handoff
 
-**Current state, 6 October 2026.** The code is the public repository `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064).
+**Current state, 8 October 2026.** The code is the public repository `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064).
 `main` is at `d97fa69` (PR #15, §4 items 58 and 59), and Pleroma CI is green on `main` after a re-run. Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Work goes on a `session/*` branch and
 reaches `main` by pull request. `origin` is the private archive, not the current tree. Live, devnet-only and with test
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 item 60 (7 October 2026): the launcher's browser checks wait 30 seconds for Chrome, not 10.**
-Before it: item 59 (6 October 2026): ADR-081 accepted — QQ is QOR Engine, and the Godot plan is withdrawn; item 58 (6 October 2026): documentation brought up to date with the tree after the IBM Bob audit; item 57 (6 October 2026): avatars (ADR-079) and effects allowed (ADR-080), merged to `main` (PR #13); item 56
+**Newest: §4 item 62 (8 October 2026): QQ moves to Qt 6 (ADR-083, the owner's decision), and its build waits on the owner
+installing Qt; ARQADE's window is signed in with the launcher's session; the accessibility flake is found and fixed.** Item
+61 the same day: QQ's TypeScript preview, and IBM Bob's unfinished work checked, fixed and finished. Both are pull request
+#17 on branch `session/qq-p3.1-bob-fixes`, not yet merged. Before them: item 60 (7 October 2026): the launcher's browser checks
+wait 30 seconds for Chrome, not 10; item 59 (6 October 2026): ADR-081 accepted — QQ is QOR Engine, and the Godot plan is withdrawn; item 58 (6 October 2026): documentation brought up to date with the tree after the IBM Bob audit; item 57 (6 October 2026): avatars (ADR-079) and effects allowed (ADR-080), merged to `main` (PR #13); item 56
 (6 October 2026): levels and tasks built (ADR-078), merged (PR #11), then migration 021 and launcher 0.1.8 (PR #12); item
 55 (6 October 2026): ADR-078 accepted, levels, tasks and a 100 CGT welcome grant (PR #10), with "Play Now" and the fix
 for a flaky wait in the launcher's browser checks (PR #9); item 54 (5 October 2026): P7.4 built, tips through the QOR
@@ -72,11 +75,11 @@ ticked the same day against the owner's review of a ten-line summary.
 | The Substrate chain (`chain/`) | **`spec_version` 8. 150 workspace tests pass with the wasm built (4 October 2026).** Pallets: `pallet-drc369` with `pallet-drc369-royalties` and nesting (ADR-052, ADR-061), `pallet-nfts` (ADR-052), `pallet-utility` with only `batch_all` reachable (ADR-053), and `pallet-arq-wallet` at index 11, rounds with held prizes included (ADR-070). The validator set comes from governance through `pallet-session` (ADR-020); an address is a `MultiAddress` (ADR-041). **No transaction payment (OPEN-4), no treasury (OPEN-2) and no issuance (OPEN-1)**; deposits are placeholders (ADR-052, U-14). **Live as Demiurge Devnet** at `wss://rpc.qorsync.dev`, genesis `0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a`: two validators and an RPC node on Railway (ADR-068), and the owner holds the sudo key. `chain/` last changed on 4 October 2026. History: first finality 17 September (M3), M4.1 22 September, royalties 29 September, the ARQ Wallet 4 October (§4 items 14, 31, 41 to 47). |
 | The custom devnet (`framework/`) | **Retired and deleted at M3.5, 2026-09-20.** 150 files, 49,058 lines, after everything that referred to it had been rewritten and verified with the tree still present. Its last run passed 285 tests. Untrusted, and nothing of it is carried forward (§2.0). **M3 is not complete:** M3.2 waits on OPEN-2. |
 | Security track | Items 1 to 7 done. **The owner confirmed credential rotation on 2026-09-14:** the Postgres password and both JWT secret pairs. **Nine credential-shaped values** (from `docker/n8n/docker-compose.yml` and `docker/docker-compose.testnet.yml`) are not in the current tree or in the public repository's history; they exist only in the private archive's history, and rotating them is still advised if those services ever ran (an owner step in `OWNER.md`). CI's security job scans for committed credentials. **A recovery phrase was pasted into a chat on 5 October; treat that key as exposed and replace it.** Sessions record a placeholder IP address. §3. |
-| `services/qor-auth` (QOR ID) | **Live at `https://id.qorsync.dev`**, the Railway service `qor-auth`, deployed from `main`. **166 tests pass** (6 October 2026, against Postgres 16 and Redis 7.4, `--include-ignored`), the log and SQL checks among them. Latest migration: 022. Password and key sign-in (Sr25519 and SS58; ADR-023, ADR-024, ADR-039); email verification and reset through Resend; the account page `/account` (change the password, add or change the email); sign-in for other apps by OAuth 2.1 with PKCE (ADR-073), the apps registered in `QOR_OAUTH_CLIENTS`, ARQADE among them; one name per account, no `#0001` (ADR-075, migrations 019 and 021); levels, XP and tasks, the welcome grant recorded as owed, and three sign-ups per network address read from Railway's `X-Real-IP` (ADR-078, migration 020); avatars (ADR-079, migration 022). Registration creates no CGT and calls no chain (R-3). Agent keys are authorised, never created (ADR-014). **The Resend bounce webhook is an owner step, and delivery to a real inbox is unconfirmed** (§4.0). One known gap (§2). History: §4 items 5 to 8, 33 and 50 to 57. |
-| `tools/qor-launcher` | **Version 0.1.8** (`tauri.conf.json`). **204 Rust tests pass (8 ignored without a node), and the nine browser checks pass** — design 3, accessibility 41, gates view 34, Projects 104, Inventory 238, Market 127, vault gate 65, contrast 54, readability 361 — all on 6 October 2026. The 0.1.8 installer was built locally and is **unsigned, with no update channel** (L6); 0.1.7 added `qor://pay`. Avatars and rings reached `main` after 0.1.8 and need a new build to ship. The default chain endpoint is `wss://rpc.qorsync.dev` (`DEFAULT_RPC` in `src-tauri/src/chain/mod.rs`; `LOCAL_RPC` is `ws://127.0.0.1:9944`). Features: the vault's key in the OS keychain with no lock screen (ADR-056); QOR ID sign-in by key; send, mint, Inventory, trade, sell and buy; the Market view (no search, no indexer); Projects and Qontrol; the gates dashboard; `qor://pay`, approved in the host dialog (ADR-077); the level bubble and XP bar; the avatar with its ring; one QFX backdrop shader. The Nexus still shows nine frozen-app tiles marked "local" or "forming". L1.1, L1.2, L1.3, L1.5, L1.6, L1.7, L3.1 and L3.2 are done (L1.6 and L1.7 ticked on 6 October 2026 against CI). **L1.4 is partly exercised:** the owner approved real `qor://pay` tips in the host dialog on 5 and 6 October; a decline and an endpoint change are not yet exercised (§4.0). History: §4 items 9, 14 to 24 and 54 to 57. |
-| Products | **Seven, each with a blueprint, a track and a gate**: P1 to P6 (§4 item 12) and **P7, ARQADE** (ADR-069). The shared substrate decisions ADR-046 to ADR-051 are all accepted: ADR-047 and ADR-051 on 2026-09-22, ADR-046, ADR-048, ADR-049 and ADR-050 on 2026-09-28. Built inside the launcher: Qontrol's Projects (P1.1, P1.2), QFX's backdrop (P2.1) and the Market view. ARQADE is its own site (row below). QOR Engine, GNOSIS and Stream have not started. |
+| `services/qor-auth` (QOR ID) | **Live at `https://id.qorsync.dev`**, the Railway service `qor-auth`, deployed from `main`. **172 tests pass** (8 October 2026, against Postgres 16 and Redis 7.4, `--include-ignored`), the log and SQL checks among them. Latest migration: 022. Password and key sign-in (Sr25519 and SS58; ADR-023, ADR-024, ADR-039); email verification and reset through Resend; the account page `/account` (change the password, add or change the email); sign-in for other apps by OAuth 2.1 with PKCE (ADR-073), the apps registered in `QOR_OAUTH_CLIENTS`, ARQADE among them; one name per account, no `#0001` (ADR-075, migrations 019 and 021); levels, XP and tasks, the welcome grant recorded as owed (since 8 October the owner can list owed grants and mark one paid against its transfer's hash; nothing pays them yet); the launcher signing a person into an app it opened with its own session (`/api/v1/oauth/handoff`, 8 October), and three sign-ups per network address read from Railway's `X-Real-IP` (ADR-078, migration 020); avatars (ADR-079, migration 022). Registration creates no CGT and calls no chain (R-3). Agent keys are authorised, never created (ADR-014). **The Resend bounce webhook is an owner step, and delivery to a real inbox is unconfirmed** (§4.0). One known gap (§2). History: §4 items 5 to 8, 33 and 50 to 57. |
+| `tools/qor-launcher` | **Version 0.1.8** (`tauri.conf.json`). **221 Rust tests pass (8 ignored without a node), and all ten browser checks pass** — design 3, accessibility 49, gates view 34, Projects 104, Inventory 238, Market 127, QQ 41, vault gate 65, contrast 54, readability 361 — on 8 October 2026 (§4 item 62; the accessibility flake is fixed). In pull request #17 since 8 October, not in a build: **QQ's preview** on the rail, **ARQADE in a window of its own, signed in with the launcher's session** (P7.18, partly), and **six backdrops** in Settings. The 0.1.8 installer was built locally and is **unsigned, with no update channel** (L6); 0.1.7 added `qor://pay`. Avatars and rings reached `main` after 0.1.8 and need a new build to ship. The default chain endpoint is `wss://rpc.qorsync.dev` (`DEFAULT_RPC` in `src-tauri/src/chain/mod.rs`; `LOCAL_RPC` is `ws://127.0.0.1:9944`). Features: the vault's key in the OS keychain with no lock screen (ADR-056); QOR ID sign-in by key; send, mint, Inventory, trade, sell and buy; the Market view (no search, no indexer); Projects and Qontrol; the gates dashboard; `qor://pay`, approved in the host dialog (ADR-077); the level bubble and XP bar; the avatar with its ring; one QFX backdrop shader. The Nexus still shows nine frozen-app tiles marked "local" or "forming". L1.1, L1.2, L1.3, L1.5, L1.6, L1.7, L3.1 and L3.2 are done (L1.6 and L1.7 ticked on 6 October 2026 against CI). **L1.4 is partly exercised:** the owner approved real `qor://pay` tips in the host dialog on 5 and 6 October; a decline and an endpoint change are not yet exercised (§4.0). History: §4 items 9, 14 to 24 and 54 to 57. |
+| Products | **Seven, each with a blueprint, a track and a gate**: P1 to P6 (§4 item 12) and **P7, ARQADE** (ADR-069). The shared substrate decisions ADR-046 to ADR-051 are all accepted: ADR-047 and ADR-051 on 2026-09-22, ADR-046, ADR-048, ADR-049 and ADR-050 on 2026-09-28. Built inside the launcher: Qontrol's Projects (P1.1, P1.2), QFX's backdrop (P2.1, six to choose from since 8 October), the Market view and, since 8 October, **QQ's TypeScript preview**. **QQ itself moves to Qt 6 (ADR-083)**: its P3 items are rewritten, and building waits on the owner installing Qt. ARQADE is its own site (row below). GNOSIS and Stream have not started. |
 | Release gates | **`GATES.toml` accepted (2026-09-14).** Coverage: cargo-llvm-cov, 80% of lines, only on pallets that move CGT or own DRC-369 semantics. Public Release gained `public-release.name-clearance` on 2026-09-17, a tightening logged in the file. **On 2026-10-06 (ADR-080) `check-design.mjs` dropped its five effect rules and the QFX and ceremony exemptions**, keeping colour tokens, the type scale and the tracking scale; it is logged in the change log with the owner's approval. **Loosening any evidence rule needs the owner's separate decision** (the rule is in the file). |
-| CI | **"Pleroma CI", GitHub Actions on the public `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064), and green.** Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Jobs run in the `QOR-MATRIX` organisation, where the billing lock that refused the personal account's jobs in late September does not apply (ADR-064), and `probe.yml` is gone: the workflows are `ci.yml` and `devnet-image.yml`. Jobs: `chain` (format, lints and tests, without `SKIP_WASM_BUILD`); `chain-newest-clippy` (the newest Rust, report-only, scheduled); `two-validators` (scheduled); `qor-auth` (with Redis, `--include-ignored`); `launcher` (with the nine browser checks); `arqade`; `coverage`; and `security` (dependency audits, the committed-credential scan, the `[patch]` guard and the `framework/` guard). A flaky wait loop in the launcher's browser checks was fixed on 6 October (PR #9). Woodpecker and `ci.qorsync.dev` are retired; deleting the `ci` DNS record in Cloudflare is an owner step. Scope changes are logged in `GATES.toml`. History: §4 items 1, 27 to 32 and 42. |
+| CI | **"Pleroma CI", GitHub Actions on the public `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064), and green.** Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Jobs run in the `QOR-MATRIX` organisation, where the billing lock that refused the personal account's jobs in late September does not apply (ADR-064), and `probe.yml` is gone: the workflows are `ci.yml` and `devnet-image.yml`. Jobs: `chain` (format, lints and tests, without `SKIP_WASM_BUILD`); `chain-newest-clippy` (the newest Rust, report-only, scheduled); `two-validators` (scheduled); `qor-auth` (with Redis, `--include-ignored`); `launcher` (with the browser checks: nine on `main`, ten with QQ's from §4 item 61); `arqade`; `coverage`; and `security` (dependency audits, the committed-credential scan, the `[patch]` guard and the `framework/` guard). A flaky wait loop in the launcher's browser checks was fixed on 6 October (PR #9). Woodpecker and `ci.qorsync.dev` are retired; deleting the `ci` DNS record in Cloudflare is an owner step. Scope changes are logged in `GATES.toml`. History: §4 items 1, 27 to 32 and 42. |
 | Infrastructure | **Railway** (project `demiurge`): Postgres, Redis, QOR ID (`id.qorsync.dev`) and Demiurge Devnet (two validators and an RPC node, ADR-068). **Vercel**: ARQADE, project `qor-arqade` (team Astra Matrix, Hobby plan), with Neon Postgres (ADR-074). Fly.io is not used: ADR-015's Fly plan is superseded by ADR-063 and ADR-068. |
 | Production | No production or test network. Live, devnet-only and with test CGT: Demiurge Devnet, QOR ID and ARQADE. |
 | ARQADE (`products/arqade/`) | **Live at `https://qor-arqade-tau.vercel.app`**: standard Next.js 16 on Neon Postgres, migrations 0001 to 0003 applied on production builds (`scripts/migrate.mjs`). **48 tests** (6 October 2026). QOR ID is the only sign-in; Play Now, the solo games, Flux Four and Rift Reversi multiplayer, rankings, chat, devnet reads, tips through the launcher (ADR-076, ADR-077; the owner tipped successfully on 5 and 6 October), and the level bubble and level row. P7.1 to P7.4 are ticked (P7.4 on 6 October 2026). |
@@ -196,7 +199,15 @@ Details are in [`SECURITY.md`](SECURITY.md).
   (`OWNER.md`).
 - **New surfaces since October:** avatar upload (an image parser on untrusted input, under size, frame and
   dimension limits; ADR-079) and the OAuth client secrets in `QOR_OAUTH_CLIENTS` (stored as SHA-256 hashes;
-  ADR-073). Both are in the log check.
+  ADR-073). Both are in the log check. **Since 8 October 2026** (§4 item 61): **ARQADE's window**, a second
+  launcher window that loads a website. It is given no capability (`capabilities/default.json` names only `main`), so
+  its page reaches no host command; the host routes every address it is asked to load or open as a new window
+  (`src-tauri/src/arqade.rs`, five tests), and a `qor://pay` link from it meets the same checks and dialog as one
+  from the browser. **QQ's scene commands** write only `scenes/<name>.qq.json` inside an opened repository, refusing a
+  `scenes` link that leaves it. **The grant admin routes** are behind the admin middleware, audited, and handle no
+  token, key or email address. **The launcher's handoff** (`/api/v1/oauth/handoff`) issues an app's code with a
+  person's own session: an app's session is refused, the request is checked by the same function as the sign-in page,
+  the code is bound to the app's PKCE challenge and redirect URI, and the flow is in the log check.
 - **The per-address sign-up limit trusts `X-Real-IP`**, which Railway sets (ADR-078); `X-Forwarded-For` is not
   trusted.
 - ~~The RPC reports `finality: 2000` and every transaction as "finalized".~~ **Gone with `framework/` at
@@ -228,6 +239,8 @@ Read this before the detail below. "Ready" means it can start today with nothing
 
 | Track | State | Waiting on | What unblocks it |
 | --- | --- | --- | --- |
+| **P3, QQ on Qt 6** (ADR-083) | **Blocked, 2026-10-08** | **The owner** | Install Qt with the owner's account (Qt's online installer): Qt 6.8 LTS or newer, MSVC 2022 64-bit, Qt Quick 3D, Qt Quick 3D Physics, Qt Shader Tools, Qt Spatial Audio, WebAssembly, and Qt Creator. Visual Studio Build Tools 2022 are already on the machine. Then P3.1 in `products/qq/` starts. |
+| **P7.17**, paying the welcome grants | **Blocked, 2026-10-08** | **The owner** | ADR-078 decision 7 wants a server that holds the Welcome account's key and nothing else: a new service, which needs the owner's name for it (AGENTS.md §8), the Welcome account created and funded with test CGT on the devnet, and its key set as that service's only secret on Railway. Listing owed grants and marking one paid are built. |
 | **M3, the Substrate chain** | **Unblocked, started 2026-09-17** | Nobody | The owner confirmed ADR-018 to ADR-032 and supplied all four inputs: eighteen decimals (ADR-035), an existential deposit of 100 CGT (ADR-036), the five pallet names, and `pallet-sudo` on development and test networks only (ADR-037). |
 | **U-1, the decimal places** | **Decided 2026-09-17** | Nobody | Eighteen, on both recorded conditions (ADR-035). Removed from `OPEN_QUESTIONS.md`, so the gate reads it as decided. |
 | **The existential deposit** | **Decided 2026-09-17** | Nobody | 100 CGT (ADR-036), `10^20` Sparks. Revisitable before mainnet only, and only if OPEN-2's sponsorship budget changes the arithmetic. |
@@ -1852,14 +1865,104 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     is removed or relaxed, and nothing in `GATES.toml` changes. **Verified locally** on 7 October against a fresh
     `npm run build`: accessibility 41, gates view 34, vault gate 65, contrast 54, Projects 104, Inventory 238, Market
     127 and readability 361, all passing.
+
+61. **8 October 2026: QQ's first slice (P3.1) built; IBM Bob's unfinished work found in the tree, checked, fixed and
+    finished.** On branch `session/ci-browser-wait`, not committed. **What was found:** Bob (IBM's coding assistant,
+    working from the prompt item 59 describes) had written ADR-082 (QQ's architecture, accepted under ADR-081's
+    delegation), `docs/blueprints/qq.md`, QQ's six P3 items in `DIRECTION.md` and the `qor-engine` gate rewritten
+    for QQ, and had begun code outside QQ, none of it run or tested: admin routes for welcome grants, an ARQADE
+    view in the launcher, six QFX backdrops, a theme-unlock panel, avatar plumbing for ARQADE and a version bump
+    to 0.1.9. **What was wrong in it, and fixed:** the grant routes read an `id` column `welcome_grants` does not
+    have (its key is `user_id`) and accepted a 128-character hash for an 80-character column; they now key on
+    the account, take only `0x` and 64 hex digits, and have three tests. The ARQADE view framed the site in an
+    `<iframe>`, which the launcher's content security policy (`frame-src 'none'`) refuses and ADR-078 decision 5
+    does not ask for; ARQADE now opens in a window of its own made by the host (`src-tauri/src/arqade.rs`), with
+    no capability, every address routed by the host (ARQADE and QOR ID stay, `qor://pay` goes straight to the
+    host dialog, other web addresses open in the browser, anything else is refused; five tests). The backdrops
+    had no way to be chosen and nothing set the level they read; Settings now has a Backdrop picker, the rail
+    writes the level, and switching backdrops with ambience off no longer builds the old one. `PlayerAvatar`
+    was used nowhere and would have shown any address QOR ID's answer held; ARQADE's sidebar now shows the
+    avatar, the site's server only passes on QOR ID's own `/avatars/<64 hex>` paths (a test), the still frame
+    is used under reduced motion, and the letter fallback was made readable (dark on orange, not white).
+    `qq.md` was missing from `docs/README.md`, so it was not current; it is indexed now, and the blueprint's
+    `window.__qor_invoke__` and `window.__qor_session__`, which do not exist, are corrected. The gate rewrite
+    dropped P1.2 from `qor-engine.depends`, which would have been a loosening logged as a tightening; P1.2 is
+    back (QQ saves through Qontrol) and the change-log entry is corrected before it was ever merged. The 0.1.9
+    bump was reverted: no installer was built. **QQ, built:** `tools/qor-launcher/src/qq/` — a WebGL2 renderer
+    (shapes as signed-distance fields with glow, particles additive), a deterministic world (motion, a pointer
+    follow, emitters), and the editor surface on the rail after Projects (viewport with pick and drag, the
+    entities, an inspector per component, Play, Stop, and under reduced motion a held frame with Step). Scenes
+    are saved through new host commands (`qq_save_scene`, `qq_load_scene`, `qq_list_scenes`, `src-tauri/src/qq.rs`)
+    as `scenes/<name>.qq.json` in a Qontrol project, in a canonical form so one changed value is one changed
+    line. No dependency was added (ADR-082 names `gl-matrix`, `resvg-wasm` and WebGPU as things to lean on;
+    P3.1 needed none). **Evidence:** `check-qq-view.mjs`, 41 checks in a real browser with Chrome's software
+    WebGL2, reading the canvas back as pixels, proven to fail by two planted faults (its first version missed one,
+    recorded in its header); 8 `qq::` host tests; `a_qq_scene_commits_and_one_changed_value_is_one_changed_line`,
+    a real Qontrol commit and diff. It is the `qor_engine` suite now (`GATES.toml`, a tightening logged with
+    the CI change: `npm run check` runs ten checks). **P3.1 is not ticked:** the sprite ADR-082 decision 7
+    names is not built, and nobody has used QQ in the running launcher window. **Measured on 8 October 2026:**
+    QOR ID 169 tests (`--include-ignored`, Postgres 16, Redis 7.4) and clippy clean; launcher host 218 tests
+    (8 ignored) under `qontrol-no-skips`, format and clippy clean; ARQADE 49 tests, type check clean, lint 0
+    errors (4 warnings, all in lines this work did not touch); the ten browser checks: design 3, gates view 34, Projects 104, Inventory 238, Market 127, QQ 41, vault gate 65, contrast 54 and readability 361 pass; accessibility passed 3 of 5 runs and failed 2 on "stored off, then live: the backdrop starts", the flake §5 records, which `main`'s own code (`4396afb`, built in a separate worktree) failed 3 of 6 times on this machine the same day, so it is not this change's. **Not done:** P7.18's sign-in with the
+    launcher's session; paying the owed grants (P7.17); measuring the five new backdrops as painted
+    (`check-readability.mjs` and `check-accessibility.mjs` draw Drift only); the Dusk and Nocturne themes the
+    level unlocks name (Settings shows them as coming). **Next:** the sprite and a run in the launcher window,
+    then tick P3.1; then P3.2 (3D and glTF).
+
+62. **8 October 2026: QQ moves to Qt 6 (ADR-083); ARQADE's window signed in with the launcher's session; the
+    accessibility flake found and fixed; items 61 and 62 are pull request #17.** On branch
+    `session/qq-p3.1-bob-fixes` (pushed to `matrix`, pull request #17, whose first CI run passed in full). **The owner's
+    direction:** "Utilize QT framework because i have a licence to build with it", an engine "capable of creating
+    virtual worlds and experiences", and autonomous game design and development. Asked, the owner chose to install
+    **commercial Qt** with their own account, and to keep the TypeScript engine until the Qt build plays. **IBM Bob's
+    QQ work was documents only** (ADR-082, the blueprint, the P3 items, the gate rewrite); the engine in item 61 was
+    built in this session. **Decided and recorded:** ADR-083 (QQ on Qt 6 at `products/qq/`: Runtime, Studio, Player
+    native and WebAssembly, QML scenes, an agent with an MCP server and a design loop; the Studio never holds a key),
+    superseding ADR-082 in part; DIRECTION P3 rewritten for it (each item asks more than before); the blueprint
+    rewritten; `qor-engine.decisions` counts ADR-083 (a tightening, logged). **Nothing under `products/qq/` is written
+    yet**, on purpose: it cannot be compiled here until Qt is installed, and untested engine code is what went wrong
+    with Bob's. **ARQADE signed in by the launcher (P7.18):** QOR ID gains `POST /api/v1/oauth/handoff`. A signed-in
+    launcher opens ARQADE's window at ARQADE's sign-in, stops the window on its way to `/oauth/authorize`, and sends that
+    address with its own token; QOR ID checks it exactly as its sign-in page does (the checks are now one function,
+    `check_authorize`, and code issuance another, `issue_code`, shared by both paths), refuses an app's own session,
+    and answers with ARQADE's redirect, which the launcher loads only if it lands on ARQADE over https. The code is
+    ARQADE's ordinary code, bound to its PKCE challenge, so nothing new travels in an address. This also fixes a gap
+    nobody had named: the window's only sign-in was a password, and a person who signed in to the launcher by key has
+    none. QOR ID: 3 tests and the flow in the log check; launcher: 3 more `arqade::` tests. **The accessibility flake:**
+    "stored off, then live" failed about two runs in five on `main` as on branches since September. Measured: when it
+    failed, a bare animation loop beside the backdrop stalled with it, with the main thread idle, with or without the
+    GPU, so headless Chrome had stopped producing frames for the page after the backdrop's GL program was rebuilt.
+    Bringing the page to the front again (`toFront`), as boot already does after a reload, made the check pass 10
+    runs in 10, and planted faults still fail it. The investigation also found the launcher creating a GL context at
+    startup with ambience stored as off (the canvas read `data-ambience` before it was applied): `main.tsx` now applies
+    the stored settings before the first render, pinned by a new case. Each of the six backdrops is now required to
+    compile and run (a planted GLSL error fails exactly its own case); item 61's note that only Drift was measured as
+    painted was wrong, since `check-readability.mjs` already measures text over a hostile white panel in the canvas's
+    place. **The README** is rewritten as the public front page, every fact checked against this file. **Measured on
+    8 October 2026:** QOR ID 172 tests, clippy and format clean; launcher host 221 tests (8 ignored) under `qontrol-no-skips`, format and clippy clean; the ten browser checks all pass: design 3, accessibility 49 (10 runs in 10), gates view 34, Projects 104, Inventory 238, Market 127, QQ 41, vault gate 65, contrast 54, readability 361. **The backdrops, polished:** CI's software renderer drew Bob's Starfield at 11 frames a second, because it looped over every star for every pixel; it now looks at one grid cell per pixel (60 frames where it drew 15, measured full-window in software, with three depth planes of round stars where it had two of stretched ones). Lattice tied its lines into a knot under the pointer and was stretched by the window's aspect ratio; Liquid tore its cells under the pointer and swelled its borders into bright wedges: both now move smoothly through the pointer, Lattice's cells are square, and Liquid's borders are measured to the bisector of the two nearest centres, one pass. **Not done:** the welcome-grant payer
+    (P7.17), which needs the owner to name a new service and to create and fund the Welcome account (§4.0); QOR ID
+    deployed with the handoff route (it deploys from `main` when #17 merges); a person using QQ's preview and ARQADE's
+    window in a running launcher. **Next:** once Qt is installed, P3.1 in `products/qq/`.
+
 ## 5. Traps, so nobody re-learns them
 
 **Launcher checks**
-- `npm run check` runs nine checks: design, accessibility, the gates view, the Projects view, the Inventory
-  view, the Market view (`check-market-view.mjs`), the Gate and Windows Hello (`check-vault-gate.mjs`), QFX
-  contrast and readability. It needs `npm run build` first, because eight of them serve `dist`, and a
+- `npm run check` runs ten checks: design, accessibility, the gates view, the Projects view, the Inventory
+  view, the Market view (`check-market-view.mjs`), QQ (`check-qq-view.mjs`, since 2026-10-08), the Gate and Windows Hello (`check-vault-gate.mjs`), QFX
+  contrast and readability. It needs `npm run build` first, because nine of them serve `dist`, and a
   Chromium-family browser (set `BROWSER_PATH` for one that is not Edge or Chrome in the usual places).
   Readability takes about four minutes; `READABILITY_THEMES=numen` runs one theme while iterating.
+- **The intro covers the whole window for its first seconds, and takes the pointer.** A check that reads pixels
+  or presses on a surface straight after boot reads and presses the splash (2 s; the first-run intro 4.2 s).
+  `check-qq-view.mjs` sampled the splash's glow as the orb's colour and its drag selected nothing, on
+  2026-10-08. Wait until `document.elementFromPoint` at the target returns the target.
+- **Headless Chrome can stop producing frames for a page after a WebGL program is rebuilt**, with the main thread idle
+  and the page "visible": every animation loop on the page, not only the backdrop's, drops to one to three frames a
+  second. It made `check-accessibility.mjs` fail about two runs in five until 8 October 2026. Bring the page to the
+  front again after such a switch (`toFront`), and prove with a planted fault that the check can still fail.
+- **`check-design.mjs` matches `rgb(` anywhere outside the token files, a function name included.** A helper
+  called `rgb()` fails "Colours come from tokens". Name it something else; put fixed colours (QQ's starter
+  palette, `QQ_PALETTE`) in `src/styles/themes.ts`, which defines tokens. Never exempt a file.
 - **`?.` in a check's click turns a missing element into a silent pass.**
   `document.querySelector(sel)?.click()` does nothing when `sel` matches nothing, and the checks after it then
   read an absent dialog and fail with no hint of why — or, worse, read nothing and pass. A Sell block shipped

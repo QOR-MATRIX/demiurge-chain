@@ -1031,3 +1031,58 @@ fn credential_shapes_are_recognised_at_a_word_boundary_only() {
         assert_eq!(guard::credential_shape(text.as_bytes()), None, "{text}");
     }
 }
+
+/// QQ's promise for P3.1 (ADR-082): a scene saved into a game project commits like any other file, and changing one
+/// value in the editor is one changed line in the diff Projects shows, not a rewritten file.
+#[test]
+fn a_qq_scene_commits_and_one_changed_value_is_one_changed_line() {
+    let dir = project(Scaffold::Game);
+    if !helper_present("a_qq_scene_commits_and_one_changed_value_is_one_changed_line") {
+        return;
+    }
+    // Written as QQ's editor writes it: one component per line (src/qq/runtime/scene.ts).
+    let scene = |glow: &str| {
+        format!(
+            "{{\n  \"qq\": 1,\n  \"name\": \"level\",\n  \"size\": {{ \"w\": 960, \"h\": 540 }},\n  \"background\": \"#07080c\",\n  \"entities\": [\n    {{\n      \"id\": \"e1\",\n      \"name\": \"Core\",\n      \"transform\": {{ \"x\": 0, \"y\": 0, \"rotation\": 0, \"scale\": 1 }},\n      \"shape\": {{ \"kind\": \"circle\", \"w\": 84, \"h\": 84, \"colour\": \"#ff6a00\", \"glow\": {glow} }}\n    }}\n  ]\n}}\n"
+        )
+    };
+
+    crate::qq::save(dir.path(), "level", &scene("0.7")).expect("saved");
+    commit(dir.path(), "First light").expect("commit");
+    assert!(
+        read(dir.path()).expect("read").changes.is_empty(),
+        "committed clean"
+    );
+
+    crate::qq::save(dir.path(), "level", &scene("0.25")).expect("saved again");
+    let changed = read(dir.path()).expect("read");
+    assert_eq!(
+        changed
+            .changes
+            .iter()
+            .map(|c| (c.path.as_str(), c.state.as_str()))
+            .collect::<Vec<_>>(),
+        vec![("scenes/level.qq.json", "modified")]
+    );
+
+    let diffs = diff(dir.path(), Some("scenes/level.qq.json")).expect("diff");
+    let DiffBody::Text { lines, .. } = &diffs[0].body else {
+        panic!("a scene is text, not binary: {:?}", diffs[0].body);
+    };
+    let removed: Vec<&str> = lines
+        .iter()
+        .filter(|l| l.kind == "remove")
+        .map(|l| l.text.as_str())
+        .collect();
+    let added: Vec<&str> = lines
+        .iter()
+        .filter(|l| l.kind == "add")
+        .map(|l| l.text.as_str())
+        .collect();
+    assert_eq!(removed.len(), 1, "one line out: {removed:?}");
+    assert_eq!(added.len(), 1, "one line in: {added:?}");
+    assert!(
+        removed[0].ends_with("\"glow\": 0.7 }") && added[0].ends_with("\"glow\": 0.25 }"),
+        "{removed:?} -> {added:?}"
+    );
+}

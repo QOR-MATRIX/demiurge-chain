@@ -277,7 +277,8 @@ jobs:
       # Every check `npm run check` runs, and only through it, so the workflow and
       # package.json cannot drift apart again: design (L1.1), accessibility
       # (L1.2, and QFX's ambience cases), the gates view (L2.2), the Projects view
-      # (Qontrol), Inventory, the Gate, QFX contrast and readability. All but the
+      # (Qontrol), Inventory, the Market, QQ (P3.1, drawn by Chrome's software
+      # WebGL2), the Gate, QFX contrast and readability. All but the
       # design check drive a real rendering engine; the runner image provides
       # Google Chrome.
       #

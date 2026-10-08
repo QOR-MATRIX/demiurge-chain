@@ -797,6 +797,23 @@ export const net = {
     call<void>('use_endpoints', { rpcUrl, authUrl }),
 };
 
+/**
+ * QQ's scenes (ADR-082, P3.1): `scenes/<name>.qq.json` inside an open Qontrol
+ * project. The host checks the project, the name and the scene's shape; saving
+ * returns the project as it now reads, so the change is what Projects shows.
+ */
+export const qq = {
+  save: (path: string, name: string, scene: string) =>
+    call<QontrolProject>('qq_save_scene', { path, name, scene }),
+  load: (path: string, name: string) => call<string>('qq_load_scene', { path, name }),
+  list: (path: string) => call<string[]>('qq_list_scenes', { path }),
+};
+
+/** ARQADE in a window of its own (ADR-078 decision 5). The host decides what that window may load. */
+export const arqade = {
+  open: () => call<void>('arqade_open'),
+};
+
 export const identity = {
   login: (identifier: string, password: string) =>
     call<Session>('qor_login', { identifier, password }),

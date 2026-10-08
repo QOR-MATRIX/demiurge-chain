@@ -170,3 +170,10 @@ test('a task is reported to QOR ID with the secret of the app and the token of t
   assert.equal(await Q.reportTask(deps(db,q),'not a session','first-match'),false);
   assert.equal(q.reports.length,1);
 });
+
+test('an avatar is QOR ID\'s own /avatars/ path made absolute, and nothing else is followed (ADR-079)',()=>{
+  const hash='ab'.repeat(32);
+  assert.equal(Q.avatarAddress(`/avatars/${hash}`,CONFIG.issuer),`https://id.test/avatars/${hash}`);
+  for(const bad of [null,undefined,'',`https://elsewhere.test/avatars/${hash}`,`//elsewhere.test/avatars/${hash}`,`/avatars/${hash}/../../x`,`/avatars/${'AB'.repeat(32)}`,'/avatars/abc',`/account?next=/avatars/${hash}`])
+    assert.equal(Q.avatarAddress(bad,CONFIG.issuer),null,String(bad));
+});

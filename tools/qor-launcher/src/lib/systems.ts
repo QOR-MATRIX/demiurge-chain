@@ -122,6 +122,15 @@ export const SYSTEMS: System[] = [
 
   // ── Create ───────────────────────────────────────────────────────────────
   {
+    id: 'qq',
+    name: 'QQ',
+    tagline: 'The QOR Engine. Build a small, lit 2D game and play it here.',
+    domain: 'create',
+    state: 'live',
+    surface: 'qq',
+    glyph: 'shapes',
+  },
+  {
     id: 'studio',
     name: 'DRC-369 Studio',
     tagline: 'Mint assets that carry state, physics and memory.',
@@ -162,6 +171,15 @@ export const SYSTEMS: System[] = [
   },
 
   // ── Play ─────────────────────────────────────────────────────────────────
+  {
+    id: 'arqade',
+    name: 'ARQADE',
+    tagline: 'Games on the Demiurge devnet. Collectibles, rankings, tips.',
+    domain: 'play',
+    state: 'live',
+    surface: 'arqade',
+    glyph: 'target',
+  },
   {
     id: 'library',
     name: 'Library',

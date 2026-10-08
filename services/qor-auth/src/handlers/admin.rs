@@ -483,6 +483,117 @@ pub async fn unmark_undeliverable_address(
     })))
 }
 
+/// The welcome grants that are owed and not yet paid, oldest first (ADR-078 decision 7).
+///
+/// GET /api/v1/admin/grants/owed
+///
+/// Each grant is named by its account's id, because an account has at most one. The chain account is given as hex
+/// and as SS58 (the configured prefix), and the amount in Sparks as a decimal string, as stored. No email address is
+/// returned: paying a grant needs only the chain account.
+pub async fn list_owed_grants(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<PageQuery>,
+) -> AppResult<Json<Value>> {
+    let (page, per_page, offset) = page_bounds(&query, 50)?;
+
+    let total: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM welcome_grants WHERE status = 'owed'")
+            .fetch_one(&state.db)
+            .await?;
+
+    let rows: Vec<(Uuid, Vec<u8>, String)> = sqlx::query_as(
+        "SELECT user_id, chain_account_id, amount_sparks FROM welcome_grants WHERE status = 'owed' ORDER BY created_at ASC, user_id ASC LIMIT $1 OFFSET $2",
+    )
+    .bind(i64::from(per_page))
+    .bind(offset)
+    .fetch_all(&state.db)
+    .await?;
+
+    let prefix = state.config.chain.ss58_prefix;
+    let grants: Vec<Value> = rows
+        .iter()
+        .map(|(user_id, account, amount_sparks)| {
+            let chain = crate::handlers::auth::ChainAccount::from_stored(account)
+                .map(|a| a.as_json(prefix))
+                .unwrap_or(Value::Null);
+            json!({
+                "user_id": user_id,
+                "chain_account": chain,
+                "amount_sparks": amount_sparks,
+            })
+        })
+        .collect();
+
+    Ok(Json(json!({
+        "grants": grants,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + i64::from(per_page) - 1) / i64::from(per_page),
+    })))
+}
+
+/// The evidence that an owed grant was paid: the hash of the finalised transfer, or of the block that holds it.
+#[derive(Debug, Deserialize)]
+pub struct MarkPaidRequest {
+    /// 32 bytes as `0x` and 64 hex digits, the shape of every Demiurge hash.
+    tx_hash: String,
+}
+
+/// Whether `value` is `0x` followed by 64 hex digits.
+fn is_chain_hash(value: &str) -> bool {
+    value
+        .strip_prefix("0x")
+        .is_some_and(|hex| hex.len() == 64 && hex.bytes().all(|b| b.is_ascii_hexdigit()))
+}
+
+/// Record that an owed welcome grant was paid, once the transfer is finalised on the chain (ADR-078 decision 7).
+///
+/// POST /api/v1/admin/grants/{user_id}/mark-paid
+///
+/// This moves no CGT: the transfer is made from the Welcome account first, and its hash is the evidence kept in
+/// `paid_block`. Only an owed grant can be marked; one already paid, or none at all, is a 404 and nothing is written.
+pub async fn mark_grant_paid(
+    State(state): State<Arc<AppState>>,
+    Extension(admin_id): Extension<Uuid>,
+    Path(user_id): Path<Uuid>,
+    Json(req): Json<MarkPaidRequest>,
+) -> AppResult<Json<Value>> {
+    let tx_hash = req.tx_hash.trim().to_ascii_lowercase();
+    if !is_chain_hash(&tx_hash) {
+        return Err(AppError::ValidationError(
+            "tx_hash must be 0x followed by 64 hex digits".into(),
+        ));
+    }
+
+    let mut tx = state.db.begin().await?;
+    let updated = sqlx::query(
+        "UPDATE welcome_grants SET status = 'paid', paid_at = NOW(), paid_block = $1 WHERE user_id = $2 AND status = 'owed'",
+    )
+    .bind(&tx_hash)
+    .bind(user_id)
+    .execute(&mut *tx)
+    .await?
+    .rows_affected();
+
+    if updated == 0 {
+        return Err(AppError::NotFound(
+            "No owed welcome grant for that account".into(),
+        ));
+    }
+
+    audit(
+        &mut tx,
+        admin_id,
+        "welcome_grant_paid",
+        json!({ "user_id": user_id, "paid_block": tx_hash }),
+    )
+    .await?;
+    tx.commit().await?;
+
+    Ok(Json(json!({ "status": "paid", "paid_block": tx_hash })))
+}
+
 /// The admin handlers, called directly against a real Postgres (`#[sqlx::test]`). Tests that also
 /// need Redis are ignored by default: `QOR_AUTH_TEST_REDIS_URL=redis://... cargo test -- --ignored`.
 #[cfg(test)]
@@ -1009,5 +1120,145 @@ mod tests {
         assert!(body["active_sessions"].as_u64().expect("count") >= 2);
 
         sessions.delete_all_sessions(admin).await.expect("cleanup");
+    }
+
+    async fn owed_grant(db: &PgPool, username: &str, key_byte: u8) -> Uuid {
+        let user = account(db, username, Some(&format!("{username}@example.invalid"))).await;
+        sqlx::query(
+            "INSERT INTO welcome_grants (user_id, email_lower, chain_account_id, amount_sparks) VALUES ($1, $2, $3, '100000000000000000000')",
+        )
+        .bind(user)
+        .bind(format!("{username}@example.invalid"))
+        .bind(vec![key_byte; 32])
+        .execute(db)
+        .await
+        .expect("owed grant");
+        user
+    }
+
+    fn paid(hash: &str) -> Json<MarkPaidRequest> {
+        Json(MarkPaidRequest {
+            tx_hash: hash.into(),
+        })
+    }
+
+    #[sqlx::test]
+    async fn owed_grants_are_listed_by_account_with_no_email_address(db: PgPool) {
+        let state = state(db.clone());
+        let first = owed_grant(&db, "first", 1).await;
+        owed_grant(&db, "second", 2).await;
+
+        let Json(body) = list_owed_grants(State(state), page(None, None))
+            .await
+            .expect("listed");
+        assert_eq!(body["total"], json!(2));
+        let grants = body["grants"].as_array().expect("grants");
+        assert_eq!(grants.len(), 2);
+        assert_eq!(grants[0]["user_id"], json!(first));
+        assert_eq!(grants[0]["amount_sparks"], json!("100000000000000000000"));
+        assert_eq!(
+            grants[0]["chain_account"]["account_id"],
+            json!(format!("0x{}", "01".repeat(32)))
+        );
+        assert!(
+            !body.to_string().contains('@'),
+            "the listing holds no address"
+        );
+    }
+
+    #[sqlx::test]
+    async fn marking_a_grant_paid_records_the_hash_audits_it_and_removes_it_from_the_owed_list(
+        db: PgPool,
+    ) {
+        let state = state(db.clone());
+        let admin = account(&db, "admin", None).await;
+        let user = owed_grant(&db, "player", 7).await;
+        let hash = format!("0x{}", "AB".repeat(32));
+
+        let Json(body) = mark_grant_paid(
+            State(state.clone()),
+            Extension(admin),
+            Path(user),
+            paid(&hash),
+        )
+        .await
+        .expect("marked");
+        let stored = hash.to_ascii_lowercase();
+        assert_eq!(body["paid_block"], json!(stored));
+
+        let (status, paid_block): (String, Option<String>) =
+            sqlx::query_as("SELECT status, paid_block FROM welcome_grants WHERE user_id = $1")
+                .bind(user)
+                .fetch_one(&db)
+                .await
+                .expect("grant");
+        assert_eq!(status, "paid");
+        assert_eq!(paid_block.as_deref(), Some(stored.as_str()));
+
+        let rows = audit_rows(&db).await;
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].0, Some(admin));
+        assert_eq!(rows[0].1, "welcome_grant_paid");
+
+        let Json(listed) = list_owed_grants(State(state.clone()), page(None, None))
+            .await
+            .expect("listed");
+        assert_eq!(listed["total"], json!(0));
+
+        // Paid once is paid: a second mark is not found and writes nothing.
+        assert!(matches!(
+            mark_grant_paid(State(state), Extension(admin), Path(user), paid(&hash)).await,
+            Err(AppError::NotFound(_))
+        ));
+        assert_eq!(audit_rows(&db).await.len(), 1);
+    }
+
+    #[sqlx::test]
+    async fn a_grant_is_not_marked_paid_without_a_well_formed_hash_or_an_owed_grant(db: PgPool) {
+        let state = state(db.clone());
+        let admin = account(&db, "admin", None).await;
+        let user = owed_grant(&db, "player", 9).await;
+
+        for bad in [
+            "",
+            "0x1234",
+            &"ab".repeat(32),
+            &format!("0x{}", "zz".repeat(32)),
+            &format!("0x{}", "ab".repeat(40)),
+        ] {
+            assert!(
+                matches!(
+                    mark_grant_paid(
+                        State(state.clone()),
+                        Extension(admin),
+                        Path(user),
+                        paid(bad)
+                    )
+                    .await,
+                    Err(AppError::ValidationError(_))
+                ),
+                "{bad:?} is refused"
+            );
+        }
+        let nobody = account(&db, "nobody", None).await;
+        assert!(matches!(
+            mark_grant_paid(
+                State(state),
+                Extension(admin),
+                Path(nobody),
+                paid(&format!("0x{}", "cd".repeat(32)))
+            )
+            .await,
+            Err(AppError::NotFound(_))
+        ));
+
+        let status: String =
+            sqlx::query_scalar("SELECT status FROM welcome_grants WHERE user_id = $1")
+                .bind(user)
+                .fetch_one(&db)
+                .await
+                .expect("grant");
+        assert_eq!(status, "owed");
+        assert!(audit_rows(&db).await.is_empty());
     }
 }

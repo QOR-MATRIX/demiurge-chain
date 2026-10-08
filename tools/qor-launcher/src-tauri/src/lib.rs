@@ -13,6 +13,7 @@
 //! in `apps/wallet-extension`, where key material and page-reachable script share
 //! one JavaScript heap.
 
+pub mod arqade;
 pub mod cgt;
 pub mod chain;
 pub mod config;
@@ -24,6 +25,7 @@ pub mod listings;
 pub mod partners;
 pub mod pay;
 pub mod qontrol;
+pub mod qq;
 pub mod vault;
 
 use std::future::Future;
@@ -1223,6 +1225,15 @@ async fn qor_logout(state: tauri::State<'_, AppState>) -> Result<(), QorError> {
     Ok(())
 }
 
+/// ARQADE in a window of its own (ADR-078 decision 5): opened, or brought forward if it already is.
+#[tauri::command]
+async fn arqade_open(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), QorError> {
+    arqade::open(&app, &state.identity.endpoint()).map_err(QorError::Internal)
+}
+
 #[tauri::command]
 async fn qor_set_auth_endpoint(
     app: tauri::AppHandle,
@@ -1459,6 +1470,9 @@ pub fn run() {
             qontrol::commands::qontrol_switch,
             qontrol::commands::qontrol_discard,
             qontrol_mint,
+            qq::qq_save_scene,
+            qq::qq_load_scene,
+            qq::qq_list_scenes,
             drc369_assets,
             drc369_make_permanent,
             drc369_trade,
@@ -1509,6 +1523,7 @@ pub fn run() {
             qor_tutorial_done,
             qor_logout,
             qor_set_auth_endpoint,
+            arqade_open,
             gates_report,
             gates_run_suite,
         ])
