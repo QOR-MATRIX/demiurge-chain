@@ -841,6 +841,81 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         .await;
     assert_eq!(r.status, StatusCode::OK);
 
+    // The launcher signs the person into the app with its own session (P7.18): its token, the app's
+    // authorize address with a fresh challenge and state, and the code that comes back.
+    let r = client
+        .json(
+            "/api/v1/auth/login",
+            json!({ "identifier": username, "password": new_password }),
+            None,
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    let launcher_access = r.json()["access_token"]
+        .as_str()
+        .expect("access")
+        .to_string();
+    let handoff_verifier = format!("logcheck-handoff-{}", uuid::Uuid::new_v4().simple());
+    let handoff_challenge = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(
+        <Sha256 as sha2::Digest>::digest(handoff_verifier.as_bytes()),
+    );
+    let handoff_state = format!("logcheck-handoff-state-{}", uuid::Uuid::new_v4().simple());
+    secrets.extend([
+        launcher_access.clone(),
+        r.json()["refresh_token"]
+            .as_str()
+            .expect("refresh")
+            .to_string(),
+        handoff_verifier.clone(),
+        handoff_challenge.clone(),
+        handoff_state.clone(),
+    ]);
+    let r = client
+        .json(
+            "/api/v1/oauth/handoff",
+            json!({ "authorize_url": format!(
+                "https://id.logcheck.invalid/oauth/authorize?response_type=code&client_id=logcheck-app&redirect_uri={}&code_challenge={handoff_challenge}&code_challenge_method=S256&state={handoff_state}",
+                form_encode("https://app.logcheck.invalid/callback")
+            ) }),
+            Some(&launcher_access),
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    let handed: String = r.json()["redirect"]
+        .as_str()
+        .expect("a redirect")
+        .split("code=")
+        .nth(1)
+        .expect("a code")
+        .chars()
+        .take_while(char::is_ascii_hexdigit)
+        .collect();
+    secrets.push(handed.clone());
+    let r = client
+        .form(
+            "/oauth/token",
+            &[
+                ("grant_type", "authorization_code"),
+                ("client_id", "logcheck-app"),
+                ("client_secret", &client_secret),
+                ("code", &handed),
+                ("redirect_uri", "https://app.logcheck.invalid/callback"),
+                ("code_verifier", &handoff_verifier),
+            ],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    secrets.extend([
+        r.json()["access_token"]
+            .as_str()
+            .expect("access")
+            .to_string(),
+        r.json()["refresh_token"]
+            .as_str()
+            .expect("refresh")
+            .to_string(),
+    ]);
+
     // The account page (handlers/account.rs): the page, a refused and an accepted password change,
     // an address added, then the password changed back through the API with a fresh token, since a
     // change signs every session out.
@@ -1041,6 +1116,7 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         "/oauth/token",
         "/oauth/userinfo",
         "/oauth/revoke",
+        "/api/v1/oauth/handoff",
         "/account/password",
         "/account/email",
         "/api/v1/profile/password",

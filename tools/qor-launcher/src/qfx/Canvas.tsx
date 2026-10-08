@@ -309,7 +309,11 @@ float gridSDF(vec2 p, float scale) {
 }
 
 void main() {
+  // Square cells at any aspect ratio: x is measured in heights, as y is.
+  float aspect = u_resolution.x / u_resolution.y;
   vec2 uv = gl_FragCoord.xy / u_resolution;
+  uv.x *= aspect;
+  vec2 pointer = vec2(u_pointer.x * aspect, u_pointer.y);
 
   float gridScale = 6.0 + clamp(u_level / 25.0, 0.0, 3.0) * 2.0;
   float t = u_time * 0.08;
@@ -321,11 +325,12 @@ void main() {
   warp.y = cos(uv.x * 2.7 - t * 0.7) * warpAmt;
   vec2 warped = uv + warp;
 
-  // Pointer distortion: mesh bends toward pointer.
-  float dp = distance(uv, u_pointer);
-  float distortStrength = 0.06 * exp(-dp * dp * 10.0);
-  vec2 toPtr = normalize(u_pointer - uv + vec2(0.0001));
-  warped += toPtr * distortStrength;
+  // The pointer draws the mesh toward it, like a lens. The pull is proportional
+  // to the distance, so it is zero at the pointer and smooth everywhere, and
+  // never strong enough to fold a line over itself (a pull along a unit vector
+  // tied the lines into a knot under the pointer).
+  vec2 toPointer = pointer - uv;
+  warped += toPointer * 0.45 * exp(-dot(toPointer, toPointer) * 10.0);
 
   // SDF distance to nearest grid line.
   float d = gridSDF(warped, gridScale);
@@ -352,8 +357,12 @@ void main() {
 }`;
 
 // ─── Starfield ────────────────────────────────────────────────────────────────
-// Two depth planes of stars (different parallax speeds). Hash-seeded positions,
-// twinkling via time-offset per star. Pointer brightens nearby stars.
+// Three depth planes of stars drifting at different speeds, twinkling, brighter
+// near the pointer. One possible star per grid cell, and each pixel looks at its
+// own cell only, so the cost does not grow with the number of stars: the first
+// version looped over every star for every pixel, and CI's software renderer
+// drew it at 11 frames a second. Round stars at any aspect ratio; the level
+// fills the sky.
 
 const FRAGMENT_STARFIELD = `#version 300 es
 precision mediump float;
@@ -368,50 +377,48 @@ uniform float u_level;
 
 out vec4 outColour;
 
-vec2 hash2(float n) {
-  return fract(vec2(sin(n * 127.1) * 43758.5453,
-                    cos(n * 311.7) * 31415.9265));
+// A hash with no sin: the same on every GPU, and cheap in software.
+vec2 hash22(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.xx + p3.yz) * p3.zy);
 }
 
-// Render a single star layer. layerSpeed controls parallax.
-float starLayer(vec2 uv, float layerSpeed, float layerSeed, int count) {
-  float brightness = 0.0;
-  for (int i = 0; i < 32; i++) {
-    if (i >= count) break;
-    float fi = float(i);
-    vec2 pos = hash2(fi * 1.61 + layerSeed);
-    // Parallax drift.
-    pos.x = fract(pos.x + u_time * layerSpeed * 0.008);
-    pos.y = fract(pos.y + u_time * layerSpeed * 0.003);
-    // Twinkle: per-star phase offset.
-    float twinkle = 0.7 + 0.3 * sin(u_time * 2.0 + fi * 6.28);
-    float sz = 0.002 + hash2(fi * 7.3 + layerSeed).x * 0.004;
-    float d = distance(uv, pos);
-    brightness += twinkle * exp(-d * d / (sz * sz));
-  }
-  return brightness;
+// One plane of stars: at most one star in each cell of a grid, kept to the
+// middle of its cell so its light never reaches a neighbour. A pixel therefore
+// looks at its own cell only: two hashes and one sine, whatever the star count.
+float starLayer(vec2 p, float density, float sizeScale, float seed) {
+  vec2 cell = floor(p);
+  vec2 h = hash22(cell + seed);
+  if (h.x > density) return 0.0;
+  vec2 star = 0.25 + 0.5 * hash22(cell + seed + 17.0);
+  vec2 d = fract(p) - star;
+  float size = (0.03 + 0.045 * h.y) * sizeScale;
+  float twinkle = 0.65 + 0.35 * sin(u_time * (1.2 + 2.0 * h.y) + h.x * 40.0);
+  float falloff = max(0.0, 1.0 - dot(d, d) / (9.0 * size * size));
+  return twinkle * falloff * falloff * falloff;
 }
 
 void main() {
   vec2 uv = gl_FragCoord.xy / u_resolution;
+  float aspect = u_resolution.x / u_resolution.y;
+  vec2 p = vec2(uv.x * aspect, uv.y);
 
-  int nearCount  = 18;
-  int farCount   = 24;
-  if (u_level > 25.0) { nearCount = 22; farCount = 28; }
-  if (u_level > 50.0) { nearCount = 28; farCount = 32; }
+  // The share of cells that hold a star: the sky fills as the level rises.
+  float density = 0.55 + 0.3 * clamp(u_level / 50.0, 0.0, 1.0);
 
-  // Near layer: brighter, faster parallax.
-  float near = starLayer(uv, 0.9, 0.0, nearCount);
-  // Far layer: dimmer, slower parallax.
-  float far  = starLayer(uv, 0.3, 100.0, farCount) * 0.45;
+  vec2 drift = vec2(u_time * 0.006, u_time * 0.002);
+  float near = starLayer((p + drift) * 9.0, density, 1.0, 0.0);
+  float mid = starLayer((p + drift * 0.6) * 15.0, density, 0.9, 53.0) * 0.7;
+  float far = starLayer((p + drift * 0.35) * 26.0, density, 0.8, 91.0) * 0.45;
 
-  float stars = near + far;
+  // The pointer brightens the stars around it.
+  vec2 pointer = vec2(u_pointer.x * aspect, u_pointer.y);
+  float dp = distance(p, pointer);
+  float boost = exp(-dp * dp * 14.0);
 
-  // Pointer brightens the nearest cluster.
-  float dp = distance(uv, u_pointer);
-  float boost = exp(-dp * dp * 14.0) * 0.7;
-  stars = clamp((stars + boost) * u_amplitude, 0.0, 1.0);
-
+  float stars = (near + mid + far) * (1.0 + boost * 1.5) + boost * 0.25;
+  stars = clamp(stars * u_amplitude, 0.0, 1.0);
   outColour = vec4(mix(u_base, u_accent, stars), 1.0);
 }`;
 
@@ -433,33 +440,50 @@ uniform float u_level;
 
 out vec4 outColour;
 
-vec2 hash2(vec2 p) {
-  return fract(vec2(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453,
-                    sin(dot(p, vec2(269.5, 183.3))) * 43758.5453));
+// A hash with no sin: the same on every GPU, and cheap in software.
+vec2 hash22(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.xx + p3.yz) * p3.zy);
 }
 
-// Animated Voronoi: returns (dist_to_nearest, dist_to_2nd_nearest).
+// A smooth back-and-forth from -1 to 1 with no sin: a triangle wave, eased.
+vec2 sway(vec2 x) {
+  vec2 t = abs(fract(x) - 0.5) * 2.0;
+  return (t * t * (3.0 - 2.0 * t)) * 2.0 - 1.0;
+}
+
+// Where a cell's centre is now: inside its own cell, drifting on a slow path.
+vec2 centre(vec2 cellId) {
+  vec2 seed = hash22(cellId);
+  return 0.2 + 0.6 * seed + 0.18 * sway(seed + u_time * 0.02 * (0.6 + seed * 0.5));
+}
+
+// Animated Voronoi: (distance to the nearest centre, distance to the border
+// between the two nearest cells). The border is measured to the bisector of
+// the two nearest centres, so it has the same width everywhere (the difference
+// of the two distances, used first, swelled into bright wedges), and in one
+// pass over the nine cells.
 vec2 voronoi(vec2 uv, float scale) {
   vec2 p = uv * scale;
   vec2 i = floor(p);
   vec2 f = fract(p);
 
-  float d1 = 9.9, d2 = 9.9;
+  vec2 r1 = vec2(9.9);
+  vec2 r2 = vec2(9.9);
+  float d1 = 99.0;
+  float d2 = 99.0;
   for (int y = -1; y <= 1; y++) {
     for (int x = -1; x <= 1; x++) {
-      vec2 neighbour = vec2(float(x), float(y));
-      vec2 cellId = i + neighbour;
-      vec2 seed = hash2(cellId);
-      // Each cell centre drifts on its own slow path.
-      float t = u_time * 0.12;
-      vec2 motion = 0.38 * sin(seed * 6.2831 + t * (0.6 + seed * 0.5));
-      vec2 cellPos = neighbour + seed + motion - f;
-      float d = dot(cellPos, cellPos);
-      if (d < d1) { d2 = d1; d1 = d; }
-      else if (d < d2) { d2 = d; }
+      vec2 o = vec2(float(x), float(y));
+      vec2 r = o + centre(i + o) - f;
+      float d = dot(r, r);
+      if (d < d1) { d2 = d1; r2 = r1; d1 = d; r1 = r; }
+      else if (d < d2) { d2 = d; r2 = r; }
     }
   }
-  return vec2(sqrt(d1), sqrt(d2));
+  float border = dot(0.5 * (r1 + r2), normalize(r2 - r1));
+  return vec2(sqrt(d1), border);
 }
 
 void main() {
@@ -467,19 +491,19 @@ void main() {
 
   float cellScale = 3.5 + clamp(u_level / 33.0, 0.0, 2.0);
 
-  // Pointer surface-tension ripple: radial sine wave emanating from pointer.
-  float dp = distance(uv, u_pointer);
-  vec2 rippleUV = uv;
-  rippleUV += normalize(uv - u_pointer + vec2(0.0001))
-              * sin(dp * 22.0 - u_time * 4.0)
-              * exp(-dp * 7.0) * 0.025;
+  // Pointer surface-tension ripple: a radial wave from the pointer. Its push is
+  // proportional to the distance, so it is smooth through the pointer itself
+  // (a push along a unit vector tore the cells there).
+  vec2 fromPointer = uv - u_pointer;
+  float dp = length(fromPointer);
+  vec2 rippleUV = uv + fromPointer * sin(dp * 22.0 - u_time * 4.0) * exp(-dp * 7.0) * 0.18;
 
   vec2 vd = voronoi(rippleUV, cellScale);
   float nearest = vd.x;
-  float secondNearest = vd.y;
+  float border = vd.y;
 
-  // Edge glow: bright at cell boundaries (where nearest ≈ secondNearest).
-  float edge = 1.0 - smoothstep(0.0, 0.08, secondNearest - nearest);
+  // Edge glow: bright along cell borders, the same width everywhere.
+  float edge = 1.0 - smoothstep(0.0, 0.05, border);
   // Interior shimmer: faint variation across the cell face.
   float interior = smoothstep(0.4, 0.0, nearest) * 0.35;
   // Iridescent shift based on cell distance (creates colour variance feel).
@@ -490,7 +514,7 @@ void main() {
   // Level 51+: wider, more luminous edges.
   if (u_level > 50.0) {
     float lv = clamp((u_level - 50.0) / 50.0, 0.0, 1.0);
-    float wideEdge = 1.0 - smoothstep(0.0, 0.14, secondNearest - nearest);
+    float wideEdge = 1.0 - smoothstep(0.0, 0.1, border);
     field = clamp(mix(field, field + wideEdge * 0.3, lv * 0.5), 0.0, 1.0);
   }
 

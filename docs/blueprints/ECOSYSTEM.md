@@ -56,7 +56,7 @@ nothing else below exists.
 
 | Product | What it is, in one sentence | Built on | First dependency |
 | --- | --- | --- | --- |
-| **QOR Engine** | A game and scene engine that is a custom Godot build tracking upstream, with QOR's additions as modules and editor plugins | **Godot 4.6+, MIT.** Not a fork, not from scratch. Rust additions via `gdext` | None for the build itself. **M4** for DRC-369 assets as live nodes; **M8** for delivery |
+| **QOR Engine (QQ)** | An engine for virtual worlds and experiences: a native QQ Studio, a QQ Player for the launcher and ARQADE's browser, and an agent that designs and builds (ADR-081, ADR-083). The Godot build first planned here is withdrawn | **Qt 6** (C++20, QML, Qt Quick 3D and Physics) under the owner's commercial licence; WebAssembly for the browser | Qt installed on the development machine. **M4** for Cartridges and collectibles; **M8** for delivery |
 | **Qontrol** | Version control for creative work: git-compatible on disk, with large binaries, typed merges and publish-as-provenance | **gitoxide** for every read path; **libgit2 in a sidecar process** for stage and write-tree only; both behind Qontrol's own interface | None for local history — **the Projects surface and the sidecar are built** (`5a44207`): open, scaffold, status, log, branches, commit. Publish → mint is **built with M4.1** (22 September 2026); **M4.2** for fork → remix provenance; **M8** for any remote |
 | **GNOSIS** | Music and audio production whose project format is a mergeable tree rather than one opaque binary file | CPAL, Symphonia, CLAP first via `clack-host`; the format is the new part | **Qontrol** (the format's payload is Qontrol's). **M4/M6** for settlement |
 | **QFX** | The launcher's living visual layer, authored by creators and paid for when used: a backdrop, a binding to the chrome, and a scene editor | WebGL2 in the existing webview for layers 1–2; layer 3 is an **editor plugin in the QOR Engine custom build**, not a second tool | **Layer one is built** (`75b2ead`): one WebGL2 backdrop, the Ambience setting, and the chrome's contrast guarantee. ADR-051 was accepted on 22 September 2026; since ADR-080 (6 October 2026) effects are allowed on every surface, so QFX needs no exemption from the design checks. Layers two and three are P2.4 to P2.6. **M4** for theme identity |
@@ -106,7 +106,7 @@ honest shape of every path in this ecosystem.
 ### A theme author
 
 1. Same QOR ID, same launcher.
-2. She builds a scene in **QFX's editor**, which is an editor plugin in the QOR Engine custom build.
+2. She builds a scene in **QFX's editor** (P2.6), the same scene tooling QQ Studio uses.
    There is no second scene tool to learn and no second scene format to export.
 3. She versions it in **Qontrol**. The scene is text, so it diffs — and a **preset is literally a diff
    against a named parent**, which makes it the cleanest demonstration of remix royalties anywhere in
@@ -179,8 +179,8 @@ Checked against the tree on 6 October 2026.
 | Thing | State |
 | --- | --- |
 | **The chain** (`chain/`) | Real. Aura produces, GRANDPA finalises, the validator set comes from governance. 150 workspace tests, with the wasm built (4 October 2026). **It moves CGT between accounts, mints DRC-369 assets (M4.1), sells them with royalties settled in CGT (ADR-061), nests them (ADR-065), and holds each published game's ARQ Wallet (ADR-070).** Demiurge Devnet is live at `wss://rpc.qorsync.dev`, two validators and an RPC node on Railway (ADR-068), at `spec_version` 8. No fees, no issuance, no treasury |
-| **QOR ID** (`services/qor-auth/`) | Real, and live at `https://id.qorsync.dev`, deployed from `main`. Password and key sign-in, sessions, email verification and reset, agent registration, sign-in for other apps by OAuth 2.1 with PKCE (ADR-073), unique names (ADR-075), levels, XP and tasks (ADR-078), and avatars (ADR-079). 166 tests against real Postgres and Redis (6 October 2026) |
-| **The launcher** (`tools/qor-launcher/`) | Real, version 0.1.8, unsigned and with no update channel. Vault with its key in the OS keychain (ADR-056), QOR ID sign-in by key, transfers, mints, Inventory, trade, sell and buy, the Market screen, the Projects surface with Mint, gates dashboard, themes, the QFX backdrop, `qor://pay` approved in the host dialog (ADR-076, ADR-077), and the level bubble and XP bar; on the working tree since 8 October 2026, QQ's first slice (P3.1), ARQADE in a window of its own and six backdrops. 218 Rust tests and ten browser checks on 8 October 2026 (accessibility's one known flaky case aside) |
+| **QOR ID** (`services/qor-auth/`) | Real, and live at `https://id.qorsync.dev`, deployed from `main`. Password and key sign-in, sessions, email verification and reset, agent registration, sign-in for other apps by OAuth 2.1 with PKCE (ADR-073), unique names (ADR-075), levels, XP and tasks (ADR-078), and avatars (ADR-079). 172 tests against real Postgres and Redis (8 October 2026) |
+| **The launcher** (`tools/qor-launcher/`) | Real, version 0.1.8, unsigned and with no update channel. Vault with its key in the OS keychain (ADR-056), QOR ID sign-in by key, transfers, mints, Inventory, trade, sell and buy, the Market screen, the Projects surface with Mint, gates dashboard, themes, the QFX backdrop, `qor://pay` approved in the host dialog (ADR-076, ADR-077), and the level bubble and XP bar; in pull request #17 since 8 October 2026, QQ's TypeScript preview, ARQADE in a window of its own signed in with the launcher's session, and six backdrops. 221 Rust tests and ten browser checks, all passing on 8 October 2026 |
 | **CGT** | The unit is real: 18 decimals, 1 CGT = 10^18 Sparks. **Supply, issuance, fees and treasury all need numbers nobody has decided** |
 | **DRC-369** | **M4.1 done, 22 September 2026.** `pallet-drc369` over `pallet-nfts`: mint with a content reference and a pinned commit, revise, make permanent, owner enumeration. **M4.2's royalty and nesting halves are built:** royalties and a sale settled in CGT (`pallet-drc369-royalties`, ADR-061) and nesting (ADR-065). State and XP, and physics, are not started |
 | **The Mesh** | **M8. Unstarted.** Blocked on U-6 |
@@ -195,9 +195,9 @@ One founder with an agent. "Reused" means somebody else already built it and it 
 
 **Within about three months, with no chain milestone at all:**
 Qontrol's first slice — gitoxide reads, a libgit2 sidecar for stage and write-tree, scaffolds, local
-history, local advisory locks, no remote. A rebranded Godot 4.6 build on Windows, Linux and macOS,
-launched beside the launcher rather than inside it, with a Rust GDExtension exposing read-only QOR ID
-identity and glTF/FBX proven in and out. GNOSIS's project-tree format — the specification, a
+history, local advisory locks, no remote. QQ Studio on Qt 6 (ADR-083): a 3D viewport with a glTF model,
+QML scenes in Qontrol, launched from the launcher, then worlds that play and an agent that builds them.
+GNOSIS's project-tree format — the specification, a
 deterministic writer, a round-trip reader, a typed merge driver and a merge test suite — plus device
 I/O, decode, transport and a basic mixer. QFX's contrast guarantee, tier ladder and
 reduced-motion-by-ownership against a placeholder shader, *after* the ADR. The local SDK and the
@@ -205,8 +205,8 @@ app-host's socket, spawn tokens and peer credentials.
 
 **Within about twelve months:**
 CLAP hosting done *correctly* (loading a plugin and hearing it is weeks; correct is a year), plugin GUI
-embedding, VST3 and AU. The QFX theme package format with host-side shader validation. A QOR Engine
-editor build carrying Demiurge panels, and a `.tscn` semantic merge driver in CI. Publish → DRC-369
+embedding, VST3 and AU. The QFX theme package format with host-side shader validation. QQ Studio on
+Qt with its agent (P3.1 to P3.3), and its QML scenes merged by Qontrol. Publish → DRC-369
 mint — **built with M4.1 on 22 September 2026** — and fork → remix provenance, whose chain half exists
 since 29 September 2026 (`derived_from` at mint, ADR-061) and whose launcher half does not. Delta patching, and C2PA
 manifests in exports.
@@ -221,12 +221,12 @@ under the webview. Consoles.
 - **Unity and Unreal: assets only.** glTF and USD interchange plus existing community migration tools.
   **Project round-trip is not achievable at any budget** — closed formats, closed source, and licence
   terms that forbid the product shape. Say this in public copy, not in a footnote.
-- **Godot's rendering is not Unreal's,** and that is fine, because fidelity parity is not the target.
-  QOR Engine competes on what Godot does not have: assets that are live, royalties that follow a
-  remix, delivery over the Mesh, agent rails in the editor, settlement at the moment of use.
-- **QOR Engine is a custom build tracking upstream**, with additions as modules and editor plugins —
-  never a hard fork. Godot is MIT, so a branded distribution is shippable. The trademark line is
-  **"QOR Engine, built on Godot"**, and nothing that implies endorsement.
+- **QQ's rendering is not Unreal's,** and that is fine, because fidelity parity is not the target.
+  QQ competes on what the big engines do not have: assets that are live, royalties that follow a
+  remix, an agent that designs and builds with the creator, delivery over the Mesh, settlement at the
+  moment of use.
+- **QQ is built on Qt 6** (ADR-083), under the owner's commercial licence. The Godot build first planned
+  here, and its promise that projects open in stock Godot, were withdrawn by ADR-081.
 - **GNOSIS in three months is not a DAW anyone finishes a record in.** It is the format plus a host.
   The format is the differentiator; the DAW is years.
 - **Qontrol is git-compatible on disk, not a hosting service.** After a commit through the split path,

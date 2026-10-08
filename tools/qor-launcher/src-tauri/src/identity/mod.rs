@@ -389,6 +389,29 @@ impl IdentityClient {
         .await
     }
 
+    /// Sign the person into an app with this session (DIRECTION P7.18). `authorize_url` is the QOR ID sign-in address
+    /// the app sent its window to; QOR ID checks it as its sign-in page would, issues the app's single-use code for it,
+    /// and answers with the app's own redirect, which is all that is returned. Refused for anyone not signed in.
+    pub async fn handoff(&self, authorize_url: &str) -> QorResult<String> {
+        let body = serde_json::json!({ "authorize_url": authorize_url });
+        let answer = self
+            .with_fresh_token(
+                |token| {
+                    self.http
+                        .post(self.url("oauth/handoff"))
+                        .bearer_auth(token)
+                        .json(&body)
+                        .send()
+                },
+                "oauth/handoff",
+            )
+            .await?;
+        answer["redirect"]
+            .as_str()
+            .map(str::to_owned)
+            .ok_or_else(|| QorError::Auth("QOR ID answered the sign-in without a redirect".into()))
+    }
+
     /// Send a request with the access token, and once more after a refresh if QOR ID says the token is spent.
     async fn with_fresh_token<F, Fut>(&self, send: F, context: &str) -> QorResult<serde_json::Value>
     where

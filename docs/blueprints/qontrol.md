@@ -176,7 +176,7 @@ the stems, so it can be made again. A stem cannot."* **The most dangerous rule i
 an ignore rule that drops recorded audio.** Ableton writes recordings into the project folder; Logic
 writes into `Audio Files/`. Those are never ignored: ignoring an audio folder destroys a take.
 
-**Game is Godot-first**, because QOR Engine is built on Godot and `.tscn` is the precedent: a text
+**Game is Godot-first** — written when QOR Engine was planned on Godot, a plan ADR-081 withdrew; QQ, the QOR Engine, keeps its scenes in the same `scenes/` folder (ADR-083), and `.tscn` is still the precedent: a text
 scene format that is diffable and mergeable, which is what makes a game project reviewable at all.
 **Unity and Unreal are named variants**, each needing a rule the ignore file cannot express — Unity's
 `.meta` files are always committed and Asset Serialization Mode must be Force Text, or nothing in the

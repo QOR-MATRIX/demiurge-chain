@@ -191,6 +191,11 @@ pub(crate) fn router(state: Arc<AppState>) -> Router {
         .route("/oauth/token", post(handlers::oauth::token))
         .route("/oauth/userinfo", get(handlers::oauth::userinfo))
         .route("/oauth/revoke", post(handlers::oauth::revoke))
+        // The launcher signs a person into an app it opened with its own session (P7.18): a person's own session only.
+        .route(
+            "/api/v1/oauth/handoff",
+            post(handlers::oauth::handoff).layer(from_fn(crate::middleware::auth::require_auth)),
+        )
         // Bounce and complaint reports from Resend, accepted only with a valid signature.
         .route("/api/v1/webhooks/resend", post(handlers::webhooks::resend))
         // Health endpoints

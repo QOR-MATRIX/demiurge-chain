@@ -9,6 +9,16 @@
 //! ARQADE itself and QOR ID (where its sign-in happens) stay in the window; a `qor://pay` link is handed to the same
 //! path a link from the browser takes, so it is checked, asked in the host dialog and paid there, with no round trip
 //! through the operating system; any other web address opens in the person's own browser; anything else is refused.
+//!
+//! **Signed in with the launcher's session.** When the launcher is signed in to QOR ID, the window opens at ARQADE's
+//! own sign-in, and the launcher stops the window on its way to QOR ID's sign-in page (`/oauth/authorize`). It sends
+//! that address to QOR ID with its own token (`/api/v1/oauth/handoff`), and loads in the window the redirect QOR ID
+//! answers with, which must land on ARQADE. The code in it is ARQADE's ordinary single-use code, bound to the PKCE
+//! challenge whose verifier only ARQADE holds, so nothing new travels in an address. Without a session, or if QOR ID
+//! refuses, the window loads QOR ID's page as it would have, and the person signs in there.
+
+use std::collections::HashSet;
+use std::sync::Arc;
 
 use tauri::Manager;
 use tauri::Url;
@@ -61,9 +71,91 @@ fn host_of(address: &str) -> Option<String> {
     Url::parse(address).ok()?.host_str().map(str::to_owned)
 }
 
+/// Whether `url` is QOR ID's sign-in page for an app, on the QOR ID the launcher uses: where the launcher can sign the
+/// person in with its own session instead.
+pub fn is_sign_in(url: &Url, qor_id_host: &str) -> bool {
+    url.scheme() == "https"
+        && url
+            .host_str()
+            .is_some_and(|h| h.eq_ignore_ascii_case(qor_id_host))
+        && url.path() == "/oauth/authorize"
+}
+
+/// Whether an address QOR ID answered a handoff with lands on ARQADE, over https. Anything else is not loaded.
+pub fn lands_on_arqade(redirect: &Url) -> bool {
+    redirect.scheme() == "https" && redirect.host_str() == host_of(ARQADE_URL).as_deref()
+}
+
+/// Where the window opens: at ARQADE's sign-in when the launcher is signed in, so the person arrives signed in.
+pub fn start_address(signed_in: bool) -> String {
+    if signed_in {
+        format!("{ARQADE_URL}api/auth/login")
+    } else {
+        ARQADE_URL.to_string()
+    }
+}
+
+/// What the window's guard knows: the hosts it may load, QOR ID's host, and the sign-in pages it should let load
+/// because the launcher could not sign the person in itself.
+#[derive(Clone)]
+struct Guard {
+    hosts: Vec<String>,
+    qor_id_host: Option<String>,
+    passed: Arc<parking_lot::Mutex<HashSet<String>>>,
+}
+
+fn signed_in(app: &tauri::AppHandle) -> bool {
+    app.try_state::<crate::AppState>()
+        .is_some_and(|state| state.identity.session().is_some())
+}
+
+/// Ask QOR ID to sign the person in for this sign-in page, then load where it says, if that is ARQADE. Otherwise the
+/// page itself loads, once.
+fn sign_in_with_session(
+    app: tauri::AppHandle,
+    passed: Arc<parking_lot::Mutex<HashSet<String>>>,
+    page: Url,
+) {
+    tauri::async_runtime::spawn(async move {
+        let answer = match app.try_state::<crate::AppState>() {
+            Some(state) => state.identity.handoff(page.as_str()).await,
+            None => Err(crate::error::QorError::NotAuthenticated),
+        };
+        let next = match answer.map(|r| Url::parse(&r)) {
+            Ok(Ok(redirect)) if lands_on_arqade(&redirect) => redirect,
+            other => {
+                if let Err(e) = other {
+                    tracing::info!("ARQADE's sign-in falls back to QOR ID's page: {e}");
+                }
+                passed.lock().insert(page.to_string());
+                page
+            }
+        };
+        if let Some(window) = app.get_webview_window(WINDOW) {
+            if let Err(e) = window.navigate(next) {
+                tracing::warn!("ARQADE's window could not be moved on from its sign-in: {e}");
+            }
+        }
+    });
+}
+
 /// Act on `url` for the ARQADE window: `true` when it should load there.
-fn follow(app: &tauri::AppHandle, hosts: &[String], url: &Url) -> bool {
-    let allowed: Vec<&str> = hosts.iter().map(String::as_str).collect();
+fn follow(app: &tauri::AppHandle, guard: &Guard, url: &Url) -> bool {
+    if guard
+        .qor_id_host
+        .as_deref()
+        .is_some_and(|qor| is_sign_in(url, qor))
+    {
+        // Let through once after the launcher could not sign the person in itself.
+        if guard.passed.lock().remove(url.as_str()) {
+            return true;
+        }
+        if signed_in(app) {
+            sign_in_with_session(app.clone(), guard.passed.clone(), url.clone());
+            return false;
+        }
+    }
+    let allowed: Vec<&str> = guard.hosts.iter().map(String::as_str).collect();
     match route(url, &allowed) {
         Route::Stay => true,
         Route::Pay => {
@@ -90,25 +182,29 @@ pub fn open(app: &tauri::AppHandle, auth_endpoint: &str) -> Result<(), String> {
         return Ok(());
     }
 
-    let start = Url::parse(ARQADE_URL).map_err(|e| e.to_string())?;
-    let hosts = allowed_hosts(auth_endpoint);
-    let (nav_app, nav_hosts) = (app.clone(), hosts.clone());
-    let (pop_app, pop_hosts) = (app.clone(), hosts);
+    let start = Url::parse(&start_address(signed_in(app))).map_err(|e| e.to_string())?;
+    let guard = Guard {
+        hosts: allowed_hosts(auth_endpoint),
+        qor_id_host: host_of(auth_endpoint),
+        passed: Arc::default(),
+    };
+    let (nav_app, nav_guard) = (app.clone(), guard.clone());
+    let (pop_app, pop_guard) = (app.clone(), guard);
 
     tauri::WebviewWindowBuilder::new(app, WINDOW, tauri::WebviewUrl::External(start))
         .title("ARQADE")
         .inner_size(1280.0, 820.0)
         .min_inner_size(880.0, 600.0)
-        .on_navigation(move |url| follow(&nav_app, &nav_hosts, url))
+        .on_navigation(move |url| follow(&nav_app, &nav_guard, url))
         // A page asking for a new window gets no window of the host's making: an address that may stay is still
         // opened in the browser, because a second ARQADE window would be a second, unguarded place to approve from.
         .on_new_window(move |url, _features| {
-            let allowed: Vec<&str> = pop_hosts.iter().map(String::as_str).collect();
+            let allowed: Vec<&str> = pop_guard.hosts.iter().map(String::as_str).collect();
             if route(&url, &allowed) == Route::Stay {
                 use tauri_plugin_opener::OpenerExt;
                 let _ = pop_app.opener().open_url(url.as_str(), None::<&str>);
             } else {
-                follow(&pop_app, &pop_hosts, &url);
+                follow(&pop_app, &pop_guard, &url);
             }
             tauri::webview::NewWindowResponse::Deny
         })
@@ -171,6 +267,58 @@ mod tests {
         ] {
             assert_eq!(at(address), Route::Refuse, "{address}");
         }
+    }
+
+    #[test]
+    fn qor_id_s_sign_in_page_is_recognised_only_on_the_qor_id_in_use() {
+        let at = |a: &str| Url::parse(a).expect("a URL");
+        let host = "id.qorsync.dev";
+        assert!(is_sign_in(
+            &at("https://id.qorsync.dev/oauth/authorize?client_id=arqade"),
+            host
+        ));
+        assert!(is_sign_in(
+            &at("https://ID.qorsync.dev/oauth/authorize"),
+            host
+        ));
+        assert!(!is_sign_in(&at("https://id.qorsync.dev/account"), host));
+        assert!(!is_sign_in(
+            &at("https://id.qorsync.dev/oauth/authorize/x"),
+            host
+        ));
+        assert!(!is_sign_in(
+            &at("https://evil.example/oauth/authorize"),
+            host
+        ));
+        assert!(!is_sign_in(
+            &at("http://id.qorsync.dev/oauth/authorize"),
+            host
+        ));
+    }
+
+    #[test]
+    fn only_a_redirect_to_arqade_over_https_is_loaded_after_a_handoff() {
+        let at = |a: &str| Url::parse(a).expect("a URL");
+        assert!(lands_on_arqade(&at(
+            "https://qor-arqade-tau.vercel.app/api/auth/callback?code=c&state=s"
+        )));
+        assert!(!lands_on_arqade(&at(
+            "http://qor-arqade-tau.vercel.app/api/auth/callback"
+        )));
+        assert!(!lands_on_arqade(&at(
+            "https://qor-arqade-tau.vercel.app.example.com/api/auth/callback"
+        )));
+        assert!(!lands_on_arqade(&at("https://id.qorsync.dev/account")));
+        assert!(!lands_on_arqade(&at("qor://pay?r=00&s=00")));
+    }
+
+    #[test]
+    fn a_signed_in_launcher_opens_arqade_at_its_sign_in() {
+        assert_eq!(
+            start_address(true),
+            "https://qor-arqade-tau.vercel.app/api/auth/login"
+        );
+        assert_eq!(start_address(false), "https://qor-arqade-tau.vercel.app/");
     }
 
     #[test]

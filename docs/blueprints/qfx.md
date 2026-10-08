@@ -14,7 +14,7 @@ QFX is the part of Demiurge that lets a creator author how the software itself l
 
 - **The few who write the look.** Shader writers, motion designers, and people who already make demoscene or TouchDesigner work. They author scenes and motion sets.
 - **The many who tune it.** Everybody else, working entirely through sliders over parameters the scene's author chose to expose. A tuned result is publishable on its own terms, as a preset. This is the majority path and it is a success, not a shortfall.
-- **Godot creators.** Layer three is a scene editor plugin inside QOR Engine, built on Godot, so a person who already works in `.tscn` is already an author here.
+- **Engine creators.** Layer three is a scene editor inside QQ Studio, the QOR Engine (ADR-083: Qt 6, scenes in QML), so a person who builds worlds in QQ is already an author here.
 - **Everyone who opens the launcher.** They get the default look, unchanged, and one switch that turns all of this off.
 
 ## The foundation, and why
@@ -25,7 +25,7 @@ ADR-001 says to build on proven foundations wherever failure is silent, and to i
 | --- | --- | --- |
 | **1. Canvas** | **WebGL2, one fragment stage, one canvas as a sibling behind `#qor-root` in the existing webview.** | **WebGPU:** absent from WebKitGTK entirely, uncontracted in WebView2, macOS 26+ only in WKWebView. It cannot be a baseline on two of three platforms. **A second always-behind transparent window:** macOS transparency needs `macOSPrivateApi`, which forecloses the App Store; Windows transparency in Tauri 2 is reported broken; two windows never move or resize atomically, so dragging the launcher shows the chrome sliding off its own backdrop. **A native `wgpu` surface under a transparent webview:** technically the best answer and beyond twelve months — it needs per-platform window internals Tauri does not expose and collides with `unsafe_code = "forbid"` in `src-tauri/Cargo.toml`. |
 | **2. Binding** | **The CSS cascade the launcher already uses.** Themes write one rule on `:root[data-theme]`; the accessibility overrides sit outside every cascade layer and therefore outrank any theme; reduced motion is `!important` inside `@layer base`, which beats `!important` in every later layer. | Inline custom properties on `<html>`. The repository already made that mistake once and wrote down the result: contrast settings changed nothing, because nothing could outrank an inline property. |
-| **3. Scene editor** | **QOR Engine, built on Godot** — a custom build tracking upstream, with the QFX scene editor as an **editor plugin in that build**, never a second tool and never a hard fork. | Writing a scene editor is a three-to-five person-year project. Doing it when an MIT one exists is the clearest ADR-001 violation available: a silent-failure subsystem with no differentiation. Godot is MIT, so a branded distribution is shippable. Never imply endorsement. |
+| **3. Scene editor** | **QQ Studio, the QOR Engine** (ADR-083: Qt 6, Qt Quick 3D, scenes in QML), with the QFX scene editor **inside the Studio**, never a second tool. *First planned as a plugin in a custom Godot build; that plan was withdrawn by ADR-081.* | A scene editor is written once, in QQ, and QFX uses it rather than building its own. |
 | **Scene format** | **`.tscn` is the precedent, and the requirement.** Text, diffable, mergeable — therefore hashable, therefore mintable under DRC-369 and versionable by Qontrol without inventing a format. GNOSIS's project format takes the same three properties as a requirement and cites the same precedent, so this is one decision across two products. | A binary scene container. It cannot be reviewed, cannot be merged, and turns a remix into an opaque blob instead of a readable diff. |
 | **Shader validation** | **`naga`, in the Rust host, before a shader reaches the webview.** It gives a typed IR to walk: reject unbounded loops, dynamic indexing without bounds, undeclared uniforms, calls past a small depth. | Regex-scanning GLSL text. A shader with an input-dependent `while` across two million pixels is a GPU denial of service; on Windows the driver reset blanks every accelerated window on the machine. `naga` is a correctness checker, not a security boundary — so it is layer one of four, not the answer. |
 | **Contrast model** | **WCAG 2.x, 4.5:1, as the gate.** Deterministic, closed-form, already what the accessibility panel reasons in. | APCA. WCAG 3 is a Working Draft and its contrast algorithm is still undetermined as of April 2026. Gating a release criterion on an unsettled method is indefensible. APCA Lc is computed as an advisory second opinion in the same report. |
@@ -178,9 +178,9 @@ One package, one asset, and **text, diffable, mergeable** — the same requireme
 
 ### Phase 3 — Layer three: the personal space
 
-*Authoring path:* **the scene editor, as an editor plugin in the QOR Engine custom build.** Not a second tool, not a separate download, not a webview reimplementation. A scene is a `.tscn` — text, diffable, mergeable — so it is reviewable, hashable, mintable and versionable without inventing anything, and GNOSIS's project format holds itself to the same rule. A QFX layer-one scene becomes a *leaf* in that graph rather than a competing format, which is the reason layers one and two are built as a DAG of typed nodes with a declared parameter surface from day one: if the engine work slips, nothing was wasted.
+*Authoring path:* **the scene editor, inside QQ Studio** (ADR-083; the Godot plugin first written here is withdrawn). Not a second tool, not a separate download, not a webview reimplementation. A scene is QML — text, diffable, mergeable — so it is reviewable, hashable, mintable and versionable without inventing anything, and GNOSIS's project format holds itself to the same rule. A QFX layer-one scene becomes a *leaf* in that graph rather than a competing format, which is the reason layers one and two are built as a DAG of typed nodes with a declared parameter surface from day one: if the engine work slips, nothing was wasted.
 
-*Needs from layer one and two:* both, plus scene composition (nesting). *From QOR Engine:* the custom build, the Rust GDExtension bridge exposing the QOR ID session and vault-mediated signing, and the embedding path. Two hard constraints, stated once: the first shippable integration is a **child or sibling OS window**, not an in-webview canvas; and the engine instance, which executes project content, **is never inside the vault's trust boundary** — Godot's own editor already runs the game out of process, and QOR Engine copies that posture. *From the chain:* DRC-369 for identity, ownership and remix royalty (M4); the Mesh for the payload (M8); CGT settlement with the fee class open (OPEN-4).
+*Needs from layer one and two:* both, plus scene composition (nesting). *From QOR Engine (QQ Studio, ADR-083):* the Studio, the QOR ID session, and signing asked of the launcher's vault over the local channel the launcher opens. Two hard constraints, stated once: the first shippable integration is a **child or sibling OS window**, not an in-webview canvas; and the engine instance, which executes project content, **is never inside the vault's trust boundary** — QQ Studio is its own process, started by the launcher, and holds no key. *From the chain:* DRC-369 for identity, ownership and remix royalty (M4); the Mesh for the payload (M8); CGT settlement with the fee class open (OPEN-4).
 
 ## Honest feasibility
 
@@ -193,7 +193,7 @@ One founder and an agent, working sequentially. Where the research says two piec
 | Token-swap theming, the `:root[data-theme]` rule, cascade-layer discipline, accessibility overrides that outrank themes | `src/styles/themes.ts`, `src/lib/a11y.ts`, `src/styles/qor.css` |
 | The headless CDP check harness — contrast probes, media emulation, driving the built app in a real rendering engine | `scripts/check-accessibility.mjs`; add screenshot capture and a frame-callback counter |
 | Tauri IPC, the capability model, the host-owns-privilege posture | `src-tauri/capabilities/default.json` |
-| Godot: the editor, the scene format, the out-of-process posture, the MIT licence | Upstream, tracked, never forked |
+| Qt 6 (ADR-083): Qt Quick 3D, QML as the scene format, the Studio as its own process | Under the owner's commercial licence |
 | `naga` as a GLSL front end; `pallet-nfts` under DRC-369; gitoxide and libgit2 under Qontrol | Upstream crates, and decisions already taken |
 
 ### What is new, and when
@@ -240,7 +240,7 @@ These are estimates, not commitments. What is not an estimate: **CI runs** on Gi
 
 **It does not mean outside creators inside a year.** Within twelve months the scenes are ours and the creativity is in the tuning. A person writing a scene we did not write waits on the validator, and the validator is the serious engineering in this whole document.
 
-**It does not mean layer three has a date.** QOR Engine, built on Godot, is a real plan with a track (P3) and nothing on it started. Phase 3 is written down so that phases 1 and 2 are built in a shape that fits it — not because it is scheduled.
+**It does not mean layer three has a date.** QQ on Qt (ADR-083) is a real plan with a track (P3), waiting on Qt being installed. Phase 3 is written down so that phases 1 and 2 are built in a shape that fits it — not because it is scheduled.
 
 ## Risks
 

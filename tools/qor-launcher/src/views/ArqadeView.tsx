@@ -9,8 +9,10 @@
  * and QOR ID's sign-in stay in it, a `qor://pay` link goes straight to the host
  * dialog, and any other address opens in the browser.
  *
- * Not yet done (P7.18 stays open): ARQADE signs in through its own QOR ID
- * sign-in in that window, not with the launcher's session.
+ * Signed in with the launcher's session: when the launcher is signed in, the
+ * window opens at ARQADE's sign-in and the host completes it with QOR ID on the
+ * launcher's behalf (`/api/v1/oauth/handoff`), so the person arrives signed in.
+ * Otherwise QOR ID's own sign-in page shows in the window.
  */
 
 import { useState } from 'react';
@@ -18,11 +20,13 @@ import { ExternalLink, Gamepad2, Loader2 } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
 
 import { arqade, explain } from '../lib/ipc';
+import { useQor } from '../state/store';
 import { Panel, ViewHeader } from './parts';
 
 const ARQADE_URL = 'https://qor-arqade-tau.vercel.app';
 
 export function ArqadeView() {
+  const session = useQor((s) => s.session);
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,8 +55,11 @@ export function ArqadeView() {
             </p>
           </div>
           <p className="text-caption leading-snug text-ink-muted">
-            Sign in there with your QOR ID. When a game asks for a tip, the launcher shows you what is
-            asked and nothing is paid until you approve it.
+            {session
+              ? `You arrive signed in as ${session.username}, with the QOR ID this launcher uses.`
+              : 'Sign in there with your QOR ID, or sign in here first and arrive signed in.'}{' '}
+            When a game asks for a tip, the launcher shows you what is asked, and nothing is paid until you
+            approve it.
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" className="btn btn-primary" onClick={open} disabled={opening}>
