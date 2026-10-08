@@ -218,9 +218,9 @@ as written; [`HANDOFF.md`](../HANDOFF.md) §1 has anything later than this table
 | CGT on chain | 18 decimals, decided (ADR-035), with an existential deposit of 100 CGT (ADR-036). **`chain/` declares no total-supply constant at all**, because issuance is OPEN-1 and the genesis split is OPEN-2; the superseded 13 billion figure went with `framework/`, and left the launcher on 2026-09-20, which is the removal ADR-003 asks for by name: the launcher's ceiling on a typed amount is now named for what it is and is not a supply, and the Settings surface shows no total (`RECONCILIATION.md`, "Remediation since this audit"). No CGT fee is charged, and there is no path that creates CGT outside a development chain specification. The ticker is `CGT` (ADR-034), and `chain/` was written with it from the start, which is requirement R-4. |
 | Economic model | Decided in direction (ADR-002 to ADR-008). Rates, split, curve and burn shares are open. Nothing implemented. |
 | DRC-369 | **Built on chain.** `pallet-drc369` over `pallet-nfts` mints an asset carrying ADR-047's 41-byte content reference and its pinned commit, revises it until a one-way switch makes it permanent, creates one singles collection per creator, and lists what an owner holds, from storage and through a runtime API (M4.1, ADR-052, 2026-09-22). Only it can create an asset. Royalties, remix royalties one level deep and a sale settled in CGT since 2026-09-29 (`pallet-drc369-royalties`, ADR-061, ADR-062); nesting, with requirement R-2's cycle refusal, since 2026-10-01 (ADR-065). Its deposits are placeholders (U-14) and its weights are placeholders owed to M7.2. State and XP, physics, rental and fractions are not started. **The launcher** mints a Qontrol project's commit, lists what an account holds, trades, lists for sale, withdraws and buys (L4.2, L4.5, L4.6). The wire format is decided (ADR-047, accepted 2026-09-22, M2.3) and not yet frozen (`beta.wire-format-frozen`). |
-| QOR ID (`services/qor-auth`) | **Live at `https://id.qorsync.dev`**, deployed from `main` to Railway. Username and keypair sign-in with JWTs: Sr25519 keys, an account as SS58 or hex, and a password-only account with no chain identity until it proves a key (ADR-017, implemented with L3.2). Email verification, password reset and address change through Resend; single-use backup codes; an account page to change a password or add an email. Agents register their own keys and QOR ID only authorises them (ADR-014); capabilities and spend caps are recorded, not enforced (Q-9). Sign-in for apps by OAuth 2.1 with PKCE (ADR-073; ARQADE is registered); unique usernames (ADR-075); levels, XP, tasks and owed welcome grants (ADR-078, migration 020); avatars (ADR-079, migration 022). No token, key, link or address may reach a log at any level, checked at runtime and in CI, and no SQL statement may be built from values (`alpha.no-secrets-in-logs`, `alpha.parameterised-sql`). The §7.1 defects are fixed; what remains is named in SECURITY.md, among it that an access token alone can still register an agent (L5.1). 166 tests pass against Postgres 16 and Redis 7.4 (2026-10-06). |
-| QOR Launcher (`tools/qor-launcher`) | Version 0.1.8, unsigned, with no update channel (L6). A `subxt` client of `chain/` building every call from the metadata the node serves (ADR-040), with an Sr25519 vault and SS58 addresses (ADR-039); the vault's key is in the operating system's keychain and there is no lock screen (ADR-056). Built: Gate, Nexus, Vault, Inventory (assets as cards; trade, sell, withdraw and buy: L4.5, L4.6), Market (the listings on chain as the connected node reads them; no search, no indexer), Projects (Qontrol: P1.1, P1.2), Chain, Gates and Settings, with QFX layer one's backdrop (P2.1). `qor://pay` opens a signed payment request in the host dialog (ADR-076, ADR-077); the level bubble and XP bar show QOR ID progress (ADR-078); an avatar in a ring that glows from level 1, with upload, is on `main` after 0.1.8 and not yet in a build (ADR-079, ADR-080). Library, Social and Mesh are placeholder pages; Studio is an external tile; the Nexus still shows nine frozen-app tiles marked local or forming. 204 host tests pass (2026-10-06), and nine browser checks: design 3, accessibility 41, gates view 34, Projects 104, Inventory 238, Market 127, vault gate 65, contrast 54 and readability 361. CI runs all of them (L1.6). |
-| Products (P1 to P7) | Seven blueprints and six substrate records (ADR-046 to ADR-051), all accepted. **ARQADE is live** on Vercel at `https://qor-arqade-tau.vercel.app` since 2026-10-05 (ADR-074): QOR ID sign-in, solo games, two multiplayer games, rankings, chat, devnet reads, tips approved in the launcher (P7.4) and levels. Three first slices are built inside the launcher: Qontrol's Projects surface (P1.1, P1.2), QFX layer one (P2.1) and Market's first slice (P5.3, without the indexer). QOR Engine, GNOSIS and Stream have not started. |
+| QOR ID (`services/qor-auth`) | **Live at `https://id.qorsync.dev`**, deployed from `main` to Railway. Username and keypair sign-in with JWTs: Sr25519 keys, an account as SS58 or hex, and a password-only account with no chain identity until it proves a key (ADR-017, implemented with L3.2). Email verification, password reset and address change through Resend; single-use backup codes; an account page to change a password or add an email. Agents register their own keys and QOR ID only authorises them (ADR-014); capabilities and spend caps are recorded, not enforced (Q-9). Sign-in for apps by OAuth 2.1 with PKCE (ADR-073; ARQADE is registered); unique usernames (ADR-075); levels, XP, tasks and owed welcome grants (ADR-078, migration 020); avatars (ADR-079, migration 022); for the owner, the owed welcome grants listed and one marked paid against the hash of its transfer (admin routes, 8 October 2026; nothing pays them yet, P7.17). No token, key, link or address may reach a log at any level, checked at runtime and in CI, and no SQL statement may be built from values (`alpha.no-secrets-in-logs`, `alpha.parameterised-sql`). The §7.1 defects are fixed; what remains is named in SECURITY.md, among it that an access token alone can still register an agent (L5.1). 169 tests pass against Postgres 16 and Redis 7.4 (2026-10-08). |
+| QOR Launcher (`tools/qor-launcher`) | Version 0.1.8, unsigned, with no update channel (L6). A `subxt` client of `chain/` building every call from the metadata the node serves (ADR-040), with an Sr25519 vault and SS58 addresses (ADR-039); the vault's key is in the operating system's keychain and there is no lock screen (ADR-056). Built: Gate, Nexus, Vault, Inventory (assets as cards; trade, sell, withdraw and buy: L4.5, L4.6), Market (the listings on chain as the connected node reads them; no search, no indexer), Projects (Qontrol: P1.1, P1.2), Chain, Gates and Settings, with QFX layer one's backdrop (P2.1). `qor://pay` opens a signed payment request in the host dialog (ADR-076, ADR-077); the level bubble and XP bar show QOR ID progress (ADR-078); an avatar in a ring that glows from level 1, with upload, is on `main` after 0.1.8 and not yet in a build (ADR-079, ADR-080). On the working tree since 8 October 2026, not yet in a build: QQ (P3.1 built, not ticked), ARQADE opened in a window of its own (P7.18, partly), and six QFX backdrops to choose from. Library, Social and Mesh are placeholder pages; Studio is an external tile; the Nexus still shows nine frozen-app tiles marked local or forming. 218 host tests pass (2026-10-08), and ten browser checks: design 3, accessibility 41 (one known flaky case), gates view 34, Projects 104, Inventory 238, Market 127, QQ 41, vault gate 65, contrast 54 and readability 361. CI runs all of them (L1.6). |
+| Products (P1 to P7) | Seven blueprints and six substrate records (ADR-046 to ADR-051), all accepted. **ARQADE is live** on Vercel at `https://qor-arqade-tau.vercel.app` since 2026-10-05 (ADR-074): QOR ID sign-in, solo games, two multiplayer games, rankings, chat, devnet reads, tips approved in the launcher (P7.4) and levels. Four first slices are built inside the launcher: Qontrol's Projects surface (P1.1, P1.2), QFX layer one (P2.1, with six backdrops to choose from since 8 October 2026), Market's first slice (P5.3, without the indexer) and **QQ's first slice** (P3.1 built 8 October 2026, not yet ticked: a WebGL2 2D engine and editor whose scenes are versioned by Qontrol). ARQADE shows the player's QOR ID avatar since 8 October 2026. GNOSIS and Stream have not started. |
 | SDKs, web apps, CLI | Frozen. None produces a transaction the current node accepts. |
 | Agent rails, MCP server, public viewer, remote console | Not started. |
 | Production (`demiurge.cloud`, `rpc.demiurge.cloud`) | Offline. No production network exists; the public devnet is `wss://rpc.qorsync.dev`. |
@@ -820,6 +820,12 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
    through the app and counts frame callbacks (21 of its 34 checks). **It meets ADR-051 as the owner amended
    and accepted it on 22 September 2026**: only the built-in ambience runs behind the Gate, the scrim is the
    guarantee (0.90 since that day), the one-step budget is accepted for v0, and Still is the pause.
+
+   **Six backdrops since 8 October 2026** (asked for by the owner, HANDOFF §4 item 57): Drift (the first
+   one), Aurora, Nebula, Lattice, Starfield and Liquid, chosen under Settings, each reacting to the pointer
+   and growing richer with the QOR ID level. Ambience and reduced motion govern every one, and
+   `check-contrast.mjs` already covers any colour a backdrop could paint. **Measured as painted only for
+   Drift:** `check-readability.mjs` and `check-accessibility.mjs` draw the default.
 2. [ ] Layer one completed to its record (ADR-051): quality tiers and a governor within the accepted budget
    — at most 25% of the frame at the top tier, 15% at the lowest — capability detection by a timed calibration
    render, and the render-based checks: a white-shader fixture sampled behind text, flashes, and two
@@ -850,30 +856,42 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
    sets it, and the bytes come from the temporary content store until the Mesh (M8). **The model** is a glTF
    or GLB entry rendered in that same canvas, which is the 3D view the owner asked for.
 
-#### P3: QOR Engine (P3.1 depends on nothing)
+#### P3: QOR Engine / QQ (P3.1 depends on nothing)
 
-A creation tool that is a custom Godot build tracking upstream. [`blueprints/qor-engine.md`](blueprints/qor-engine.md).
+A TypeScript/WebGL2 game engine and editor embedded in the QOR Launcher's webview, running identically in
+ARQADE's browser. **QQ is QOR Engine (ADR-081, 6 October 2026); ADR-082 decides the architecture
+(7 October 2026).** Blueprint: [`blueprints/qq.md`](blueprints/qq.md).
 
-**Superseded by ADR-081 (6 October 2026): QQ is QOR Engine.** The Godot build below, its blueprint and the
-stock-Godot promise (P3.6) are withdrawn, and `GATES.toml` no longer requires
-`a_project_opens_in_stock_godot`. These six items stand, marked superseded, until QQ's work starts and they
-are rewritten as QQ's items; nothing is built against them.
+The superseded Godot plan is in the archived blueprint
+[`blueprints/qor-engine.md`](blueprints/qor-engine.md); do not build against it.
 
-1. [ ] The build exists: a lightly rebranded Godot build on Windows, macOS and Linux — "QOR Engine, built on
-   Godot", with an editor Godot's own documentation still describes — tracking the current stable 4.x line,
-   pinned exactly, with one rebase performed, and that line and the MIT attribution pinned by a test.
-2. [ ] Identity and versioning: QOR ID shown read-only in the editor through a Rust GDExtension; glTF and
-   FBX in and glTF out, proven on fixtures; the Qontrol panel; the engine launched from the launcher as a
-   separate process. Depends on P1.2 and on ADR-046.
-3. [ ] The scene as a Demiurge artifact: signing through the vault from the editor, DTCG themes, FLAC,
-   Opus and SMF, shader packages, and USD read (not written). Depends on L1.4.
-4. [ ] Assets are owned: DRC-369 assets as live nodes, nesting that creates a royalty relationship, and the
-   agent rails panel. Depends on M4.1, M4.2 and M5.2.
-5. [ ] Publishing and delivery over the Mesh, with settlement in the editor. Depends on M6.4, M8.1, M8.2
-   and M8.3.
-6. [ ] Every QOR Engine project opens in stock Godot of the tracked version, with QOR's nodes degrading
-   rather than failing without its additions — the owner's promise, 22 September 2026 — pinned by a test that
-   opens fixture projects in an unmodified build (`a_project_opens_in_stock_godot`). Depends on P3.1.
+1. [ ] The runtime and editor surface exist: a 2D WebGL2 renderer, a React editor surface in the launcher
+   (viewport + inspector), a scene authored and saved as a `.qq.json` file, and a Qontrol commit of that
+   file showing a meaningful text diff in Projects. Nothing is published or signed. Depends on ADR-082.
+
+   **Built 8 October 2026, not ticked.** `tools/qor-launcher/src/qq/`: a WebGL2 renderer drawing shapes as
+   signed-distance fields with glow, and particles additively; a deterministic world (motion, a pointer
+   follow, emitters); an editor surface on the rail (QQ) with a viewport where an entity is picked and
+   dragged, the scene's entities, an inspector for each component, Play, Stop and, under reduced motion, a
+   held frame with Step. A scene is saved through the host as `scenes/<name>.qq.json` in a Qontrol project,
+   in a canonical form (`src-tauri/src/qq.rs` checks the project, the name and the shape). **Evidence:**
+   `check-qq-view.mjs` (the `qor_engine` suite, in `npm run check` and CI), proven to fail by two planted
+   faults; the host's `qq::` tests; and `a_qq_scene_commits_and_one_changed_value_is_one_changed_line`, a
+   real commit through Qontrol after which one changed value is one removed and one added line in the
+   diff Projects draws. **Not yet:** the sprite ADR-082 decision 7 names for this milestone (an image read
+   from the project through the host), and a person using it in the running launcher window, both of which
+   come before the tick.
+2. [ ] 3D and glTF import: a perspective-projection renderer with PBR shading, glTF 2.0 import proven on
+   fixtures, a directional light, and bloom post-process. Depends on P3.1.
+3. [ ] Publishing a game: a "Publish" button commits the scene through Qontrol and mints it as a Cartridge
+   DRC-369 asset; the game bundle is a standalone JavaScript file. Depends on P3.2, M4.1 and L1.4's native
+   dialogs being exercised in a running launcher.
+4. [ ] ARQADE delivery: published games appear in ARQADE; pressing Play loads the QQ bundle in an iframe
+   with a QOR bridge injected. Depends on P3.3 and P7 (ARQADE running).
+5. [ ] Collectibles and agent generation: DRC-369 items as in-game collectibles; generative AI builds assets
+   from a description in the editor through the agent rails and MCP server. Depends on M4.2, M5.2 and M5.3.
+6. [ ] Mesh delivery and settlement: games delivered over the Mesh; in-game purchases settled in CGT; access
+   gating on paid collectibles. Depends on M6.4 and M8.
 
 #### P4: GNOSIS (P4.1 depends on nothing)
 
@@ -1044,8 +1062,18 @@ here sets an economic value; payouts are U-16.
 17. [ ] The welcome grant (ADR-078): 100 CGT once per new QOR ID when the tutorial, the email and a key are confirmed,
     from the Welcome account; test CGT on the devnet first. Real CGT depends on U-18 and the owner's legal review.
     **Owed grants are recorded** by QOR ID (6 October 2026); paying them from the Welcome account is not built.
+    Since 8 October 2026 the owner can list what is owed (`GET /api/v1/admin/grants/owed`: account, chain
+    account, amount; no email address) and mark one paid against the hash of its finalised transfer
+    (`POST /api/v1/admin/grants/{user_id}/mark-paid`, audited, refused for a grant already paid). Neither
+    moves CGT; the payer that holds the Welcome account's key is still to build.
 18. [ ] ARQADE inside the launcher (ADR-078 decision 5): a Play section, signed in with the launcher's QOR ID, payments
     approved in the host dialog. Depends on P7.4.
+    **Partly built, 8 October 2026:** ARQADE on the rail opens the site in a window of its own, made by the host
+    (`src-tauri/src/arqade.rs`) and given no capability, so its page cannot call the host. The host decides
+    every address it loads: ARQADE and QOR ID stay, a `qor://pay` link goes straight to the host dialog with no
+    round trip through the operating system, any other web address opens in the browser, anything else is
+    refused (five host tests). **Not yet:** signing in with the launcher's session (the window signs in through
+    QOR ID's own page), and a person using it in the running launcher.
 
 ## 8. Scope
 

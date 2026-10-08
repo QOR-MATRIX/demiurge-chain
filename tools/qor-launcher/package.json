@@ -13,7 +13,7 @@
     "app:build": "node scripts/build-helper.mjs && tauri build --config src-tauri/tauri.bundle.conf.json",
     "helper": "node scripts/build-helper.mjs",
     "icons": "python scripts/make_icons.py",
-    "check": "node scripts/check-design.mjs && node scripts/check-accessibility.mjs && node scripts/check-gates-view.mjs && node scripts/check-projects-view.mjs && node scripts/check-inventory-view.mjs && node scripts/check-market-view.mjs && node scripts/check-vault-gate.mjs && node scripts/check-contrast.mjs && node scripts/check-readability.mjs"
+    "check": "node scripts/check-design.mjs && node scripts/check-accessibility.mjs && node scripts/check-gates-view.mjs && node scripts/check-projects-view.mjs && node scripts/check-inventory-view.mjs && node scripts/check-market-view.mjs && node scripts/check-qq-view.mjs && node scripts/check-vault-gate.mjs && node scripts/check-contrast.mjs && node scripts/check-readability.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

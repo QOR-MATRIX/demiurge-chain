@@ -18,6 +18,8 @@ import { Rail } from './components/chrome/Rail';
 import { TitleBar } from './components/chrome/TitleBar';
 import type { Motion } from './lib/a11y';
 import { selectVaultUnlocked, useQor } from './state/store';
+import { QQView } from './qq/editor/QQView';
+import { ArqadeView } from './views/ArqadeView';
 import { ChainView } from './views/ChainView';
 import { GatesView } from './views/GatesView';
 import { Horizon } from './views/Horizon';
@@ -35,6 +37,8 @@ const SURFACE_LABELS: Record<string, string> = {
   vault: 'CGT Vault',
   inventory: 'Inventory and history',
   market: 'Market, what is for sale on chain',
+  qq: 'QQ, the QOR Engine',
+  arqade: 'ARQADE, games and collectibles',
   library: 'Library',
   social: 'Social',
   mesh: 'Mesh',
@@ -125,6 +129,8 @@ export function App() {
                     {surface === 'inventory' && <Inventory />}
                     {surface === 'market' && <Market />}
                     {surface === 'projects' && <Projects />}
+                    {surface === 'qq' && <QQView />}
+                    {surface === 'arqade' && <ArqadeView />}
                     {surface === 'chain' && <ChainView />}
                     {surface === 'gates' && <GatesView />}
                     {surface === 'settings' && <SettingsView />}

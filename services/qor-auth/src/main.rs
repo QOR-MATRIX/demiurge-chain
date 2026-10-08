@@ -362,6 +362,12 @@ fn admin_routes() -> Router<Arc<AppState>> {
         .route("/tokens/transfer", post(handlers::admin::transfer_tokens))
         .route("/tokens/refund", post(handlers::admin::refund_tokens))
         .route("/stats", get(handlers::admin::get_stats))
+        // Welcome grants (ADR-078 decision 7): what is owed, and recording one paid once its transfer is final.
+        .route("/grants/owed", get(handlers::admin::list_owed_grants))
+        .route(
+            "/grants/{user_id}/mark-paid",
+            post(handlers::admin::mark_grant_paid),
+        )
         .route("/avatar-reports", get(handlers::avatar::list_reports))
         .route(
             "/avatars/{hash}/remove",

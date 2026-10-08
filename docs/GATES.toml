@@ -716,6 +716,18 @@ change = "qor-engine.opens-in-stock-godot is removed from the qor-engine gate, a
 reason = "The criterion enforced one promise: that every QOR Engine project opens in stock Godot (P3.6, made a criterion on 2026-09-22). ADR-081 replaces the Godot foundation with QQ and withdraws that promise, so the criterion has nothing left to measure. It was unmeasurable (products/qor-engine does not exist), so no gate's counts of met or not_met move. The owner's decision is its own record, ADR-081, made before this change."
 approved_by = "owner, 2026-10-06: \"QQ becomes QOR Engine\" and \"Authorized to build by any means necessary to produce the results outlined\" (ADR-081)"
 
+[[change_log]]
+date = "2026-10-07"
+type = "tightening"
+change = "qor-engine gate rewritten for QQ (ADR-082, accepted under ADR-081's delegation). qor-engine.decisions now counts ADR-081 and ADR-082 beside the four substrate records. qor-engine.depends keeps every item it had and adds M5.3 (the MCP server QQ's agent generation needs). qor-engine gate name and means text updated. All six roadmap items P3.1 to P3.6 are rewritten in DIRECTION.md as QQ's items; the roadmap criterion is unchanged in form. The qor-engine.tests criterion and its suite id (qor_engine) are unchanged."
+reason = "Tightening: two more ADRs must be accepted before the gate can pass, one more roadmap item counted in depends, and none removed. A first draft of this change dropped P1.2 from depends as not a QQ dependency; that would have been a loosening, and it is wrong besides, because QQ saves its scenes through Qontrol (P1.2), so P1.2 stays. No unit becomes unmeasurable: both ADRs are already accepted, and M5.3 (the MCP server) was previously counted by no product gate -- a gap this change closes."
+
+[[change_log]]
+date = "2026-10-08"
+type = "tightening"
+change = "QQ's first suite. suites.qor_engine, which had no directory, is tools/qor-launcher running node scripts/check-qq-view.mjs (P3.1, ADR-082), so qor-engine.tests is measured instead of unmeasurable. The same check joins npm run check, so CI's launcher job runs ten checks, not nine ([ci].quality_gates updated). The criterion's kind, met condition and require list are unchanged."
+reason = "Adds a check to CI and gives a suite a directory; nothing is removed or relaxed. The criterion was unmeasurable only because no suite existed (its comment said so: 'Unmeasurable until tools/qor-launcher/src/qq/ has a runnable suite'); it is now judged by the same rule as every other tests unit, a run that exits 0. The check was proven to fail by two faults planted in QQ before it was trusted (its header)."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -760,7 +772,7 @@ quality_gates = [
   "chain/: cargo fmt --all --check; cargo clippy --workspace --all-targets -D warnings; cargo test --workspace --locked, WITHOUT SKIP_WASM_BUILD, which cannot build a chain specification and is never evidence. On Rust 1.98.1, pinned by chain/rust-toolchain.toml since 2026-10-04 (ADR-072)",
   "chain/: two validators agree, finalise and catch up. A job of its own, because it needs a release build with the sudo feature: cargo build -p demiurge-node --release --features sudo --locked, then node scripts/check-two-validators.mjs. It fails the run; criterion alpha.multi-validator reads it. Since 2026-09-21 it runs NIGHTLY (03:00 UTC) and on workflow_dispatch, not on every push",
   "services/qor-auth: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test -- --include-ignored, against a migrated Postgres 16 and a Redis 7.4",
-  "tools/qor-launcher: npm ci, frontend build and npm run check, nine checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
+  "tools/qor-launcher: npm ci, frontend build and npm run check, ten checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
   "cargo audit of services/qor-auth, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside the compiled graph (services/qor-auth/.cargo/audit.toml)",
   "cargo audit of tools/qor-launcher/src-tauri",
   "cargo audit of tools/qor-launcher/qontrol-git, the libgit2 helper",
@@ -821,9 +833,10 @@ dir = "tools/qor-launcher/src-tauri"
 command = "cargo test"
 
 # The product suites (see THE PRODUCT GATES at the end). Qontrol's code and
-# QFX's are launcher code today, so their suites run in tools/qor-launcher. QOR
-# Engine and GNOSIS have no directory yet (ADR-050, accepted 2026-09-28), so their suites
-# have none either and stay unmeasurable until products/<name> exists.
+# QFX's are launcher code today, so their suites run in tools/qor-launcher, and
+# so does QQ's, the QOR Engine (ADR-082: it lives in tools/qor-launcher/src/qq/).
+# GNOSIS has no directory yet (ADR-050, accepted 2026-09-28), so its suite has
+# none either and stays unmeasurable until products/gnosis exists.
 
 [suites.qontrol]
 dir = "tools/qor-launcher/src-tauri"
@@ -846,8 +859,9 @@ command = "npm test"
 needs = "npm ci first (Node 24). No network and no devnet: the devnet reader is tested against a scripted node"
 
 [suites.qor_engine]
-dir = ""  # products/qor-engine does not exist
-command = "cargo test --workspace"
+dir = "tools/qor-launcher"  # QQ, the QOR Engine (ADR-082). Since 2026-10-08.
+command = "node scripts/check-qq-view.mjs"
+needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places). WebGL2 comes from Chrome's software renderer, so no GPU is needed"
 
 [suites.gnosis]
 dir = ""  # products/gnosis does not exist
@@ -1523,37 +1537,42 @@ weaken."""
 
 [[gates]]
 id = "qor-engine"
-name = "QOR Engine"
+name = "QQ / QOR Engine"
 means = """
-A creation tool that is a custom Godot build tracking upstream, never a hard \
-fork -- QOR Engine, built on Godot -- with QOR ID, DRC-369 assets, Qontrol and \
-publishing added as modules and editor plugins."""
+A TypeScript/WebGL2 game engine and editor embedded in the QOR Launcher's \
+webview, running identically in ARQADE's browser. QQ is QOR Engine (ADR-081, \
+ADR-082): small-scale, effects-led 2D and 3D games, DRC-369 Cartridges, QOR ID \
+sign-in, Qontrol versioning, and publishing to ARQADE."""
 
   [[gates.criteria]]
   id = "qor-engine.decisions"
   kind = "adr"
-  adrs = ["ADR-046", "ADR-048", "ADR-049", "ADR-050"]
+  # ADR-082 is the architecture decision accepted under ADR-081's delegation.
+  adrs = ["ADR-046", "ADR-048", "ADR-049", "ADR-050", "ADR-081", "ADR-082"]
 
   [[gates.criteria]]
   id = "qor-engine.roadmap"
   kind = "roadmap"
+  # QQ's six items, rewritten from the Godot items by ADR-082 (7 October 2026).
   items = ["P3.1", "P3.2", "P3.3", "P3.4", "P3.5", "P3.6"]
 
   [[gates.criteria]]
   id = "qor-engine.depends"
   kind = "roadmap"
-  items = ["P1.2", "L1.4", "M4.1", "M4.2", "M5.2", "M6.4", "M8.1", "M8.2", "M8.3"]
+  # P1.2 (Qontrol: QQ's scenes are versioned through it) and L1.4 (vault
+  # signing) remain. M8.2 and M8.3 stay because QQ's P3.6 still needs them.
+  # M5.3 (the MCP server) was added for QQ's agent generation (P3.5).
+  items = ["P1.2", "L1.4", "M4.1", "M4.2", "M5.2", "M5.3", "M6.4", "M8.1", "M8.2", "M8.3"]
 
-  # Unmeasurable until products/qor-engine exists.
+  # Measured since 2026-10-08: scripts/check-qq-view.mjs in tools/qor-launcher.
   [[gates.criteria]]
   id = "qor-engine.tests"
   kind = "tests"
   suite = "qor_engine"
   require = []
 
-  # qor-engine.opens-in-stock-godot was removed on 2026-10-06: ADR-081 withdrew
-  # the promise it enforced (change log). This gate is rewritten for QQ, as a
-  # tightening, when QQ's roadmap items replace P3's.
+  # qor-engine.opens-in-stock-godot was removed on 2026-10-06 (ADR-081).
+  # This gate has been rewritten for QQ on 2026-10-07 (ADR-082, change log entry).
 
 [[gates]]
 id = "gnosis"

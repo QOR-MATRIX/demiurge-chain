@@ -29,7 +29,17 @@ export type Deps = { db: Db; fetch: typeof fetch; now: () => number; config: Qor
 
 /** Level and XP as QOR ID keeps them (ADR-078); present when QOR ID was just asked. */
 export type Progress = { level: number; xp: number; level_xp: number; next_level_xp: number; next_unlock: string | null };
-export type Profile = { sub: string; qorId: string; username: string; chainAccount: string | null; progress?: Progress };
+export type Profile = { sub: string; qorId: string; username: string; chainAccount: string | null; avatarUrl?: string | null; progress?: Progress };
+
+/**
+ * The avatar's full address, from the path QOR ID's userinfo gives (`/avatars/{hash}`, ADR-079) and QOR ID's own
+ * address. Anything that is not exactly such a path is no avatar: an address elsewhere would be shown to every player
+ * as this one's picture, so it is never followed.
+ */
+export function avatarAddress(path: string | null | undefined, issuer: string): string | null {
+  if (!path || !/^\/avatars\/[0-9a-f]{64}$/.test(path)) return null;
+  return new URL(path, issuer).toString();
+}
 
 export const LOGIN_COOKIE = 'arq_login';
 export const SESSION_COOKIE = 'arq_session';
@@ -111,9 +121,9 @@ async function whoIs(deps: Deps, access: string): Promise<Profile | null> {
   const r = await deps.fetch(new URL('/oauth/userinfo', config.issuer), { headers: { authorization: `Bearer ${access}` } });
   if (r.status === 401) return null;
   if (!r.ok) throw new QorError(503, 'QOR ID could not be reached. Try again in a moment.');
-  const u = (await r.json()) as { sub?: string; qor_id?: string; username?: string; chain_account?: string | null; progress?: Progress };
+  const u = (await r.json()) as { sub?: string; qor_id?: string; username?: string; chain_account?: string | null; avatar_url?: string | null; progress?: Progress };
   if (!u.sub || !u.qor_id || !u.username) throw new QorError(503, 'QOR ID answered unexpectedly.');
-  return { sub: u.sub, qorId: u.qor_id, username: u.username, chainAccount: u.chain_account ?? null, ...(u.progress ? { progress: u.progress } : {}) };
+  return { sub: u.sub, qorId: u.qor_id, username: u.username, chainAccount: u.chain_account ?? null, avatarUrl: u.avatar_url ?? null, ...(u.progress ? { progress: u.progress } : {}) };
 }
 
 /**

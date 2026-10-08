@@ -9,10 +9,13 @@
  * visit onward, when you already know where you are going.
  */
 
+import { useEffect } from 'react';
 import {
   Boxes,
   FolderGit2,
+  Gamepad2,
   LayoutGrid,
+  Shapes,
   ListChecks,
   MessagesSquare,
   Radio,
@@ -48,6 +51,8 @@ const ITEMS: Item[] = [
   { id: 'inventory', label: 'Inventory', icon: Boxes, hint: 'DRC-369 assets you own' },
   { id: 'market', label: 'Market', icon: Store, hint: 'What is for sale on chain, as your node reads it' },
   { id: 'projects', label: 'Projects', icon: FolderGit2, hint: 'Version your work, on this machine' },
+  { id: 'qq', label: 'QQ', icon: Shapes, hint: 'The QOR Engine: build and play a game here' },
+  { id: 'arqade', label: 'ARQADE', icon: Gamepad2, hint: 'Games and collectibles on the Demiurge devnet' },
   { id: 'library', label: 'Library', icon: Library, hint: 'Games and applications' },
   { id: 'social', label: 'Social', icon: MessagesSquare, hint: 'Rooms, messages and presence' },
   { id: 'mesh', label: 'Mesh', icon: Share2, hint: 'Peer-to-peer distribution' },
@@ -65,6 +70,15 @@ export function Rail() {
   const standing = useAscent().standing;
   const progress = useProgress(Boolean(session));
   const avatar = useOwnAvatar();
+
+  // The backdrops grow richer with the level (QFX), and read it from here. The
+  // rail is mounted whenever the launcher is in use, so this is the one writer.
+  const level = progress?.level;
+  useEffect(() => {
+    const root = document.documentElement;
+    if (level == null) root.removeAttribute('data-level');
+    else root.setAttribute('data-level', String(level));
+  }, [level]);
 
   return (
     <nav

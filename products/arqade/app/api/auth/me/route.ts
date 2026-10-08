@@ -1,5 +1,5 @@
 import { deps } from '@/lib/qor-deps';
-import { SESSION_COOKIE, configFrom, cookie, currentProfile, setCookie } from '@/lib/qor-session';
+import { SESSION_COOKIE, avatarAddress, configFrom, cookie, currentProfile, setCookie } from '@/lib/qor-session';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     if (held && !profile) headers.append('Set-Cookie', setCookie(SESSION_COOKIE, '', 0, new URL(request.url).protocol === 'https:'));
     return Response.json(
       profile
-        ? { configured: true, signedIn: true, username: profile.username, qorId: profile.qorId, chainAccount: profile.chainAccount, accountUrl, progress: profile.progress ?? null }
+        ? { configured: true, signedIn: true, username: profile.username, qorId: profile.qorId, chainAccount: profile.chainAccount, avatarUrl: config ? avatarAddress(profile.avatarUrl, config.issuer) : null, accountUrl, progress: profile.progress ?? null }
         : { configured, signedIn: false },
       { headers },
     );

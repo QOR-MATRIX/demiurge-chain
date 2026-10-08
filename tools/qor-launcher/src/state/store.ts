@@ -41,6 +41,8 @@ export type Surface =
   | 'inventory'
   | 'market'
   | 'projects'
+  | 'qq'
+  | 'arqade'
   | 'library'
   | 'social'
   | 'mesh'

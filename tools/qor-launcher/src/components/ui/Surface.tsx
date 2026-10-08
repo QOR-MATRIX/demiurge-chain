@@ -28,6 +28,7 @@ interface Props {
   disabled?: boolean;
   'aria-label'?: string;
   'aria-current'?: 'page' | undefined;
+  'aria-pressed'?: boolean;
 }
 
 export function Surface({

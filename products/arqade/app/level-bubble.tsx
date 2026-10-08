@@ -1,17 +1,19 @@
 "use client";
-// The player's QOR ID level on the sidebar avatar (ADR-078), read from QOR ID through this site's server.
+// The player's avatar and QOR ID level on the sidebar (ADR-078, ADR-079), read from QOR ID through this site's server.
+import { Fingerprint } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { PlayerAvatar } from '@/components/player-avatar';
 
-type Me = { signedIn: boolean; progress?: { level: number } | null };
+type Me = { signedIn: boolean; username?: string; avatarUrl?: string | null; progress?: { level: number } | null };
 
-export function LevelBubble() {
-  const [level, setLevel] = useState<number | null>(null);
+export function IdentityAvatar() {
+  const [me, setMe] = useState<Me | null>(null);
   useEffect(() => {
     let live = true;
     const read = () =>
       fetch('/api/auth/me', { cache: 'no-store' })
         .then((r) => r.json() as Promise<Me>)
-        .then((me) => live && setLevel(me.signedIn && me.progress ? me.progress.level : null))
+        .then((m) => live && setMe(m))
         .catch(() => undefined);
     read();
     const timer = setInterval(read, 60_000);
@@ -20,6 +22,6 @@ export function LevelBubble() {
       clearInterval(timer);
     };
   }, []);
-  if (level === null) return null;
-  return <span className="level-bubble" aria-label={`Level ${level}`}>{level}</span>;
+  if (!me?.signedIn || !me.username) return <span className="avatar"><Fingerprint /></span>;
+  return <PlayerAvatar username={me.username} avatarUrl={me.avatarUrl} level={me.progress?.level ?? null} />;
 }

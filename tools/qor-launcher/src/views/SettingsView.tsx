@@ -10,6 +10,8 @@ import { selectActiveAccount, useQor } from '../state/store';
 import { THEMES } from '../styles/themes';
 import { InfoTip } from '../components/ui/InfoTip';
 import { Surface } from '../components/ui/Surface';
+import { useProgress } from '../components/chrome/Level';
+import { BACKDROP_PRESETS, applyBackdrop, currentBackdrop, type BackdropId } from '../qfx/backdrops';
 import { AccessibilityPanel } from './AccessibilityPanel';
 import { Field, Panel, ViewHeader } from './parts';
 
@@ -43,6 +45,8 @@ export function SettingsView() {
         <AccessibilityPanel />
 
         <ThemePicker />
+
+        <BackdropPicker />
 
         <Panel className="p-6">
           <p className="eyebrow mb-5">Identity</p>
@@ -272,10 +276,20 @@ function RecoveryPanel() {
  * the choice is made by looking rather than by reading. Switching is immediate:
  * themes are CSS custom properties, so the whole interface re-colours in one
  * repaint with no reload and no flash.
+ *
+ * Level unlocks (ADR-078): cosmetic themes are unlocked at level 2 and level 5.
+ * The `unlocked` array in progress lists them by name ("Theme: Dusk", etc.).
+ * Until the Dusk and Nocturne palettes are built, those entries are shown as
+ * locked cosmetics so the player can see what is coming.
  */
 function ThemePicker() {
   const theme = useQor((s) => s.theme);
   const setTheme = useQor((s) => s.setTheme);
+  const session = useQor((s) => s.session);
+  const progress = useProgress(Boolean(session));
+
+  // Which cosmetic names the player has unlocked. Format: "Theme: Foo".
+  const unlockedNames = new Set(progress?.unlocked ?? []);
 
   return (
     <Panel className="p-6">
@@ -327,7 +341,102 @@ function ThemePicker() {
           );
         })}
       </div>
+
+      {/* Upcoming cosmetic theme unlocks (ADR-078). Shown when the player has a
+          level and at least one theme unlock is not yet reached. Once the Dusk
+          and Nocturne palettes are built they move into the grid above and this
+          section shrinks to nothing. */}
+      <UpcomingThemeUnlocks unlockedNames={unlockedNames} />
     </Panel>
+  );
+}
+
+/**
+ * The QFX backdrop behind the interface: six shaders, each moving with the
+ * pointer and growing richer with the level. Choosing one applies it at once.
+ * Whether it moves at all is the Ambience setting's, above, and reduced motion
+ * still holds it to one still frame.
+ */
+function BackdropPicker() {
+  const [chosen, setChosen] = useState<BackdropId>(() => currentBackdrop());
+  const choose = (id: BackdropId) => {
+    applyBackdrop(id);
+    setChosen(id);
+  };
+
+  return (
+    <Panel className="p-6">
+      <p className="eyebrow mb-5 flex items-center gap-1.5">
+        Backdrop
+        <InfoTip text="The living layer behind the interface. Each one reacts to the pointer, and grows richer as your level rises. Ambience, under Accessibility, says whether it moves." />
+      </p>
+      <div
+        role="group"
+        aria-label="Backdrop"
+        className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3"
+      >
+        {BACKDROP_PRESETS.map((b, i) => {
+          const active = b.id === chosen;
+          return (
+            <Surface
+              key={b.id}
+              as="button"
+              interactive
+              cut={active}
+              aria-pressed={active}
+              onClick={() => choose(b.id)}
+              className="stagger flex flex-col gap-2 p-4 text-left"
+              style={{ '--i': i } as React.CSSProperties}
+            >
+              <div className="flex items-center gap-2">
+                <span className="heading flex-1 text-ui tracking-label">{b.name}</span>
+                {active && <Check size={13} className="flex-none text-accent" />}
+              </div>
+              <p className="text-caption leading-snug text-ink-muted">{b.description}</p>
+            </Surface>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+}
+
+/** Cosmetic theme unlocks from the level system that are not yet available as
+ *  selectable themes. Shown with their unlock level so a player can see what
+ *  earning XP unlocks. */
+function UpcomingThemeUnlocks({ unlockedNames }: { unlockedNames: Set<string> }) {
+  // Theme entries from the server-side UNLOCKS list that are not yet built into
+  // the launcher's THEMES array. Each entry is "Theme: <Name>".
+  const pending = [
+    { name: 'Dusk', level: 2 },
+    { name: 'Nocturne', level: 5 },
+  ].filter((t) => !THEMES.some((lt) => lt.name === t.name));
+
+  if (pending.length === 0) return null;
+
+  return (
+    <div className="mt-5 border-t border-edge pt-5">
+      <p className="eyebrow mb-3 text-ink-muted">Coming with levels</p>
+      <div className="flex flex-wrap gap-3">
+        {pending.map((t) => {
+          const earned = unlockedNames.has(`Theme: ${t.name}`);
+          return (
+            <div
+              key={t.name}
+              className="flex items-center gap-2 rounded-qor border border-edge bg-well px-3 py-2 text-ui"
+              aria-label={earned ? `${t.name} theme — unlocked` : `${t.name} theme — unlocks at level ${t.level}`}
+            >
+              <span className={earned ? 'text-accent' : 'text-ink-faint'}>{t.name}</span>
+              {earned ? (
+                <span className="text-caption text-ok">Unlocked</span>
+              ) : (
+                <span className="numeric text-caption text-ink-faint">Lv {t.level}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
