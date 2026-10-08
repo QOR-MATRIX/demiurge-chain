@@ -1,5 +1,9 @@
 # ADR-082: QQ architecture — a WebGL2 engine and editor built from scratch in the launcher
 
+**Superseded in part, 8 October 2026, by [ADR-083](ADR-083-qq-on-qt.md):** decisions 1, 3, 6 and 7 (the TypeScript/WebGL2
+engine and React editor in the launcher's webview) give way to a Qt 6 engine; decisions 2, 4 and 5 stand. The text
+below is kept as accepted.
+
 **Status:** **Accepted**, 7 October 2026, under the delegation of ADR-081 (QQ's engineering and product choices are delegated to its builder without stopping for approval; choices are recorded as ADRs accepted under that delegation and reported to the owner).
 
 ## Context

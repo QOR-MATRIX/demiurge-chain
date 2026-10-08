@@ -1,233 +1,181 @@
 # QQ — the QOR Engine
 
-**Active blueprint, 7 October 2026.** This replaces the withdrawn Godot plan (`docs/blueprints/qor-engine.md`). The
-architectural decisions are in [ADR-082](../decisions/ADR-082-qq-architecture.md), accepted under the delegation of
-[ADR-081](../decisions/ADR-081-qq-is-qor-engine.md). Nothing here overrides AGENTS.md's money, language or
-key-safety rules.
+**Active blueprint, 8 October 2026.** QQ is QOR Engine ([ADR-081](../decisions/ADR-081-qq-is-qor-engine.md)). It is
+built on **Qt 6** ([ADR-083](../decisions/ADR-083-qq-on-qt.md)), which superseded the first, browser-only architecture
+of [ADR-082](../decisions/ADR-082-qq-architecture.md) in part. Nothing here overrides `AGENTS.md`'s money, language or
+key-safety rules. **Status:** designed; building waits on Qt being installed on the development machine with the
+owner's account. A TypeScript/WebGL2 preview from ADR-082 runs in the launcher meanwhile (below).
 
 ---
 
 ## What it is
 
-QQ is a game engine and editor built directly into the QOR Launcher's webview. A creator authors a scene in a split
-editor surface — viewport on one side, component inspector on the other — commits through Qontrol, and publishes as
-a DRC-369 Cartridge. The same game bundle runs in the launcher and in ARQADE's browser without a second window,
-without a separate process and without a second runtime.
+QQ is an engine for **virtual worlds and experiences**: a place to build a game that looks extraordinary, plays tight
+and opens instantly, in 3D or 2D, alone or **with an agent that can design and build it for you**. A creator works in
+**QQ Studio**, plays in the same window, versions the work with Qontrol, and publishes it as a DRC-369 Cartridge. A
+player runs it from the QOR Launcher or in a browser on ARQADE, signed in with QOR ID.
 
-The target is **small-scale, effects-led, interactive experiences**: games that look extraordinary, play tight and
-load instantly. Think: a particle-physics puzzle, a procedurally-lit dungeon crawler, a reactive music visualiser
-with a score. Not AAA polygon counts. Not a substitute for Unreal.
-
-The design philosophy is **radical quality over radical scope**. One effect executed perfectly beats ten effects done
-mediocrely. Every screen QQ produces should be immediately recognisable as Demiurge's — not as the output of a
-template.
+The ambition is set by the target, not by the size of the engine: small-scale, effects-led, finished games and
+worlds, where one effect executed perfectly beats ten done adequately. Every world QQ produces should be recognisable
+as made with it — not as the output of a template.
 
 ---
 
-## Why a from-scratch WebGL2 engine
+## Why Qt
 
-The Godot plan (withdrawn by ADR-081) required a sibling OS window, a C++ build tracking an upstream that changes
-fundamentals each minor release, and a Tauri IPC seam between the engine process and the vault. A WebGL2 engine in
-the launcher's webview eliminates all three costs:
+| Need | What Qt 6 gives QQ |
+| --- | --- |
+| Worlds that look the part | **Qt Quick 3D**: physically based materials, image-based lighting, real-time shadows, baked lightmaps, instancing, and `ExtendedSceneEnvironment` (tonemapping, bloom, ambient occlusion, depth of field, fog, lens effects) |
+| Bring your own models | glTF 2.0 loaded at runtime (`RuntimeLoader`); `balsam` to convert at import |
+| Things that move like things | **Qt Quick 3D Physics** (PhysX): bodies, colliders, joints, a character controller |
+| Sound in space | **Qt Spatial Audio**: sources, listeners, room acoustics |
+| Light and life | 3D particles with emitters, attractors and trails; custom materials and effects in Qt's shader language |
+| A language people and models both write | **QML and JavaScript**: declarative, readable, one property per line, reloaded while running |
+| One game, launcher and browser | Native builds for the launcher; **Qt for WebAssembly** for ARQADE |
+| Later | Qt Quick 3D XR for headsets; Android and macOS builds of the Player |
 
-| Requirement | Godot plan | QQ |
-|---|---|---|
-| Runs inside the launcher window | ✗ (sibling OS window) | ✓ (same webview) |
-| Runs in ARQADE's browser | ✗ (would need a port) | ✓ (same bundle) |
-| Vault access from the editor | IPC across a process boundary | the launcher's own host commands (`src/lib/ipc.ts`), same process |
-| Reduced motion / contrast obligations | Requires a custom Godot module | CSS `prefers-reduced-motion` + WebGL2 clear colour |
-| Upstream rebase cost per minor release | One per Godot 4.x minor | Zero (we own the code) |
-
-The cost paid is writing a renderer. That cost is paid once, and the resulting renderer is exactly as small and fast
-as the target scope requires — not a 200 MB runtime that runs Jolt physics for a tile puzzle.
+Writing any one of these rows on raw WebGL2 is a project of its own. Qt has them, and its licence is the owner's.
 
 ---
 
 ## Architecture
 
-```
-QOR Launcher (Tauri 2 / Rust host)
-│
-├── WebView2 webview  ─────────────────────────────────────────
-│   │                                                          │
-│   ├── QQ Editor (React surface, tools/qor-launcher/src/qq/) │
-│   │   ├── Viewport (WebGL2 canvas, owned by QQ runtime)     │
-│   │   ├── SceneTree inspector                               │
-│   │   ├── Component inspector                               │
-│   │   ├── Asset browser (reads launcher's Inventory)        │
-│   │   └── Qontrol panel (commit, branch, history)           │
-│   │                                                          │
-│   └── QQ Runtime (TypeScript/WebGL2 modules)                │
-│       ├── Renderer (WebGL2; WebGPU optional per platform)   │
-│       ├── Scene graph (entity–component, no ECS overhead)   │
-│       ├── Input (pointer, keyboard, gamepad)                │
-│       ├── Audio (Web Audio API)                             │
-│       ├── Physics (2D: AABB + circles; 3D: simple AABB)     │
-│       └── QOR bridge (sign requests → vault via host command)│
-│                                                              │
-└── Rust host ─────────────────────────────────────────────────
-    ├── Vault (signs; never reachable from engine directly)
-    ├── subxt client (chain calls)
-    └── Qontrol sidecar (libgit2, never in the host)
-
-Published game bundle (standalone JS + WebGL2)
-└── Deployed to ARQADE via Vercel — same bundle, no recompile
+```text
+products/qq/
+├── runtime/        QQ Runtime — QML module "QQ" + C++ backing
+│     World, Entity, Body, Collider, Emitter, Light, Model, Camera rigs,
+│     Input (keyboard, mouse, gamepad), Audio, Behaviour (QML/JS), Save state
+├── studio/         QQ Studio — the native editor (Qt Quick + C++)
+│     Viewport (orbit/fly camera, gizmos, grid, selection outline)
+│     Scene tree · Inspector (from QML property metadata) · Assets
+│     Play / Stop (a second engine instance; the edited scene is untouched)
+│     Qontrol panel · Agent panel · Log
+├── player/         QQ Player — runs a published game
+│     native (started by the launcher) · WebAssembly (inside ARQADE)
+├── agent/          The MCP server and the design loop
+└── tests/          Qt Test suites: runtime, studio, scene format, agent tools
 ```
 
-**One canvas, not two.** QQ's viewport canvas lives inside the editor surface, not behind the chrome like the QFX
-backdrop. When a published game runs in ARQADE, the QFX canvas is not present. There is no Z-fighting.
+**One runtime.** The Studio and the Player both run the Runtime, so what a creator sees while editing is what a player
+gets. Play in the Studio starts a fresh instance of the scene; Stop discards it and the edited scene is exactly as it
+was.
+
+**The launcher stays Tauri.** Its QQ surface shows the preview and an **Open in QQ Studio** button that starts the
+Studio as its own process. The Studio never sees a key (below).
 
 ---
 
-## The renderer
+## The scene
 
-**Layer 1 (shipped first):** A 2D sprite and shape renderer.
-- Batched quad rendering (sprites, rectangles, circles drawn as SDF quads).
-- A signed-distance-field text renderer for in-game UI.
-- A particle system with per-particle position, velocity, lifetime and colour. **Built on the CPU** (P3.1): one flat
-  array of at most 4,096 particles, which costs well under a millisecond a frame; a GPU ping-pong through float
-  textures is for when a scene needs more.
-- Pointer-reactive shader uniforms passed per-frame (same pattern as the QFX backdrop).
-- Reduce motion: Play draws one frame and holds it; nothing animates until the creator presses Step, which advances
-  the world a quarter of a second. Asked at the moment Play is pressed, so a change of the system setting counts.
+A QQ scene is a QML file in a Qontrol project, `scenes/<name>.qml`, written by the Studio in one canonical layout:
 
-**Layer 2 (after P3.1):** A 3D renderer, forward pass, no GI.
-- Perspective projection, free-look camera.
-- glTF 2.0 import (positions, normals, UVs, joints, weights, morph targets).
-- PBR shading: albedo, metallic, roughness, AO, emissive.
-- Up to 8 point lights + 1 directional, all realtime.
-- Bloom post-process (dual-pass Kawase blur, the cheapest that looks correct).
-- No shadow maps in the first 3D slice; they arrive with the first game that needs them.
+```qml
+import QQ 1.0
 
-**Upgrade path to WebGPU:** The renderer is written against an abstract `GpuDevice` interface.  The WebGL2
-implementation ships first; a WebGPU shim that adapts the same interface replaces it per platform once the Tauri
-webview's WebGPU support is confirmed on the owner's hardware. No game code changes.
+World {
+    environment: Sky { preset: Sky.Dusk; bloom: 0.4 }
 
----
+    Body {
+        id: core
+        name: "Core"
+        position: Qt.vector3d(0, 1.2, 0)
+        Model { source: "assets/core.glb" }
+        Collider.sphere: 0.6
+        Emitter { rate: 90; life: 1.6; colour: "#ffb15c" }
+    }
 
-## The editor
-
-The QQ editor is a launcher surface — a new entry on the rail alongside Projects, Inventory and Market. It opens
-the QQ runtime in "edit mode" inside a split layout:
-
-```
-┌─────────────────────────────────┬──────────────────────────────┐
-│  Viewport (WebGL2, edit mode)   │  Inspector                   │
-│                                 │  ├── Scene tree               │
-│  [ ▶ Play ] [ ■ Stop ]          │  ├── Selected entity props    │
-│                                 │  ├── Material editor          │
-│  Drag entities here             │  └── Qontrol status           │
-└─────────────────────────────────┴──────────────────────────────┘
-│  Asset browser (launcher Inventory + local project files)       │
-└─────────────────────────────────────────────────────────────────
+    Behaviour {
+        target: core
+        onFrame: (dt) => core.rotation.y += 45 * dt
+    }
+}
 ```
 
-Play mode runs the game bundle inside the same viewport — press Stop, and the editor state is restored. A creator
-never needs to leave the launcher to play-test.
-
-**Entity–Component system (simple, not ECS):** Each entity is a plain JavaScript object `{ id, components: Map }`.
-Components are records with typed fields. No archetype arrays, no bitset queries — the target scene size is hundreds
-of entities, not millions.
-
-**Scene format:** A QQ scene is a `.qq.json` file. It is plain JSON: an array of entity records, each with a
-component list and a name. It is diffable, mergeable with Qontrol's semantic tools, and hashable by BLAKE3 for
-DRC-369 minting. The format is deliberately small: there is no binary section and no engine-private id.
+- **Canonical:** fixed property order, one property per line, numbers kept to the precision the inspector sets. The
+  same scene is the same bytes; one changed value is one changed line in Projects.
+- **Readable by people and models.** Behaviours are plain QML and JavaScript, reloaded while the world runs.
+- **Imported:** `.qq.json` scenes of format 1 from the preview become QML scenes with the same entities.
 
 ---
 
-## QOR ID and the vault
+## The agent: autonomous design and build
 
-- Sign-in: the editor reads the launcher's existing QOR ID session from its store, as every surface does. The
-  editor never calls QOR ID directly and never holds a token.
-- Signing: through the launcher's host commands (`src/lib/ipc.ts`), behind the host dialog (L1.4). The engine sees
-  a result, never a key.
-- Publishing: the launcher's existing mint (`qontrol_mint`, from Qontrol's Mint panel) is reused. The QQ editor
-  will have a "Publish" button that commits the scene, then mints that commit.
+QQ Studio exposes its editing operations to language models through an **MCP server**, so any capable model can drive
+it, and a **design loop** in the Studio's Agent panel:
 
-Neither `window.__qor_invoke__` nor `window.__qor_session__` exists, nor will: the first draft of this blueprint
-named them, and they are corrected here (8 October 2026).
+1. **Brief.** From a description ("a neon rooftop chase at night, one minute long"), the agent writes a design brief:
+   the fantasy, the core loop, the controls, the look, the scope.
+2. **Build.** It creates the scene through the tools — `scene.read`, `entity.add`, `entity.set`, `behaviour.write`,
+   `asset.import` — never by writing files around the Studio.
+3. **Play and look.** It plays the world, captures frames (`play`, `frame.capture`, `log.read`) and judges them
+   against the brief: readability, composition, motion, whether the loop is fun.
+4. **Revise** until the brief is met or it needs the creator.
+5. **The creator approves** what is committed. Nothing reaches Qontrol, and nothing is published, without them.
 
----
-
-## ARQADE integration
-
-A published QQ game is a JS bundle at `dist/game.js`. ARQADE loads it in an `<iframe>` with a QOR bridge injected
-as `window.QOR = { session, invoke }`. If the player is signed in through QOR ID OAuth, collectibles and CGT
-interactions are live; if not, the game runs with those features absent.
-
-The iframe's `allow` attribute gates what the game can do: `allow="camera 'none'; microphone 'none'"` by default,
-plus `autoplay` for Web Audio. No additional permissions without a written reason per game.
+The model provider is chosen when the agent is built (ADR-081's delegation) and recorded in an ADR. A provider key
+lives in the operating system's keychain and never reaches a log. Generative assets (models, textures, sound from a
+description) arrive with P3.6.
 
 ---
 
-## Substrate consumed
+## QOR ID, the vault and publishing
 
-| Substrate | How QQ uses it |
-|---|---|
-| **QOR ID** | Read-only session in the editor; OAuth bridge in ARQADE. QQ never holds a key. |
-| **DRC-369** | A game is a Cartridge asset (ADR-070's derivation). Collectibles inside a game are DRC-369 items the player holds. QQ does not mint directly; it calls the launcher's mint path. |
-| **Qontrol** | Scene versioning. The `.qq.json` scene format is designed to be diffed and merged by Qontrol's existing tools. |
-| **ARQ Wallet** | Each published game's payout account (ADR-070). QQ does not interact with the wallet; ARQADE's server does. |
-| **CGT** | Settlement for collectible purchases and payouts. All amounts are integer Sparks in u128; no float arithmetic. |
+- **The Studio never holds a key.** A Cartridge mint is asked of the launcher's host over a local channel the launcher
+  opens for the Studio it started, and approved in the host dialog (L1.4), as every signature is.
+- **Publishing** commits the scene through Qontrol and mints that commit as a **Cartridge**, a DRC-369 asset
+  (ADR-082 decision 5).
+- **Players** sign in with QOR ID: the launcher's session natively, ADR-073's OAuth in the browser. Without it a game
+  still plays; collectibles and CGT are simply absent.
 
-**Substrate gaps recorded, not filled locally:**
-- **Access gating** for paid collectibles: waits on M4.4 (sponsored fees) and OPEN-4.
-- **Mesh delivery:** the game bundle is served by Vercel today; Mesh delivery is M8.
-- **Agent generation:** generative AI creates assets from a description (ADR-081 decision 4); this needs M5.2 and M5.3.
+---
+
+## ARQADE
+
+ARQADE hosts the WebAssembly Player and a game's bundle (QML, assets). Play loads the Player with the game and shows
+progress while it loads; the Player is cached. Size and first-frame time are measured when it is first built
+(Qt Quick 3D's WebAssembly build is tens of megabytes; that number is the one to beat).
+
+---
+
+## Licensing
+
+QQ uses Qt under the owner's **commercial licence** (ADR-083). The repository is public under Apache-2.0: anyone else
+building `products/qq/` needs their own Qt licence, commercial or GPLv3 (under which Qt Quick 3D and its physics are
+offered). Whether the owner's agreement covers CI runners and AI assistants working on the licensed machine is a
+question for the agreement, recorded in ADR-083's consequences.
+
+---
+
+## The preview that runs today
+
+Built under ADR-082 on 8 October 2026 and kept until the Qt Player plays in the launcher and ARQADE (ADR-083
+decision 6): `tools/qor-launcher/src/qq/`, a WebGL2 2D renderer (shapes as signed-distance fields with glow, particles
+drawn additively), a deterministic world (motion, a pointer follow, emitters) and an editor surface on the rail that
+saves `scenes/<name>.qq.json` through the host into a Qontrol project. It is checked by `check-qq-view.mjs` (41
+checks, proven to fail by two planted faults) and the host's `qq::` tests. Its scene format is what the Qt Studio
+imports.
 
 ---
 
 ## Phases
 
-### P3.1 — The runtime and editor surface exist
+The roadmap items are DIRECTION P3.1 to P3.6; in short:
 
-**Built 8 October 2026, not yet ticked** (DIRECTION.md P3 item 1 has the evidence). Built: the WebGL2 renderer
-(shapes as signed-distance fields with glow, particles additively), the world (motion, a pointer follow,
-emitters, deterministic per entity), the editor surface, saving and opening `scenes/<name>.qq.json` through the
-host, and the canonical form that makes one changed value one changed line. **Not built yet:** the sprite
-(ADR-082 decision 7), which needs an image read from the project through the host, and the SDF text renderer
-of layer one.
-
-A creator opens QQ from the launcher rail, sees a 2D viewport, drags in a coloured shape, adds a particle emitter, watches it animate, presses Stop and the editor is back. Nothing is published or signed.
-
-Deliverables:
-- `tools/qor-launcher/src/qq/runtime/` — WebGL2 renderer, scene graph, input
-- `tools/qor-launcher/src/qq/editor/` — React editor surface (viewport + inspector)
-- `tools/qor-launcher/src/qq/editor/QQView.tsx` — the launcher surface entry point
-- Launcher rail entry: QQ, after Projects
-- Qontrol commit of a `.qq.json` scene reads as meaningful text diff in Projects
-
-Does not depend on any chain milestone.
-
-### P3.2 — 3D and glTF import
-
-3D renderer (layer 2 above), glTF 2.0 import, PBR shading, a directional light. A creator imports a `.glb` and it appears in the viewport with correct materials. Depends on P3.1.
-
-### P3.3 — Publishing a game
-
-A "Publish" button commits the scene through Qontrol and mints it as a Cartridge DRC-369 asset. The game bundle is a
-standalone JS file the creator can share. Depends on P3.2, M4.1 and L1.4's native dialogs being exercised.
-
-### P3.4 — ARQADE delivery
-
-Published games appear in ARQADE. Pressing Play loads the QQ bundle in an iframe. QOR bridge active. Depends on P3.3 and P7 (ARQADE running).
-
-### P3.5 — Collectibles and agent generation
-
-DRC-369 items as in-game collectibles; generative AI builds assets from a description in the editor. Depends on M4.2, M5.2, M5.3.
-
-### P3.6 — Mesh delivery and settlement
-
-Games delivered over the Mesh; in-game purchases settled in CGT; access gating on paid collectibles. Depends on M6.4, M8.
+1. **QQ Studio exists** — 3D viewport, a glTF model, scene tree, inspector, gizmos, canonical QML scenes in Qontrol,
+   started from the launcher.
+2. **Worlds play** — physics, input, particles, spatial audio, live behaviours; the Player native and in a browser.
+3. **The agent designs and builds** — MCP server and the design loop, proven on a scene built from a description.
+4. **Publishing** — Qontrol commit and a Cartridge minted through the launcher's vault.
+5. **ARQADE delivery** — the WebAssembly Player in ARQADE; the preview retired.
+6. **Collectibles, generation and the Mesh** — DRC-369 items in games, generative assets, Mesh delivery, settlement
+   in CGT.
 
 ---
 
 ## What QQ is not
 
-- **Not a AAA engine.** No Nanite, no Lumen, no physics-simulation-for-films. The target is a 2D puzzle or a 3D
-  effects-led arcade game — something one person can build in a week and that looks extraordinary.
-- **Not a Unity or Godot project importer.** Assets move (via glTF 2.0). Projects do not.
-- **Not a second identity system.** QOR ID is the only identity. The engine never asks for a login.
-- **Not a second payment rail.** CGT is the only currency. The engine never calls a payment API directly.
-- **Not a framework others adopt in year one.** The runtime will be open source eventually; in year one it is a
-  launcher surface, not a SDK.
+- **Not a AAA engine.** No film-grade simulation, no open worlds the size of a country. Worlds a small team — or one
+  person and an agent — can finish.
+- **Not a Unity or Unreal importer.** Assets move (glTF 2.0). Projects do not.
+- **Not a second identity system or payment rail.** QOR ID is the only identity; CGT the only currency; the engine
+  never calls a payment API and never holds a key.

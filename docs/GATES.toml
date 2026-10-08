@@ -728,6 +728,18 @@ type = "tightening"
 change = "QQ's first suite. suites.qor_engine, which had no directory, is tools/qor-launcher running node scripts/check-qq-view.mjs (P3.1, ADR-082), so qor-engine.tests is measured instead of unmeasurable. The same check joins npm run check, so CI's launcher job runs ten checks, not nine ([ci].quality_gates updated). The criterion's kind, met condition and require list are unchanged."
 reason = "Adds a check to CI and gives a suite a directory; nothing is removed or relaxed. The criterion was unmeasurable only because no suite existed (its comment said so: 'Unmeasurable until tools/qor-launcher/src/qq/ has a runnable suite'); it is now judged by the same rule as every other tests unit, a run that exits 0. The check was proven to fail by two faults planted in QQ before it was trusted (its header)."
 
+[[change_log]]
+date = "2026-10-08"
+type = "tightening"
+change = "qor-engine for the Qt engine (ADR-083, accepted by the owner). qor-engine.decisions counts ADR-083 as well. DIRECTION's six P3 items are rewritten for a Qt Studio and Player: the same six ids, each asking more than the item it replaces (P3.1 now needs a 3D Studio, where it asked for a 2D WebGL2 surface; the agent moves forward to P3.3; publishing, delivery, collectibles, generation and the Mesh keep every requirement they had). The gate's means text is updated. qor-engine.tests keeps its suite, the TypeScript preview's check, until the Qt engine's suite replaces it in the change that retires the preview (ADR-083 decision 6)."
+reason = "Tightening: one more ADR must be accepted, and no roadmap item asks less than before. The TypeScript slice, built the same day, no longer meets P3.1, so nothing that was close to met moves toward met."
+
+[[change_log]]
+date = "2026-10-08"
+type = "tightening"
+change = "check-accessibility.mjs (the qfx_ambience suite) gains eight cases: each of the six QFX backdrops must compile and run, Still must hold a non-default one, and a launcher with ambience stored as off must create no GL context. Where the backdrop's GL program is rebuilt (off to live, another backdrop), the check now brings the page to the front again before counting frames, as it already did after every reload."
+reason = "Tightening: eight cases added, none removed or relaxed. The bring-to-front step is not a relaxation: 'stored off, then live' failed about two runs in five on main as on branches because headless Chrome stopped producing frames for the whole page (a bare animation loop beside the backdrop stalled with it, the main thread idle). After the step the check passed 10 runs in 10, and planted faults still fail it with 0 frames: a switch from off to live that never restarts the loop, and a backdrop shader that does not compile. The header of the check records the measurements."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1539,21 +1551,23 @@ weaken."""
 id = "qor-engine"
 name = "QQ / QOR Engine"
 means = """
-A TypeScript/WebGL2 game engine and editor embedded in the QOR Launcher's \
-webview, running identically in ARQADE's browser. QQ is QOR Engine (ADR-081, \
-ADR-082): small-scale, effects-led 2D and 3D games, DRC-369 Cartridges, QOR ID \
-sign-in, Qontrol versioning, and publishing to ARQADE."""
+A game engine for virtual worlds and experiences on Qt 6 (ADR-083): a \
+native QQ Studio and a QQ Player that runs from the launcher and as \
+WebAssembly in ARQADE, with an agent that designs and builds. QQ is QOR Engine \
+(ADR-081): DRC-369 Cartridges, QOR ID sign-in, Qontrol versioning, and \
+publishing to ARQADE."""
 
   [[gates.criteria]]
   id = "qor-engine.decisions"
   kind = "adr"
   # ADR-082 is the architecture decision accepted under ADR-081's delegation.
-  adrs = ["ADR-046", "ADR-048", "ADR-049", "ADR-050", "ADR-081", "ADR-082"]
+  adrs = ["ADR-046", "ADR-048", "ADR-049", "ADR-050", "ADR-081", "ADR-082", "ADR-083"]
 
   [[gates.criteria]]
   id = "qor-engine.roadmap"
   kind = "roadmap"
-  # QQ's six items, rewritten from the Godot items by ADR-082 (7 October 2026).
+  # QQ's six items: rewritten from the Godot items by ADR-082 (7 October 2026),
+  # then for the Qt engine by ADR-083 (8 October 2026).
   items = ["P3.1", "P3.2", "P3.3", "P3.4", "P3.5", "P3.6"]
 
   [[gates.criteria]]

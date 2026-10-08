@@ -11,6 +11,23 @@
 //   npm run build
 //   node scripts/check-accessibility.mjs [dist directory, default ./dist]
 //
+// "stored off, then live: the backdrop starts" failed about two runs in five
+// from September to 8 October 2026, on main as on branches, and the cause was
+// not the launcher. Measured that day: when it failed, a bare animation loop
+// added beside the backdrop got the same 1 to 3 frames a second, with the main
+// thread idle (no long tasks, timers on time) and visibility "visible" -- headless
+// Chrome had stopped producing frames for the page, with or without
+// --disable-gpu, and it happens whenever the backdrop's GL program is rebuilt.
+// Bringing the page to the front again after each such switch, as boot already
+// does after a reload (`toFront`), made the whole check pass 10 runs in 10;
+// planted faults still fail it with 0 frames: a switch from off to live that
+// never restarts the loop, and a backdrop shader that does not compile (each of
+// the six backdrops is now chosen and must run, since 8 October 2026). The same investigation found the launcher building a GL context at
+// startup even with ambience stored as off, because the canvas read
+// `data-ambience` before it was applied; main.tsx now applies the settings
+// before the first render, and "stored off: no GL context is created" pins it
+// (it fails, with 1, against the old main.tsx).
+//
 // Exits non-zero if any check fails.
 
 import { spawn } from 'node:child_process';
@@ -146,6 +163,14 @@ const HOST_STUB = `
   // Every frame callback anything schedules, counted. The QFX checks below ask
   // "is a callback being scheduled", which is the only honest test of "still":
   // a paused loop and a slow one both look motionless in a single screenshot.
+  // GL contexts the backdrop's canvas asks for: a launcher whose ambience is
+  // stored as off must never create one (Canvas.tsx's promise).
+  window.__glContexts = 0;
+  const getContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
+    if (this.classList.contains('qfx-canvas') && kind === 'webgl2') window.__glContexts += 1;
+    return getContext.call(this, kind, ...rest);
+  };
   window.__frames = 0;
   const schedule = window.requestAnimationFrame.bind(window);
   window.requestAnimationFrame = (callback) => {
@@ -318,6 +343,15 @@ const setAmbience = async (value) => {
   await sleep(300);
 };
 const moving = (n) => n >= 20; // about sixty a second while live
+// Headless Chrome can stop producing frames for a page after its backdrop's GL
+// program is rebuilt (off to live, or another backdrop), with the main thread
+// idle (see the header). To the front again, as boot does after a reload. It
+// cannot make a stopped loop run: a loop that schedules nothing still reads 0.
+const toFront = async () => {
+  await send('Page.bringToFront');
+  await send('Emulation.setFocusEmulationEnabled', { enabled: true });
+  await sleep(300);
+};
 const stillFrames = (n) => n === 0;
 
 // Defaults. The positive control: if the backdrop is not running here, every
@@ -328,6 +362,23 @@ check('live: the backdrop schedules frames (positive control)', await framesOver
 check('live: the canvas is shown', await display('canvas.qfx-canvas'), 'block');
 check('live: the scrim is shown', await display('.qfx-scrim'), 'block');
 
+// Every backdrop (Settings, since 8 October 2026) compiles and runs. A shader
+// that does not compile leaves the canvas empty and nothing errors, so each is
+// chosen the way Settings chooses it and must schedule frames; then Still must
+// hold the last of them, as it holds the first.
+for (const id of ['aurora', 'nebula', 'lattice', 'starfield', 'liquid', 'drift']) {
+  await evaluate(setAttr('data-backdrop', id));
+  await toFront();
+  check(`backdrop ${id}: it compiles and runs`, await framesOver(1000), moving);
+}
+await evaluate(setAttr('data-backdrop', 'liquid'));
+await toFront();
+await setAmbience('still');
+check('backdrop liquid, still: no frame is scheduled', await framesOver(1000), stillFrames);
+await setAmbience('live');
+await evaluate(setAttr('data-backdrop', 'drift'));
+await toFront();
+
 // Changing the setting while the launcher is open.
 await setAmbience('still');
 check('live -> still: no frame is scheduled', await framesOver(1000), stillFrames);
@@ -337,6 +388,7 @@ check('still -> off: no frame is scheduled', await framesOver(1000), stillFrames
 check('still -> off: the canvas is hidden, not left on its last frame', await display('canvas.qfx-canvas'), 'none');
 check('still -> off: the scrim is removed', await display('.qfx-scrim'), 'none');
 await setAmbience('live');
+await toFront();
 check('off -> live: the backdrop starts again', await framesOver(1000), moving);
 check('off -> live: the canvas and scrim return', `${await display('canvas.qfx-canvas')}/${await display('.qfx-scrim')}`, 'block/block');
 
@@ -346,7 +398,9 @@ await boot({ ambience: 'off' });
 check('stored off: ambience is off', await ambienceNow(), 'off');
 check('stored off: no frame is scheduled', await framesOver(1000), stillFrames);
 check('stored off: the canvas is hidden', await display('canvas.qfx-canvas'), 'none');
+check('stored off: no GL context is created', await evaluate('window.__glContexts'), (n) => n === 0);
 await setAmbience('live');
+await toFront();
 check('stored off, then live: the backdrop starts', await framesOver(1000), moving);
 
 // Reduced motion wins, decided by the app's own effectiveAmbience.
