@@ -198,9 +198,12 @@ jobs:
   qor-auth:
     name: "QOR ID (services/qor-auth): format, lints, tests"
     runs-on: ubuntu-latest
+    # The official Docker images, from Amazon ECR Public's mirror of Docker Hub's library rather than Docker Hub
+    # itself: GitHub's shared runners pull anonymously, and Docker Hub's per-address limit for anonymous pulls refused
+    # postgres:16-alpine on 9 October 2026 (run 37991419843) before any step ran. Same images, same tags.
     services:
       postgres:
-        image: postgres:16-alpine
+        image: public.ecr.aws/docker/library/postgres:16-alpine
         env:
           POSTGRES_USER: ci
           POSTGRES_PASSWORD: ci
@@ -213,7 +216,7 @@ jobs:
           --health-timeout 5s
           --health-retries 20
       redis:
-        image: redis:7.4-alpine
+        image: public.ecr.aws/docker/library/redis:7.4-alpine
         ports:
           - 6379:6379
         options: >-
