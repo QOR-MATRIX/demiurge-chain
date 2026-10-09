@@ -65,7 +65,7 @@ flowchart LR
 | **QOR Launcher** — the desktop home: vault, assets, market, projects | Built; signed installer and updates to come (L6) |
 | **QOR ID** — one sign-in for everything | Live |
 | **ARQADE** — games played with a QOR ID, collectibles as DRC-369 assets | Live on the devnet |
-| **QQ, the QOR Engine** — virtual worlds on Qt 6, with an agent that designs and builds ([ADR-083](docs/decisions/ADR-083-qq-on-qt.md)) | Designed; a 2D preview runs in the launcher; the Qt build begins once Qt is installed |
+| **QQ, the QOR Engine** — virtual worlds on Qt 6, with an agent that designs and builds ([ADR-083](docs/decisions/ADR-083-qq-on-qt.md)) | Started on Qt 6.12: QQ Studio renders a lit 3D world with a runtime-loaded model; a 2D preview runs in the launcher meanwhile |
 | **Qontrol** — versioning for creators | Built in the launcher |
 | **QFX** — the launcher's living visual layer | Six backdrops built |
 | **GNOSIS**, **Stream**, **Market and Library** | Planned ([roadmap](docs/DIRECTION.md)) |
@@ -78,7 +78,7 @@ flowchart LR
 | `services/qor-auth/` | QOR ID (Rust, Axum, Postgres, Redis) | Active |
 | `tools/qor-launcher/` | The QOR Launcher (Tauri 2, Rust host, React) | Active |
 | `products/arqade/` | ARQADE (Next.js on Vercel) and its developer SDK (ADR-069, ADR-074) | Active |
-| `products/qq/` | QQ on Qt 6 (ADR-083) | Not yet created |
+| [`products/qq/`](products/qq/README.md) | QQ on Qt 6 (ADR-083): the runtime module, QQ Studio and its render tests | Active, built on the owner's machine |
 | `apps/`, `cli/`, `sdk/`, `packages/`, `client/` | Clients built for the pre-realignment protocol | Frozen (D-011) |
 
 ## Running it

@@ -3,8 +3,9 @@
 **Active blueprint, 8 October 2026.** QQ is QOR Engine ([ADR-081](../decisions/ADR-081-qq-is-qor-engine.md)). It is
 built on **Qt 6** ([ADR-083](../decisions/ADR-083-qq-on-qt.md)), which superseded the first, browser-only architecture
 of [ADR-082](../decisions/ADR-082-qq-architecture.md) in part. Nothing here overrides `AGENTS.md`'s money, language or
-key-safety rules. **Status:** designed; building waits on Qt being installed on the development machine with the
-owner's account. A TypeScript/WebGL2 preview from ADR-082 runs in the launcher meanwhile (below).
+key-safety rules. **Status:** P3.1 started on 9 October 2026 on Qt 6.12 (Enterprise), in `products/qq/`: the runtime
+module and QQ Studio rendering a lit 3D world with a runtime-loaded glTF model ([`products/qq/README.md`](../../products/qq/README.md)).
+A TypeScript/WebGL2 preview from ADR-082 runs in the launcher meanwhile (below).
 
 ---
 
