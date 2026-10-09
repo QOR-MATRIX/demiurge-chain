@@ -8,8 +8,14 @@ import QtQuick3D.AssetUtils
 Node {
     id: prop
 
-    /// The glTF 2.0 file (.gltf or .glb), as a URL.
-    property alias source: loader.source
+    readonly property string kind: "Prop"
+    readonly property var fields: ["name", "position", "eulerRotation", "scale", "source"]
+
+    property string name: "Model"
+
+    /// The glTF 2.0 file (.gltf or .glb), as a URL. A scene file keeps it relative to itself; declared here rather than
+    /// aliased to the loader so QML resolves it against the scene file, and it is always a whole URL once read.
+    property url source
 
     /// Empty, Ready or Failed, as the loader reports it.
     readonly property int status: loader.status === RuntimeLoader.Success ? Prop.Ready
@@ -22,5 +28,23 @@ Node {
 
     RuntimeLoader {
         id: loader
+        source: prop.source
+    }
+
+    // What a click lands on: an invisible box over the model's bounds. The meshes the loader makes cannot be marked
+    // pickable from here, and a box is what selecting a whole model needs anyway.
+    Model {
+        visible: prop.status === Prop.Ready
+        source: "#Cube"
+        pickable: true
+        castsShadows: false
+        receivesShadows: false
+        position: loader.bounds.minimum.plus(loader.bounds.maximum).times(0.5)
+        scale: loader.bounds.maximum.minus(loader.bounds.minimum).times(0.01)
+        materials: PrincipledMaterial {
+            alphaMode: PrincipledMaterial.Blend
+            opacity: 0.0
+            depthDrawMode: Material.NeverDepthDraw
+        }
     }
 }

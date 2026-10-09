@@ -30,6 +30,9 @@ View3D {
 
     default property alias content: scene.data
 
+    /// The camera the world is seen through, for an overlay that must see it the same way.
+    readonly property alias viewCamera: eyeCamera
+
     camera: eyeCamera
 
     environment: ExtendedSceneEnvironment {

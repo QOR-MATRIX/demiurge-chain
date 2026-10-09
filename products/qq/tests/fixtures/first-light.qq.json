@@ -1,0 +1,29 @@
+{
+  "qq": 1,
+  "name": "first-light",
+  "size": { "w": 960, "h": 540 },
+  "background": "#07080c",
+  "entities": [
+    {
+      "id": "e1",
+      "name": "Core",
+      "transform": { "x": 0, "y": 0, "rotation": 0, "scale": 1 },
+      "shape": { "kind": "circle", "w": 84, "h": 84, "colour": "#ff6a00", "glow": 0.7 },
+      "follow": { "strength": 0.35 },
+      "emitter": { "rate": 90, "life": 1.6, "speed": 110, "spread": 360, "size": 4, "colour": "#ffb15c" }
+    },
+    {
+      "id": "e2",
+      "name": "Ring",
+      "transform": { "x": -260, "y": 0, "rotation": 0, "scale": 1 },
+      "shape": { "kind": "rect", "w": 120, "h": 18, "colour": "#5ad1ff", "glow": 0.4 },
+      "motion": { "vx": 0, "vy": 0, "spin": 90 }
+    },
+    {
+      "id": "e3",
+      "name": "Ground",
+      "transform": { "x": 0, "y": 220, "rotation": 0, "scale": 1 },
+      "shape": { "kind": "rect", "w": 760, "h": 10, "colour": "#2b3140", "glow": 0 }
+    }
+  ]
+}

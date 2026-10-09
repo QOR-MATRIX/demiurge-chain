@@ -5,6 +5,11 @@ import QtQuick
 import QtQuick3D
 
 DirectionalLight {
+    readonly property string kind: "Sun"
+    readonly property var fields: ["name", "elevation", "azimuth", "color", "brightness"]
+    readonly property var ranges: ({ elevation: [0, 90], azimuth: [-180, 180], brightness: [0, 5] })
+
+    property string name: "Sun"
     /// Degrees above the horizon.
     property real elevation: 42
     /// Degrees around the vertical axis.

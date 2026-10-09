@@ -3,8 +3,9 @@
 **Active blueprint, 8 October 2026.** QQ is QOR Engine ([ADR-081](../decisions/ADR-081-qq-is-qor-engine.md)). It is
 built on **Qt 6** ([ADR-083](../decisions/ADR-083-qq-on-qt.md)), which superseded the first, browser-only architecture
 of [ADR-082](../decisions/ADR-082-qq-architecture.md) in part. Nothing here overrides `AGENTS.md`'s money, language or
-key-safety rules. **Status:** P3.1 started on 9 October 2026 on Qt 6.12 (Enterprise), in `products/qq/`: the runtime
-module and QQ Studio rendering a lit 3D world with a runtime-loaded glTF model ([`products/qq/README.md`](../../products/qq/README.md)).
+key-safety rules. **Status:** P3.1 done on 9 October 2026 on Qt 6.12 (Enterprise), in `products/qq/`: QQ Studio edits a
+lit 3D world and keeps it as canonical QML in a Qontrol project, opened from the launcher
+([`products/qq/README.md`](../../products/qq/README.md)). Next, P3.2: worlds that play.
 A TypeScript/WebGL2 preview from ADR-082 runs in the launcher meanwhile (below).
 
 ---
@@ -68,34 +69,46 @@ Studio as its own process. The Studio never sees a key (below).
 
 ## The scene
 
-A QQ scene is a QML file in a Qontrol project, `scenes/<name>.qml`, written by the Studio in one canonical layout:
+A QQ scene is a QML file in a Qontrol project, `scenes/<name>.qml`, written by the Studio in one canonical layout
+(built 9 October 2026; `products/qq/tests/fixtures/scenes/sample.qml` is a whole one):
 
 ```qml
-import QQ 1.0
+import QQ
 
-World {
-    environment: Sky { preset: Sky.Dusk; bloom: 0.4 }
+Scene {
+    name: "first-light"
+    skyTop: "#0b1430"
+    skyHorizon: "#c7623a"
+    ...
+    bloom: true
 
-    Body {
-        id: core
-        name: "Core"
-        position: Qt.vector3d(0, 1.2, 0)
-        Model { source: "assets/core.glb" }
-        Collider.sphere: 0.6
-        Emitter { rate: 90; life: 1.6; colour: "#ffb15c" }
+    Sun {
+        name: "Sun"
+        elevation: 38
+        azimuth: -35
+        color: "#fff1dc"
+        brightness: 1.15
     }
 
-    Behaviour {
-        target: core
-        onFrame: (dt) => core.rotation.y += 45 * dt
+    Prop {
+        name: "Orb"
+        position: Qt.vector3d(0, 1.75, 0)
+        eulerRotation: Qt.vector3d(0, 0, 0)
+        scale: Qt.vector3d(1, 1, 1)
+        source: "../assets/orb.gltf"
     }
 }
 ```
 
-- **Canonical:** fixed property order, one property per line, numbers kept to the precision the inspector sets. The
-  same scene is the same bytes; one changed value is one changed line in Projects.
-- **Readable by people and models.** Behaviours are plain QML and JavaScript, reloaded while the world runs.
-- **Imported:** `.qq.json` scenes of format 1 from the preview become QML scenes with the same entities.
+- **Canonical:** every entity declares its `kind` and its `fields`, and `SceneIO` writes them in that order, one per
+  line: numbers to four decimal places with trailing zeros dropped, colours as `#rrggbb`, vectors as `Qt.vector3d`,
+  model files relative to the scene. The same scene is the same bytes; one changed value is one changed line in
+  Projects. A model from outside the project is copied into its `assets/` when the scene is saved.
+- **Entities today:** `Sun`, `Lamp`, `Ground`, `Shape` (cube, sphere, cylinder, cone, plane, with a physically based
+  surface and glow), `Prop` (a glTF 2.0 model). Bodies, emitters and behaviours arrive with P3.2.
+- **Readable by people and models.** Behaviours (P3.2) will be plain QML and JavaScript, reloaded while the world runs.
+- **Imported:** `.qq.json` scenes of format 1 from the preview become QML scenes; what has no 3D form yet (motion, the
+  pointer follow, emitters) is named, not silently dropped.
 
 ---
 

@@ -1473,6 +1473,7 @@ pub fn run() {
             qq::qq_save_scene,
             qq::qq_load_scene,
             qq::qq_list_scenes,
+            qq::qq_open_studio,
             drc369_assets,
             drc369_make_permanent,
             drc369_trade,

@@ -202,6 +202,59 @@ pub fn list(project: &Path) -> Result<Vec<String>, QorError> {
     Ok(names)
 }
 
+// ── QQ Studio, the native editor (ADR-083) ────────────────────────────────────────────────────────────────────────
+
+/// Where QQ Studio is: the file `QQ_STUDIO` names, if it exists, or `qq-studio\qq-studio.exe` under the local app data
+/// folder, where `products/qq/build.ps1 -Deploy` puts a self-contained one. `None` when neither exists.
+pub fn find_studio(
+    from_env: Option<std::ffi::OsString>,
+    local_app_data: Option<PathBuf>,
+) -> Option<PathBuf> {
+    if let Some(path) = from_env.map(PathBuf::from) {
+        return path.is_file().then_some(path);
+    }
+    let deployed = local_app_data?.join("qq-studio").join(if cfg!(windows) {
+        "qq-studio.exe"
+    } else {
+        "qq-studio"
+    });
+    deployed.is_file().then_some(deployed)
+}
+
+/// The arguments QQ Studio is started with: the project, when one is open, and nothing else from the interface.
+fn studio_args(project: Option<&Path>) -> Vec<std::ffi::OsString> {
+    match project {
+        Some(p) => vec!["--project".into(), p.as_os_str().to_owned()],
+        None => Vec::new(),
+    }
+}
+
+/// Start QQ Studio as a process of its own (ADR-083 decision 5), on the project open in Projects if there is one. The
+/// project must be a repository; it is passed as one argument, never through a shell. The Studio holds no key.
+#[tauri::command]
+pub async fn qq_open_studio(path: Option<String>) -> Result<(), QorError> {
+    let project = match path.as_deref() {
+        Some(p) => {
+            let dir = qontrol::resolve(p)?;
+            qontrol::open(&dir)?;
+            Some(dir)
+        }
+        None => None,
+    };
+    let studio = find_studio(std::env::var_os("QQ_STUDIO"), std::env::var_os("LOCALAPPDATA").map(PathBuf::from))
+        .ok_or_else(|| {
+            refuse(
+                "QQ Studio is not installed on this computer. Build it with products/qq/build.ps1 -Deploy,                  or set QQ_STUDIO to where it is.",
+            )
+        })?;
+    std::process::Command::new(&studio)
+        .args(studio_args(project.as_deref()))
+        .current_dir(studio.parent().unwrap_or(Path::new(".")))
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| refuse(format!("QQ Studio could not be started: {e}")))
+}
+
 /// Save a scene into an open project, and return the project as it now reads, so Projects shows the change.
 #[tauri::command]
 pub async fn qq_save_scene(path: String, name: String, scene: String) -> Result<Project, QorError> {
@@ -371,6 +424,100 @@ mod tests {
         std::fs::write(scenes.join("readme.md"), "hi").expect("write");
         std::fs::create_dir(scenes.join("folder.qq.json")).expect("dir");
         assert_eq!(list(dir.path()).expect("listed"), vec!["real".to_string()]);
+    }
+
+    #[test]
+    fn qq_studio_is_found_where_qq_studio_points_or_where_it_is_deployed() {
+        let dir = tempfile::tempdir().expect("a folder");
+        let named = dir.path().join("my-studio.exe");
+        std::fs::write(&named, b"").expect("write");
+        assert_eq!(
+            find_studio(Some(named.clone().into_os_string()), None),
+            Some(named)
+        );
+
+        // QQ_STUDIO naming nothing is not quietly replaced by another copy.
+        let deployed = dir.path().join("qq-studio").join(if cfg!(windows) {
+            "qq-studio.exe"
+        } else {
+            "qq-studio"
+        });
+        std::fs::create_dir_all(deployed.parent().expect("parent")).expect("dir");
+        std::fs::write(&deployed, b"").expect("write");
+        assert_eq!(
+            find_studio(
+                Some(dir.path().join("missing.exe").into_os_string()),
+                Some(dir.path().into())
+            ),
+            None
+        );
+
+        assert_eq!(find_studio(None, Some(dir.path().into())), Some(deployed));
+        assert_eq!(find_studio(None, Some(dir.path().join("elsewhere"))), None);
+        assert_eq!(find_studio(None, None), None);
+    }
+
+    #[test]
+    fn qq_studio_gets_the_project_as_one_argument_and_nothing_else() {
+        let project = Path::new("C:/projects/a game; rm -rf /");
+        assert_eq!(
+            studio_args(Some(project)),
+            vec![
+                std::ffi::OsString::from("--project"),
+                project.as_os_str().to_owned()
+            ]
+        );
+        assert!(studio_args(None).is_empty());
+    }
+
+    #[tokio::test]
+    async fn qq_studio_is_not_opened_on_a_folder_that_is_not_a_project() {
+        let dir = tempfile::tempdir().expect("a folder");
+        assert!(
+            qq_open_studio(Some(dir.path().to_string_lossy().into_owned()))
+                .await
+                .is_err()
+        );
+        assert!(qq_open_studio(Some(
+            dir.path().join("missing").to_string_lossy().into_owned()
+        ))
+        .await
+        .is_err());
+    }
+
+    /// The real thing: the deployed QQ Studio started on a real project, seen in the process list, then closed. Ignored
+    /// by default because it opens a window and needs `products/qq/build.ps1 -Deploy` to have run:
+    /// `cargo test qq_studio_starts_on_a_project -- --ignored`.
+    #[cfg(windows)]
+    #[tokio::test]
+    #[ignore = "opens QQ Studio's window; needs a deployed QQ Studio"]
+    async fn qq_studio_starts_on_a_project() {
+        let running = || {
+            let out = std::process::Command::new("tasklist")
+                .args(["/FI", "IMAGENAME eq qq-studio.exe", "/FO", "CSV", "/NH"])
+                .output()
+                .expect("tasklist");
+            String::from_utf8_lossy(&out.stdout)
+                .matches("qq-studio.exe")
+                .count()
+        };
+        let before = running();
+        let dir = project();
+        qq_open_studio(Some(dir.path().to_string_lossy().into_owned()))
+            .await
+            .expect("QQ Studio starts");
+        let mut seen = false;
+        for _ in 0..50 {
+            if running() > before {
+                seen = true;
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        }
+        let _ = std::process::Command::new("taskkill")
+            .args(["/IM", "qq-studio.exe", "/F"])
+            .output();
+        assert!(seen, "QQ Studio did not appear in the process list");
     }
 
     #[cfg(unix)]
