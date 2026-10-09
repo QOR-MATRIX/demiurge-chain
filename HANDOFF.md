@@ -2006,6 +2006,12 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   and the page "visible": every animation loop on the page, not only the backdrop's, drops to one to three frames a
   second. It made `check-accessibility.mjs` fail about two runs in five until 8 October 2026. Bring the page to the
   front again after such a switch (`toFront`), and prove with a planted fault that the check can still fail.
+- **Docker Hub limits anonymous pulls, and GitHub's shared runners pull anonymously.** Run 37991419843 (#74, on
+  pull request #19, 9 October 2026) failed before any step: QOR ID's job could not pull `postgres:16-alpine`
+  ("toomanyrequests"); a re-run of the failed job passed. Pull request #20 moves the two CI service images to the same
+  official images on `public.ecr.aws/docker/library/`. The Dockerfiles (`services/qor-auth`, `chain`) still start from
+  Docker Hub images: Railway builds QOR ID's with its own pulls, and `devnet-image.yml`, started by hand, could meet the
+  same limit.
 - **Qt Quick 3D has a type called `Material`, and the import that comes later wins.** Imported after
   `QtQuick.Controls.Material`, it shadows the style's attached `Material.background` and the window fails to load
   ("Non-existent attached object"). Import `QtQuick3D` first (`products/qq/studio/Main.qml`).
