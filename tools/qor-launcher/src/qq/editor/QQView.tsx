@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Circle, FolderOpen, Pause, Play, Plus, Save, Sparkles, Square, StepForward, Trash2 } from 'lucide-react';
+import { Box, Circle, FolderOpen, Pause, Play, Plus, Save, Sparkles, Square, StepForward, Trash2 } from 'lucide-react';
 
 import { explain, qontrol, qq, type QontrolProject } from '../../lib/ipc';
 import { wantsLessMotion } from '../../lib/a11y';
@@ -241,6 +241,16 @@ export function QQView() {
         body="The QOR Engine. Build a small game on this canvas, play it here, and save it into a project, where Projects versions it like any other file. Nothing is published or signed from here yet."
         action={
           <>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => void withBusy(() => qq.openStudio(project ? project.path : null))}
+              title="Open QQ Studio, the 3D engine, on this project"
+              data-qq-open-studio
+            >
+              <Box size={13} aria-hidden="true" />
+              Open in QQ Studio
+            </button>
             {playing && held && (
               <button type="button" className="btn btn-ghost" onClick={() => engine.current?.step()} title="Advance a quarter of a second">
                 <StepForward size={13} aria-hidden="true" />

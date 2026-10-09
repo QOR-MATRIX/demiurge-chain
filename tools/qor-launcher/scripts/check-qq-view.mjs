@@ -282,6 +282,7 @@ try {
     window.__PROJECT__ = ${JSON.stringify(PROJECT)};
     window.__FILES__ = ${JSON.stringify(FILES)};
     window.__SAVES__ = [];
+    window.__STUDIO_OPENS__ = [];
     window.__LAUNCHER_STATE__ = ${JSON.stringify(STATE)};
     window.__ACCOUNTS__ = ${JSON.stringify(ACCOUNTS)};
     window.__SESSION__ = ${JSON.stringify(SESSION)};
@@ -295,6 +296,7 @@ try {
           return Promise.resolve({ ...window.__PROJECT__, changes: [{ path: 'scenes', state: 'untracked' }] });
         }
         if (cmd === 'qq_list_scenes') return Promise.resolve(Object.keys(window.__FILES__).sort());
+        if (cmd === 'qq_open_studio') { window.__STUDIO_OPENS__.push(args); return Promise.resolve(null); }
         if (cmd === 'qq_load_scene') {
           const f = window.__FILES__[args.name];
           return f === undefined
@@ -566,6 +568,14 @@ try {
   await clickText('Save');
   await sleep(300);
   check('a scene name that is not one plain word is refused before the host is asked', (await saves()).length === before && (await noticeText()).includes('lowercase letters'), await noticeText());
+
+  // ── QQ Studio ────────────────────────────────────────────────────────────
+  // The 3D engine (ADR-083) is a process of its own: the button asks the host to start it, on the project that is open.
+  await evaluate(`document.querySelector('main [data-qq-open-studio]').click()`);
+  await until(`window.__STUDIO_OPENS__.length === 1`);
+  const opens = await evaluate(`window.__STUDIO_OPENS__`);
+  check('Open in QQ Studio asks the host to start it on the open project, and nothing more',
+    opens.length === 1 && JSON.stringify(opens[0]) === JSON.stringify({ path: PROJECT.path }), JSON.stringify(opens));
 
   // ── the stylesheet ───────────────────────────────────────────────────────
   await evaluate(`[...document.querySelectorAll('main ul[aria-label="Entities"] button')][0].click()`);

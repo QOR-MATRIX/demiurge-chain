@@ -8,9 +8,15 @@ qt_add_qml_module(qqruntime
     VERSION 1.0
     QML_FILES
         World.qml
+        Scene.qml
         Sun.qml
+        Lamp.qml
         Ground.qml
+        Shape.qml
         Prop.qml
+    SOURCES
+        sceneio.h sceneio.cpp
 )
 
-target_link_libraries(qqruntime PRIVATE Qt6::Quick Qt6::Quick3D)
+target_include_directories(qqruntime PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(qqruntime PUBLIC Qt6::Qml Qt6::Quick Qt6::Quick3D)

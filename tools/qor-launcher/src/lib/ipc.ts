@@ -807,6 +807,8 @@ export const qq = {
     call<QontrolProject>('qq_save_scene', { path, name, scene }),
   load: (path: string, name: string) => call<string>('qq_load_scene', { path, name }),
   list: (path: string) => call<string[]>('qq_list_scenes', { path }),
+  /** QQ Studio, the native editor (ADR-083), as a process of its own, on the project if one is open. */
+  openStudio: (path: string | null) => call<void>('qq_open_studio', { path }),
 };
 
 /** ARQADE in a window of its own (ADR-078 decision 5). The host decides what that window may load. */

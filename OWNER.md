@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 9 October 2026. One page, rewritten every session.
+For Andrew, 9 October 2026 (evening). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -11,34 +11,39 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 ## Live today
 
 - **Devnet** — *the test chain on servers* — at `wss://rpc.qorsync.dev`, version 8. 150 tests.
-- **QOR ID** — *the one sign-in* — at `id.qorsync.dev`, redeployed after your merge: the
-  launcher now signs you in to ARQADE's window. 172 tests.
+- **QOR ID** — *the one sign-in* — at `id.qorsync.dev`; signs you in to ARQADE's window. 172 tests.
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`. 49 tests.
 - **Launcher 0.1.8**, unsigned — *Windows warns on install*. **CI** — *automatic build
   and test* — green on main.
 
-## Done today
+## Done today: QQ's first milestone (P3.1)
 
-**QQ's own engine is running**, on the Qt 6.12 Enterprise you installed. **QQ Studio** opens
-a 3D world: a sky that lights the scene, a sun with soft shadows, filmic colour, bloom, and
-a 3D model loaded straight from a file. You can orbit, zoom, and set the sun and exposure.
-Three tests render real frames and judge them by their pixels; all pass, and each was shown
-to fail when the engine was deliberately broken.
+**QQ Studio**, on your Qt 6.12 Enterprise, now edits 3D worlds:
 
-To see it: `pwsh products/qq/build.ps1 -Run` from the repository folder.
+- a list of everything in the scene, and a panel to edit whatever is selected;
+- click to select; handles to **move, turn and scale**; orbit and zoom;
+- add cubes, spheres, cylinders, cones, lamps, or your own 3D models;
+- **Save** keeps the scene in a project folder with version history; one edit shows as one
+  changed line; your models are copied into the project so it is complete on its own;
+- scenes from the launcher's 2D preview can be imported;
+- the launcher's QQ screen has **Open in QQ Studio**.
+
+23 automated checks pass, including ones that click and drag in the real window, and each
+check was shown to fail when the Studio was deliberately broken.
+
+Try it: `pwsh products/qq/build.ps1 -Run`.
 
 ## Next work
 
-The rest of P3.1: the scene tree, an inspector, move-rotate-scale handles, saving scenes
-into a project, and **Open in QQ Studio** from the launcher. Then worlds that play
-(physics, input), then the agent that designs and builds.
+**P3.2, worlds that play:** physics, keyboard and gamepad control, particles, spatial sound,
+live game logic, and a Player that runs a game in the launcher and in a browser. Then the
+agent that designs and builds a game from a description.
 
 ## What only you can do
 
-1. **Merge the next pull request** when it is opened (QQ's engine foundation).
-2. **CI for QQ:** GitHub cannot build Qt without your licence. Either add your Qt account to
-   the repository's secrets, or let your PC run CI jobs (a *self-hosted runner*). Until then
-   QQ is tested on this PC.
+1. **Merge the pull request** for P3.1 when it is opened.
+2. **CI for QQ:** GitHub cannot build Qt without your licence. Add your Qt account to the
+   repository's secrets, or let your PC run CI jobs (a *self-hosted runner*).
 3. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT* —
    and create and fund its Welcome account on the devnet.
 4. **Check with Qt** that your licence covers CI and AI assistants on your machine.

@@ -65,7 +65,7 @@ flowchart LR
 | **QOR Launcher** — the desktop home: vault, assets, market, projects | Built; signed installer and updates to come (L6) |
 | **QOR ID** — one sign-in for everything | Live |
 | **ARQADE** — games played with a QOR ID, collectibles as DRC-369 assets | Live on the devnet |
-| **QQ, the QOR Engine** — virtual worlds on Qt 6, with an agent that designs and builds ([ADR-083](docs/decisions/ADR-083-qq-on-qt.md)) | Started on Qt 6.12: QQ Studio renders a lit 3D world with a runtime-loaded model; a 2D preview runs in the launcher meanwhile |
+| **QQ, the QOR Engine** — virtual worlds on Qt 6, with an agent that designs and builds ([ADR-083](docs/decisions/ADR-083-qq-on-qt.md)) | QQ Studio on Qt 6.12 edits lit 3D worlds, saved as canonical QML in a project and opened from the launcher (P3.1 done); worlds that play are next |
 | **Qontrol** — versioning for creators | Built in the launcher |
 | **QFX** — the launcher's living visual layer | Six backdrops built |
 | **GNOSIS**, **Stream**, **Market and Library** | Planned ([roadmap](docs/DIRECTION.md)) |
