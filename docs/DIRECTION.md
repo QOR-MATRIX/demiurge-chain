@@ -930,12 +930,12 @@ preview until the Qt Player plays in the launcher and in ARQADE (ADR-083 decisio
 4. [ ] **Publishing a game.** A Publish action commits the scene through Qontrol and mints that commit as a Cartridge
    (a DRC-369 asset), signed by the launcher's vault behind the host dialog, asked over the local channel the
    launcher opens for the Studio it started; the Studio never holds a key. Depends on P3.2, M4.1 and L1.4's native
-   dialogs being exercised, and on the owner's decision on confining a stranger's game
-   ([`architecture/QQ_LOGIC_SANDBOX.md`](architecture/QQ_LOGIC_SANDBOX.md), proposed 10 October 2026).
+   dialogs being exercised, and on the QQ Player's lockdown (ADR-087 decision 2), built first.
 5. [ ] **ARQADE delivery.** Published games appear in ARQADE; Play loads the WebAssembly QQ Player with the game,
    signed in through QOR ID when the player is; the TypeScript preview and its check are retired in this change
-   (ADR-083 decision 6). Depends on P3.4 and P7 (ARQADE running), and on that same decision: the proposal is that
-   strangers' games play only here, from an origin of their own, sandboxed in ARQADE's page.
+   (ADR-083 decision 6). Depends on P3.4 and P7 (ARQADE running). Under ADR-087 strangers' games play only here, in a
+   sandboxed frame, from a site of their own (a separate `*.vercel.app` project, a registered domain before launch),
+   asking ARQADE for anything through a narrow message interface.
 6. [ ] **Collectibles, generation and the Mesh.** DRC-369 items as in-game collectibles; generative assets (models,
    textures, sound) from a description through the agent; games delivered over the Mesh; in-game purchases settled in
    CGT; access gating on paid collectibles. Depends on M4.2, M5.2, M5.3, M6.4 and M8. Generation is paid by the creator

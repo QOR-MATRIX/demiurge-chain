@@ -1,8 +1,9 @@
 # Confining a stranger's game: a design proposal (QQ, before P3.4 and P3.5)
 
-**Status:** A proposal for the owner's review, written 10 October 2026. **Nothing here is decided, and no code is
-written until the owner decides.** Once decided, the decision becomes an ADR and this document its write-up, as
-ADDRESS_TYPE.md was for ADR-041.
+**Status:** **Decided 10 October 2026: ADR-087**, the owner accepting the recommendation in §4 and the advice on §5's
+four questions (browser only at first; the Player locked down in every mode, built first; native play of others' games
+deferred; games served from a site of their own, a separate `*.vercel.app` project now and a registered domain before
+launch). This document is the write-up ADR-087 was decided from, as ADDRESS_TYPE.md was for ADR-041.
 
 **What it answers:** how QQ keeps a game made by one person from harming the person who plays it, once games are
 published (DIRECTION P3.4) and played by others in ARQADE and the launcher (P3.5). Until then every game is played only
