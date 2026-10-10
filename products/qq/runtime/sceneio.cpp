@@ -13,11 +13,13 @@
 #include <QQmlComponent>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QRegularExpression>
 #include <QSaveFile>
 #include <QVector3D>
 #include <QtQuick3D/qquick3dobject.h>
 
 #include <cmath>
+#include <numbers>
 
 namespace qq {
 
@@ -216,8 +218,10 @@ QString SceneIO::save(QObject *scene, const QUrl &file) const
 
 QObject *SceneIO::load(const QUrl &file, QObject *parent)
 {
-    QFile f(file.toLocalFile());
-    if (!file.isLocalFile() || !f.open(QIODevice::ReadOnly)) {
+    // A file on this computer, or one bundled in the executable (the QQ Player's own game, in a browser).
+    const bool bundled = file.scheme() == QStringLiteral("qrc");
+    QFile f(bundled ? QLatin1Char(':') + file.path() : file.toLocalFile());
+    if ((!file.isLocalFile() && !bundled) || !f.open(QIODevice::ReadOnly)) {
         fail(QStringLiteral("The scene %1 could not be read.").arg(file.toDisplayString()));
         return nullptr;
     }
@@ -263,6 +267,18 @@ QObject *SceneIO::loadText(const QString &text, const QUrl &file, QObject *paren
     return scene;
 }
 
+QObject *SceneIO::play(QObject *scene, const QUrl &file, QObject *parent)
+{
+    if (!isEntity(scene) || scene->property("kind").toString() != QStringLiteral("Scene")) {
+        fail(QStringLiteral("There is no scene to play."));
+        return nullptr;
+    }
+    QObject *copy = loadText(write(scene, file), file, parent);
+    if (copy)
+        copy->setProperty("playing", true);
+    return copy;
+}
+
 QUrl SceneIO::resolvedUrl(QObject *entity, const QUrl &url) const
 {
     return wholeUrl(entity, url);
@@ -299,14 +315,16 @@ QUrl SceneIO::adopt(const QUrl &model, const QUrl &project)
     const QFileInfo source(bundled ? QLatin1Char(':') + model.path() : model.toLocalFile());
     const QDir root(project.toLocalFile());
     if (!source.isFile() || !root.exists()) {
-        fail(QStringLiteral("The model or the project folder does not exist."));
+        fail(QStringLiteral("%1 or the project folder does not exist.").arg(source.fileName()));
         return {};
     }
     const QString rootPath = root.canonicalPath() + QLatin1Char('/');
     if (!bundled && source.canonicalFilePath().startsWith(rootPath, Qt::CaseInsensitive))
         return model;
 
-    const QDir assets(root.filePath(QStringLiteral("assets")));
+    // Logic is code, kept apart from what it uses.
+    const bool logic = source.suffix().compare(QStringLiteral("qml"), Qt::CaseInsensitive) == 0;
+    const QDir assets(root.filePath(logic ? QStringLiteral("logic") : QStringLiteral("assets")));
     // A model of the same name but different content is kept beside it, never over it.
     QString name = source.fileName();
     for (int n = 2; QFileInfo::exists(assets.filePath(name)) && digest(assets.filePath(name)) != digest(source.filePath());
@@ -339,10 +357,37 @@ QUrl SceneIO::adopt(const QUrl &model, const QUrl &project)
     return QUrl::fromLocalFile(assets.filePath(name));
 }
 
+QUrl SceneIO::writeLogic(const QUrl &project, const QString &name, const QString &text)
+{
+    if (!project.isLocalFile() || !QDir(project.toLocalFile()).exists()) {
+        fail(QStringLiteral("Logic is written into a project folder."));
+        return {};
+    }
+    QString safe = name.trimmed().toLower();
+    safe.replace(QRegularExpression(QStringLiteral("[^a-z0-9-]+")), QStringLiteral("-"));
+    safe.remove(QRegularExpression(QStringLiteral("^-+|-+$")));
+    if (safe.isEmpty())
+        safe = QStringLiteral("logic");
+    const QString path = QDir(project.toLocalFile()).filePath(QStringLiteral("logic/%1.qml").arg(safe));
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    QSaveFile out(path);
+    if (!out.open(QIODevice::WriteOnly)) {
+        fail(out.errorString());
+        return {};
+    }
+    out.write(text.toUtf8());
+    if (!out.commit()) {
+        fail(out.errorString());
+        return {};
+    }
+    return QUrl::fromLocalFile(path);
+}
+
 QStringList SceneIO::kinds() const
 {
-    return {QStringLiteral("Shape"), QStringLiteral("Lamp"), QStringLiteral("Prop"), QStringLiteral("Sun"),
-            QStringLiteral("Ground")};
+    return {QStringLiteral("Shape"),  QStringLiteral("Lamp"),    QStringLiteral("Prop"),
+            QStringLiteral("Sun"),    QStringLiteral("Ground"),  QStringLiteral("Player"),
+            QStringLiteral("Emitter"), QStringLiteral("Sound"),  QStringLiteral("Behaviour")};
 }
 
 QVariantList SceneIO::entities(QObject *scene) const
@@ -403,6 +448,21 @@ void SceneIO::discard(QObject *scene)
     auto *node = qobject_cast<QQuick3DObject *>(scene);
     if (!node || scene->property("kind").toString() != QStringLiteral("Scene"))
         return;
+    // The bodies play made go first, while their physics world still stands. Qt Quick 3D Physics frees a body's
+    // simulation state with its world; a body that outlives its world, and is destroyed while any other world exists,
+    // writes into that freed state (QPhysicsWorld::deregisterNode). A scene's world is its first child, so left to
+    // the ordinary order it would go first.
+    QList<QQuick3DObject *> bodies;
+    QList<QQuick3DObject *> pending = node->childItems();
+    while (!pending.isEmpty()) {
+        QQuick3DObject *item = pending.takeLast();
+        if (item->inherits("QAbstractPhysicsNode"))
+            bodies << item;
+        else
+            pending << item->childItems();
+    }
+    for (QQuick3DObject *body : std::as_const(bodies))
+        delete body;
     node->setParentItem(nullptr);
     scene->deleteLater();
 }
@@ -410,13 +470,17 @@ void SceneIO::discard(QObject *scene)
 QVariantMap SceneIO::project(const QUrl &folder) const
 {
     const QDir root(folder.toLocalFile());
-    QStringList scenes;
-    for (const QFileInfo &file : QDir(root.filePath(QStringLiteral("scenes")))
-                                     .entryInfoList({QStringLiteral("*.qml")}, QDir::Files, QDir::Name))
-        scenes << file.completeBaseName();
+    auto names = [&root](const QString &folder) {
+        QStringList out;
+        for (const QFileInfo &file :
+             QDir(root.filePath(folder)).entryInfoList({QStringLiteral("*.qml")}, QDir::Files, QDir::Name))
+            out << file.completeBaseName();
+        return out;
+    };
     return {{QStringLiteral("name"), root.dirName()},
             {QStringLiteral("repository"), QFileInfo(root.filePath(QStringLiteral(".git"))).exists()},
-            {QStringLiteral("scenes"), scenes}};
+            {QStringLiteral("scenes"), names(QStringLiteral("scenes"))},
+            {QStringLiteral("logic"), names(QStringLiteral("logic"))}};
 }
 
 QVariantMap SceneIO::importQqJson(const QUrl &file)
@@ -451,13 +515,34 @@ QVariantMap SceneIO::importQqJson(const QUrl &file)
     for (const QJsonValue &value : json.value(QStringLiteral("entities")).toArray()) {
         const QJsonObject e = value.toObject();
         const QString name = e.value(QStringLiteral("name")).toString(e.value(QStringLiteral("id")).toString());
-        for (const char *later : {"motion", "follow", "emitter"}) {
+        for (const char *later : {"motion", "follow"}) {
             if (e.contains(QLatin1String(later)))
-                skipped << QStringLiteral("%1: %2, which plays in P3.2").arg(name, QLatin1String(later));
+                skipped << QStringLiteral("%1: %2, which has no 3D form yet").arg(name, QLatin1String(later));
+        }
+        const QJsonObject t = e.value(QStringLiteral("transform")).toObject();
+        const double x = unit(t.value(QStringLiteral("x")).toDouble());
+        const double y = unit(h / 2 - t.value(QStringLiteral("y")).toDouble());
+        if (e.contains(QStringLiteral("emitter"))) {
+            // A 2D spring of particles, in metres: its speed in pixels a second is a hundredth of that in metres, and a
+            // spread of most of a circle becomes a burst every way, a narrow one a plume.
+            const QJsonObject m = e.value(QStringLiteral("emitter")).toObject();
+            const double speed = unit(m.value(QStringLiteral("speed")).toDouble(100));
+            const double spread = m.value(QStringLiteral("spread")).toDouble(60);
+            const bool burst = spread >= 180;
+            qml += QStringLiteral("    Emitter {\n        name: %1\n        position: Qt.vector3d(%2, %3, 0)\n"
+                                  "        colour: %4\n        rate: %5\n        life: %6\n        size: %7\n"
+                                  "        speed: %8\n        spread: %9\n    }\n")
+                       .arg(quoted(name + QStringLiteral(" sparks")), formatNumber(x), formatNumber(y),
+                            quoted(m.value(QStringLiteral("colour")).toString(QStringLiteral("#ffb15c"))),
+                            formatNumber(m.value(QStringLiteral("rate")).toDouble(60)),
+                            formatNumber(m.value(QStringLiteral("life")).toDouble(2)),
+                            formatNumber(qMax(0.05, unit(m.value(QStringLiteral("size")).toDouble(4)) * 1.5)),
+                            formatNumber(burst ? speed * 0.2 : speed),
+                            formatNumber(burst ? speed : speed * std::sin(spread / 2 * std::numbers::pi / 180)));
+            ++imported;
         }
         if (!e.contains(QStringLiteral("shape")))
             continue;
-        const QJsonObject t = e.value(QStringLiteral("transform")).toObject();
         const QJsonObject s = e.value(QStringLiteral("shape")).toObject();
         const double scale = t.value(QStringLiteral("scale")).toDouble(1);
         const double w = unit(s.value(QStringLiteral("w")).toDouble(64)) * scale;
@@ -470,8 +555,7 @@ QVariantMap SceneIO::importQqJson(const QUrl &file)
                               "        position: Qt.vector3d(%3, %4, 0)\n        eulerRotation: Qt.vector3d(0, 0, %5)\n"
                               "        scale: Qt.vector3d(%6, %7, %8)\n        colour: %9\n")
                    .arg(quoted(name), quoted(round ? QStringLiteral("sphere") : QStringLiteral("cube")),
-                        formatNumber(unit(t.value(QStringLiteral("x")).toDouble())),
-                        formatNumber(unit(h / 2 - t.value(QStringLiteral("y")).toDouble())),
+                        formatNumber(x), formatNumber(y),
                         formatNumber(-t.value(QStringLiteral("rotation")).toDouble()), formatNumber(w),
                         formatNumber(hh), formatNumber(depth), quoted(colour));
         if (glow > 0)

@@ -14,9 +14,23 @@ qt_add_qml_module(qqruntime
         Ground.qml
         Shape.qml
         Prop.qml
+        Player.qml
+        Emitter.qml
+        Sound.qml
+        Behaviour.qml
+        Logic.qml
+        Game.qml
     SOURCES
         sceneio.h sceneio.cpp
+        input.h input.cpp
+        logicfile.h logicfile.cpp
+        softdot.h softdot.cpp
+        gpu.h gpu.cpp
 )
 
 target_include_directories(qqruntime PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(qqruntime PUBLIC Qt6::Qml Qt6::Quick Qt6::Quick3D)
+if(WIN32)
+    # Gamepads, through XInput (xinput1_4.dll, part of Windows since 8); the choice of GPU, through DXGI.
+    target_link_libraries(qqruntime PRIVATE xinput dxgi)
+endif()

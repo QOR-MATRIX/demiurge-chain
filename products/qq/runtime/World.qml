@@ -7,6 +7,7 @@
 import QtQuick
 import QtQuick3D
 import QtQuick3D.Helpers
+import QtQuick3D.SpatialAudio
 
 View3D {
     id: world
@@ -29,6 +30,10 @@ View3D {
     property color groundBottom: "#07080c"
 
     default property alias content: scene.data
+
+    /// Whether the world is heard: its sounds through the camera's ears, in metres. On while a scene plays; off while
+    /// it is edited, and in a world that has nothing to hear, so no sound device is opened for nothing.
+    property bool hearing: false
 
     /// The camera the world is seen through, for an overlay that must see it the same way.
     readonly property alias viewCamera: eyeCamera
@@ -74,6 +79,16 @@ View3D {
         id: eyeCamera
         clipNear: 0.05
         clipFar: 2000
+
+        Loader3D {
+            // Not in a browser, where Sound plays without spatial audio (Sound.qml says why).
+            active: world.hearing && Qt.platform.os !== "wasm"
+            sourceComponent: Node {
+                // One engine serves every sound in the process; this sets it to QQ's unit, the metre.
+                AudioEngine { distanceScale: 100 }
+                AudioListener {}
+            }
+        }
     }
 
     // Position, then aim: in one place, so the camera never looks from where it was toward where it is going.

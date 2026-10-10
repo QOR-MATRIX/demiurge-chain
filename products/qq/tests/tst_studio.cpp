@@ -1,9 +1,11 @@
-// Does QQ Studio do what P3.1 says, in its real window? (DIRECTION P3.1)
+// Does QQ Studio do what P3.1 and P3.2 say, in its real window? (DIRECTION P3.1, P3.2)
 //
 // Each case opens the Studio's own Main.qml, with a temporary project, and works it the way a person does: a click in
-// the viewport, a drag on a handle, Save. What is checked is what changed in the scene and what reached the disk.
+// the viewport, a drag on a handle, Save, Play and Stop. What is checked is what changed in the scene and what reached
+// the disk.
 
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QMouseEvent>
 #include <QPointingDevice>
@@ -16,7 +18,12 @@
 #include <QVector3D>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include "gpu.h"
+
 #include "sceneio.h"
+
+// Drawn with the GPU the Studio and the Player draw with: chosen before QTEST_MAIN makes the application.
+static const QString chosenGpu = qq::preferHighPerformanceGpu();
 
 Q_IMPORT_QML_PLUGIN(QQPlugin)
 Q_IMPORT_QML_PLUGIN(QQ_StudioPlugin)
@@ -55,6 +62,14 @@ struct Studio {
         return QTest::qWaitFor([this] { return window->property("settled").toBool(); }, 15000);
     }
 
+    ~Studio()
+    {
+        // As the Studio does when it quits.
+        if (window)
+            QMetaObject::invokeMethod(window, "release");
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
+
     QObject *scene() const { return window->property("scene").value<QObject *>(); }
     QObject *selection() const { return window->property("selection").value<QObject *>(); }
     QVariantList entities() const { return window->property("entityList").toList(); }
@@ -87,6 +102,37 @@ struct Studio {
         QVector3D mapped;
         QMetaObject::invokeMethod(item, "mapFrom3DScene", Q_RETURN_ARG(QVector3D, mapped), Q_ARG(QVector3D, point));
         return item->mapToScene(QPointF(mapped.x(), mapped.y()));
+    }
+
+    /// Let `ms` of frames pass: play moves only as frames are drawn.
+    void run(int ms)
+    {
+        QElapsedTimer t;
+        t.start();
+        while (t.elapsed() < ms) {
+            window->update();
+            QTest::qWait(8);
+        }
+    }
+
+    void click(const char *objectName)
+    {
+        auto *item = window->findChild<QQuickItem *>(QLatin1String(objectName));
+        QVERIFY2(item, objectName);
+        QTest::mouseClick(window, Qt::LeftButton, {},
+                          item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
+    }
+
+    QObject *playScene() const { return window->property("playScene").value<QObject *>(); }
+
+    QObject *played(const QString &name) const
+    {
+        auto *io = const_cast<QQmlApplicationEngine &>(engine).singletonInstance<qq::SceneIO *>("QQ", "SceneIO");
+        for (const QVariant &e : io->entities(playScene())) {
+            if (e.value<QObject *>()->property("name").toString() == name)
+                return e.value<QObject *>();
+        }
+        return nullptr;
     }
 
     void settle(int frames = 6)
@@ -264,12 +310,129 @@ private slots:
         Studio s;
         QVERIFY(s.open());
         s.call("importScene", QUrl::fromLocalFile(fixture(QStringLiteral("first-light.qq.json"))));
-        QCOMPARE(s.entities().size(), 5);  // a sun, the ground, and three shapes
+        QCOMPARE(s.entities().size(), 6);  // a sun, the ground, three shapes and the core's sparks
         QVERIFY(s.entity(QStringLiteral("Core")));
+        QVERIFY(s.entity(QStringLiteral("Core sparks")));
         const QString notice = s.window->property("notice").toString();
-        QVERIFY2(notice.contains(QStringLiteral("Imported 3 shapes")) && notice.contains(QStringLiteral("emitter")),
+        QVERIFY2(notice.contains(QStringLiteral("Imported 4 entities")) && notice.contains(QStringLiteral("follow"))
+                     && notice.contains(QStringLiteral("motion")),
                  qPrintable(notice));
         QCOMPARE(s.window->property("sceneName").toString(), QStringLiteral("first-light"));
+    }
+
+    void playThenStopLeavesTheSceneExactlyAsItWas()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        s.call("add", QStringLiteral("Shape"), QVariantMap{{QStringLiteral("name"), QStringLiteral("Crate")},
+                                                           {QStringLiteral("body"), QStringLiteral("dynamic")},
+                                                           {QStringLiteral("position"), QVector3D(3, 4, 0)}});
+        s.call("add", QStringLiteral("Player"), QVariantMap{{QStringLiteral("position"), QVector3D(0, 0, 3)}});
+        QObject *crate = s.entity(QStringLiteral("Crate"));
+        s.window->setProperty("selection", QVariant::fromValue(crate));
+        auto *io = s.engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO");
+        const QUrl file = s.window->property("sceneFile").toUrl();
+        const QString before = io->write(s.scene(), file);
+        const bool dirtyBefore = s.window->property("dirty").toBool();
+        const int countBefore = int(s.entities().size());
+
+        // Play, from its button.
+        s.click("playButton");
+        QTRY_VERIFY(s.window->property("playing").toBool());
+        QVERIFY(s.playScene() && s.playScene() != s.scene());
+        QVERIFY(!s.call("saveScene").toBool());  // nothing is saved from play
+
+        // The crate falls in play; the scene's crate stays where it was put.
+        s.run(2500);
+        QObject *falling = s.played(QStringLiteral("Crate"));
+        QVERIFY(falling);
+        const float y = falling->property("physics").value<QObject *>()->property("scenePosition").value<QVector3D>().y();
+        QVERIFY2(qAbs(y - 0.5f) < 0.06f, qPrintable(QStringLiteral("crate at %1").arg(y)));
+        QCOMPARE(crate->property("position").value<QVector3D>(), QVector3D(3, 4, 0));
+
+        // The keys walk the player, and the eye follows it.
+        QObject *player = s.played(QStringLiteral("Player"));
+        QCOMPARE(s.window->property("follow").value<QObject *>(), player);
+        const float startZ = player->property("feet").value<QVector3D>().z();
+        QTest::keyPress(s.window, Qt::Key_W);
+        s.run(700);
+        QTest::keyRelease(s.window, Qt::Key_W);
+        s.run(100);
+        const float walked = startZ - player->property("feet").value<QVector3D>().z();
+        QVERIFY2(walked > 1.5f, qPrintable(QStringLiteral("walked %1").arg(walked)));
+        QObject *world = s.window->findChild<QObject *>(QStringLiteral("world"));
+        QCOMPARE(world->property("eye").value<QVector3D>(), player->property("eye").value<QVector3D>());
+
+        // The mouse looks around: a drag to the right turns the player right (a falling heading), at a quarter of a
+        // degree a pixel, and a drag down tilts the eye to look further down, at a fifth.
+        const double heading = player->property("heading").toDouble();
+        const double pitch = player->property("pitch").toDouble();
+        const QPointF from = s.onScreen("world", player->property("lookAt").value<QVector3D>());
+        s.drag(from, from + QPointF(160, 40));
+        s.run(200);
+        const double turned = heading - player->property("heading").toDouble();
+        QVERIFY2(turned > 32 && turned < 48, qPrintable(QStringLiteral("turned %1").arg(turned)));
+        const double tilted = player->property("pitch").toDouble() - pitch;
+        QVERIFY2(tilted > 5 && tilted < 11, qPrintable(QStringLiteral("tilted %1").arg(tilted)));
+
+        // Esc: the copy is gone, and the scene, its unsaved state and the selection are as they were.
+        QTest::keyClick(s.window, Qt::Key_Escape);
+        QTRY_VERIFY(!s.window->property("playing").toBool());
+        QVERIFY(!s.playScene());
+        QCOMPARE(io->write(s.scene(), file), before);
+        QCOMPARE(s.window->property("dirty").toBool(), dirtyBefore);
+        QCOMPARE(int(s.entities().size()), countBefore);
+        QCOMPARE(s.selection(), crate);
+        QVERIFY(s.window->property("notice").toString().contains(QStringLiteral("as it was")));
+
+        // And plays again from the same start.
+        QVERIFY(s.call("play").toBool());
+        s.run(200);
+        const QObject *again = s.played(QStringLiteral("Crate"))->property("physics").value<QObject *>();
+        QVERIFY(again->property("scenePosition").value<QVector3D>().y() > 3.0f);
+        QVERIFY(s.call("stop").toBool());
+    }
+
+    void aNewBehaviourIsWrittenIntoTheProjectAndNeverOverAFile()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        const QDir root(s.project.path());
+        root.mkpath(QStringLiteral("logic"));
+        QFile mine(root.filePath(QStringLiteral("logic/behaviour.qml")));
+        QVERIFY(mine.open(QIODevice::WriteOnly));
+        mine.write("// mine\n");
+        mine.close();
+
+        s.window->setProperty("selection", QVariant::fromValue(s.entity(QStringLiteral("Plinth"))));
+        QVariant made = s.call("addBehaviour");
+        QObject *behaviour = made.value<QObject *>();
+        QVERIFY(behaviour);
+        QCOMPARE(behaviour->property("target").toString(), QStringLiteral("Plinth"));
+        QCOMPARE(readAll(root.filePath(QStringLiteral("logic/behaviour.qml"))), QStringLiteral("// mine\n"));
+        const QString written = readAll(root.filePath(QStringLiteral("logic/behaviour-2.qml")));
+        QVERIFY2(written.contains(QStringLiteral("Logic {")), qPrintable(written));
+
+        // In play the template turns what it drives, 90 degrees for each second of play its logic has seen. (Measured
+        // by the logic's own clock: the first play in a process waits a moment for physics to start.)
+        QVERIFY(s.call("play").toBool());
+        QObject *logic = s.played(behaviour->property("name").toString())->property("logic").value<QObject *>();
+        QVERIFY(logic);
+        QElapsedTimer guard;
+        guard.start();
+        while (logic->property("elapsed").toDouble() < 0.6 && guard.elapsed() < 5000)
+            s.run(50);
+        const double elapsed = logic->property("elapsed").toDouble();
+        const float turned = s.played(QStringLiteral("Plinth"))->property("eulerRotation").value<QVector3D>().y();
+        QVERIFY2(elapsed >= 0.6 && qAbs(turned - 90 * elapsed) < 2,
+                 qPrintable(QStringLiteral("turned %1 in %2 s").arg(turned).arg(elapsed)));
+        QCOMPARE(s.window->property("playProblem").toString(), QString());
+        QVERIFY(s.call("stop").toBool());
+
+        // Saved, the scene keeps the logic by a path inside the project.
+        QVERIFY(s.call("saveScene").toBool());
+        QVERIFY(readAll(root.filePath(QStringLiteral("scenes/untitled.qml")))
+                    .contains(QStringLiteral("        source: \"../logic/behaviour-2.qml\"\n")));
     }
 };
 

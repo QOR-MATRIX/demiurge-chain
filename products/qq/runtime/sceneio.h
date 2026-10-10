@@ -39,11 +39,16 @@ public:
     /// Write `scene` to `file`, whole or not at all. An empty string, or what went wrong.
     Q_INVOKABLE QString save(QObject *scene, const QUrl &file) const;
 
-    /// Build the scene in `file` under `parent` (a 3D node). The new scene, or null with `lastError` set.
+    /// Build the scene in `file` (on this computer, or bundled in qrc:) under `parent` (a 3D node). The new scene, or
+    /// null with `lastError` set.
     Q_INVOKABLE QObject *load(const QUrl &file, QObject *parent);
 
     /// Build a scene from its text, as if read from `file` (which relative URLs resolve against).
     Q_INVOKABLE QObject *loadText(const QString &text, const QUrl &file, QObject *parent);
+
+    /// Play `scene`: a copy built from its text under `parent`, with `playing` set. The scene itself is not touched, so
+    /// stopping is discarding the copy. The copy, or null with `lastError` set.
+    Q_INVOKABLE QObject *play(QObject *scene, const QUrl &file, QObject *parent);
 
     /// A URL an entity holds, made whole against the file the entity was read from (Qt 6 keeps URL properties as
     /// written, so a model's "../assets/x.glb" stays relative until something resolves it).
@@ -53,17 +58,23 @@ public:
     /// "color" or "vector3d"; "" for anything else.
     Q_INVOKABLE QString fieldType(QObject *object, const QString &name) const;
 
-    /// Copy a model, and every file it refers to, into the project's assets folder; its new URL, or an empty URL with
-    /// `lastError` set. A model already inside the project is left where it is.
+    /// Copy a file an entity uses into the project: a model (and every file it refers to) or a sound into `assets/`, a
+    /// logic file into `logic/`. Its new URL, or an empty URL with `lastError` set. A file already inside the project is
+    /// left where it is.
     Q_INVOKABLE QUrl adopt(const QUrl &model, const QUrl &project);
 
+    /// Write a logic file, `logic/<name>.qml` in the project, whole or not at all: how the Studio starts a new behaviour,
+    /// and how the agent writes one (P3.3). `name` is made safe for a file name. Its URL, or an empty URL with
+    /// `lastError` set.
+    Q_INVOKABLE QUrl writeLogic(const QUrl &project, const QString &name, const QString &text);
+
     /// A 2D QQ scene of format 1 (`.qq.json`, ADR-082's preview) as a canonical QQ scene: { "qml": text, "imported":
-    /// count, "skipped": [what has no 3D form yet], "error": "" or why it could not be read }.
+    /// how many entities it became, "skipped": [what has no 3D form yet], "error": "" or why it could not be read }.
     Q_INVOKABLE QVariantMap importQqJson(const QUrl &file);
 
     // ── Editing: what the Studio's panels do, and what the agent's tools will do (P3.3) ──
 
-    /// The kinds an entity can be: "Shape", "Lamp", "Prop", "Sun", "Ground".
+    /// The kinds an entity can be: "Shape", "Lamp", "Prop", "Sun", "Ground", "Player", "Emitter", "Sound", "Behaviour".
     Q_INVOKABLE QStringList kinds() const;
 
     /// The scene's entities, in file order.
@@ -75,11 +86,12 @@ public:
     /// Take an entity out of its scene and delete it. False if it is not an entity of a scene.
     Q_INVOKABLE bool remove(QObject *entity);
 
-    /// Put a whole scene away (the Studio, opening another).
+    /// Put a whole scene away (the Studio, opening another or stopping play). Its physics bodies are destroyed at once,
+    /// before their world; everything else when control returns to the event loop.
     Q_INVOKABLE void discard(QObject *scene);
 
     /// A project folder as the Studio shows it: { "name", "repository": whether it is a Qontrol (git) repository,
-    /// "scenes": the names of scenes/<name>.qml, sorted }.
+    /// "scenes": the names of scenes/<name>.qml, sorted, "logic": the names of logic/<name>.qml, sorted }.
     Q_INVOKABLE QVariantMap project(const QUrl &folder) const;
 
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)

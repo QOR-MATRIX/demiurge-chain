@@ -10,6 +10,7 @@ Node {
 
     readonly property string kind: "Prop"
     readonly property var fields: ["name", "position", "eulerRotation", "scale", "source"]
+    readonly property var fileTypes: ({ source: ["glTF 2.0 (*.gltf *.glb)"] })
 
     property string name: "Model"
 

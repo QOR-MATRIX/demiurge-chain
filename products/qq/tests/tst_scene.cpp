@@ -94,7 +94,14 @@ private slots:
         for (QQuick3DObject *child : qobject_cast<QQuick3DObject *>(scene)->childItems())
             kinds << child->property("kind").toString();
         QCOMPARE(kinds, (QStringList{QStringLiteral("Sun"), QStringLiteral("Ground"), QStringLiteral("Shape"),
-                                     QStringLiteral("Lamp"), QStringLiteral("Prop")}));
+                                     QStringLiteral("Lamp"), QStringLiteral("Prop"), QStringLiteral("Player"),
+                                     QStringLiteral("Emitter"), QStringLiteral("Sound"), QStringLiteral("Behaviour")}));
+        // Every kind there is.
+        QStringList sorted = kinds;
+        sorted.sort();
+        QStringList all = io->kinds();
+        all.sort();
+        QCOMPARE(sorted, all);
         delete scene;
     }
 
@@ -179,6 +186,45 @@ private slots:
         QCOMPARE(io->adopt(first, projectUrl), first);
     }
 
+    void soundsAndLogicAreAdoptedIntoTheirOwnFolders()
+    {
+        QTemporaryDir project;
+        const QUrl projectUrl = QUrl::fromLocalFile(project.path());
+        const QUrl sound = io->adopt(QUrl::fromLocalFile(fixture(QStringLiteral("chime.wav"))), projectUrl);
+        QCOMPARE(sound.toLocalFile(), QDir(project.path()).filePath(QStringLiteral("assets/chime.wav")));
+        const QUrl logic = io->adopt(QUrl::fromLocalFile(fixture(QStringLiteral("logic/spin.qml"))), projectUrl);
+        QCOMPARE(logic.toLocalFile(), QDir(project.path()).filePath(QStringLiteral("logic/spin.qml")));
+        QCOMPARE(readAll(logic.toLocalFile()), readAll(fixture(QStringLiteral("logic/spin.qml"))));
+    }
+
+    void playingIsACopyAndTheSceneIsNotTouched()
+    {
+        const QUrl url = QUrl::fromLocalFile(fixture(QStringLiteral("scenes/sample.qml")));
+        QObject *scene = io->load(url, nullptr);
+        QVERIFY(scene);
+        const QString before = io->write(scene, url);
+        QObject *copy = io->play(scene, url, nullptr);
+        QVERIFY2(copy, qPrintable(io->lastError()));
+        QVERIFY(copy != scene);
+        QCOMPARE(copy->property("playing").toBool(), true);
+        QCOMPARE(scene->property("playing").toBool(), false);
+        // Every entity of the copy that changes in play knows it plays; none of the scene's does.
+        int live = 0;
+        for (const QVariant &e : io->entities(copy))
+            live += e.value<QObject *>()->property("live").toBool() ? 1 : 0;
+        QCOMPARE(live, 5);  // the ground, the shape, the player, the sound and the behaviour; the rest are the same in play
+        for (const QVariant &e : io->entities(scene))
+            QVERIFY(!e.value<QObject *>()->property("live").toBool());
+        // The copy is the scene, and the scene is as it was; `playing` is not part of either's file.
+        QCOMPARE(io->write(copy, url), before);
+        QCOMPARE(io->write(scene, url), before);
+        QVERIFY(!before.contains(QStringLiteral("playing")));
+        QVERIFY(!io->play(entityNamed(scene, QStringLiteral("Orb")), url, nullptr));
+        io->discard(copy);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        delete scene;
+    }
+
     void whatIsNotASceneIsRefusedWithAReason()
     {
         QVERIFY(!io->loadText(QStringLiteral("import QQ\nShape {}\n"), QUrl(), nullptr));
@@ -193,11 +239,10 @@ private slots:
     {
         const QVariantMap result = io->importQqJson(QUrl::fromLocalFile(fixture(QStringLiteral("first-light.qq.json"))));
         QCOMPARE(result.value(QStringLiteral("error")).toString(), QString());
-        QCOMPARE(result.value(QStringLiteral("imported")).toInt(), 3);
+        QCOMPARE(result.value(QStringLiteral("imported")).toInt(), 4);  // three shapes and an emitter
         const QStringList skipped = result.value(QStringLiteral("skipped")).toStringList();
-        QCOMPARE(skipped.size(), 3);
+        QCOMPARE(skipped.size(), 2);
         QVERIFY(skipped.filter(QStringLiteral("Core: follow")).size() == 1);
-        QVERIFY(skipped.filter(QStringLiteral("Core: emitter")).size() == 1);
         QVERIFY(skipped.filter(QStringLiteral("Ring: motion")).size() == 1);
 
         const QString qml = result.value(QStringLiteral("qml")).toString();
@@ -212,6 +257,14 @@ private slots:
         QObject *ring = entityNamed(scene, QStringLiteral("Ring"));
         QCOMPARE(ring->property("form").toString(), QStringLiteral("cube"));
         QCOMPARE(ring->property("position").value<QVector3D>(), QVector3D(-2.6f, 2.7f, 0));
+        // The 2D emitter, as a 3D one where the core is: 110 pixels a second is 1.1 metres, and a full circle a burst.
+        QObject *sparks = entityNamed(scene, QStringLiteral("Core sparks"));
+        QVERIFY(sparks);
+        QCOMPARE(sparks->property("kind").toString(), QStringLiteral("Emitter"));
+        QCOMPARE(sparks->property("position").value<QVector3D>(), QVector3D(0, 2.7f, 0));
+        QCOMPARE(sparks->property("rate").toDouble(), 90.0);
+        QCOMPARE(sparks->property("spread").toDouble(), 1.1);
+        QCOMPARE(sparks->property("colour").value<QColor>(), QColor(QStringLiteral("#ffb15c")));
         delete scene;
     }
 
@@ -237,19 +290,21 @@ private slots:
         const QUrl url = QUrl::fromLocalFile(fixture(QStringLiteral("scenes/sample.qml")));
         QObject *scene = io->load(url, nullptr);
         QVERIFY(scene);
-        QCOMPARE(io->entities(scene).size(), 5);
+        QCOMPARE(io->entities(scene).size(), 9);
 
         QObject *crystal = io->add(scene, QStringLiteral("Shape"),
                                    {{QStringLiteral("name"), QStringLiteral("Crystal")},
                                     {QStringLiteral("form"), QStringLiteral("cone")},
                                     {QStringLiteral("position"), QVector3D(2, 0.5f, -1)}});
         QVERIFY2(crystal, qPrintable(io->lastError()));
-        QCOMPARE(io->entities(scene).size(), 6);
+        QCOMPARE(io->entities(scene).size(), 10);
         const QString text = io->write(scene, url);
         QVERIFY2(text.endsWith(QStringLiteral("    Shape {\n        name: \"Crystal\"\n        position: Qt.vector3d(2, 0.5, -1)\n")
                                + QStringLiteral("        eulerRotation: Qt.vector3d(0, 0, 0)\n        scale: Qt.vector3d(1, 1, 1)\n")
                                + QStringLiteral("        form: \"cone\"\n        colour: \"#5ad1ff\"\n        metalness: 0\n")
-                               + QStringLiteral("        roughness: 0.4\n        emissive: \"#000000\"\n        emissivePower: 0\n    }\n}\n")),
+                               + QStringLiteral("        roughness: 0.4\n        emissive: \"#000000\"\n        emissivePower: 0\n")
+                               + QStringLiteral("        body: \"static\"\n        mass: 1\n        bounce: 0.2\n        friction: 0.6\n")
+                               + QStringLiteral("    }\n}\n")),
                  qPrintable(text.right(400)));
 
         // What is not an entity kind, or not a scene, is refused.
@@ -260,7 +315,7 @@ private slots:
         QVERIFY(io->remove(crystal));
         QVERIFY(!io->remove(scene));
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-        QCOMPARE(io->entities(scene).size(), 5);
+        QCOMPARE(io->entities(scene).size(), 9);
         QCOMPARE(io->write(scene, url), readAll(url.toLocalFile()));
         delete scene;
     }

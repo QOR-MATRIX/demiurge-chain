@@ -35,3 +35,26 @@ target_link_libraries(tst_studio PRIVATE
 )
 
 add_test(NAME tst_studio COMMAND tst_studio)
+
+qt_add_executable(tst_play tst_play.cpp)
+
+target_compile_definitions(tst_play PRIVATE QQ_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+
+target_link_libraries(tst_play PRIVATE
+    Qt6::Test Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Quick3D
+    qqruntime qqruntimeplugin
+)
+
+add_test(NAME tst_play COMMAND tst_play)
+
+qt_add_executable(tst_player tst_player.cpp)
+
+# The real player, started as the launcher starts it.
+target_compile_definitions(tst_player PRIVATE
+    QQ_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+    QQ_PLAYER="$<TARGET_FILE:qq-player>")
+
+target_link_libraries(tst_player PRIVATE Qt6::Test Qt6::Gui)
+add_dependencies(tst_player qq-player)
+
+add_test(NAME tst_player COMMAND tst_player)

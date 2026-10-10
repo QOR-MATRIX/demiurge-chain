@@ -21,6 +21,8 @@
 #include <QUrl>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include "gpu.h"
+
 Q_IMPORT_QML_PLUGIN(QQPlugin)
 Q_IMPORT_QML_PLUGIN(QQ_StudioPlugin)
 
@@ -54,6 +56,8 @@ void captureWhenSettled(QQuickWindow *window, const QString &file)
 
 int main(int argc, char *argv[])
 {
+    // Before the application exists: the GPU is chosen when the first window is shown.
+    const QString gpu = qq::preferHighPerformanceGpu();
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("QQ Studio"));
     QGuiApplication::setOrganizationName(QStringLiteral("Demiurge"));
@@ -84,6 +88,13 @@ int main(int argc, char *argv[])
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app, [] { QCoreApplication::exit(1); },
         Qt::QueuedConnection);
     engine.loadFromModule("QQ.Studio", "Main");
+
+    // Play's physics bodies go before their world, not in whatever order the window's teardown would take.
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, &engine, [&engine] {
+        for (QObject *root : engine.rootObjects())
+            QMetaObject::invokeMethod(root, "release");
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    });
 
     if (parser.isSet(capture) && !engine.rootObjects().isEmpty()) {
         if (auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first()))
