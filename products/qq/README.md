@@ -183,7 +183,8 @@ the web has no audio, so in a browser `Sound` is a plain sound effect.
   metre, halving with each doubling, none beyond `reach`); a scene with no player hears them at their own volume.
 - **Logic is code.** A logic file is QML and JavaScript that the Studio and the Player run with the engine's full
   reach. That is right for a creator's own game; before games are published (P3.4) and played by others (P3.5), how a
-  stranger's logic is confined is a decision to make.
+  stranger's logic is confined is decided by ADR-087: in the browser only at first, with the Player locked down in
+  every mode (to be built first).
 - **Gamepads are read through XInput, so on Windows only**, and only Xbox-style pads; the checks give the pad's state
   rather than reading a real one.
 - **One Studio at a time offers its tools.** A second Studio on the same pipe says so and stays out; `QQ_MCP_PIPE`

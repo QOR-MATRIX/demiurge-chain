@@ -15,40 +15,40 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`. 49 tests.
 - **Launcher 0.1.8**, unsigned — *Windows warns on install*.
 
-## Done today: your rule on AI costs (ADR-086 — *a decision record*)
+## Decided today: keeping players safe from strangers' games (ADR-087)
 
-**Demiurge pays for no one's AI generation.** Whoever uses it pays their AI provider directly,
-on their own account; we never hold a provider key or pay a bill, and take no share.
-Until someone switches a feature on with their own key, it is simply off.
+Before people play each other's QQ games, a game must not be able to touch the player's files,
+accounts or network; today a game's logic can do whatever the player can. **You chose:**
 
-- QQ Studio's **Agent** panel now says this before asking for a key, and after each run shows
-  how much it used. A check proves it never picks up a key it was not given.
-- The old **Sophia** chat — *a frozen AI chat paid by the server* — cannot return in that form;
-  its key settings are removed.
-- **Selling AI generation through Demiurge** (say, for CGT) is not built. Whether to, and at
-  what price, is a new open question, **U-19**.
-- **Proving P3.3** (one game built from a description, no human edit) no longer waits on you:
-  whoever runs it uses their own key.
+- strangers' games play **only in the browser** (ARQADE) at first, from a web address of their
+  own that holds no logins, boxed inside ARQADE's page;
+- the QQ Player **locks down** what any game's logic can reach, everywhere (cheap);
+- playing others' games **natively** in the launcher waits for an operating-system *sandbox* —
+  *a locked box a program runs in* — which is a bigger job, done if and when you want it;
+- games are served from a **site of their own**: a separate free Vercel address now, a domain
+  of their own (your choice of name) before launch.
 
-## Also fixed
+**Next:** I build the Player lock-down, then publishing (P3.4).
 
-Pull request **#22 (P3.3) merged into #21's branch, not into main**: they were merged 16 s
-apart, before GitHub could retarget it. **#23** brought it to main, then **#24** (this rule);
-both are merged and automatic checks pass on main.
+## Done earlier today
+
+**Your rule on AI costs** (ADR-086 — *a decision record*): Demiurge pays for no one's AI use;
+users pay their provider directly, and features stay off until they bring their own key.
+P3.3 and the rule are on main; automatic checks pass.
 
 ## What only you can do
 
-1. **Optional: prove P3.3** — type your own Anthropic key into QQ Studio's Agent panel and
-   describe a game; the run is billed to your key. Anyone with their own key can do it instead.
-2. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your
+1. **Merge #25 and #26** (records, and this decision).
+2. **Optional: prove P3.3** — your own Anthropic key in QQ Studio's Agent panel, billed to you.
+3. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your
    licence. Add your Qt account to its secrets, or let your PC run CI (a *self-hosted runner*).
-3. **Check with Qt** that your licence covers CI, AI assistants and shipping the browser Player.
-4. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
-5. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
-6. **Housekeeping:** delete `QOR-MATRIX/arqade`; the Resend bounce webhook; the `ci` record and
+4. **Check with Qt** that your licence covers CI, AI assistants and shipping the browser Player.
+5. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
+6. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
+7. **Housekeeping:** delete `QOR-MATRIX/arqade`; the Resend bounce webhook; the `ci` record and
    tunnel in Cloudflare; rotate nine old credentials; decide the nine frozen *home-map* tiles.
-7. **Before commercial use:** a paid Vercel plan, a legal review, trademark clearance.
-8. **Open questions:** OPEN-1 to OPEN-4, U-4, U-14 to U-19, Q-19 and Q-20.
+8. **Before commercial use:** a paid Vercel plan, a legal review, trademark clearance.
+9. **Open questions:** OPEN-1 to OPEN-4, U-4, U-14 to U-19, Q-19 and Q-20.
 
 ## Cost per month
 
