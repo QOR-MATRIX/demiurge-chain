@@ -32,7 +32,12 @@ it; the QQ Player plays a scene on its own, natively and in a browser.
   without one) and as a WebAssembly build in a browser, and measures how long its first frame takes.
 - **The launcher:** **Open in QQ Studio** on the launcher's QQ surface starts the Studio on the project open there.
 
-Next is P3.3: the agent that designs and builds a game from a description, through the Studio.
+**P3.3 under way (10 October 2026): the Studio's tools for agents.** A running QQ Studio offers fourteen tools to
+language models over MCP (the Model Context Protocol): read the scene and what can be added, add, change and remove
+entities, write logic, play, stop, hold the controls, wait, place the eye, capture a frame, read the log. Any MCP client
+reaches them through `qq-mcp` (below); what an agent changes shows in the Studio as unsaved, and only the creator saves
+and commits. Still to come in P3.3: the design loop in the Studio (a description to a brief, built, played, judged by
+its frames and revised) with the provider's key in the keychain, and its proof.
 
 ## What is here
 
@@ -40,8 +45,9 @@ Next is P3.3: the agent that designs and builds a game from a description, throu
 | --- | --- |
 | `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, and `Logic` (what a logic file is). In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `SoftDot` (the particles' sprite, made in memory) and `gpu` (draw with the faster of two GPUs) |
 | `studio/` | QQ Studio. `qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>]` |
+| `agent/` | The agent's side of the Studio (P3.3): `McpServer` (MCP's JSON-RPC, served on a local pipe only this user can open), `StudioTools` (the fourteen tools, working the Studio's own window functions, and `StudioLog`, what the Studio has said) and `qq-mcp` (the program an MCP client starts, relaying its standard input and output to the running Studio) |
 | `player/` | The QQ Player. `qq-player [scene.qml] [--capture <frame.png>] [--measure <result.json>]`; its playground (a small game with everything P3.2 plays) bundled inside it; `measure-web.mjs`, which plays the browser build in a headless browser and measures it |
-| `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks, drags and keys), `tst_play` (physics, the player, input, particles, sound and logic, in real frames), `tst_player` (the real Player executable) |
+| `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks, drags and keys), `tst_play` (physics, the player, input, particles, sound and logic, in real frames), `tst_player` (the real Player executable), `tst_agent` (the tools over MCP, in the real Studio and through the real `qq-mcp`) |
 | `tests/fixtures/` | `orb.gltf` (written by `make_orb.py`), `chime.wav` (written by `make_chime.py`), `logic/spin.qml`, `scenes/sample.qml` (every entity type, canonical), `first-light.qq.json` (the 2D preview's starter scene) |
 | `build.ps1` | Builds with the owner's Qt, MSVC 2022 and Ninja and runs every test; `-Deploy` makes a self-contained Studio; `-Web` builds the Player for the browser and measures it |
 
@@ -124,6 +130,22 @@ drew about 12 frames a second.
 - **In a browser:** `build.ps1 -Web` (`player/measure-web.mjs`) serves the build cross-origin isolated, plays it in
   headless Chrome, reads the Player's measurement, captures the first frame and fails unless it is the game, with no
   error on the page or in any of its workers.
+- **`tst_agent`** (9 cases): the protocol alone (a version agreed, or the server's newest; instructions given; not
+  JSON, a batch, an unknown method or tool each answered with its JSON-RPC error; a notification not answered; a
+  tool's failure a result with its id); in the real Studio, through the protocol: every tool listed with a name and
+  schema clients accept; the scene read as its canonical text and fields, and every kind with its types, defaults,
+  ranges and choices; entities added (shown in the Studio, unsaved, the file untouched), changed (one value, one
+  line), refused with nothing of the call kept, named uniquely and removed; logic written, attached once, and code
+  that does not build written but reported; play, a crate fallen to the ground as `wait` reports, the agent's
+  controls walking the player, a captured frame that is the world, Stop restoring the scene and letting go of the
+  controls, edits refused while playing; logic that throws every frame in the log once, with a count; and the real
+  programs: `qq-mcp` with no Studio says so, finds one opened later, relays requests and results, and a second Studio
+  on the same pipe stays out and says why. **Proven to fail** by four planted faults, each caught by its own check: a
+  refused change half kept; edits allowed in play; a bridge that never tries the Studio again; a log that keeps every
+  repeat.
+- **With an independent client** (10 October 2026, once): the official MCP Python SDK (`mcp` 2.3.0) started `qq-mcp`,
+  agreed protocol 2025-06-18, listed the fourteen tools, built a crate, an emitter and spinning logic, played, captured
+  a frame of the result, stopped, and was refused a mass out of range.
 - In the launcher: `check-qq-view.mjs` checks that **Open in QQ Studio** asks the host to start the Studio on the open
   project and nothing more; the host's `qq::` tests check where the Studio is found, that the project is one argument,
   and that a folder that is not a project is refused; `qq_studio_starts_on_a_project` (ignored by default: it opens a
@@ -146,6 +168,28 @@ the web has no audio, so in a browser `Sound` is a plain sound effect.
   stranger's logic is confined is a decision to make.
 - **Gamepads are read through XInput, so on Windows only**, and only Xbox-style pads; the checks give the pad's state
   rather than reading a real one.
+- **One Studio at a time offers its tools.** A second Studio on the same pipe says so and stays out; `QQ_MCP_PIPE`
+  gives one another name (for `qq-mcp` too).
+- **An agent works with the creator's trust.** The pipe is open only to the user running the Studio, and the agent can
+  write logic, which is code; it cannot save the scene or commit. The creator reviews what it did (the scene shows as
+  unsaved, each change is said in the notice line) and saves and commits it.
+
+## Connect an agent
+
+Open QQ Studio (from the launcher's QQ screen, or `qq-studio`), then point any MCP client at `qq-mcp.exe`, which
+`build.ps1 -Deploy` puts beside the Studio in `%LOCALAPPDATA%\qq-studio`. In Claude Code:
+
+```powershell
+claude mcp add qq -- "$env:LOCALAPPDATA\qq-studio\qq-mcp.exe"
+```
+
+In Claude Desktop's `claude_desktop_config.json`, with the path written out:
+
+```json
+{ "mcpServers": { "qq": { "command": "C:\\Users\\<you>\\AppData\\Local\\qq-studio\\qq-mcp.exe" } } }
+```
+
+The Studio says in its notice line when an agent connects, and each change it makes.
 
 ## Not in CI yet
 

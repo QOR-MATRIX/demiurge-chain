@@ -3,6 +3,7 @@
 #   runtime/  the QML module "QQ": worlds, light, props, physics, the player, particles, sound, logic
 #   studio/   QQ Studio, the native editor
 #   player/   the QQ Player, natively and in a browser
+#   agent/    the Studio's tools for language models, over MCP, and qq-mcp
 #   tests/    Qt Test suites, rendering for real and reading back pixels
 #
 # Configure with the Qt the owner installed (commercial licence, ADR-083), MSVC 2022 and Ninja:
@@ -29,7 +30,7 @@ option(QQ_PLAYER_ONLY "Build only the runtime and the QQ Player" OFF)
 if(QQ_PLAYER_ONLY)
     find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick Quick3D)
 else()
-    find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick Quick3D QuickControls2 Test)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Network Qml Quick Quick3D QuickControls2 Test)
 endif()
 
 qt_standard_project_setup(REQUIRES 6.12)
@@ -50,6 +51,7 @@ add_subdirectory(runtime)
 add_subdirectory(player)
 
 if(NOT QQ_PLAYER_ONLY)
+    add_subdirectory(agent)
     add_subdirectory(studio)
     enable_testing()
     add_subdirectory(tests)

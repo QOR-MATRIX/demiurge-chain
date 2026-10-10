@@ -26,4 +26,4 @@ target_link_libraries(qqstudio PUBLIC
 )
 
 qt_add_executable(qq-studio WIN32 main.cpp)
-target_link_libraries(qq-studio PRIVATE qqstudio qqstudioplugin)
+target_link_libraries(qq-studio PRIVATE qqstudio qqstudioplugin qqagent)
