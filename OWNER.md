@@ -32,17 +32,18 @@ With the laptop on mains power, I timed how fast a game starts in the QQ Player:
   watching the checks catch it.
 - **QQ Studio is updated** on your PC, so **Open in QQ Studio** has all of today's fixes.
 
-All QQ checks pass, and the automatic checks on `main` passed after #27.
+**Your dialog checks (L1.4) worked:** you approved and declined a send and a change of
+chain, on a local test chain; I read the approvals back from the chain. Two QOR ID checks
+remain (below). Note: on Devnet you sent 100 test CGT to a public test address, so anyone
+can take them; harmless, as test CGT is worth nothing.
 
-**Next:** publishing a game (P3.4), after your two dialog checks below.
+**Next:** publishing a game (P3.4), now unblocked.
 
 ## What only you can do
 
-1. **Say "open it"** and I'll open the pull request for today's records (ready, not yet
-   committed), for you to merge.
-2. **The two dialog checks (L1.4)** in the launcher, with a local test node running: send
-   test CGT in Vault, once approved and once declined; then in Chain, switch to Local node,
-   once declined and once approved, and switch back to Devnet.
+1. **Merge #28** (today's measurements and dialog checks).
+2. **The last two L1.4 checks**, when convenient: change the QOR ID address in the launcher,
+   declined once and approved once; and sign in after QOR ID was unreachable at start-up.
 3. **Optional: prove P3.3** — your own Anthropic key in QQ Studio's Agent panel, billed to you.
 4. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your
    licence. Add your Qt account to its secrets, or let your PC run CI (a *self-hosted runner*).
