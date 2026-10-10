@@ -1,15 +1,16 @@
 # Handoff
 
 **Current state, 10 October 2026.** The code is the public repository `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064).
-`main` is at `0583835` (the merge of PR #19, P3.1, after PR #20), as fetched on 10 October 2026; CI on it was not looked
-at this session. On 8 October Pleroma CI was green on `main` (then `d97fa69`, PR #15) after a re-run. Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Work goes on a `session/*` branch and
+`main` is at `b99c689` (the merge of PR #24, ADR-086, after #23, which brought P3.3 to `main`), and **Pleroma CI passed on
+it** (run 38058362606, 10 October 2026: chain, QOR ID, launcher, ARQADE, coverage and security). PRs #1 to #24 are merged.
+On 8 October Pleroma CI was green on `main` (then `d97fa69`, PR #15) after a re-run. Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Work goes on a `session/*` branch and
 reaches `main` by pull request. `origin` is the private archive, not the current tree. Live, devnet-only and with test
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
 **Newest: §4 item 68 (10 October 2026): generation is paid by whoever uses it, and Demiurge pays for none (ADR-086,
 the owner's decision); and P3.3, which merged into #21's branch rather than `main`, is brought to `main` by pull request
-#23.** In pull request #24 (`session/generation-paid-by-user`). Before it: §4 items 66 and 67 the same day: P3.3 all but its proof. QQ Studio offers fourteen tools to agents over
+#23.** Both merged (#23 and #24), and CI passed on `main` at `b99c689`. Before it: §4 items 66 and 67 the same day: P3.3 all but its proof. QQ Studio offers fourteen tools to agents over
 MCP through `qq-mcp` (driven end to end by the official MCP Python SDK), and its Agent panel designs and builds a game
 from a description on Claude Opus 5.5 (ADR-085), the key in Windows Credential Manager; the proof needs the owner's
 key.** Merged as pull request #22 into #21's branch; to `main` by #23. Before them: item 65 the same day: **P3.2 done. Worlds
@@ -2113,7 +2114,8 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     `onlyTheCreatorsOwnKeyIsEverUsed` sets `ANTHROPIC_API_KEY` in the environment and shows nothing is sent without the
     creator's key, that with it only that key is sent, and that the panel says who pays; a planted fault (falling back
     to the environment's key) fails it; usage totals checked against the stand-in's counts. **P3.3's proof** is made by
-    whoever runs it on their own key; the owner is not asked to fund it. **Next:** the owner merges #23, then #24.
+    whoever runs it on their own key; the owner is not asked to fund it. **Merged:** #23, then #24, on 10 October 2026;
+    Pleroma CI passed on `main` at `b99c689` (run 38058362606).
 
 ## 5. Traps, so nobody re-learns them
 
@@ -2732,7 +2734,7 @@ container named here.*
   by pull request. `origin` is the private archive and is not the current tree, and the local branch `main` follows
   it, so it is not the public `main`. §4 item 65 (P3.2) is on `session/qq-p3.2-play`, branched from `0583835`, in
   pull request #21 (merged); §4 items 66 and 67 (P3.3) were merged as pull request #22 into #21's branch, not `main`,
-  and pull request #23 brings them to `main`; §4 item 68 is on `session/generation-paid-by-user`, in pull request #24.
+  and pull request #23 brought them to `main`; §4 item 68 was merged as pull request #24. `main` is at `b99c689`.
   Stacked pull requests are not used again: each targets `main`.
 - **Earlier (29 September 2026): the public repository's start.** Local branch `public-main` then tracked
   `public/main` on `ALaustrup/demiurge-chain`: `e611c99` (import) and `2681a51` (CI and Railway records). The
