@@ -24,7 +24,6 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - The **QQ Player** runs a game on its own: on your PC its first picture comes in 1.4 s; in
   Chrome in 6 s, a 12 MB download once compressed.
 - 42 automated checks pass; five deliberate faults were each caught.
-- A crash in the new checks turned out to be the test's own bug, found and fixed.
 
 Try it: `pwsh products/qq/build.ps1 -Run`, Add a Player, press F5.
 
@@ -32,23 +31,32 @@ Try it: `pwsh products/qq/build.ps1 -Run`, Add a Player, press F5.
 limit, recorded as ADR-084 — *a decision record*). Game logic is full code, so before strangers
 play each other's games we must decide how to fence it in.
 
+## Also today: AI can now work QQ Studio (first half of P3.3)
+
+An AI assistant such as Claude can connect to a running QQ Studio and build: add and change
+things, write game logic, press Play, hold the controls, take pictures of the result and read
+errors. It cannot save or commit; you see every change and decide. Only your Windows account can
+connect. Checked by 9 automated checks and by the official MCP library — *the standard way
+AI assistants use tools*.
+
 ## Next work
 
-**P3.3:** an AI agent that designs and builds a game from your written description, inside the
-Studio, with you approving before anything is saved.
+**The rest of P3.3:** a panel in the Studio where you describe a game and the AI designs it,
+builds it, plays it, looks at it and revises. It needs an AI provider and an API key from you.
 
 ## What only you can do
 
-1. **Merge pull request #21** (P3.2) once its checks pass.
-2. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your licence. Add your Qt account to the
+1. **Merge pull request #21** (P3.2): all its checks pass. Then the P3.3 pull request.
+2. **An AI provider key** for the design panel, when it is built (the provider is chosen then, in an ADR).
+3. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your licence. Add your Qt account to the
    repository's secrets, or let your PC run CI jobs (a *self-hosted runner*).
-3. **Check with Qt** that your licence covers CI, AI assistants and shipping the browser Player.
-4. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
-5. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
-6. **Housekeeping:** delete `QOR-MATRIX/arqade`; the Resend bounce webhook; the `ci` record and
+4. **Check with Qt** that your licence covers CI, AI assistants and shipping the browser Player.
+5. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
+6. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
+7. **Housekeeping:** delete `QOR-MATRIX/arqade`; the Resend bounce webhook; the `ci` record and
    tunnel in Cloudflare; rotate nine old credentials; decide the nine frozen *home-map* tiles.
-7. **Before commercial use:** a paid Vercel plan, a legal review, trademark clearance.
-8. **Open questions:** OPEN-1 to OPEN-4, U-4, U-14 to U-18, Q-19 and Q-20.
+8. **Before commercial use:** a paid Vercel plan, a legal review, trademark clearance.
+9. **Open questions:** OPEN-1 to OPEN-4, U-4, U-14 to U-18, Q-19 and Q-20.
 
 ## Cost per month
 
