@@ -138,11 +138,13 @@ it, and a **design loop** in the Studio's Agent panel:
 **Built (10 October 2026):** the tools and the MCP server, on a local pipe only the Studio's user can open, reached by
 any MCP client through `qq-mcp` (`products/qq/agent/`); and the design loop with its Agent panel, on Claude Opus 5.5
 (ADR-085), its key in Windows Credential Manager. The agent cannot save or commit; what it changes shows as unsaved, and
-a run can be undone. **To do:** the proof, which needs the owner's key.
+a run can be undone. **To do:** the proof, made by whoever runs it with their own key (ADR-086).
 
 The model provider is Anthropic, Claude Opus 5.5, recorded in ADR-085 under ADR-081's delegation. The provider key
-lives in the operating system's keychain and never reaches a log. Generative assets (models, textures, sound from a
-description) arrive with P3.6.
+lives in the operating system's keychain and never reaches a log. **Generation is paid for by the creator who uses it**
+(ADR-086): the key is their own, their provider bills them directly, the panel says so before a key is given and shows
+what each run used; Demiurge holds no provider account and pays for no one's generation. Generative assets (models,
+textures, sound from a description) arrive with P3.6, on the same terms.
 
 ---
 

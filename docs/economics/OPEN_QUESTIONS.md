@@ -137,6 +137,10 @@ disagree, is undefined.
 Who provides the compute that agents spend CGT on, and how it is priced, is undefined. If compute is
 provided off chain by the user's own model, the sink is a payment for on-chain operations only.
 
+Part of this is settled for generative models (ADR-086, 10 October 2026): the person who uses generation pays the
+provider for it with their own account, and Demiurge pays for none. Whether Demiurge itself ever sells generation is
+U-19.
+
 ### U-10: where voting power comes from
 
 On-chain governance is one of the four chain properties. If voting power is based on holding CGT, the
@@ -292,6 +296,22 @@ small welcome grant on finishing the tutorial. Levels and XP are settled there a
 Rewards for sign-up tasks attract account farming, and token grants and rewards are regulated in many places, so real
 CGT also waits on the owner's legal review. On the devnet the grant will run with test CGT. Paying it is not built:
 since 6 October 2026 QOR ID records each owed grant and pays nothing.
+
+### U-19: whether Demiurge sells generation itself
+
+Opened on 10 October 2026 by ADR-086, when the owner decided that generative models must cost the project nothing and
+that users pay for the generation they use. Today that payment goes from the user straight to the model provider, on
+the user's own account (QQ's Agent panel, ADR-085). Not decided:
+
+- **Whether Demiurge should ever offer generation it pays for and charges users for** (one account, no provider key of
+  the user's own), or only ever pass users to providers.
+- **If it does: the price**, in CGT or in another currency, and how it tracks the provider's own prices so the project
+  never pays more than it receives; and whether it passes the spend test (ADR-002) and which demand sink it belongs to
+  (ADR-006).
+- **Who bears a provider's charges when a user's payment fails or is reversed**, which under ADR-086 must never be the
+  project.
+
+Until it is decided, nothing is built for it: there is no project account to bill, and no price.
 
 ### Settled, and recorded elsewhere
 

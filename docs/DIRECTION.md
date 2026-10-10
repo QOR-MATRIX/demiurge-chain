@@ -925,7 +925,8 @@ preview until the Qt Player plays in the launcher and in ARQADE (ADR-083 decisio
    and commits, or undoes the run; the key is in Windows Credential Manager and never logged. Evidence: `tst_agent` (13
    cases run, the loop's against a stand-in for the API; eight planted faults caught), a session driven by the official
    MCP Python SDK, and the real endpoint reached over TLS. **Not yet: the proof**, a scene built from a written
-   description with no human edit, recorded with its frames, which needs the owner's provider key.
+   description with no human edit, recorded with its frames, made by whoever runs it with their own provider key and
+   billed to that key: under ADR-086 the project pays for no generation, and the owner is not asked to fund it.
 4. [ ] **Publishing a game.** A Publish action commits the scene through Qontrol and mints that commit as a Cartridge
    (a DRC-369 asset), signed by the launcher's vault behind the host dialog, asked over the local channel the
    launcher opens for the Studio it started; the Studio never holds a key. Depends on P3.2, M4.1 and L1.4's native
@@ -935,7 +936,8 @@ preview until the Qt Player plays in the launcher and in ARQADE (ADR-083 decisio
    (ADR-083 decision 6). Depends on P3.4 and P7 (ARQADE running).
 6. [ ] **Collectibles, generation and the Mesh.** DRC-369 items as in-game collectibles; generative assets (models,
    textures, sound) from a description through the agent; games delivered over the Mesh; in-game purchases settled in
-   CGT; access gating on paid collectibles. Depends on M4.2, M5.2, M5.3, M6.4 and M8.
+   CGT; access gating on paid collectibles. Depends on M4.2, M5.2, M5.3, M6.4 and M8. Generation is paid by the creator
+   who uses it, on their own provider account (ADR-086); nothing is generated on an account of the project's.
 
 #### P4: GNOSIS (P4.1 depends on nothing)
 
