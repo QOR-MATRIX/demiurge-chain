@@ -81,11 +81,13 @@ if ($failed) { throw "$failed test suite(s) failed." }
 Write-Host 'All QQ tests passed.'
 
 # A QQ Studio that runs on its own: the executable with the Qt libraries, plugins and QML modules it uses beside it.
-# The QOR Launcher's "Open in QQ Studio" looks here (or wherever QQ_STUDIO points).
+# The QOR Launcher's "Open in QQ Studio" looks here (or wherever QQ_STUDIO points). qq-mcp, which an MCP client starts
+# to reach the Studio's tools, goes beside it and uses the same Qt libraries.
 if ($Deploy) {
     if (Test-Path $DeployTo) { Remove-Item $DeployTo -Recurse -Force }
     New-Item -ItemType Directory -Force $DeployTo | Out-Null
     Copy-Item (Join-Path $Build 'qq-studio.exe') $DeployTo
+    Copy-Item (Join-Path $Build 'qq-mcp.exe') $DeployTo
     $windeployqt = Join-Path $Qt 'bin\windeployqt.exe'
     # Inside the compiler's environment, so the Microsoft C++ runtime comes along for a machine without Visual Studio.
     $deployArgs = "--release --no-translations --compiler-runtime --qmldir ""$(Join-Path $source 'runtime')"" --qmldir ""$(Join-Path $source 'studio')"" ""$(Join-Path $DeployTo 'qq-studio.exe')"""

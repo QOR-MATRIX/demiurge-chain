@@ -870,8 +870,9 @@ design and build a game from a description. QQ is QOR Engine (ADR-081); ADR-082 
 
 **Under way since 9 October 2026**, on Qt 6.12 (Enterprise), in `products/qq/` (`products/qq/README.md`). P3.1 is done
 the same day: QQ Studio edits a lit 3D world and keeps it as canonical QML in a Qontrol project, opened from the
-launcher. P3.2 is done on 10 October 2026: worlds play in the Studio and in the QQ Player, natively and in a browser.
-Its five Qt Test suites run on the owner's machine, not in CI, which has no licensed Qt.
+launcher. P3.2 is done on 10 October 2026: worlds play in the Studio and in the QQ Player, natively and in a browser. P3.3 is
+under way: the Studio's tools are offered to agents over MCP, and its design loop is built; its proof waits on a key.
+Its six Qt Test suites run on the owner's machine, not in CI, which has no licensed Qt.
 
 The TypeScript/WebGL2 slice built under ADR-082 on 8 October 2026 (`tools/qor-launcher/src/qq/`: 2D shapes,
 particles, an editor surface, scenes saved through Qontrol; `check-qq-view.mjs`, 41 checks) stays as the launcher's
@@ -914,6 +915,17 @@ preview until the Qt Player plays in the launcher and in ARQADE (ADR-083 decisio
    brief, builds it, plays it, judges the captured frames and revises; the creator approves before anything is
    committed; the provider's key kept in the operating system's keychain and never logged. Proven by a scene built
    from a written description with no human edit, recorded with its frames. Depends on P3.2.
+
+   **Under way, 10 October 2026** (HANDOFF §4 item 66): **the MCP server is built**: fourteen tools (read the scene and
+   the kinds, add, change and remove entities, set the scene's look, write logic, play, stop, hold the controls, wait,
+   place the eye, capture a frame, read the log) on a local pipe only the Studio's user can open, reached by any MCP
+   client through `qq-mcp`; the agent cannot save or commit, and what it changes shows as unsaved. **The design loop is
+   built** (HANDOFF §4 item 67, ADR-085): the Studio's Agent panel turns a description into a brief and a scene through
+   Claude Opus 5.5 and the same tools, plays it, judges captured frames and revises, every step shown; the creator saves
+   and commits, or undoes the run; the key is in Windows Credential Manager and never logged. Evidence: `tst_agent` (13
+   cases run, the loop's against a stand-in for the API; eight planted faults caught), a session driven by the official
+   MCP Python SDK, and the real endpoint reached over TLS. **Not yet: the proof**, a scene built from a written
+   description with no human edit, recorded with its frames, which needs the owner's provider key.
 4. [ ] **Publishing a game.** A Publish action commits the scene through Qontrol and mints that commit as a Cartridge
    (a DRC-369 asset), signed by the launcher's vault behind the host dialog, asked over the local channel the
    launcher opens for the Studio it started; the Studio never holds a key. Depends on P3.2, M4.1 and L1.4's native

@@ -7,7 +7,8 @@ key-safety rules. **Status:** P3.1 done on 9 October 2026 on Qt 6.12 (Enterprise
 lit 3D world and keeps it as canonical QML in a Qontrol project, opened from the launcher. P3.2 done on 10 October
 2026: worlds play (physics, a player under keyboard, mouse and gamepad, particles, sound, logic rebuilt on each save),
 in the Studio and in the QQ Player, natively and in a browser
-([`products/qq/README.md`](../../products/qq/README.md)). Next, P3.3: the agent.
+([`products/qq/README.md`](../../products/qq/README.md)). P3.3 under way: the MCP server is built (fourteen
+tools, reached through `qq-mcp`) and the design loop is built; its proof needs the owner's key.
 A TypeScript/WebGL2 preview from ADR-082 runs in the launcher meanwhile (below).
 
 ---
@@ -125,14 +126,21 @@ it, and a **design loop** in the Studio's Agent panel:
 
 1. **Brief.** From a description ("a neon rooftop chase at night, one minute long"), the agent writes a design brief:
    the fantasy, the core loop, the controls, the look, the scope.
-2. **Build.** It creates the scene through the tools — `scene.read`, `entity.add`, `entity.set`, `behaviour.write`,
-   `asset.import` — never by writing files around the Studio.
-3. **Play and look.** It plays the world, captures frames (`play`, `frame.capture`, `log.read`) and judges them
-   against the brief: readability, composition, motion, whether the loop is fun.
+2. **Build.** It creates the scene through the tools — `scene_read`, `kinds`, `scene_set`, `entity_add`, `entity_set`,
+   `entity_remove`, `behaviour_write` (a model or sound is a file path in an entity's field) — never by writing files
+   around the Studio. Tool names use `_`, not `.`: MCP clients accept only letters, digits, `_` and `-`.
+3. **Play and look.** It plays the world, holds the controls, lets time pass and captures frames (`play`, `input_set`,
+   `wait`, `view_set`, `frame_capture`, `log_read`, `stop`) and judges them against the brief: readability,
+   composition, motion, whether the loop is fun.
 4. **Revise** until the brief is met or it needs the creator.
 5. **The creator approves** what is committed. Nothing reaches Qontrol, and nothing is published, without them.
 
-The model provider is chosen when the agent is built (ADR-081's delegation) and recorded in an ADR. A provider key
+**Built (10 October 2026):** the tools and the MCP server, on a local pipe only the Studio's user can open, reached by
+any MCP client through `qq-mcp` (`products/qq/agent/`); and the design loop with its Agent panel, on Claude Opus 5.5
+(ADR-085), its key in Windows Credential Manager. The agent cannot save or commit; what it changes shows as unsaved, and
+a run can be undone. **To do:** the proof, which needs the owner's key.
+
+The model provider is Anthropic, Claude Opus 5.5, recorded in ADR-085 under ADR-081's delegation. The provider key
 lives in the operating system's keychain and never reaches a log. Generative assets (models, textures, sound from a
 description) arrive with P3.6.
 

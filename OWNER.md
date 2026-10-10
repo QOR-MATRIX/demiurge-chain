@@ -17,38 +17,37 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 ## Done today: QQ worlds play (P3.2)
 
-- **Play** (F5) in QQ Studio runs the scene; **Stop** (Esc) puts it back exactly as it was.
-- Crates fall and land; a **player** walks, runs and jumps with the keyboard, the mouse or a
-  gamepad, with a camera that follows; sparks and glows; sounds placed in the world.
-- **Game logic** lives in small files you can edit while the game runs: save, and it changes.
-- The **QQ Player** runs a game on its own: on your PC its first picture comes in 1.4 s; in
-  Chrome in 6 s, a 12 MB download once compressed.
-- 42 automated checks pass; five deliberate faults were each caught.
-- A crash in the new checks turned out to be the test's own bug, found and fixed.
+**Play** (F5) in QQ Studio runs the scene and **Stop** (Esc) restores it exactly. Crates fall;
+a **player** walks, runs and jumps by keyboard, mouse or gamepad; sparks, glows, placed sounds;
+**game logic** you can edit while it runs. The **QQ Player** runs a game alone: first picture
+in 1.4 s on your PC, 6 s in Chrome (a 12 MB download). Try: `pwsh products/qq/build.ps1 -Run`.
+**Limits:** browser sounds do not pan (ADR-084 — *a decision record*); game logic is full code,
+to be fenced in before strangers play each other's games.
 
-Try it: `pwsh products/qq/build.ps1 -Run`, Add a Player, press F5.
+## Also today: AI in QQ Studio (P3.3, all but its proof)
 
-**Limits:** in a browser, sounds get quieter with distance but do not pan left and right (a Qt
-limit, recorded as ADR-084 — *a decision record*). Game logic is full code, so before strangers
-play each other's games we must decide how to fence it in.
+An AI assistant such as Claude can connect to a running Studio and build, play, take pictures
+and read errors; it cannot save or commit, and only your Windows account can connect. The
+**Agent** panel goes further: describe a game, and Claude designs, builds, plays, looks and
+revises, every step shown; you save it or undo it. Your API key stays in Windows Credential
+Manager, never in a file or log; runs are billed to it.
 
-## Next work
-
-**P3.3:** an AI agent that designs and builds a game from your written description, inside the
-Studio, with you approving before anything is saved.
+**Next:** prove P3.3 with one game built from a description with no human edit. Needs your key.
 
 ## What only you can do
 
-1. **Merge pull request #21** (P3.2) once its checks pass.
-2. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your licence. Add your Qt account to the
-   repository's secrets, or let your PC run CI jobs (a *self-hosted runner*).
-3. **Check with Qt** that your licence covers CI, AI assistants and shipping the browser Player.
-4. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
-5. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
-6. **Housekeeping:** delete `QOR-MATRIX/arqade`; the Resend bounce webhook; the `ci` record and
+1. **Merge pull request #21** (P3.2): all its checks pass. Then #22 (P3.3).
+2. **An Anthropic API key** in the Agent panel, so the design loop can be proven (ADR-085 chose
+   Claude Opus 5.5: $4 / $20 per million tokens in / out).
+3. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your
+   licence. Add your Qt account to its secrets, or let your PC run CI (a *self-hosted runner*).
+4. **Check with Qt** that your licence covers CI, AI assistants and shipping the browser Player.
+5. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
+6. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
+7. **Housekeeping:** delete `QOR-MATRIX/arqade`; the Resend bounce webhook; the `ci` record and
    tunnel in Cloudflare; rotate nine old credentials; decide the nine frozen *home-map* tiles.
-7. **Before commercial use:** a paid Vercel plan, a legal review, trademark clearance.
-8. **Open questions:** OPEN-1 to OPEN-4, U-4, U-14 to U-18, Q-19 and Q-20.
+8. **Before commercial use:** a paid Vercel plan, a legal review, trademark clearance.
+9. **Open questions:** OPEN-1 to OPEN-4, U-4, U-14 to U-18, Q-19 and Q-20.
 
 ## Cost per month
 

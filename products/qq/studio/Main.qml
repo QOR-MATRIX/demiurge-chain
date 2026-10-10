@@ -60,6 +60,11 @@ ApplicationWindow {
                                           ? SceneIO.entities(playScene).map(e => e.error ?? "").find(x => x !== "") ?? ""
                                           : ""
 
+    /// The design loop (agent/designloop.h), set by main.cpp: a model that designs and builds from a description.
+    property QtObject designer: null
+    /// Whether the Agent panel is open.
+    property bool agentOpen: false
+
     /// True once a scene is shown and every model in it has loaded or failed: what a capture waits for.
     readonly property bool settled: scene !== null
                                     && entityList.every(e => e.kind !== "Prop" || e.status !== Prop.Empty)
@@ -232,11 +237,27 @@ ApplicationWindow {
 
     /// Put everything away in a safe order, before the window goes: what the application does as it quits.
     function release() {
+        if (designer)
+            designer.stop()
         stop()
         if (scene)
             SceneIO.discard(scene)
         scene = null
         selection = null
+    }
+
+    /// Put the scene back to `text` (the agent's run taken back), keeping what was last saved: unsaved again only if
+    /// it differs from that.
+    function restoreText(text) {
+        if (playing)
+            stop()
+        const keep = savedText
+        if (!show(SceneIO.loadText(text, sceneFile, stage), sceneFile, sceneName, false))
+            return false
+        savedText = keep
+        refresh()
+        say(qsTr("The agent's run is taken back."))
+        return true
     }
 
     /// Start a new behaviour: a logic file in the project from a template, driving the selection.
@@ -342,6 +363,14 @@ ApplicationWindow {
                 color: window.noticeIsProblem || window.playProblem !== "" ? "#d57889" : Material.foreground
                 opacity: window.noticeIsProblem || window.playProblem !== "" ? 1 : 0.7
                 font.pixelSize: 13
+            }
+            ToolButton {
+                objectName: "agentButton"
+                visible: window.designer !== null
+                text: qsTr("Agent")
+                checkable: true
+                checked: window.agentOpen
+                onToggled: window.agentOpen = checked
             }
             ToolButton { text: qsTr("New"); enabled: !window.playing; onClicked: window.newScene() }
             ToolButton { text: qsTr("Import 2D…"); enabled: !window.playing; onClicked: importChooser.open() }
@@ -730,6 +759,21 @@ ApplicationWindow {
                         onEdited: window.refresh()
                     }
                 }
+            }
+        }
+
+        // ── the agent, when it is open (usable in play: that is when it looks) ──
+        Pane {
+            visible: window.agentOpen && window.designer !== null
+            Layout.preferredWidth: 380
+            Layout.fillHeight: true
+            Material.background: "#0b0d13"
+            padding: 16
+
+            Loader {
+                anchors.fill: parent
+                active: window.designer !== null
+                sourceComponent: AgentPanel { designer: window.designer }
             }
         }
     }

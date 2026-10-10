@@ -7,9 +7,13 @@ reaches `main` by pull request. `origin` is the private archive, not the current
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 item 65 (10 October 2026): P3.2 done. Worlds play: physics, a player under keyboard, mouse and gamepad,
-particles, sound and logic rebuilt on each save, in QQ Studio (Play and Stop, the scene restored exactly) and in the QQ
-Player, natively and in a browser, measured (ADR-084).** In pull request #21 (`session/qq-p3.2-play`). Before it:
+**Newest: §4 items 66 and 67 (10 October 2026): P3.3 all but its proof. QQ Studio offers fourteen tools to agents over
+MCP through `qq-mcp` (driven end to end by the official MCP Python SDK), and its Agent panel designs and builds a game
+from a description on Claude Opus 5.5 (ADR-085), the key in Windows Credential Manager; the proof needs the owner's
+key.** In pull request #22 (`session/qq-p3.3-agent`), stacked on #21. Before them: item 65 the same day: **P3.2 done. Worlds
+play: physics, a player under keyboard, mouse and gamepad, particles, sound and logic rebuilt on each save, in QQ Studio
+(Play and Stop, the scene restored exactly) and in the QQ Player, natively and in a browser, measured (ADR-084).** In
+pull request #21 (`session/qq-p3.2-play`), whose checks all pass. Before it:
 item 64 (9 October 2026): P3.1 done, QQ Studio edits a lit 3D world and keeps it in a Qontrol project (merged as pull
 request #19). Before it: item 63 the same day: QQ's native engine
 started on Qt 6.12 (merged as pull request #18). Before them: item 62 (8 October 2026): QQ moves to Qt 6 (ADR-083, the owner's decision); ARQADE's
@@ -88,7 +92,7 @@ ticked the same day against the owner's review of a ten-line summary.
 | Infrastructure | **Railway** (project `demiurge`): Postgres, Redis, QOR ID (`id.qorsync.dev`) and Demiurge Devnet (two validators and an RPC node, ADR-068). **Vercel**: ARQADE, project `qor-arqade` (team Astra Matrix, Hobby plan), with Neon Postgres (ADR-074). Fly.io is not used: ADR-015's Fly plan is superseded by ADR-063 and ADR-068. |
 | Production | No production or test network. Live, devnet-only and with test CGT: Demiurge Devnet, QOR ID and ARQADE. |
 | ARQADE (`products/arqade/`) | **Live at `https://qor-arqade-tau.vercel.app`**: standard Next.js 16 on Neon Postgres, migrations 0001 to 0003 applied on production builds (`scripts/migrate.mjs`). **48 tests** (6 October 2026). QOR ID is the only sign-in; Play Now, the solo games, Flux Four and Rift Reversi multiplayer, rankings, chat, devnet reads, tips through the launcher (ADR-076, ADR-077; the owner tipped successfully on 5 and 6 October), and the level bubble and level row. P7.1 to P7.4 are ticked (P7.4 on 6 October 2026). |
-| Decisions | 84 ADRs (ADR-001 to ADR-084); ADR-069 to ADR-084 are accepted. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan; ADR-083 (8 October) builds it on Qt 6; ADR-084 (10 October) settles the Player's web build (Qt's threaded kit, served cross-origin isolated, sound unpanned in a browser). The owner's open questions are in §4.0. |
+| Decisions | 85 ADRs (ADR-001 to ADR-085); ADR-069 to ADR-085 are accepted. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan; ADR-083 (8 October) builds it on Qt 6; ADR-084 (10 October) settles the Player's web build (Qt's threaded kit, served cross-origin isolated, sound unpanned in a browser). ADR-085 (10 October) chooses the design loop's provider: Claude Opus 5.5, its key in Windows Credential Manager. The owner's open questions are in §4.0. |
 | Not live | Avatars in ARQADE (ADR-079 step 3, not built), paying the welcome grant (grants are recorded as owed, never paid), ARQADE inside the launcher (P7.18), the indexer, the Mesh, fees and issuance. |
 
 ## 2. Known gaps: do not build on these
@@ -2029,6 +2033,63 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     published (P3.4) and played by others (P3.5), how a stranger's logic is confined needs deciding. **P3.2 ticked** in
     DIRECTION with each clause's evidence. **Not in CI** (ADR-083). **Next:** P3.3, the agent.
 
+66. **10 October 2026: P3.3 under way: QQ Studio's tools for agents, over MCP.** On branch `session/qq-p3.3-agent`,
+    branched from pull request #21's tip. **Built** (`products/qq/agent/`): `McpServer`, MCP's JSON-RPC 2.0 written
+    here rather than on Qt's `Qt6Mcp`, whose 6.12 API is private headers only (protocol versions 2025-06-18, 2025-03-26
+    and 2024-11-05; initialize with instructions for the model, ping, tools/list, tools/call; JSON-RPC's errors), served
+    on a Windows named pipe opened with `QLocalServer::UserAccessOption`, so only the user running the Studio can open
+    it, and no network port; a second Studio finding the pipe answered stays out and says so. `StudioTools`: fourteen
+    tools (`scene_read`, `kinds`, `scene_set`, `entity_add`, `entity_set`, `entity_remove`, `behaviour_write`, `play`,
+    `stop`, `input_set`, `wait`, `view_set`, `frame_capture`, `log_read`) that work the Studio's own window functions,
+    so what an agent changes is what the creator sees: in the list, the inspector, the notice line, unsaved. Values as
+    JSON (vectors `[x, y, z]`, colours `#rrggbb`, files relative to the project), checked against each field's type,
+    range and choices, all or nothing per call; edits refused while playing, except logic (rebuilt at once) and the
+    controls (the agent's hands are a gamepad's, a real pad set aside until stop); logic checked for whether it builds
+    as it is written; `StudioLog` keeps Qt's messages, the Studio's notices and play's problems, a line said every frame
+    kept once with a count. The agent cannot save or commit. `qq-mcp`: the program an MCP client starts, relaying
+    standard input and output to the pipe, answering "not running" with no Studio and finding one opened later;
+    `build.ps1 -Deploy` puts it beside the Studio. **Evidence, on the owner's machine:** `tst_agent` 9 cases (the
+    protocol; every tool in the real Studio window through the protocol; the real `qq-mcp` and `qq-studio` end to end),
+    with all six suites passing (`tst_agent` 9, `tst_play` 11, `tst_player` 4, `tst_scene` 14, `tst_studio` 10,
+    `tst_world` 3); four planted faults (a refused change half kept; edits allowed in play; a bridge that never retries;
+    a log keeping every repeat), each failing its own check, the first only after the check was corrected (below); an
+    independent client, the official MCP Python SDK 2.3.0, drove a Studio through `qq-mcp`: protocol 2025-06-18, the
+    fourteen tools, a crate, an emitter and spinning logic built, played, a frame captured and looked at, stopped, a
+    mass out of range refused; the deployed `qq-mcp` runs with no Qt on the path. **Found on the way:** a check that a
+    refused value undoes the others passed with the fault planted, because `QJsonObject` takes keys in sorted order and
+    the bad value came first; corrected so a good value is set before the bad one is met. A second write of a logic
+    file failed "Access is denied" because the test still held the first open; a retry added to `writeLogic` on a
+    guessed cause (a virus scanner) was taken out again once the real cause was found. **Not yet:** the design loop
+    and the Agent panel, the provider (an ADR when the loop is built), its key in the keychain, and the proof of a
+    scene built from a description, which needs a provider key from the owner. **Next:** the design loop.
+
+67. **10 October 2026: P3.3's design loop built: the Agent panel, on Claude Opus 5.5 (ADR-085).** On branch
+    `session/qq-p3.3-agent` (pull request #22). **Built** (`products/qq/agent/`): `DesignLoop`, a manual tool-use loop
+    over Anthropic's Messages API in raw HTTPS from Qt (no C++ SDK exists), shaped from the Claude API reference: model
+    `claude-opus-5-5`, adaptive thinking, effort `high` set explicitly (the model's default is `medium`), 16,000 tokens
+    an answer, `fallbacks: "default"` with beta `server-side-fallback-2026-07-01`, automatic prompt caching; the same
+    fourteen tools as MCP, called through `McpServer::call`; frames returned as image tool results; the conversation
+    append-only, each turn's results in one message; a `refusal` ends the run, a `max_tokens` turn is not run, what a
+    `fallback` block replaced is neither run nor echoed; 408, 409, 429 and 5xx waited out up to five attempts as
+    `retry-after` says; at most 60 answers; a run counter so nothing from a stopped run acts in the next. `keychain`:
+    Windows Credential Manager (`CredWriteW`, `CredReadW`, `CredDeleteW`), the key read only for a request, sent only in
+    `x-api-key`; `QQ_ANTHROPIC_URL` accepted only over https or to loopback. In the Studio: an **Agent** button and
+    `AgentPanel.qml` (key once, then hidden; description; Design and build; Stop; every step with its frames; Undo the
+    run, through a new `restoreText` that keeps what was last saved); the loop stopped when the Studio quits.
+    **Evidence, on the owner's machine:** all six suites pass (`tst_agent` 13 run and 1 skipped unless asked, `tst_play`
+    11, `tst_player` 4, `tst_scene` 14, `tst_studio` 10, `tst_world` 3). The loop's cases run against a stand-in for the
+    API inside the test (an HTTP server on loopback answering from a script): every request's headers and body, the
+    history append-only, three results in one message with the frame as a 640-pixel PNG, the crate left unsaved with
+    play stopped, the key in no Studio log entry and no request body, undo back to the scene before; 429 and 529 waited
+    out, 401 not retried, a refusal, a cut-off answer, a stop dropping the request in flight; a fallback's replaced
+    blocks; the panel asking for a key and never showing it again. Four more planted faults, each failing its own check
+    (replaced tool calls run; no waiting out; a cut-off call run; the key in the body), the second only after the
+    planted fault itself was corrected (it had replaced half an expression). `QQ_LIVE_ENDPOINT=1` ran one request to the
+    real endpoint over TLS with a key that is not one: refused with 401, as it should be (deployed: Qt's `schannel` TLS
+    backend is in the deployed Studio). **Not yet:** the proof, a scene built from a description with no human edit,
+    recorded with its frames: it needs the owner's Anthropic key, typed once into the Agent panel; its runs are billed to
+    that key. **Next:** that proof, then P3.4.
+
 ## 5. Traps, so nobody re-learns them
 
 **Launcher checks**
@@ -2083,6 +2144,18 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   12 frames a second on the Intel GPU, 220 on the RTX 4060, for the same build.
 - **A macro's arguments are split at commas outside parentheses**, braces and brackets included: in `EM_ASM`, an
   object or array literal with commas must be wrapped in parentheses.
+- **`QJsonObject` keeps its keys sorted, so it is taken in name order, not the order written.** A check that a refused
+  value undoes the values before it must put a good field earlier in name order than the bad one, or it passes with the
+  undo removed (`tst_agent`, 10 October 2026).
+- **A file held open on Windows cannot be replaced.** `QSaveFile` writes beside it and renames over it, which is
+  refused ("Access is denied") while anyone, a test included, still has it open. Close a `QFile` before the next write;
+  look in the process before blaming a virus scanner.
+- **A Windows GUI program's Qt messages go to the debugger, not to standard error.** A test reading a started Studio's
+  output sets `QT_FORCE_STDERR_LOGGING=1` for it.
+- **MCP tool names are letters, digits, `_` and `-` only** (Claude's clients enforce `^[a-zA-Z0-9_-]{1,64}$`):
+  `scene_read`, not `scene.read`.
+- **Qt 6.12's `Qt6Mcp` module has no public API**, only private headers; QQ speaks MCP's JSON-RPC itself
+  (`products/qq/agent/mcpserver.cpp`).
 - **`Copy-Item` keeps a file's old time, so Ninja does not rebuild it.** Restoring a source after a planted fault that
   way left the faulty build in place, and the next run tested the fault (9 October 2026). Touch restored files.
 - **`check-design.mjs` matches `rgb(` anywhere outside the token files, a function name included.** A helper
@@ -2630,7 +2703,8 @@ container named here.*
   `main` is at `0583835` (PR #19, P3.1; PRs #1 to #20 are merged). Work goes on a `session/*` branch and reaches `main`
   by pull request. `origin` is the private archive and is not the current tree, and the local branch `main` follows
   it, so it is not the public `main`. §4 item 65 (P3.2) is on `session/qq-p3.2-play`, branched from `0583835`, in
-  pull request #21.
+  pull request #21; §4 items 66 and 67 (P3.3) are on `session/qq-p3.3-agent`, branched from #21's tip, in pull
+  request #22.
 - **Earlier (29 September 2026): the public repository's start.** Local branch `public-main` then tracked
   `public/main` on `ALaustrup/demiurge-chain`: `e611c99` (import) and `2681a51` (CI and Railway records). The
   repository moved to `QOR-MATRIX` on 1 October 2026 (ADR-064).

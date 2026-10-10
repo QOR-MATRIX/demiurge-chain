@@ -58,3 +58,19 @@ target_link_libraries(tst_player PRIVATE Qt6::Test Qt6::Gui)
 add_dependencies(tst_player qq-player)
 
 add_test(NAME tst_player COMMAND tst_player)
+
+qt_add_executable(tst_agent tst_agent.cpp)
+
+# The real programs, started as an MCP client and the launcher start them.
+target_compile_definitions(tst_agent PRIVATE
+    QQ_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+    QQ_STUDIO="$<TARGET_FILE:qq-studio>"
+    QQ_MCP="$<TARGET_FILE:qq-mcp>")
+
+target_link_libraries(tst_agent PRIVATE
+    Qt6::Test Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Quick3D Qt6::QuickControls2 Qt6::Network
+    qqagent qqstudio qqstudioplugin qqruntime qqruntimeplugin
+)
+add_dependencies(tst_agent qq-studio qq-mcp)
+
+add_test(NAME tst_agent COMMAND tst_agent)
