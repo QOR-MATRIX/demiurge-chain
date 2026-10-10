@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QFile>
 #include <QImage>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QProcess>
@@ -56,6 +57,8 @@ private slots:
         const QJsonObject m = readJson(result);
         qInfo("%s", QJsonDocument(m).toJson(QJsonDocument::Compact).constData());
         QCOMPARE(m.value(QStringLiteral("problem")).toString(), QString());
+        // Every model drawn: a model that failed would still let the game settle, and sooner.
+        QCOMPARE(m.value(QStringLiteral("unloaded")).toArray(), QJsonArray());
         QVERIFY(m.value(QStringLiteral("scene")).toString().endsWith(QStringLiteral("playground.qml")));
         // Counted from the process's creation: more than nothing, and well inside the time a person would wait.
         const double first = m.value(QStringLiteral("firstFrameMs")).toDouble();
@@ -96,6 +99,7 @@ private slots:
         QCOMPARE(runPlayer({fixture(QStringLiteral("scenes/sample.qml")), QStringLiteral("--measure"), result}), 0);
         const QJsonObject m = readJson(result);
         QCOMPARE(m.value(QStringLiteral("problem")).toString(), QString());
+        QCOMPARE(m.value(QStringLiteral("unloaded")).toArray(), QJsonArray());
         QVERIFY(m.value(QStringLiteral("firstFrameMs")).toDouble() > 0);
     }
 

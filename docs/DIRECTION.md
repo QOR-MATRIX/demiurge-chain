@@ -905,7 +905,8 @@ preview until the Qt Player plays in the launcher and in ARQADE (ADR-083 decisio
    gamepad (its state given: no pad attached) and mouse (a drag in the Studio turns the player), `tst_play` and
    `tst_studio`; particles counted in the frame and sound set up where it is and only in play, `tst_play`; logic rebuilt
    on each save while the world plays, `tst_play`; the Player natively, `tst_player` (the real executable: first frame
-   1.4 s, 229 to 345 frames a second); in a browser, `build.ps1 -Web` with `player/measure-web.mjs` (headless Chrome,
+   1.4 s, 229 to 345 frames a second; corrected 10 October: that game was missing its one model, which had failed to
+   load, and with it the first frame is about 1.7 s, HANDOFF §4 item 71); in a browser, `build.ps1 -Web` with `player/measure-web.mjs` (headless Chrome,
    cross-origin isolated: first frame 5.8 to 6.0 s from the page loading, 220 to 227 frames a second, 44.1 MB served,
    11.7 MB brotli). Five planted faults, each caught by its own check. **In a browser, sound is not spatial**: Qt's
    spatial audio makes its sound on a worker, where the web has none, so there a sound's volume follows the player's

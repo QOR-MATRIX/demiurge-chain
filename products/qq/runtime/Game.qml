@@ -22,6 +22,10 @@ World {
 
     /// True once the scene plays and every model in it has loaded or failed: the first frame of the game proper.
     readonly property bool settled: scene !== null && entityList.every(e => e.kind !== "Prop" || e.status !== Prop.Empty)
+    /// The models that failed to load, each "name: why". The game plays without them, so the Player reports them
+    /// rather than stopping; a game that settles with one missing is not the game its creator made.
+    readonly property list<string> unloaded: entityList.filter(e => e.kind === "Prop" && e.status === Prop.Failed)
+                                                       .map(e => e.name + ": " + e.errorString)
 
     readonly property QtObject follow: scene ? scene.player : null
 

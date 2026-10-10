@@ -17,6 +17,7 @@
 #include <QElapsedTimer>
 #include <QFile>
 #include <QGuiApplication>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QQmlApplicationEngine>
@@ -130,7 +131,9 @@ int main(int argc, char *argv[])
                                  {QStringLiteral("mainMs"), qRound(measure.mainMs)},
                                  {QStringLiteral("firstFrameMs"), qRound(measure.firstFrameMs)},
                                  {QStringLiteral("fps"), seconds > 0 ? qRound(measure.frames / seconds * 10) / 10.0 : 0},
-                                 {QStringLiteral("problem"), window->property("problem").toString()}};
+                                 {QStringLiteral("problem"), window->property("problem").toString()},
+                                 {QStringLiteral("unloaded"),
+                                  QJsonArray::fromStringList(window->property("unloaded").toStringList())}};
         const QByteArray line = QJsonDocument(result).toJson(QJsonDocument::Compact);
         qInfo("QQ-MEASURE %s", line.constData());
         if (!measureFile.isEmpty()) {

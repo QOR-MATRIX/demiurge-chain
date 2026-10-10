@@ -12,7 +12,8 @@
 // when the page began to load: what a person waits through. The console of every worker (Qt's threads) is read too,
 // since a thread's error is reported only there. One line of JSON is printed: the sizes (as served, and gzip and
 // brotli compressed, which is what a web server would send), the Player's measurement, the renderer WebGL reported,
-// and how many colours the first frame has. Exit code 0 measured, 1 not (the reason is printed).
+// and how many colours the first frame has. Exit code 0 measured, 1 not (the reason is printed), and 1 too when a model
+// in the scene failed to load: the game settles without it, and sooner, so its time would not be the game's.
 
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -275,6 +276,7 @@ try {
     fail(`no QQ-MEASURE line within two minutes${problems.length ? `: ${problems.join(' | ')}` : ''}`);
     console.error(`The console's last lines:\n${consoleLines.slice(-30).join('\n')}`);
   } else if (measured.problem) fail(`the scene could not play: ${measured.problem}`);
+  else if (measured.unloaded?.length) fail(`models did not load: ${measured.unloaded.join(' | ')}`);
   else if (frameColours <= 200) fail(`the page shows ${frameColours} colours, not a world`);
   ws.close();
 } catch (e) {

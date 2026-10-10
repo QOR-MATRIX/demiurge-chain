@@ -1,15 +1,18 @@
 # Handoff
 
 **Current state, 10 October 2026.** The code is the public repository `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064).
-`main` is at `b99c689` (the merge of PR #24, ADR-086, after #23, which brought P3.3 to `main`), and **Pleroma CI passed on
-it** (run 38058362606, 10 October 2026: chain, QOR ID, launcher, ARQADE, coverage and security). PRs #1 to #24 are merged.
+`main` is at `808df3b` (the merge of PR #27, the QQ Player's lockdown, after #25 and #26, ADR-087), and **Pleroma CI
+passed on it** (run 38064910997, 10 October 2026: chain, QOR ID, launcher, ARQADE, coverage and security). PRs #1 to #27
+are merged.
 On 8 October Pleroma CI was green on `main` (then `d97fa69`, PR #15) after a re-run. Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Work goes on a `session/*` branch and
 reaches `main` by pull request. `origin` is the private archive, not the current tree. Live, devnet-only and with test
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 item 70 (10 October 2026): the QQ Player locks down what a game's logic can reach (ADR-087 decision 2),
-with two known limits.** On branch `session/qq-player-lockdown`. Before it: item 69 the same day: how a stranger's QQ
+**Newest: §4 item 71 (10 October 2026): the lockdown measured on mains power, costing nothing measurable; the Player's
+bundled game had been playing without its model, and now a model that fails to load is reported and fails the checks.**
+On branch `session/qq-lockdown-measured`. Before it: item 70 the same day: the QQ Player locks down what a game's logic
+can reach (ADR-087 decision 2), with two known limits; merged as #27. Before it: item 69 the same day: how a stranger's QQ
 game is confined, proposed and decided (ADR-087): in the browser only at first, from a site of its own; the Player
 locked down in every mode; native play of others' games deferred. On branch
 `session/qq-logic-sandbox`. Before it: item 68 the same day: **generation is paid by whoever uses it, and Demiurge pays for none (ADR-086,
@@ -255,7 +258,7 @@ Read this before the detail below. "Ready" means it can start today with nothing
 
 | Track | State | Waiting on | What unblocks it |
 | --- | --- | --- | --- |
-| **P3, QQ on Qt 6** (ADR-083) | **P3.1 and P3.2 done; P3.3 built but for its proof** (10 October 2026) | Nobody, for P3.4 (the Player's lockdown is built, §4 item 70); **the owner** for CI; **anyone with their own key** for P3.3's proof (ADR-086) | ADR-087 decided how a stranger's game is confined (10 October 2026), and the Player's lockdown is built; P3.4 (also waiting on L1.4) and P3.5 (strangers' games in the browser only, from a site of their own). CI cannot build QQ until Qt's installer and the owner's Qt account are repository secrets, or a self-hosted runner exists (ADR-083). |
+| **P3, QQ on Qt 6** (ADR-083) | **P3.1 and P3.2 done; P3.3 built but for its proof** (10 October 2026) | Nobody, for P3.4 (the Player's lockdown is built and measured, §4 items 70 and 71); **the owner** for CI; **anyone with their own key** for P3.3's proof (ADR-086) | ADR-087 decided how a stranger's game is confined (10 October 2026), and the Player's lockdown is built; P3.4 (also waiting on L1.4) and P3.5 (strangers' games in the browser only, from a site of their own). CI cannot build QQ until Qt's installer and the owner's Qt account are repository secrets, or a self-hosted runner exists (ADR-083). |
 | **P7.17**, paying the welcome grants | **Blocked, 2026-10-08** | **The owner** | ADR-078 decision 7 wants a server that holds the Welcome account's key and nothing else: a new service, which needs the owner's name for it (AGENTS.md §8), the Welcome account created and funded with test CGT on the devnet, and its key set as that service's only secret on Railway. Listing owed grants and marking one paid are built. |
 | **M3, the Substrate chain** | **Unblocked, started 2026-09-17** | Nobody | The owner confirmed ADR-018 to ADR-032 and supplied all four inputs: eighteen decimals (ADR-035), an existential deposit of 100 CGT (ADR-036), the five pallet names, and `pallet-sudo` on development and test networks only (ADR-037). |
 | **U-1, the decimal places** | **Decided 2026-09-17** | Nobody | Eighteen, on both recorded conditions (ADR-035). Removed from `OPEN_QUESTIONS.md`, so the gate reads it as decided. |
@@ -2156,9 +2159,24 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     reason; `tst_agent` 14 and 1 skipped; `tst_play` 11; `tst_player` 4; `tst_scene` 14; `tst_studio` 10; `tst_world`
     3); four planted faults (no interceptor; no network policy; `SceneIO` unconfined; every module allowed), each
     failing its own check, the URL-handler fault not planted because it would open dialogs on the desktop; the bundled
-    game plays with nothing refused; the browser build plays with no error. **Not measured:** what the lockdown costs
-    at start-up. The laptop was on battery at 18% during the last runs (the native Player drew 6 frames a second, against
-    155 to 345 earlier), so those numbers are not comparable; measure again on mains power. **Next:** P3.4, publishing.
+    game plays with nothing refused; the browser build plays with no error. **Measured on mains power in item 71:** the
+    lockdown costs nothing measurable at start-up. **Next:** P3.4, publishing.
+
+71. **10 October 2026: the lockdown measured, and a model that fails to load is no longer hidden.** On branch
+    `session/qq-lockdown-measured`. **Measured** on mains power (checked with `Win32_Battery`), the owner's RTX 4060
+    laptop, the bundled playground: the native Player's first frame is about 1.7 s (1,709 to 2,023 ms, five runs; 265 to
+    346 frames a second); in headless Chrome 5.5 and 5.7 s from the page loading (313 frames a second). The build before
+    the lockdown (`fc353d2`, built beside it) drew its first frame in about 1.4 s, and the lockdown's parts, switched off
+    one at a time and all together, change nothing measurable: the difference is the orb. **Found:** before the lockdown
+    the bundled game's one model (`../assets/orb.gltf`) never loaded in the Player: its loader took the relative path
+    against QQ's own module, the file was not there, and the game counted a failed model as loaded and played without
+    it (its first frame has no orb; the current one has). Item 70's change to `Prop` (the whole path, against the scene
+    file) is what fixed it, so P3.2's 1.4 s was for a scene missing its model. **Changed:** `Game.unloaded` lists the
+    models that failed, each with its reason; the Player puts it in its measurement; `tst_player` (the bundled game and
+    a scene from disk) and `measure-web.mjs` fail on any. **Evidence:** all seven QQ suites pass; the old `Prop` line put
+    back as a planted fault fails both `tst_player` cases with `Orb: IO Error: File not found`; the browser build plays
+    with `unloaded` empty. QQ Studio redeployed (with these changes) so **Open in QQ Studio** has them. **Next:** P3.4,
+    publishing, once the owner has done the L1.4 dialog checks.
 
 ## 5. Traps, so nobody re-learns them
 
@@ -2225,6 +2243,9 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
 - **A module whose types are registered is imported without its `qmldir`.** Qt 6 registers a QML module's types when
   its library loads: `Qt6Quick3DSpatialAudio.dll` links `Qt6MultimediaQuick.dll`, so wherever spatial audio is loaded,
   `import QtMultimedia` works even with its `qmldir` refused.
+- **A model that fails to load still lets a game settle, and sooner.** `Game.settled` waits for every model to load
+  *or fail*, so a missing model made the bundled game start faster and looked like a pass until item 71; `Game.unloaded`
+  now names it and the Player's checks fail on it. Look at a first frame, not only its time.
 - **Performance measured on battery is not comparable.** At 18% on battery the native Player drew 6 frames a second
   against 155 to 345 on mains (10 October 2026): check `Win32_Battery` before recording a measurement.
 - **A pull request based on another's branch merges into that branch, not `main`, if it is merged first or at once.**

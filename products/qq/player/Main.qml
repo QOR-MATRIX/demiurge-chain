@@ -20,6 +20,7 @@ Window {
     /// What a capture or a measurement waits for: the game's first frame proper.
     readonly property bool settled: game.settled
     readonly property string problem: game.problem
+    readonly property list<string> unloaded: game.unloaded
 
     Game {
         id: game
