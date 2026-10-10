@@ -9,7 +9,7 @@ CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`
 
 **Newest: §4 item 65 (10 October 2026): P3.2 done. Worlds play: physics, a player under keyboard, mouse and gamepad,
 particles, sound and logic rebuilt on each save, in QQ Studio (Play and Stop, the scene restored exactly) and in the QQ
-Player, natively and in a browser, measured (ADR-084).** On branch `session/qq-p3.2-play`, not yet committed. Before it:
+Player, natively and in a browser, measured (ADR-084).** In pull request #21 (`session/qq-p3.2-play`). Before it:
 item 64 (9 October 2026): P3.1 done, QQ Studio edits a lit 3D world and keeps it in a Qontrol project (merged as pull
 request #19). Before it: item 63 the same day: QQ's native engine
 started on Qt 6.12 (merged as pull request #18). Before them: item 62 (8 October 2026): QQ moves to Qt 6 (ADR-083, the owner's decision); ARQADE's
@@ -1994,7 +1994,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     native and in a browser.
 
 65. **10 October 2026: P3.2 done: worlds play, in QQ Studio and in the QQ Player, natively and in a browser.** On branch
-    `session/qq-p3.2-play`, not yet committed. The work was found uncommitted in the tree at the start of the session,
+    `session/qq-p3.2-play`, in pull request #21 (commits `3e15e97` and `1b20318`). The work was found uncommitted in the tree at the start of the session,
     built and tested from scratch, and finished. **Built:** in the runtime, bodies on `Shape` (none, static, dynamic;
     mass, bounce, friction) under the scene's `gravity`; `Player` (a character controller with its own fall and jump,
     and a camera that follows); `Input` (C++: keyboard, mouse and an XInput gamepad as move, look, jump and run; not
@@ -2629,8 +2629,8 @@ container named here.*
 - **Now (10 October 2026): the public repository `QOR-MATRIX/demiurge-chain`** (ADR-064, remote `matrix`), whose
   `main` is at `0583835` (PR #19, P3.1; PRs #1 to #20 are merged). Work goes on a `session/*` branch and reaches `main`
   by pull request. `origin` is the private archive and is not the current tree, and the local branch `main` follows
-  it, so it is not the public `main`. §4 item 65 (P3.2) is on `session/qq-p3.2-play`, branched from `0583835`, not
-  yet committed.
+  it, so it is not the public `main`. §4 item 65 (P3.2) is on `session/qq-p3.2-play`, branched from `0583835`, in
+  pull request #21.
 - **Earlier (29 September 2026): the public repository's start.** Local branch `public-main` then tracked
   `public/main` on `ALaustrup/demiurge-chain`: `e611c99` (import) and `2681a51` (CI and Railway records). The
   repository moved to `QOR-MATRIX` on 1 October 2026 (ADR-064).

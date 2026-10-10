@@ -39,7 +39,7 @@ Studio, with you approving before anything is saved.
 
 ## What only you can do
 
-1. **Merge P3.2** when its pull request is opened.
+1. **Merge pull request #21** (P3.2) once its checks pass.
 2. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your licence. Add your Qt account to the
    repository's secrets, or let your PC run CI jobs (a *self-hosted runner*).
 3. **Check with Qt** that your licence covers CI, AI assistants and shipping the browser Player.

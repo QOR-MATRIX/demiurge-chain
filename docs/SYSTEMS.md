@@ -2,7 +2,7 @@
 
 **What this is:** one table of everything Demiurge calls a system or a surface, what it actually is, and
 whether it exists. **Last brought up to date on 10 October 2026**, against the working tree of branch
-`session/qq-p3.2-play` (not yet committed): the QOR Engine (QQ) row was checked against the code and its five Qt Test
+`session/qq-p3.2-play` (pull request #21): the QOR Engine (QQ) row was checked against the code and its five Qt Test
 suites run that day, with the QQ Player built and played in a browser; the launcher row's pull request #17 was
 confirmed merged. On 8 October 2026 the QOR ID, launcher, QQ, QFX, Settings and ARQADE rows were checked against the
 code and their tests run. The other rows were last checked on 6 October 2026 against `main` at
