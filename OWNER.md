@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 10 October 2026. One page, rewritten every session.
+For Andrew, 10 October 2026 (afternoon). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -13,43 +13,43 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **Devnet** — *the test chain on servers* — at `wss://rpc.qorsync.dev`, version 8. 150 tests.
 - **QOR ID** — *the one sign-in* — at `id.qorsync.dev`; signs you in to ARQADE's window. 172 tests.
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`. 49 tests.
-- **Launcher 0.1.8**, unsigned — *Windows warns on install*. QQ's first milestone (P3.1) is merged.
+- **Launcher 0.1.8**, unsigned — *Windows warns on install*.
 
-## Done today: QQ worlds play (P3.2)
+## Done today: your rule on AI costs (ADR-086 — *a decision record*)
 
-**Play** (F5) in QQ Studio runs the scene and **Stop** (Esc) restores it exactly. Crates fall;
-a **player** walks, runs and jumps by keyboard, mouse or gamepad; sparks, glows, placed sounds;
-**game logic** you can edit while it runs. The **QQ Player** runs a game alone: first picture
-in 1.4 s on your PC, 6 s in Chrome (a 12 MB download). Try: `pwsh products/qq/build.ps1 -Run`.
-**Limits:** browser sounds do not pan (ADR-084 — *a decision record*); game logic is full code,
-to be fenced in before strangers play each other's games.
+**Demiurge pays for no one's AI generation.** Whoever uses it pays their AI provider directly,
+on their own account; we never hold a provider key or pay a bill, and take no share.
+Until someone switches a feature on with their own key, it is simply off.
 
-## Also today: AI in QQ Studio (P3.3, all but its proof)
+- QQ Studio's **Agent** panel now says this before asking for a key, and after each run shows
+  how much it used. A check proves it never picks up a key it was not given.
+- The old **Sophia** chat — *a frozen AI chat paid by the server* — cannot return in that form;
+  its key settings are removed.
+- **Selling AI generation through Demiurge** (say, for CGT) is not built. Whether to, and at
+  what price, is a new open question, **U-19**.
+- **Proving P3.3** (one game built from a description, no human edit) no longer waits on you:
+  whoever runs it uses their own key.
 
-An AI assistant such as Claude can connect to a running Studio and build, play, take pictures
-and read errors; it cannot save or commit, and only your Windows account can connect. The
-**Agent** panel goes further: describe a game, and Claude designs, builds, plays, looks and
-revises, every step shown; you save it or undo it. Your API key stays in Windows Credential
-Manager, never in a file or log; runs are billed to it.
+## Also fixed
 
-**Next:** prove P3.3 with one game built from a description with no human edit. Needs your key.
+Pull request **#22 (P3.3) merged into #21's branch, not into main**: they were merged 16 s
+apart, before GitHub could retarget it. Pull request **#23** brings it to main.
 
 ## What only you can do
 
-1. **Merge pull request #21** (P3.2): all its checks pass. Then #22 (P3.3).
-2. **An Anthropic API key** in the Agent panel, so the design loop can be proven (ADR-085 chose
-   Claude Opus 5.5: $4 / $20 per million tokens in / out).
-3. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your
+1. **Merge #23** (P3.3 to main), then **#24** (this AI-costs rule).
+2. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your
    licence. Add your Qt account to its secrets, or let your PC run CI (a *self-hosted runner*).
-4. **Check with Qt** that your licence covers CI, AI assistants and shipping the browser Player.
-5. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
-6. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
-7. **Housekeeping:** delete `QOR-MATRIX/arqade`; the Resend bounce webhook; the `ci` record and
+3. **Check with Qt** that your licence covers CI, AI assistants and shipping the browser Player.
+4. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
+5. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
+6. **Housekeeping:** delete `QOR-MATRIX/arqade`; the Resend bounce webhook; the `ci` record and
    tunnel in Cloudflare; rotate nine old credentials; decide the nine frozen *home-map* tiles.
-8. **Before commercial use:** a paid Vercel plan, a legal review, trademark clearance.
-9. **Open questions:** OPEN-1 to OPEN-4, U-4, U-14 to U-18, Q-19 and Q-20.
+7. **Before commercial use:** a paid Vercel plan, a legal review, trademark clearance.
+8. **Open questions:** OPEN-1 to OPEN-4, U-4, U-14 to U-19, Q-19 and Q-20.
 
 ## Cost per month
 
 Railway not yet measured (estimated $16–37). Vercel and Neon — *ARQADE's database host*:
-$0 on free plans. No spending cap (your decision, 1 October). Qt: your Enterprise licence.
+$0 on free plans. AI generation: $0, by rule. No spending cap (your decision, 1 October).
+Qt: your Enterprise licence.

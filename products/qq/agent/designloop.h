@@ -8,7 +8,10 @@
 // creator reviews it, and either saves and commits it or takes it all back (`undo`).
 //
 // The provider's key lives in the operating system's keychain (keychain.h) and is read only to make a request; it is
-// never logged. The conversation is append-only: each answer is kept as it came, and each turn's tool results go back
+// never logged. It is the creator's own: the provider bills that account for what each run uses, and Demiurge neither
+// pays for it nor charges for it (ADR-086). There is no other source of a key: none is built in, and none is taken from
+// the environment (ANTHROPIC_API_KEY is deliberately not read), so without the creator's key the loop does not run.
+// What each run used is counted from the provider's own answers (`usage`) and shown in the Agent panel. The conversation is append-only: each answer is kept as it came, and each turn's tool results go back
 // together in one message. Rate limits and overload are waited out (as `retry-after` says, or with growing pauses); a
 // refused key, a bad request or a refusal ends the run and says why.
 //
@@ -24,6 +27,7 @@
 #include <QString>
 #include <QUrl>
 #include <QVariantList>
+#include <QVariantMap>
 
 class QNetworkAccessManager;
 class QNetworkReply;
@@ -47,6 +51,9 @@ class DesignLoop : public QObject
     Q_PROPERTY(QVariantList steps READ steps NOTIFY stepsChanged)
     /// Whether there is a scene from before the last run to go back to.
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY canUndoChanged)
+    /// What the current or last run has used on the creator's key, as the provider counted it: { input, cacheWrite,
+    /// cacheRead, output } tokens, and { answers }.
+    Q_PROPERTY(QVariantMap usage READ usage NOTIFY usageChanged)
 
 public:
     DesignLoop(McpServer *tools, QQuickWindow *studio, SceneIO *io, QObject *parent = nullptr);
@@ -56,6 +63,7 @@ public:
     QString status() const { return m_status; }
     QVariantList steps() const { return m_steps; }
     bool canUndo() const { return !m_before.isEmpty() && !m_running; }
+    QVariantMap usage() const { return m_usage; }
 
     /// Design and build what `description` says, from the scene as it is now.
     Q_INVOKABLE void start(const QString &description);
@@ -81,6 +89,7 @@ signals:
     void statusChanged();
     void stepsChanged();
     void canUndoChanged();
+    void usageChanged();
     /// A run ended: "done", "stopped", or what went wrong.
     void finished(const QString &outcome);
 
@@ -110,6 +119,7 @@ private:
     QString m_status;
     QVariantList m_steps;
     QString m_before;
+    QVariantMap m_usage;
 };
 
 }  // namespace qq

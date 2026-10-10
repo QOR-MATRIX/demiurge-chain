@@ -7,10 +7,12 @@ reaches `main` by pull request. `origin` is the private archive, not the current
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 items 66 and 67 (10 October 2026): P3.3 all but its proof. QQ Studio offers fourteen tools to agents over
+**Newest: §4 item 68 (10 October 2026): generation is paid by whoever uses it, and Demiurge pays for none (ADR-086,
+the owner's decision); and P3.3, which merged into #21's branch rather than `main`, is brought to `main` by pull request
+#23.** In pull request #24 (`session/generation-paid-by-user`). Before it: §4 items 66 and 67 the same day: P3.3 all but its proof. QQ Studio offers fourteen tools to agents over
 MCP through `qq-mcp` (driven end to end by the official MCP Python SDK), and its Agent panel designs and builds a game
 from a description on Claude Opus 5.5 (ADR-085), the key in Windows Credential Manager; the proof needs the owner's
-key.** In pull request #22 (`session/qq-p3.3-agent`), stacked on #21. Before them: item 65 the same day: **P3.2 done. Worlds
+key.** Merged as pull request #22 into #21's branch; to `main` by #23. Before them: item 65 the same day: **P3.2 done. Worlds
 play: physics, a player under keyboard, mouse and gamepad, particles, sound and logic rebuilt on each save, in QQ Studio
 (Play and Stop, the scene restored exactly) and in the QQ Player, natively and in a browser, measured (ADR-084).** In
 pull request #21 (`session/qq-p3.2-play`), whose checks all pass. Before it:
@@ -92,7 +94,7 @@ ticked the same day against the owner's review of a ten-line summary.
 | Infrastructure | **Railway** (project `demiurge`): Postgres, Redis, QOR ID (`id.qorsync.dev`) and Demiurge Devnet (two validators and an RPC node, ADR-068). **Vercel**: ARQADE, project `qor-arqade` (team Astra Matrix, Hobby plan), with Neon Postgres (ADR-074). Fly.io is not used: ADR-015's Fly plan is superseded by ADR-063 and ADR-068. |
 | Production | No production or test network. Live, devnet-only and with test CGT: Demiurge Devnet, QOR ID and ARQADE. |
 | ARQADE (`products/arqade/`) | **Live at `https://qor-arqade-tau.vercel.app`**: standard Next.js 16 on Neon Postgres, migrations 0001 to 0003 applied on production builds (`scripts/migrate.mjs`). **48 tests** (6 October 2026). QOR ID is the only sign-in; Play Now, the solo games, Flux Four and Rift Reversi multiplayer, rankings, chat, devnet reads, tips through the launcher (ADR-076, ADR-077; the owner tipped successfully on 5 and 6 October), and the level bubble and level row. P7.1 to P7.4 are ticked (P7.4 on 6 October 2026). |
-| Decisions | 85 ADRs (ADR-001 to ADR-085); ADR-069 to ADR-085 are accepted. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan; ADR-083 (8 October) builds it on Qt 6; ADR-084 (10 October) settles the Player's web build (Qt's threaded kit, served cross-origin isolated, sound unpanned in a browser). ADR-085 (10 October) chooses the design loop's provider: Claude Opus 5.5, its key in Windows Credential Manager. The owner's open questions are in §4.0. |
+| Decisions | 86 ADRs (ADR-001 to ADR-086); ADR-069 to ADR-086 are accepted. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan; ADR-083 (8 October) builds it on Qt 6; ADR-084 (10 October) settles the Player's web build (Qt's threaded kit, served cross-origin isolated, sound unpanned in a browser). ADR-085 (10 October) chooses the design loop's provider: Claude Opus 5.5, its key in Windows Credential Manager. ADR-086 (10 October, the owner's) makes every user pay for the generation they use, and the project pay for none. The owner's open questions are in §4.0. |
 | Not live | Avatars in ARQADE (ADR-079 step 3, not built), paying the welcome grant (grants are recorded as owed, never paid), ARQADE inside the launcher (P7.18), the indexer, the Mesh, fees and issuance. |
 
 ## 2. Known gaps: do not build on these
@@ -272,7 +274,7 @@ Read this before the detail below. "Ready" means it can start today with nothing
 | **ADR-046, ADR-048, ADR-049, ADR-050** | **Accepted 2026-09-28** | Nobody | Accepted by the owner. |
 | **The QFX check narrowing** | **Approved 2026-09-22, retroactively**; widened by ADR-080 on 2026-10-06 | Nobody | Since ADR-080, `check-design.mjs` keeps only its colour-token, type-scale and tracking-scale rules, with no QFX or ceremony exemption; reduce motion and readability as painted still bind. Logged in `GATES.toml`'s change log with the owner's approval. |
 | **The product tracks** | Ready where an item names no dependency | Nobody | **P1.1 is done (2026-09-23)** and **P1.2 is done (2026-09-26)** (§4 items 18 and 19). P1.3 to P1.5, P2.2 to P2.5, P3.1, P4.1, P5.1 and P5.2 can start today, and P6.1 is a decision the owner can take today. P1.6 is half built. **P7 (ARQADE):** P7.1 to P7.4 are ticked (P7.4, tips, on 6 October 2026); P7.16 to P7.18 (ADR-078) are partly built — levels and tasks exist, and ring styles are drawn in the launcher on `main`, but themes as unlocks are not built, no grant is paid, ARQADE is not inside the launcher and there is no abuse watcher; ARQADE's avatars are not built. |
-| **Open owner questions** | Open | **Owner** | OPEN-1 to OPEN-4, U-4, U-14, U-15, U-16, U-17, U-18, Q-19 and Q-20 (`docs/economics/OPEN_QUESTIONS.md`, the migration inventory). |
+| **Open owner questions** | Open | **Owner** | OPEN-1 to OPEN-4, U-4, U-14, U-15, U-16, U-17, U-18, U-19, Q-19 and Q-20 (`docs/economics/OPEN_QUESTIONS.md`, the migration inventory). |
 | **Legal review** | Open | **Owner** | A legal opinion on backing, paid games with prizes, the welcome grant, task rewards, and making CGT exchangeable, before any of them goes live. |
 | **Trademark clearance** | Open | **Owner** | An attorney's clearance opinion on the project name (`public-release.name-clearance`). |
 | **Vercel plan** | Hobby | **Owner** | Vercel's Hobby plan is for non-commercial use. Before ARQADE takes a real payment or pays out real CGT, it moves to a plan that allows commercial use (ADR-074). |
@@ -2090,6 +2092,29 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     recorded with its frames: it needs the owner's Anthropic key, typed once into the Agent panel; its runs are billed to
     that key. **Next:** that proof, then P3.4.
 
+68. **10 October 2026: generation is paid by whoever uses it, and Demiurge pays for none (ADR-086, the owner's
+    decision).** On branch `session/generation-paid-by-user`, in pull request #24, based on the tip that holds P3.3.
+    **First, a merge that missed:** pull request #22 (P3.3) was based on #21's branch and merged 16 seconds after #21,
+    before GitHub retargeted it, so it merged into `session/qq-p3.2-play` and P3.3 was not on `main`; pull request #23
+    brings that branch to `main` (no new changes). Stacked pull requests are not used again: each targets `main`. **The
+    owner asked** that generative models cost the project nothing, even if a feature is unavailable at first, and that
+    users pay for the generation they use. **Found by searching the tree:** nothing active holds a provider key of the
+    project's (QQ's loop already used the creator's own key, ADR-085); the frozen Sophia chat (`apps/hub`, `apps/guru`)
+    ran on the server's own xAI, Anthropic and OpenAI keys, documented with a Pinecone index in the root
+    `.env.example`. **Done:** ADR-086 (no project-held provider key or account anywhere, no proxy, no project-funded
+    allowance; the user pays their provider directly; a feature is off until its user turns it on with their own
+    account, says who pays and shows what was used; selling generation through Demiurge is open, U-19, with U-9 pointed
+    at it); the Sophia and Pinecone sections of `.env.example` replaced by a note forbidding provider keys there;
+    `DesignLoop` counts each run's tokens from the provider's own `usage` (input, cache written, cache read, output,
+    answers) and the Agent panel shows them, and says before a key is given that the agent runs on the creator's own
+    Anthropic account, billed by Anthropic, with nothing paid or charged by Demiurge; a stray `undefined` font in the
+    panel's step list fixed. **Evidence, on the owner's machine:** all six suites pass (`tst_agent` 14 run and 1
+    skipped unless asked, `tst_play` 11, `tst_player` 4, `tst_scene` 14, `tst_studio` 10, `tst_world` 3); the new case
+    `onlyTheCreatorsOwnKeyIsEverUsed` sets `ANTHROPIC_API_KEY` in the environment and shows nothing is sent without the
+    creator's key, that with it only that key is sent, and that the panel says who pays; a planted fault (falling back
+    to the environment's key) fails it; usage totals checked against the stand-in's counts. **P3.3's proof** is made by
+    whoever runs it on their own key; the owner is not asked to fund it. **Next:** the owner merges #23, then #24.
+
 ## 5. Traps, so nobody re-learns them
 
 **Launcher checks**
@@ -2144,6 +2169,9 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   12 frames a second on the Intel GPU, 220 on the RTX 4060, for the same build.
 - **A macro's arguments are split at commas outside parentheses**, braces and brackets included: in `EM_ASM`, an
   object or array literal with commas must be wrapped in parentheses.
+- **A pull request based on another's branch merges into that branch, not `main`, if it is merged first or at once.**
+  GitHub retargets a stacked pull request only after its base is merged and deleted; #22, merged 16 seconds after #21,
+  landed in `session/qq-p3.2-play` (10 October 2026) and needed #23 to reach `main`. Base every pull request on `main`.
 - **`QJsonObject` keeps its keys sorted, so it is taken in name order, not the order written.** A check that a refused
   value undoes the values before it must put a good field earlier in name order than the bad one, or it passes with the
   undo removed (`tst_agent`, 10 October 2026).
@@ -2703,8 +2731,9 @@ container named here.*
   `main` is at `0583835` (PR #19, P3.1; PRs #1 to #20 are merged). Work goes on a `session/*` branch and reaches `main`
   by pull request. `origin` is the private archive and is not the current tree, and the local branch `main` follows
   it, so it is not the public `main`. §4 item 65 (P3.2) is on `session/qq-p3.2-play`, branched from `0583835`, in
-  pull request #21; §4 items 66 and 67 (P3.3) are on `session/qq-p3.3-agent`, branched from #21's tip, in pull
-  request #22.
+  pull request #21 (merged); §4 items 66 and 67 (P3.3) were merged as pull request #22 into #21's branch, not `main`,
+  and pull request #23 brings them to `main`; §4 item 68 is on `session/generation-paid-by-user`, in pull request #24.
+  Stacked pull requests are not used again: each targets `main`.
 - **Earlier (29 September 2026): the public repository's start.** Local branch `public-main` then tracked
   `public/main` on `ALaustrup/demiurge-chain`: `e611c99` (import) and `2681a51` (CI and Railway records). The
   repository moved to `QOR-MATRIX` on 1 October 2026 (ADR-064).

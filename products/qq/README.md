@@ -39,8 +39,10 @@ reaches them through `qq-mcp` (below); what an agent changes shows in the Studio
 and commits. **And the design loop**, in the Studio's **Agent** panel: describe a game, and Claude (Opus 5.5, ADR-085)
 writes a brief, builds it with the same tools, plays it, looks at captured frames, judges them and revises, every step
 shown as it happens; the creator then saves and commits it, or undoes the run. The provider's key is kept in Windows
-Credential Manager and never logged. Still to come in P3.3: its proof, a scene built from a description with no human
-edit, which needs the owner's key.
+Credential Manager and never logged. **Generation is paid for by whoever uses it** (ADR-086): the key is the creator's
+own, Anthropic bills it directly, the panel says so before a key is given and shows each run's token use, and Demiurge
+holds no provider key and pays for no one's generation. Still to come in P3.3: its proof, a scene built from a
+description with no human edit, made by whoever runs it with their own key.
 
 ## What is here
 
@@ -133,7 +135,7 @@ drew about 12 frames a second.
 - **In a browser:** `build.ps1 -Web` (`player/measure-web.mjs`) serves the build cross-origin isolated, plays it in
   headless Chrome, reads the Player's measurement, captures the first frame and fails unless it is the game, with no
   error on the page or in any of its workers.
-- **`tst_agent`** (14 cases, one of them run only when asked): the protocol alone (a version agreed, or the server's newest; instructions given; not
+- **`tst_agent`** (15 cases, one of them run only when asked): the protocol alone (a version agreed, or the server's newest; instructions given; not
   JSON, a batch, an unknown method or tool each answered with its JSON-RPC error; a notification not answered; a
   tool's failure a result with its id); in the real Studio, through the protocol: every tool listed with a name and
   schema clients accept; the scene read as its canonical text and fields, and every kind with its types, defaults,
@@ -150,10 +152,13 @@ drew about 12 frames a second.
   unsaved, play stopped, the key in no log; the run undone back to the scene before it); a busy provider waited out (a
   429 and a 529, as `retry-after` says), a refused key said and not retried, a refusal ending the run, an answer cut
   off not run, a stop dropping the request in flight and anything after it; what a fallback replaced neither run nor
-  sent back; the Agent panel asking for a key, never showing it again, then for a description. **Proven to fail** by
-  eight planted faults, each caught by its own check: a refused change half kept; edits allowed in play; a bridge that
+  sent back; the Agent panel asking for a key, never showing it again, then for a description; each run's token use
+  counted from the provider's answers; and a key in the environment (`ANTHROPIC_API_KEY`, as a server might set) never
+  used: with no key of the creator's own nothing is sent, the panel saying first who pays. **Proven to fail** by nine
+  planted faults, each caught by its own check: a refused change half kept; edits allowed in play; a bridge that
   never tries the Studio again; a log that keeps every repeat; tool calls a fallback replaced run anyway; a busy
-  provider not waited out; a cut-off answer's tool call run; the key put in the request's body. With
+  provider not waited out; a cut-off answer's tool call run; the key put in the request's body; a key taken from the
+  environment when the creator has given none. With
   `QQ_LIVE_ENDPOINT=1`, one more case reaches Anthropic's real endpoint over TLS with a key that is not one and is
   refused (10 October 2026: refused, as it should be).
 - **With an independent client** (10 October 2026, once): the official MCP Python SDK (`mcp` 2.3.0) started `qq-mcp`,
@@ -193,8 +198,13 @@ the web has no audio, so in a browser `Sound` is a plain sound effect.
 your account, and is not shown again), describe the game, and press **Design and build**. The panel shows what the agent
 says, each tool it uses and each frame it captures; **Stop** ends the run at once. When it is done, look the scene over:
 save and commit it as any other, or press **Undo the run** to put the scene back as it was (logic files it wrote stay in
-`logic/`). Each run is billed to the key: Claude Opus 5.5, $4 per million input tokens and $20 per million output
-tokens, and every captured frame is an image it reads.
+`logic/`).
+
+**You pay for what it uses, and Demiurge pays nothing** (ADR-086). The agent runs on your own Anthropic account: Anthropic
+bills that account for each run (Claude Opus 5.5: $4 per million input tokens, $20 per million output tokens, cached
+input $0.20; every captured frame is an image it reads). Demiurge does not pay for it, does not charge for it and does
+not see the bill. Without your key the agent is simply off: none is built in, and none is taken from the environment.
+After a run the panel shows the tokens it used, as Anthropic counted them.
 
 ## Connect an agent
 
@@ -211,7 +221,8 @@ In Claude Desktop's `claude_desktop_config.json`, with the path written out:
 { "mcpServers": { "qq": { "command": "C:\\Users\\<you>\\AppData\\Local\\qq-studio\\qq-mcp.exe" } } }
 ```
 
-The Studio says in its notice line when an agent connects, and each change it makes.
+The Studio says in its notice line when an agent connects, and each change it makes. The client's model runs on the
+client's own account, as everything generative does here (ADR-086).
 
 ## Not in CI yet
 
