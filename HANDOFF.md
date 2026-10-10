@@ -1,15 +1,19 @@
 # Handoff
 
 **Current state, 10 October 2026.** The code is the public repository `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064).
-`main` is at `b99c689` (the merge of PR #24, ADR-086, after #23, which brought P3.3 to `main`), and **Pleroma CI passed on
-it** (run 38058362606, 10 October 2026: chain, QOR ID, launcher, ARQADE, coverage and security). PRs #1 to #24 are merged.
+`main` is at `808df3b` (the merge of PR #27, the QQ Player's lockdown, after #25 and #26, ADR-087), and **Pleroma CI
+passed on it** (run 38064910997, 10 October 2026: chain, QOR ID, launcher, ARQADE, coverage and security). PRs #1 to #27
+are merged.
 On 8 October Pleroma CI was green on `main` (then `d97fa69`, PR #15) after a re-run. Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Work goes on a `session/*` branch and
 reaches `main` by pull request. `origin` is the private archive, not the current tree. Live, devnet-only and with test
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 item 70 (10 October 2026): the QQ Player locks down what a game's logic can reach (ADR-087 decision 2),
-with two known limits.** On branch `session/qq-player-lockdown`. Before it: item 69 the same day: how a stranger's QQ
+**Newest: §4 item 72 (10 October 2026): L1.4's transfer and RPC endpoint dialogs exercised by the owner, each approved
+and declined; what remains of L1.4 concerns QOR ID.** On branch `session/qq-lockdown-measured`, with item 71 the same
+day: the lockdown measured on mains power, costing nothing measurable; the Player's bundled game had been playing
+without its model, and now a model that fails to load is reported and fails the checks. Before them: item 70 the same day: the QQ Player locks down what a game's logic
+can reach (ADR-087 decision 2), with two known limits; merged as #27. Before it: item 69 the same day: how a stranger's QQ
 game is confined, proposed and decided (ADR-087): in the browser only at first, from a site of its own; the Player
 locked down in every mode; native play of others' games deferred. On branch
 `session/qq-logic-sandbox`. Before it: item 68 the same day: **generation is paid by whoever uses it, and Demiurge pays for none (ADR-086,
@@ -92,7 +96,7 @@ ticked the same day against the owner's review of a ten-line summary.
 | The custom devnet (`framework/`) | **Retired and deleted at M3.5, 2026-09-20.** 150 files, 49,058 lines, after everything that referred to it had been rewritten and verified with the tree still present. Its last run passed 285 tests. Untrusted, and nothing of it is carried forward (§2.0). **M3 is not complete:** M3.2 waits on OPEN-2. |
 | Security track | Items 1 to 7 done. **The owner confirmed credential rotation on 2026-09-14:** the Postgres password and both JWT secret pairs. **Nine credential-shaped values** (from `docker/n8n/docker-compose.yml` and `docker/docker-compose.testnet.yml`) are not in the current tree or in the public repository's history; they exist only in the private archive's history, and rotating them is still advised if those services ever ran (an owner step in `OWNER.md`). CI's security job scans for committed credentials. **A recovery phrase was pasted into a chat on 5 October; treat that key as exposed and replace it.** Sessions record a placeholder IP address. §3. |
 | `services/qor-auth` (QOR ID) | **Live at `https://id.qorsync.dev`**, the Railway service `qor-auth`, deployed from `main`. **172 tests pass** (8 October 2026, against Postgres 16 and Redis 7.4, `--include-ignored`), the log and SQL checks among them. Latest migration: 022. Password and key sign-in (Sr25519 and SS58; ADR-023, ADR-024, ADR-039); email verification and reset through Resend; the account page `/account` (change the password, add or change the email); sign-in for other apps by OAuth 2.1 with PKCE (ADR-073), the apps registered in `QOR_OAUTH_CLIENTS`, ARQADE among them; one name per account, no `#0001` (ADR-075, migrations 019 and 021); levels, XP and tasks, the welcome grant recorded as owed (since 8 October the owner can list owed grants and mark one paid against its transfer's hash; nothing pays them yet); the launcher signing a person into an app it opened with its own session (`/api/v1/oauth/handoff`, 8 October), and three sign-ups per network address read from Railway's `X-Real-IP` (ADR-078, migration 020); avatars (ADR-079, migration 022). Registration creates no CGT and calls no chain (R-3). Agent keys are authorised, never created (ADR-014). **The Resend bounce webhook is an owner step, and delivery to a real inbox is unconfirmed** (§4.0). One known gap (§2). History: §4 items 5 to 8, 33 and 50 to 57. |
-| `tools/qor-launcher` | **Version 0.1.8** (`tauri.conf.json`). **224 Rust tests pass (9 ignored: 8 without a node, 1 that opens QQ Studio), and all ten browser checks pass** — design 3, accessibility 49, gates view 34, Projects 104, Inventory 238, Market 127, QQ 42, vault gate 65, contrast 54, readability 361 — on 8 October 2026 (§4 item 62; the accessibility flake is fixed). In pull request #17 since 8 October, not in a build: **QQ's preview** on the rail, **ARQADE in a window of its own, signed in with the launcher's session** (P7.18, partly), and **six backdrops** in Settings. The 0.1.8 installer was built locally and is **unsigned, with no update channel** (L6); 0.1.7 added `qor://pay`. Avatars and rings reached `main` after 0.1.8 and need a new build to ship. The default chain endpoint is `wss://rpc.qorsync.dev` (`DEFAULT_RPC` in `src-tauri/src/chain/mod.rs`; `LOCAL_RPC` is `ws://127.0.0.1:9944`). Features: the vault's key in the OS keychain with no lock screen (ADR-056); QOR ID sign-in by key; send, mint, Inventory, trade, sell and buy; the Market view (no search, no indexer); Projects and Qontrol; the gates dashboard; `qor://pay`, approved in the host dialog (ADR-077); the level bubble and XP bar; the avatar with its ring; one QFX backdrop shader. The Nexus still shows nine frozen-app tiles marked "local" or "forming". L1.1, L1.2, L1.3, L1.5, L1.6, L1.7, L3.1 and L3.2 are done (L1.6 and L1.7 ticked on 6 October 2026 against CI). **L1.4 is partly exercised:** the owner approved real `qor://pay` tips in the host dialog on 5 and 6 October; a decline and an endpoint change are not yet exercised (§4.0). History: §4 items 9, 14 to 24 and 54 to 57. |
+| `tools/qor-launcher` | **Version 0.1.8** (`tauri.conf.json`). **224 Rust tests pass (9 ignored: 8 without a node, 1 that opens QQ Studio), and all ten browser checks pass** — design 3, accessibility 49, gates view 34, Projects 104, Inventory 238, Market 127, QQ 42, vault gate 65, contrast 54, readability 361 — on 8 October 2026 (§4 item 62; the accessibility flake is fixed). In pull request #17 since 8 October, not in a build: **QQ's preview** on the rail, **ARQADE in a window of its own, signed in with the launcher's session** (P7.18, partly), and **six backdrops** in Settings. The 0.1.8 installer was built locally and is **unsigned, with no update channel** (L6); 0.1.7 added `qor://pay`. Avatars and rings reached `main` after 0.1.8 and need a new build to ship. The default chain endpoint is `wss://rpc.qorsync.dev` (`DEFAULT_RPC` in `src-tauri/src/chain/mod.rs`; `LOCAL_RPC` is `ws://127.0.0.1:9944`). Features: the vault's key in the OS keychain with no lock screen (ADR-056); QOR ID sign-in by key; send, mint, Inventory, trade, sell and buy; the Market view (no search, no indexer); Projects and Qontrol; the gates dashboard; `qor://pay`, approved in the host dialog (ADR-077); the level bubble and XP bar; the avatar with its ring; one QFX backdrop shader. The Nexus still shows nine frozen-app tiles marked "local" or "forming". L1.1, L1.2, L1.3, L1.5, L1.6, L1.7, L3.1 and L3.2 are done (L1.6 and L1.7 ticked on 6 October 2026 against CI). **L1.4 is mostly exercised:** the owner approved real `qor://pay` tips in the host dialog on 5 and 6 October, and approved and declined a transfer and an RPC endpoint change on 10 October; the QOR ID endpoint change and a sign-in after QOR ID was unreachable are not yet exercised (§4.0). History: §4 items 9, 14 to 24 and 54 to 57. |
 | Products | **Seven, each with a blueprint, a track and a gate**: P1 to P6 (§4 item 12) and **P7, ARQADE** (ADR-069). The shared substrate decisions ADR-046 to ADR-051 are all accepted: ADR-047 and ADR-051 on 2026-09-22, ADR-046, ADR-048, ADR-049 and ADR-050 on 2026-09-28. Built inside the launcher: Qontrol's Projects (P1.1, P1.2), QFX's backdrop (P2.1, six to choose from since 8 October), the Market view and, since 8 October, **QQ's TypeScript preview**. **QQ itself moves to Qt 6 (ADR-083)**: its P3 items are rewritten; on Qt 6.12, P3.1 is done (9 October 2026, §4 item 64) and P3.2 is done (10 October 2026, §4 item 65): worlds play in QQ Studio and in the QQ Player, natively and in a browser. ARQADE is its own site (row below). GNOSIS and Stream have not started. |
 | Release gates | **`GATES.toml` accepted (2026-09-14).** Coverage: cargo-llvm-cov, 80% of lines, only on pallets that move CGT or own DRC-369 semantics. Public Release gained `public-release.name-clearance` on 2026-09-17, a tightening logged in the file. **On 2026-10-06 (ADR-080) `check-design.mjs` dropped its five effect rules and the QFX and ceremony exemptions**, keeping colour tokens, the type scale and the tracking scale; it is logged in the change log with the owner's approval. **Loosening any evidence rule needs the owner's separate decision** (the rule is in the file). |
 | CI | **"Pleroma CI", GitHub Actions on the public `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064), and green.** Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Jobs run in the `QOR-MATRIX` organisation, where the billing lock that refused the personal account's jobs in late September does not apply (ADR-064), and `probe.yml` is gone: the workflows are `ci.yml` and `devnet-image.yml`. Jobs: `chain` (format, lints and tests, without `SKIP_WASM_BUILD`); `chain-newest-clippy` (the newest Rust, report-only, scheduled); `two-validators` (scheduled); `qor-auth` (with Redis, `--include-ignored`); `launcher` (with the browser checks: nine on `main`, ten with QQ's from §4 item 61); `arqade`; `coverage`; and `security` (dependency audits, the committed-credential scan, the `[patch]` guard and the `framework/` guard). A flaky wait loop in the launcher's browser checks was fixed on 6 October (PR #9). Woodpecker and `ci.qorsync.dev` are retired; deleting the `ci` DNS record in Cloudflare is an owner step. Scope changes are logged in `GATES.toml`. History: §4 items 1, 27 to 32 and 42. |
@@ -255,7 +259,7 @@ Read this before the detail below. "Ready" means it can start today with nothing
 
 | Track | State | Waiting on | What unblocks it |
 | --- | --- | --- | --- |
-| **P3, QQ on Qt 6** (ADR-083) | **P3.1 and P3.2 done; P3.3 built but for its proof** (10 October 2026) | Nobody, for P3.4 (the Player's lockdown is built, §4 item 70); **the owner** for CI; **anyone with their own key** for P3.3's proof (ADR-086) | ADR-087 decided how a stranger's game is confined (10 October 2026), and the Player's lockdown is built; P3.4 (also waiting on L1.4) and P3.5 (strangers' games in the browser only, from a site of their own). CI cannot build QQ until Qt's installer and the owner's Qt account are repository secrets, or a self-hosted runner exists (ADR-083). |
+| **P3, QQ on Qt 6** (ADR-083) | **P3.1 and P3.2 done; P3.3 built but for its proof** (10 October 2026) | Nobody, for P3.4 (the Player's lockdown is built and measured, §4 items 70 and 71); **the owner** for CI; **anyone with their own key** for P3.3's proof (ADR-086) | ADR-087 decided how a stranger's game is confined (10 October 2026), and the Player's lockdown is built; P3.4 (its signing dialog exercised under L1.4 on 10 October) and P3.5 (strangers' games in the browser only, from a site of their own). CI cannot build QQ until Qt's installer and the owner's Qt account are repository secrets, or a self-hosted runner exists (ADR-083). |
 | **P7.17**, paying the welcome grants | **Blocked, 2026-10-08** | **The owner** | ADR-078 decision 7 wants a server that holds the Welcome account's key and nothing else: a new service, which needs the owner's name for it (AGENTS.md §8), the Welcome account created and funded with test CGT on the devnet, and its key set as that service's only secret on Railway. Listing owed grants and marking one paid are built. |
 | **M3, the Substrate chain** | **Unblocked, started 2026-09-17** | Nobody | The owner confirmed ADR-018 to ADR-032 and supplied all four inputs: eighteen decimals (ADR-035), an existential deposit of 100 CGT (ADR-036), the five pallet names, and `pallet-sudo` on development and test networks only (ADR-037). |
 | **U-1, the decimal places** | **Decided 2026-09-17** | Nobody | Eighteen, on both recorded conditions (ADR-035). Removed from `OPEN_QUESTIONS.md`, so the gate reads it as decided. |
@@ -263,7 +267,7 @@ Read this before the detail below. "Ready" means it can start today with nothing
 | **L3.1**, the launcher's chain client | **Done, 2026-09-20 (ADR-040)**, which completes M3.4 | Nobody | The client is `subxt` at 0.51, under ADR-033 rule 2, with every call built from the metadata the node serves. Proven against a development node: an approved transfer signed in the vault and finalised by GRANDPA, a declined one moving nothing, and two sent back to back. Two calls still refuse, and for reasons that live elsewhere: **transaction history** waits on ADR-028's indexer, and **the starter claim** waits on the economics (OPEN-1, OPEN-2). |
 | **Q-17**, the runtime's address type | **Decided and done, 2026-09-20 (ADR-041)** | Nobody | The owner chose `AccountIdLookup`, and it was carried out the same day: runtime and launcher in one commit, because a node and a client on opposite sides of the change refuse each other. 51 chain tests, 13 two-validator checks and the launcher's live test all pass on it. |
 | **L4**, the studio | **L4.2, L4.4, L4.5 done**; **half of L4.6 built 2026-09-23, unticked**; L4.1 started | Nobody, to continue; **the owner** for the listing vocabulary | Owned assets are listed from on-chain enumeration (L4.2), traded (L4.4, L4.5), and since 2026-09-23 a listing can be drafted for one — saved on this machine and published nowhere, so **L4.6 stays unticked** until M4.2, P5.5 and M5.4 give it somewhere to publish. The six categories it offers are a proposal for the owner to confirm (§4 item 17). Minting any file, and collections beyond a creator's singles, are L4.1's remainder. |
-| **L1.4**, host-side confirmation | **Partly exercised** | Nobody | The owner approved real `qor://pay` tips in the host dialog on 5 and 6 October 2026. Still needed in a running launcher: a decline, and an endpoint change approved once and declined once (item 4 below). |
+| **L1.4**, host-side confirmation | **Mostly exercised** | **The owner**, for the last two | Tips approved on 5 and 6 October 2026; a transfer and an RPC endpoint change each approved and declined on 10 October (§4 item 72). Still needed in a running launcher: the QOR ID endpoint change approved once and declined once, and a key sign-in after QOR ID was unreachable at unlock (item 4 below). |
 | **L2.2**, the gates dashboard | Part verified, 2026-09-17 | Nobody | The numbers are now covered from both sides: the host against the real `GATES.toml`, and the view against a known fixture in a real rendering engine (`scripts/check-gates-view.mjs`, 34 checks, wired into CI and `npm run check`). What is left needs a person: running a suite with one approval and one refusal, and the `gh` readings (item 4 below). |
 | **L1.6**, launcher tests in CI | **Ticked 6 October 2026** | Nobody | The `launcher` job runs and passes in CI on `main` (every completed run since the merge of #6, 5 October 2026, except two browser-start failures on the merge of #15, §4 item 60; on the merge of #13, run `37496555161`, 204 host tests passed and 7 were ignored). Ticked in `DIRECTION.md` against that evidence. |
 | **L1.7**, CI runs at all | **Ticked 6 October 2026** | Nobody | CI starts and passes on `main` (the merges of #12 and #13), and the `coverage` job uploads the `coverage` artifact `GATES.toml` reads. Ticked in `DIRECTION.md` against that evidence. |
@@ -368,14 +372,12 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
    Security item 7, L1.1, L1.2, L1.3 and L1.5 are done.
    **Owner:** the Veridian and Abyss themes lean neon, and the Veridian and Sanguine descriptions are not
    restrained (`docs/design/DESIGN_SYSTEM.md` §2). They are unchanged, pending your call.
-   L1.4 (host-side confirmation) is implemented and unit-tested. **Since 5 and 6 October 2026 it is partly
-   exercised:** the owner approved real `qor://pay` tips in the host dialog. It stays unchecked until the rest of
-   its native dialogs are exercised in a running launcher: a transfer and an endpoint change, each approved once and
-   declined once, against a local `demiurge-node --dev` (L3.1 gave the transfer dialog a real subject
-   again; the starter claim now refuses before any dialog, so it is no longer one of these).
-   Since ADR-016, unlocking also signs in to QOR ID with no dialog, and a
-   key with no QOR ID goes straight to claiming a name. Exercise both, and a key sign-in after QOR ID was
-   unreachable at unlock, which still asks.
+   L1.4 (host-side confirmation) is implemented and unit-tested. **Exercised so far:** the owner approved real
+   `qor://pay` tips in the host dialog (5 and 6 October 2026), and on 10 October approved and declined a transfer and
+   an RPC endpoint change against a local `demiurge-node --dev` (§4 item 72). It stays unchecked until the rest are
+   exercised in a running launcher: **the QOR ID endpoint change, approved once and declined once, and a key sign-in
+   after QOR ID was unreachable at unlock, which still asks.** Since ADR-016, unlocking also signs in to QOR ID with no
+   dialog, and a key with no QOR ID goes straight to claiming a name; exercise both too.
 5. **The key scheme and the address format landed on 2026-09-19** (L3.2, half of M3.4; ADR-039).
    - The launcher derives Sr25519 keys with `sp-core` at the chain's pinned version: the first account is
      the bare phrase, further accounts are `//0`, `//1`, … as Talisman enumerates them. Sealing, custody
@@ -2156,9 +2158,40 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     reason; `tst_agent` 14 and 1 skipped; `tst_play` 11; `tst_player` 4; `tst_scene` 14; `tst_studio` 10; `tst_world`
     3); four planted faults (no interceptor; no network policy; `SceneIO` unconfined; every module allowed), each
     failing its own check, the URL-handler fault not planted because it would open dialogs on the desktop; the bundled
-    game plays with nothing refused; the browser build plays with no error. **Not measured:** what the lockdown costs
-    at start-up. The laptop was on battery at 18% during the last runs (the native Player drew 6 frames a second, against
-    155 to 345 earlier), so those numbers are not comparable; measure again on mains power. **Next:** P3.4, publishing.
+    game plays with nothing refused; the browser build plays with no error. **Measured on mains power in item 71:** the
+    lockdown costs nothing measurable at start-up. **Next:** P3.4, publishing.
+
+71. **10 October 2026: the lockdown measured, and a model that fails to load is no longer hidden.** On branch
+    `session/qq-lockdown-measured`. **Measured** on mains power (checked with `Win32_Battery`), the owner's RTX 4060
+    laptop, the bundled playground: the native Player's first frame is about 1.7 s (1,709 to 2,023 ms, five runs; 265 to
+    346 frames a second); in headless Chrome 5.5 and 5.7 s from the page loading (313 frames a second). The build before
+    the lockdown (`fc353d2`, built beside it) drew its first frame in about 1.4 s, and the lockdown's parts, switched off
+    one at a time and all together, change nothing measurable: the difference is the orb. **Found:** before the lockdown
+    the bundled game's one model (`../assets/orb.gltf`) never loaded in the Player: its loader took the relative path
+    against QQ's own module, the file was not there, and the game counted a failed model as loaded and played without
+    it (its first frame has no orb; the current one has). Item 70's change to `Prop` (the whole path, against the scene
+    file) is what fixed it, so P3.2's 1.4 s was for a scene missing its model. **Changed:** `Game.unloaded` lists the
+    models that failed, each with its reason; the Player puts it in its measurement; `tst_player` (the bundled game and
+    a scene from disk) and `measure-web.mjs` fail on any. **Evidence:** all seven QQ suites pass; the old `Prop` line put
+    back as a planted fault fails both `tst_player` cases with `Orb: IO Error: File not found`; the browser build plays
+    with `unloaded` empty. QQ Studio redeployed (with these changes) so **Open in QQ Studio** has them. **Next:** P3.4,
+    publishing, once the owner has done the L1.4 dialog checks (done in item 72).
+
+72. **10 October 2026: L1.4's transfer and RPC endpoint dialogs, exercised by the owner.** In the installed launcher
+    0.1.8 (6 October; the dialog code has not changed since), against `demiurge-node --dev --tmp` (the release build of
+    5 October; the chain's code has changed only in comments since), RPC `ws://127.0.0.1:9944`. **Done by the owner:** a
+    change of RPC endpoint to Local node, approved and declined; a transfer, approved and declined; the endpoint changed
+    back to Demiurge Devnet, declined and then approved. **Read back:** the launcher's saved endpoint was the local node,
+    then `wss://rpc.qorsync.dev` again (`settings.json`, 13:07); on the local chain the owner's account
+    (`5DSNDZ…UV34`), funded with 10,000 CGT from Alice by `chain/scripts/dev-fund.mjs` (total issuance unchanged), sent
+    three transfers of 100 CGT to Bob's development address, the first finalised in block #676 (nonce 3, 9,700 CGT left:
+    the runtime charges no fee yet, M6.4). The declines leave nothing on a chain, so they are the owner's account.
+    **Found:** a transfer from an account with nothing in it asks for approval and is then refused by the node: the
+    launcher checks the amount and the addresses before the dialog, not the balance. Asking first is harmless (nothing
+    is sent), but a balance check before the dialog would say so sooner; not built. **Also:** on Devnet the owner sent
+    100 test CGT to Bob's development address, whose key is public, so those 100 are anyone's to take (test CGT; no
+    value). **Still to do for L1.4:** the QOR ID endpoint change, approved and declined, and a key sign-in after QOR ID
+    was unreachable at unlock. **Next:** P3.4, publishing: its signing dialog is now exercised both ways.
 
 ## 5. Traps, so nobody re-learns them
 
@@ -2225,6 +2258,9 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
 - **A module whose types are registered is imported without its `qmldir`.** Qt 6 registers a QML module's types when
   its library loads: `Qt6Quick3DSpatialAudio.dll` links `Qt6MultimediaQuick.dll`, so wherever spatial audio is loaded,
   `import QtMultimedia` works even with its `qmldir` refused.
+- **A model that fails to load still lets a game settle, and sooner.** `Game.settled` waits for every model to load
+  *or fail*, so a missing model made the bundled game start faster and looked like a pass until item 71; `Game.unloaded`
+  now names it and the Player's checks fail on it. Look at a first frame, not only its time.
 - **Performance measured on battery is not comparable.** At 18% on battery the native Player drew 6 frames a second
   against 155 to 345 on mains (10 October 2026): check `Win32_Battery` before recording a measurement.
 - **A pull request based on another's branch merges into that branch, not `main`, if it is merged first or at once.**

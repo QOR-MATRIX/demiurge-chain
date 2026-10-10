@@ -544,8 +544,14 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
    dialogs are exercised in a running launcher, against the list in `HANDOFF.md`.
 
    **Partly exercised, 5 and 6 October 2026:** the owner approved `qor://pay` tips in the host dialog of an
-   installed launcher against Demiurge Devnet (P7.4). Declining a prompt, and the confirmation before the RPC
-   or QOR ID endpoint changes, have not been exercised by a person, so the item stays unchecked.
+   installed launcher against Demiurge Devnet (P7.4).
+
+   **The transfer and the RPC endpoint, both ways, 10 October 2026** (HANDOFF §4 item 72): in the installed launcher
+   0.1.8, against a local `demiurge-node --dev`, the owner approved and declined a transfer and approved and declined a
+   change of RPC endpoint, to the local node and back to Demiurge Devnet. The approvals are read back from the chains
+   (the account's transfers finalised, its nonce, and the launcher's saved endpoint); the declines are the owner's
+   account, since a decline leaves nothing to read. Still not exercised by a person: the confirmation before the QOR ID
+   endpoint changes, and a key sign-in after QOR ID was unreachable at unlock. The item stays unchecked until they are.
 5. [x] Domain-separated QOR ID challenge signing, shared with security track item 7.
 6. [x] The launcher's host tests run in CI. The job is "QOR Launcher host (tools/qor-launcher): frontend
    build, format, lints, tests" in `.github/workflows/ci.yml`: the frontend build, `npm run check`'s nine
@@ -905,7 +911,8 @@ preview until the Qt Player plays in the launcher and in ARQADE (ADR-083 decisio
    gamepad (its state given: no pad attached) and mouse (a drag in the Studio turns the player), `tst_play` and
    `tst_studio`; particles counted in the frame and sound set up where it is and only in play, `tst_play`; logic rebuilt
    on each save while the world plays, `tst_play`; the Player natively, `tst_player` (the real executable: first frame
-   1.4 s, 229 to 345 frames a second); in a browser, `build.ps1 -Web` with `player/measure-web.mjs` (headless Chrome,
+   1.4 s, 229 to 345 frames a second; corrected 10 October: that game was missing its one model, which had failed to
+   load, and with it the first frame is about 1.7 s, HANDOFF §4 item 71); in a browser, `build.ps1 -Web` with `player/measure-web.mjs` (headless Chrome,
    cross-origin isolated: first frame 5.8 to 6.0 s from the page loading, 220 to 227 frames a second, 44.1 MB served,
    11.7 MB brotli). Five planted faults, each caught by its own check. **In a browser, sound is not spatial**: Qt's
    spatial audio makes its sound on a worker, where the web has none, so there a sound's volume follows the player's
@@ -930,7 +937,8 @@ preview until the Qt Player plays in the launcher and in ARQADE (ADR-083 decisio
 4. [ ] **Publishing a game.** A Publish action commits the scene through Qontrol and mints that commit as a Cartridge
    (a DRC-369 asset), signed by the launcher's vault behind the host dialog, asked over the local channel the
    launcher opens for the Studio it started; the Studio never holds a key. Depends on P3.2, M4.1 and L1.4's native
-   dialogs being exercised. The QQ Player's lockdown it waited on (ADR-087 decision 2) is built (10 October 2026,
+   dialogs being exercised; the signing dialog it uses was exercised both ways on 10 October 2026 (L1.4, HANDOFF §4
+   item 72), and what L1.4 still lacks concerns QOR ID, not signing. The QQ Player's lockdown it waited on (ADR-087 decision 2) is built (10 October 2026,
    HANDOFF §4 item 70).
 5. [ ] **ARQADE delivery.** Published games appear in ARQADE; Play loads the WebAssembly QQ Player with the game,
    signed in through QOR ID when the player is; the TypeScript preview and its check are retired in this change

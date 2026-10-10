@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 10 October 2026 (afternoon). One page, rewritten every session.
+For Andrew, 10 October 2026 (late afternoon). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -15,34 +15,35 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`. 49 tests.
 - **Launcher 0.1.8**, unsigned — *Windows warns on install*.
 
-## Done today: games are locked down in the QQ Player
+## Done today: the lock-down measured, and a hidden fault found
 
-You decided (ADR-087 — *a decision record*) how players are kept safe from strangers' games:
+With the laptop on mains power, I timed how fast a game starts in the QQ Player:
 
-- strangers' games play **only in the browser** (ARQADE) at first, from a web address of their
-  own that holds no logins, boxed inside ARQADE's page;
-- the QQ Player **locks down** what any game's logic can reach, everywhere (cheap);
-- playing others' games **natively** in the launcher waits for an operating-system *sandbox* —
-  *a locked box a program runs in* — which is a bigger job, done if and when you want it;
-- games are served from a **site of their own**: a separate free Vercel address now, a domain
-  of their own (your choice of name) before launch.
+- **The lock-down costs nothing measurable.** Switching its parts off, one at a time or all
+  at once, gives the same start time.
+- **On your PC** the sample game shows its first picture in about **1.7 seconds**; **in a
+  browser**, about **5.5 seconds** from the page starting to load. Both draw far more
+  frames a second than a screen shows.
+- **Found:** before the lock-down, the sample game's one 3D model (the gold orb) never
+  loaded in the Player. The game quietly played without it, so it started faster: the
+  1.4 seconds recorded earlier today was for a game missing a piece. The lock-down work had
+  already fixed the cause; now the Player also **names any model that fails to load**, and
+  the automatic checks fail on one. I proved this by putting the old fault back and
+  watching the checks catch it.
+- **QQ Studio is updated** on your PC, so **Open in QQ Studio** has all of today's fixes.
 
-**The lock-down is built.** In the QQ Player a game can now load only its own files, cannot
-write or copy files, cannot use the internet, and cannot open other programs or websites.
-Automatic checks try each of these and see it refused. **Two gaps remain,** both written down:
-a game played on your own PC can still reach the camera and microphone (a Qt limitation), and
-unusual link types may still reach Windows. Neither matters for strangers' games, which play
-only in the browser, where the browser asks the player first.
+**Your dialog checks (L1.4) worked:** you approved and declined a send and a change of
+chain, on a local test chain; I read the approvals back from the chain. Two QOR ID checks
+remain (below). Note: on Devnet you sent 100 test CGT to a public test address, so anyone
+can take them; harmless, as test CGT is worth nothing.
 
-**Next:** publishing a game (P3.4).
-
-Also today: your AI-costs rule (ADR-086) and P3.3 reached main; automatic checks pass.
+**Next:** publishing a game (P3.4), now unblocked.
 
 ## What only you can do
 
-1. **Merge #25, #26 and #27** (records, the decision, the lock-down).
-2. **Plug the laptop in** before I measure speed again: on battery it runs at a fraction of
-   its speed, so today's timings could not be compared.
+1. **Merge #28** (today's measurements and dialog checks).
+2. **The last two L1.4 checks**, when convenient: change the QOR ID address in the launcher,
+   declined once and approved once; and sign in after QOR ID was unreachable at start-up.
 3. **Optional: prove P3.3** — your own Anthropic key in QQ Studio's Agent panel, billed to you.
 4. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your
    licence. Add your Qt account to its secrets, or let your PC run CI (a *self-hosted runner*).

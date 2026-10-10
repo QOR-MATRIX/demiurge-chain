@@ -85,13 +85,18 @@ every frame `tst_world` judges.
 
 ## The Player, measured (10 October 2026)
 
-On the owner's laptop (RTX 4060 Laptop GPU), playing the bundled playground at 1280 × 720:
+On the owner's laptop (RTX 4060 Laptop GPU), on mains power, playing the bundled playground at 1280 × 720, locked down
+(ADR-087):
 
 | | Native | In a browser (Chrome, headless) |
 | --- | --- | --- |
-| First frame proper (the scene playing, every model loaded) | 1.4 s from the process starting (1,371 and 1,438 ms in two runs) | 5.8 to 6.0 s from the page starting to load, cold, served from this machine (three runs: 5,953, 5,812 and 5,779 ms; `main()` begins at about 1.9 s) |
-| Frames a second over the next three seconds | 229 and 345 | 220 to 227 |
-| Size | the executable, 0.55 MB, with Qt's libraries beside it | 44.1 MB as served (the `.wasm` 43.8 MB); 15.9 MB gzip, 11.7 MB brotli |
+| First frame proper (the scene playing, every model loaded) | about 1.7 s from the process starting (five runs: 2,023, 1,709, 1,729, 1,791 and 1,711 ms) | 5.5 to 5.7 s from the page starting to load, cold, served from this machine (two runs: 5,683 and 5,537 ms; `main()` begins at about 0.3 to 0.4 s) |
+| Frames a second over the next three seconds | 265 to 346 | 313 |
+| Size | the executable, 0.55 MB, with Qt's libraries beside it | 44.1 MB as served (the `.wasm` 43.8 MB); 16.0 MB gzip, 11.7 MB brotli |
+
+The lockdown costs nothing measurable: its parts switched off, one at a time or all together, give the same first
+frame. The 1.4 s first measured (P3.2) was for a game missing its one model, which had failed to load; the Player now
+names any model that fails (`unloaded` in its measurement), and its checks fail on one.
 
 The browser's first frame includes compiling 43.8 MB of WebAssembly; across a network it is longer by the download.
 Chrome must be given the faster GPU (`measure-web.mjs` asks for it): on the laptop's integrated Intel GPU the same build
@@ -134,15 +139,16 @@ drew about 12 frames a second.
   a file and a web address, with nothing handed to the system. **Proven to fail** by four planted faults, each caught by
   its own check: no URL interceptor; no network policy; `SceneIO` left unconfined; every module allowed.
 - **`tst_player`** (4 cases, the real executable): the playground plays and its start is measured; its first frame is
-  the game (hundreds of colours, not an empty window); a scene file from disk plays too; a scene that is not there is
-  said, not hidden.
+  the game (hundreds of colours, not an empty window); a scene file from disk plays too, with every model loaded in it
+  and in the playground; a scene that is not there is said, not hidden. **Proven to fail** (10 October 2026) by putting
+  back `Prop`'s old loader line: both playing cases fail with `Orb: IO Error: File not found`.
 - **Proven to fail** (10 October 2026) by five planted faults, each caught by its own check: no gamepad dead zone (the
   gamepad case); a logic file not watched (the rebuild); Play on the scene itself, not a copy (`tst_scene` and
   `tst_studio`); a sound active while editing (the sound case); a player that ignores the mouse (the drag in
   `tst_studio`, "turned 0").
 - **In a browser:** `build.ps1 -Web` (`player/measure-web.mjs`) serves the build cross-origin isolated, plays it in
-  headless Chrome, reads the Player's measurement, captures the first frame and fails unless it is the game, with no
-  error on the page or in any of its workers.
+  headless Chrome, reads the Player's measurement, captures the first frame and fails unless it is the game, with every
+  model loaded and no error on the page or in any of its workers.
 - **`tst_agent`** (15 cases, one of them run only when asked): the protocol alone (a version agreed, or the server's newest; instructions given; not
   JSON, a batch, an unknown method or tool each answered with its JSON-RPC error; a notification not answered; a
   tool's failure a result with its id); in the real Studio, through the protocol: every tool listed with a name and
