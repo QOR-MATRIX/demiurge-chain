@@ -28,6 +28,8 @@
 
 #include "gpu.h"
 #include "mcpserver.h"
+#include "designloop.h"
+#include "sceneio.h"
 #include "studiotools.h"
 
 Q_IMPORT_QML_PLUGIN(QQPlugin)
@@ -111,6 +113,10 @@ int main(int argc, char *argv[])
     if (!engine.rootObjects().isEmpty()) {
         if (auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first())) {
             tools = std::make_unique<qq::StudioTools>(window, &engine, &mcp);
+            // The Agent panel's loop: the same tools, called in the Studio itself. A child of the window, so the panel
+            // that shows it never outlives it.
+            auto *designer = new qq::DesignLoop(&mcp, window, engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO"), window);
+            window->setProperty("designer", QVariant::fromValue<QObject *>(designer));
             if (!parser.isSet(capture) && !mcp.listen(qq::McpServer::defaultPipeName()))
                 qWarning("Agents cannot connect to this Studio: %s", qPrintable(mcp.error()));
         }

@@ -36,8 +36,11 @@ it; the QQ Player plays a scene on its own, natively and in a browser.
 language models over MCP (the Model Context Protocol): read the scene and what can be added, add, change and remove
 entities, write logic, play, stop, hold the controls, wait, place the eye, capture a frame, read the log. Any MCP client
 reaches them through `qq-mcp` (below); what an agent changes shows in the Studio as unsaved, and only the creator saves
-and commits. Still to come in P3.3: the design loop in the Studio (a description to a brief, built, played, judged by
-its frames and revised) with the provider's key in the keychain, and its proof.
+and commits. **And the design loop**, in the Studio's **Agent** panel: describe a game, and Claude (Opus 5.5, ADR-085)
+writes a brief, builds it with the same tools, plays it, looks at captured frames, judges them and revises, every step
+shown as it happens; the creator then saves and commits it, or undoes the run. The provider's key is kept in Windows
+Credential Manager and never logged. Still to come in P3.3: its proof, a scene built from a description with no human
+edit, which needs the owner's key.
 
 ## What is here
 
@@ -45,7 +48,7 @@ its frames and revised) with the provider's key in the keychain, and its proof.
 | --- | --- |
 | `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, and `Logic` (what a logic file is). In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `SoftDot` (the particles' sprite, made in memory) and `gpu` (draw with the faster of two GPUs) |
 | `studio/` | QQ Studio. `qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>]` |
-| `agent/` | The agent's side of the Studio (P3.3): `McpServer` (MCP's JSON-RPC, served on a local pipe only this user can open), `StudioTools` (the fourteen tools, working the Studio's own window functions, and `StudioLog`, what the Studio has said) and `qq-mcp` (the program an MCP client starts, relaying its standard input and output to the running Studio) |
+| `agent/` | The agent's side of the Studio (P3.3): `McpServer` (MCP's JSON-RPC, served on a local pipe only this user can open), `StudioTools` (the fourteen tools, working the Studio's own window functions, and `StudioLog`, what the Studio has said), `DesignLoop` (a description designed, built, played and judged by Claude through those tools; ADR-085), `keychain` (the provider's key in Windows Credential Manager) and `qq-mcp` (the program an MCP client starts, relaying its standard input and output to the running Studio) |
 | `player/` | The QQ Player. `qq-player [scene.qml] [--capture <frame.png>] [--measure <result.json>]`; its playground (a small game with everything P3.2 plays) bundled inside it; `measure-web.mjs`, which plays the browser build in a headless browser and measures it |
 | `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks, drags and keys), `tst_play` (physics, the player, input, particles, sound and logic, in real frames), `tst_player` (the real Player executable), `tst_agent` (the tools over MCP, in the real Studio and through the real `qq-mcp`) |
 | `tests/fixtures/` | `orb.gltf` (written by `make_orb.py`), `chime.wav` (written by `make_chime.py`), `logic/spin.qml`, `scenes/sample.qml` (every entity type, canonical), `first-light.qq.json` (the 2D preview's starter scene) |
@@ -130,7 +133,7 @@ drew about 12 frames a second.
 - **In a browser:** `build.ps1 -Web` (`player/measure-web.mjs`) serves the build cross-origin isolated, plays it in
   headless Chrome, reads the Player's measurement, captures the first frame and fails unless it is the game, with no
   error on the page or in any of its workers.
-- **`tst_agent`** (9 cases): the protocol alone (a version agreed, or the server's newest; instructions given; not
+- **`tst_agent`** (14 cases, one of them run only when asked): the protocol alone (a version agreed, or the server's newest; instructions given; not
   JSON, a batch, an unknown method or tool each answered with its JSON-RPC error; a notification not answered; a
   tool's failure a result with its id); in the real Studio, through the protocol: every tool listed with a name and
   schema clients accept; the scene read as its canonical text and fields, and every kind with its types, defaults,
@@ -140,9 +143,19 @@ drew about 12 frames a second.
   controls walking the player, a captured frame that is the world, Stop restoring the scene and letting go of the
   controls, edits refused while playing; logic that throws every frame in the log once, with a count; and the real
   programs: `qq-mcp` with no Studio says so, finds one opened later, relays requests and results, and a second Studio
-  on the same pipe stays out and says why. **Proven to fail** by four planted faults, each caught by its own check: a
-  refused change half kept; edits allowed in play; a bridge that never tries the Studio again; a log that keeps every
-  repeat.
+  on the same pipe stays out and says why. The design loop, against a stand-in for Anthropic's API on this computer: a
+  description built, played, looked at and left for the creator (every request carrying the key in its header and
+  nowhere else, the API version, the fallback opt-in, the model, its effort and thinking, and the fourteen tools; the
+  conversation append-only; a turn's three results sent back together in order, the frame as a PNG; the crate built,
+  unsaved, play stopped, the key in no log; the run undone back to the scene before it); a busy provider waited out (a
+  429 and a 529, as `retry-after` says), a refused key said and not retried, a refusal ending the run, an answer cut
+  off not run, a stop dropping the request in flight and anything after it; what a fallback replaced neither run nor
+  sent back; the Agent panel asking for a key, never showing it again, then for a description. **Proven to fail** by
+  eight planted faults, each caught by its own check: a refused change half kept; edits allowed in play; a bridge that
+  never tries the Studio again; a log that keeps every repeat; tool calls a fallback replaced run anyway; a busy
+  provider not waited out; a cut-off answer's tool call run; the key put in the request's body. With
+  `QQ_LIVE_ENDPOINT=1`, one more case reaches Anthropic's real endpoint over TLS with a key that is not one and is
+  refused (10 October 2026: refused, as it should be).
 - **With an independent client** (10 October 2026, once): the official MCP Python SDK (`mcp` 2.3.0) started `qq-mcp`,
   agreed protocol 2025-06-18, listed the fourteen tools, built a crate, an emitter and spinning logic, played, captured
   a frame of the result, stopped, and was refused a mass out of range.
@@ -173,6 +186,15 @@ the web has no audio, so in a browser `Sound` is a plain sound effect.
 - **An agent works with the creator's trust.** The pipe is open only to the user running the Studio, and the agent can
   write logic, which is code; it cannot save the scene or commit. The creator reviews what it did (the scene shows as
   unsaved, each change is said in the notice line) and saves and commits it.
+
+## The Agent panel
+
+**Agent**, in the Studio's header, opens it. Type an Anthropic API key once (it goes into Windows Credential Manager for
+your account, and is not shown again), describe the game, and press **Design and build**. The panel shows what the agent
+says, each tool it uses and each frame it captures; **Stop** ends the run at once. When it is done, look the scene over:
+save and commit it as any other, or press **Undo the run** to put the scene back as it was (logic files it wrote stay in
+`logic/`). Each run is billed to the key: Claude Opus 5.5, $4 per million input tokens and $20 per million output
+tokens, and every captured frame is an image it reads.
 
 ## Connect an agent
 

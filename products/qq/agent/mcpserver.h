@@ -46,6 +46,9 @@ public:
     /// Offer a tool. `name` matches ^[a-zA-Z0-9_-]{1,64}$, as clients require; `inputSchema` is a JSON Schema object.
     void addTool(const QString &name, const QString &description, const QJsonObject &inputSchema, Handler handler);
 
+    /// Every tool offered, in the order added: { name, description, inputSchema }.
+    QJsonArray tools() const { return toolList(); }
+
     /// Call a tool directly, as the Studio's own design loop does: the same tools, without the protocol.
     void call(const QString &name, const QJsonObject &arguments, const Done &done);
 

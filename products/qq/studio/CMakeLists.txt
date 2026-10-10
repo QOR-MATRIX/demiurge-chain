@@ -11,6 +11,7 @@ qt_add_qml_module(qqstudio
         Main.qml
         Inspector.qml
         Gizmo.qml
+        AgentPanel.qml
 )
 
 # The model a new scene opens with: the same fixture the tests render, so what is checked is what is shown.

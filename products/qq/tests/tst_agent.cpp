@@ -1,9 +1,10 @@
-// Can an agent build and play a game in QQ Studio through MCP? (DIRECTION P3.3)
+// Can an agent build and play a game in QQ Studio, through MCP and through the Studio's own design loop? (DIRECTION P3.3)
 //
-// Three levels. The protocol alone: MCP's JSON-RPC as a client sends it, errors included. The tools in the real Studio
+// Four levels. The protocol alone: MCP's JSON-RPC as a client sends it, errors included. The tools in the real Studio
 // window: each one, driven through the protocol exactly as a client's lines arrive, with what changed checked in the
 // window and on disk. And the real programs: qq-mcp started as an MCP client starts it, relaying to a real qq-studio
-// over a pipe of the test's own.
+// over a pipe of the test's own. And the design loop, against a stand-in for Anthropic's API on this computer: what
+// it sends, what it runs, what it leaves for the creator, and how it meets a busy provider, a refused key and a refusal.
 
 #include <QColor>
 #include <QDir>
@@ -16,16 +17,23 @@
 #include <QLocalSocket>
 #include <QProcess>
 #include <QQmlApplicationEngine>
+#include <QQuickItem>
 #include <QQuickStyle>
 #include <QQuickWindow>
 #include <QRandomGenerator>
 #include <QSet>
+#include <QSignalSpy>
+#include <QTcpServer>
+#include <QTcpSocket>
+#include <QHostAddress>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QVector3D>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include "designloop.h"
 #include "gpu.h"
+#include "keychain.h"
 #include "mcpserver.h"
 #include "sceneio.h"
 #include "studiotools.h"
@@ -152,6 +160,118 @@ QJsonObject readLine(QProcess &p, int timeoutMs = 20000)
         p.waitForReadyRead(200);
     return p.canReadLine() ? parse(p.readLine().trimmed()) : QJsonObject();
 }
+
+
+/// A stand-in for Anthropic's Messages API on this computer: each request is kept (its headers and body) and answered
+/// with the next scripted answer, so the design loop runs whole without a key or a bill.
+class FakeAnthropic : public QObject
+{
+public:
+    struct Answer {
+        int status = 200;
+        QJsonObject body;
+        QByteArray retryAfter;
+    };
+    struct Request {
+        QHash<QByteArray, QByteArray> headers;
+        QJsonObject body;
+        QByteArray raw;
+    };
+
+    QTcpServer server;
+    QList<Answer> script;
+    QList<Request> requests;
+
+    FakeAnthropic()
+    {
+        server.listen(QHostAddress::LocalHost);
+        connect(&server, &QTcpServer::newConnection, this, [this] {
+            while (QTcpSocket *s = server.nextPendingConnection()) {
+                auto *buffer = new QByteArray;
+                connect(s, &QTcpSocket::disconnected, s, [s, buffer] {
+                    delete buffer;
+                    s->deleteLater();
+                });
+                connect(s, &QTcpSocket::readyRead, this, [this, s, buffer] {
+                    buffer->append(s->readAll());
+                    const int end = buffer->indexOf("\r\n\r\n");
+                    if (end < 0)
+                        return;
+                    Request r;
+                    int length = 0;
+                    for (const QByteArray &line : buffer->left(end).split('\n').mid(1)) {
+                        const int colon = line.indexOf(':');
+                        if (colon < 0)
+                            continue;
+                        const QByteArray name = line.left(colon).trimmed().toLower();
+                        r.headers.insert(name, line.mid(colon + 1).trimmed());
+                        if (name == "content-length")
+                            length = line.mid(colon + 1).trimmed().toInt();
+                    }
+                    if (buffer->size() < end + 4 + length)
+                        return;
+                    r.raw = buffer->mid(end + 4, length);
+                    r.body = QJsonDocument::fromJson(r.raw).object();
+                    buffer->clear();
+                    requests << r;
+                    const Answer a = script.isEmpty() ? Answer{500, {{QStringLiteral("type"), QStringLiteral("error")}}, {}}
+                                                      : script.takeFirst();
+                    const QByteArray body = QJsonDocument(a.body).toJson(QJsonDocument::Compact);
+                    QByteArray head = "HTTP/1.1 " + QByteArray::number(a.status) + " X\r\nContent-Type: application/json\r\n"
+                                      "Connection: close\r\nContent-Length: " + QByteArray::number(body.size()) + "\r\n";
+                    if (!a.retryAfter.isEmpty())
+                        head += "retry-after: " + a.retryAfter + "\r\n";
+                    s->write(head + "\r\n" + body);
+                    s->flush();
+                    s->disconnectFromHost();
+                });
+            }
+        });
+    }
+
+    QString url() const { return QStringLiteral("http://127.0.0.1:%1/v1/messages").arg(server.serverPort()); }
+
+    /// An answer from the model: its content blocks and why it stopped.
+    static Answer said(const QJsonArray &content, const QString &stop)
+    {
+        return {200, {{QStringLiteral("id"), QStringLiteral("msg_test")}, {QStringLiteral("type"), QStringLiteral("message")},
+                      {QStringLiteral("role"), QStringLiteral("assistant")}, {QStringLiteral("model"), QStringLiteral("claude-opus-5-5")},
+                      {QStringLiteral("content"), content}, {QStringLiteral("stop_reason"), stop}},
+                {}};
+    }
+    static QJsonObject text(const QString &t) { return {{QStringLiteral("type"), QStringLiteral("text")}, {QStringLiteral("text"), t}}; }
+    static QJsonObject use(const QString &id, const QString &name, const QJsonObject &input = {})
+    {
+        return {{QStringLiteral("type"), QStringLiteral("tool_use")}, {QStringLiteral("id"), id},
+                {QStringLiteral("name"), name}, {QStringLiteral("input"), input}};
+    }
+    static Answer error(int status, const QString &type, const QByteArray &retryAfter = {})
+    {
+        return {status,
+                {{QStringLiteral("type"), QStringLiteral("error")},
+                 {QStringLiteral("error"), QJsonObject{{QStringLiteral("type"), type}, {QStringLiteral("message"), type}}}},
+                retryAfter};
+    }
+};
+
+/// A key and a server of the test's own, for the length of a case: the creator's keychain entry is never touched.
+struct DesignerSetup {
+    FakeAnthropic api;
+    QByteArray target = "QQ Studio test key " + QByteArray::number(QRandomGenerator::global()->generate());
+    QString key = QStringLiteral("sk-ant-test-%1-SECRET").arg(QRandomGenerator::global()->generate());
+
+    DesignerSetup()
+    {
+        qputenv("QQ_KEYCHAIN_TARGET", target);
+        qputenv("QQ_ANTHROPIC_URL", api.url().toUtf8());
+    }
+    ~DesignerSetup()
+    {
+        qq::keychain::remove();
+        qunsetenv("QQ_KEYCHAIN_TARGET");
+        qunsetenv("QQ_ANTHROPIC_URL");
+    }
+};
 
 }  // namespace
 
@@ -490,6 +610,243 @@ private slots:
         QVERIFY2(times > 5, qPrintable(QString::number(times)));
         QVERIFY2(all.contains(QStringLiteral("Playing")), qPrintable(all));  // the Studio's notices are there too
         QVERIFY(log.value(QStringLiteral("next")).toInteger() > start);
+    }
+
+    // ── the design loop, against a stand-in for the provider ──
+
+    void aDescriptionIsBuiltPlayedLookedAtAndLeftForTheCreator()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        DesignerSetup d;
+        auto *io = s.engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO");
+        qq::DesignLoop designer(&s.server, s.window, io);
+        QCOMPARE(designer.setKey(d.key), QString());
+        QVERIFY(designer.hasKey());
+        const qint64 logStart = qq::StudioLog::instance()->since(0).value(QStringLiteral("next")).toInteger();
+        const QString before = s.sceneText();
+
+        using F = FakeAnthropic;
+        d.api.script = {
+            F::said({F::text(QStringLiteral("Brief: a crate drops onto the plinth.")),
+                     F::use(QStringLiteral("t1"), QStringLiteral("entity_add"),
+                            {{QStringLiteral("kind"), QStringLiteral("Shape")}, {QStringLiteral("name"), QStringLiteral("Crate")},
+                             {QStringLiteral("fields"), QJsonObject{{QStringLiteral("position"), QJsonArray{0, 4, 0}},
+                                                                    {QStringLiteral("body"), QStringLiteral("dynamic")}}}})},
+                    QStringLiteral("tool_use")),
+            F::said({F::use(QStringLiteral("t2"), QStringLiteral("play")),
+                     F::use(QStringLiteral("t3"), QStringLiteral("wait"), {{QStringLiteral("ms"), 1200}}),
+                     F::use(QStringLiteral("t4"), QStringLiteral("frame_capture"), {{QStringLiteral("width"), 640}})},
+                    QStringLiteral("tool_use")),
+            F::said({F::use(QStringLiteral("t5"), QStringLiteral("stop"))}, QStringLiteral("tool_use")),
+            F::said({F::text(QStringLiteral("Built a crate that falls onto the plinth."))}, QStringLiteral("end_turn")),
+        };
+        QSignalSpy finished(&designer, &qq::DesignLoop::finished);
+        designer.start(QStringLiteral("A crate falls onto a plinth."));
+        QVERIFY(designer.running());
+        QVERIFY(finished.wait(30000));
+        QCOMPARE(finished.first().first().toString(), QStringLiteral("done"));
+        QCOMPARE(d.api.requests.size(), 4);
+
+        // What was asked, every time: the key in its header only, the API version, the fallback opt-in, the model and
+        // its settings, the Studio's fourteen tools.
+        for (const FakeAnthropic::Request &r : d.api.requests) {
+            QCOMPARE(r.headers.value("x-api-key"), d.key.toUtf8());
+            QCOMPARE(r.headers.value("anthropic-version"), QByteArray("2023-06-01"));
+            QVERIFY(r.headers.value("anthropic-beta").contains("server-side-fallback-2026-07-01"));
+            QVERIFY(!r.raw.contains(d.key.toUtf8()));
+            QCOMPARE(r.body.value(QStringLiteral("model")).toString(), QStringLiteral("claude-opus-5-5"));
+            QCOMPARE(r.body.value(QStringLiteral("fallbacks")).toString(), QStringLiteral("default"));
+            QCOMPARE(r.body.value(QStringLiteral("output_config")).toObject().value(QStringLiteral("effort")).toString(), QStringLiteral("high"));
+            QCOMPARE(r.body.value(QStringLiteral("thinking")).toObject().value(QStringLiteral("type")).toString(), QStringLiteral("adaptive"));
+            QCOMPARE(r.body.value(QStringLiteral("tools")).toArray().size(), 14);
+            QVERIFY(r.body.value(QStringLiteral("system")).toString().contains(QStringLiteral("design brief")));
+        }
+
+        // Append-only: each conversation begins with the one before.
+        for (int i = 1; i < d.api.requests.size(); ++i) {
+            const QJsonArray earlier = d.api.requests[i - 1].body.value(QStringLiteral("messages")).toArray();
+            const QJsonArray later = d.api.requests[i].body.value(QStringLiteral("messages")).toArray();
+            QVERIFY(later.size() > earlier.size());
+            for (int m = 0; m < earlier.size(); ++m)
+                QCOMPARE(later[m], earlier[m]);
+        }
+
+        // The second turn's three results went back together, in order, the frame as an image.
+        const QJsonArray last = d.api.requests[2].body.value(QStringLiteral("messages")).toArray();
+        const QJsonArray results = last.last().toObject().value(QStringLiteral("content")).toArray();
+        QCOMPARE(results.size(), 3);
+        QCOMPARE(results[0].toObject().value(QStringLiteral("tool_use_id")).toString(), QStringLiteral("t2"));
+        QCOMPARE(results[2].toObject().value(QStringLiteral("tool_use_id")).toString(), QStringLiteral("t4"));
+        const QJsonObject image = results[2].toObject().value(QStringLiteral("content")).toArray().first().toObject();
+        QCOMPARE(image.value(QStringLiteral("type")).toString(), QStringLiteral("image"));
+        const QJsonObject source = image.value(QStringLiteral("source")).toObject();
+        QCOMPARE(source.value(QStringLiteral("media_type")).toString(), QStringLiteral("image/png"));
+        QCOMPARE(QImage::fromData(QByteArray::fromBase64(source.value(QStringLiteral("data")).toString().toLatin1()), "PNG").width(), 640);
+
+        // What the creator is left with: the crate, unsaved, play stopped, every step shown, the key nowhere in the log.
+        QVERIFY(s.entity(QStringLiteral("Crate")));
+        QVERIFY(s.window->property("dirty").toBool());
+        QVERIFY(!s.window->property("playing").toBool());
+        bool sawFrame = false;
+        for (const QVariant &step : designer.steps())
+            sawFrame |= step.toMap().value(QStringLiteral("image")).toString().startsWith(QStringLiteral("data:image/png;base64,"));
+        QVERIFY(sawFrame);
+        QVERIFY(designer.steps().first().toMap().value(QStringLiteral("text")).toString().startsWith(QStringLiteral("Brief")));
+        for (const QJsonValue &e : qq::StudioLog::instance()->since(logStart).value(QStringLiteral("entries")).toArray())
+            QVERIFY(!e.toObject().value(QStringLiteral("text")).toString().contains(d.key));
+
+        // And all of it can be taken back.
+        QVERIFY(designer.canUndo());
+        QVERIFY(designer.undo());
+        QTRY_VERIFY(!s.entity(QStringLiteral("Crate")));
+        QCOMPARE(s.sceneText(), before);
+    }
+
+    void theLoopWaitsOutABusyProviderAndStopsWhenItShould()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        DesignerSetup d;
+        qq::DesignLoop designer(&s.server, s.window, s.engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO"));
+        QSignalSpy finished(&designer, &qq::DesignLoop::finished);
+        using F = FakeAnthropic;
+
+        // No key: nothing is sent.
+        designer.start(QStringLiteral("anything"));
+        QVERIFY(!designer.running());
+        QVERIFY(d.api.requests.isEmpty());
+        QVERIFY(designer.status().contains(QStringLiteral("key")));
+        designer.setKey(d.key);
+
+        // Rate limited, then overloaded: waited out, as retry-after says.
+        d.api.script = {F::error(429, QStringLiteral("rate_limit_error"), "0"), F::error(529, QStringLiteral("overloaded_error"), "0"),
+                        F::said({F::text(QStringLiteral("ok"))}, QStringLiteral("end_turn"))};
+        designer.start(QStringLiteral("anything"));
+        QVERIFY(finished.wait(20000));
+        QCOMPARE(finished.takeFirst().first().toString(), QStringLiteral("done"));
+        QCOMPARE(d.api.requests.size(), 3);
+
+        // A refused key is said, and not tried again.
+        d.api.requests.clear();
+        d.api.script = {F::error(401, QStringLiteral("authentication_error"))};
+        designer.start(QStringLiteral("anything"));
+        QVERIFY(finished.wait(20000));
+        QVERIFY(finished.takeFirst().first().toString().contains(QStringLiteral("refused the key")));
+        QCOMPARE(d.api.requests.size(), 1);
+
+        // A refusal ends the run.
+        d.api.script = {F::said({}, QStringLiteral("refusal"))};
+        designer.start(QStringLiteral("anything"));
+        QVERIFY(finished.wait(20000));
+        QVERIFY(finished.takeFirst().first().toString().contains(QStringLiteral("declined")));
+
+        // An answer cut off at its limit: its tool call is not run.
+        d.api.script = {F::said({F::use(QStringLiteral("t1"), QStringLiteral("entity_add"),
+                                        {{QStringLiteral("kind"), QStringLiteral("Lamp")}, {QStringLiteral("name"), QStringLiteral("Cut")}})},
+                                QStringLiteral("max_tokens"))};
+        designer.start(QStringLiteral("anything"));
+        QVERIFY(finished.wait(20000));
+        QVERIFY(finished.takeFirst().first().toString().contains(QStringLiteral("cut off")));
+        QVERIFY(!s.entity(QStringLiteral("Cut")));
+
+        // Stopped by the creator: the request in flight is dropped, and nothing after it runs.
+        d.api.requests.clear();
+        d.api.script = {F::error(529, QStringLiteral("overloaded_error"), "3"),
+                        F::said({F::use(QStringLiteral("t1"), QStringLiteral("entity_add"),
+                                        {{QStringLiteral("kind"), QStringLiteral("Lamp")}, {QStringLiteral("name"), QStringLiteral("Late")}})},
+                                QStringLiteral("tool_use"))};
+        designer.start(QStringLiteral("anything"));
+        QTRY_COMPARE(d.api.requests.size(), 1);
+        designer.stop();
+        QCOMPARE(finished.takeFirst().first().toString(), QStringLiteral("stopped"));
+        QTest::qWait(3500);
+        QCOMPARE(d.api.requests.size(), 1);
+        QVERIFY(!s.entity(QStringLiteral("Late")));
+
+        // Forgotten: no key, no run.
+        designer.forgetKey();
+        QVERIFY(!designer.hasKey());
+    }
+
+    void theRealProviderIsReachedOverTls()
+    {
+        // Only when asked (QQ_LIVE_ENDPOINT=1): one request to Anthropic's real endpoint with a key that is not one, to
+        // see that TLS and the address work from here. It is refused before anything is run or billed.
+        if (qEnvironmentVariable("QQ_LIVE_ENDPOINT") != QStringLiteral("1"))
+            QSKIP("Set QQ_LIVE_ENDPOINT=1 to reach the real provider.");
+        Studio s;
+        QVERIFY(s.open());
+        DesignerSetup d;
+        qunsetenv("QQ_ANTHROPIC_URL");
+        qq::DesignLoop designer(&s.server, s.window, s.engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO"));
+        designer.setKey(QStringLiteral("sk-ant-not-a-key"));
+        QSignalSpy finished(&designer, &qq::DesignLoop::finished);
+        designer.start(QStringLiteral("probe"));
+        QVERIFY(finished.wait(60000));
+        QVERIFY2(finished.first().first().toString().contains(QStringLiteral("refused the key")),
+                 qPrintable(finished.first().first().toString()));
+    }
+
+    void theAgentPanelAsksForAKeyThenForADescription()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        DesignerSetup d;
+        qq::DesignLoop designer(&s.server, s.window, s.engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO"));
+        s.window->setProperty("designer", QVariant::fromValue<QObject *>(&designer));
+        s.window->setProperty("agentOpen", true);
+        auto visible = [&s](const char *name) {
+            auto *item = s.window->findChild<QQuickItem *>(QLatin1String(name));
+            return item && item->isVisible();
+        };
+        QTRY_VERIFY(visible("agentStatus"));
+        QVERIFY(visible("agentKey"));  // no key yet: asked for
+        auto *start = s.window->findChild<QQuickItem *>(QStringLiteral("agentStart"));
+        QVERIFY(start && !start->isEnabled());
+
+        // Given a key and a description, it can start; the key field is gone, never to show the key again.
+        designer.setKey(d.key);
+        QTRY_VERIFY(!visible("agentKey"));
+        s.window->findChild<QQuickItem *>(QStringLiteral("agentBrief"))->setProperty("text", QStringLiteral("A crate."));
+        QTRY_VERIFY(start->isEnabled());
+        s.window->setProperty("designer", QVariant::fromValue<QObject *>(nullptr));
+    }
+
+    void whatAFallbackReplacedIsNotRunOrSentBack()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        DesignerSetup d;
+        qq::DesignLoop designer(&s.server, s.window, s.engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO"));
+        designer.setKey(d.key);
+        using F = FakeAnthropic;
+        const QJsonObject thinking{{QStringLiteral("type"), QStringLiteral("thinking")}, {QStringLiteral("thinking"), QString()},
+                                   {QStringLiteral("signature"), QStringLiteral("sig")}};
+        const QJsonObject fallback{{QStringLiteral("type"), QStringLiteral("fallback")},
+                                   {QStringLiteral("from"), QJsonObject{{QStringLiteral("model"), QStringLiteral("claude-opus-5-5")}}},
+                                   {QStringLiteral("to"), QJsonObject{{QStringLiteral("model"), QStringLiteral("claude-opus-4-8")}}}};
+        d.api.script = {
+            F::said({thinking,
+                     F::use(QStringLiteral("old"), QStringLiteral("entity_add"),
+                            {{QStringLiteral("kind"), QStringLiteral("Lamp")}, {QStringLiteral("name"), QStringLiteral("Replaced")}}),
+                     fallback, F::text(QStringLiteral("Continuing.")),
+                     F::use(QStringLiteral("new"), QStringLiteral("entity_add"),
+                            {{QStringLiteral("kind"), QStringLiteral("Lamp")}, {QStringLiteral("name"), QStringLiteral("Kept")}})},
+                    QStringLiteral("tool_use")),
+            F::said({F::text(QStringLiteral("Done."))}, QStringLiteral("end_turn")),
+        };
+        QSignalSpy finished(&designer, &qq::DesignLoop::finished);
+        designer.start(QStringLiteral("a lamp"));
+        QVERIFY(finished.wait(20000));
+        QVERIFY(s.entity(QStringLiteral("Kept")));
+        QVERIFY(!s.entity(QStringLiteral("Replaced")));
+        const QJsonArray sent = d.api.requests[1].body.value(QStringLiteral("messages")).toArray()[1].toObject()
+                                    .value(QStringLiteral("content")).toArray();
+        QStringList types;
+        for (const QJsonValue &b : sent)
+            types << b.toObject().value(QStringLiteral("type")).toString();
+        QCOMPARE(types, (QStringList{QStringLiteral("fallback"), QStringLiteral("text"), QStringLiteral("tool_use")}));
     }
 
     // ── the real programs ──
