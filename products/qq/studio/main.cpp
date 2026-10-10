@@ -9,6 +9,9 @@
 //
 // The Studio is its own process, started by the QOR Launcher; it never holds a key, and anything to be signed is
 // asked of the launcher's host (ADR-083 decision 5).
+//
+// It offers its tools to language models (DIRECTION P3.3) on a local pipe only this user can open: an MCP client starts
+// qq-mcp, which relays to it (agent/). One Studio at a time serves the pipe; QQ_MCP_PIPE names another.
 
 #include <QCommandLineParser>
 #include <QDir>
@@ -21,7 +24,13 @@
 #include <QUrl>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include <memory>
+
 #include "gpu.h"
+#include "mcpserver.h"
+#include "designloop.h"
+#include "sceneio.h"
+#include "studiotools.h"
 
 Q_IMPORT_QML_PLUGIN(QQPlugin)
 Q_IMPORT_QML_PLUGIN(QQ_StudioPlugin)
@@ -59,6 +68,8 @@ int main(int argc, char *argv[])
     // Before the application exists: the GPU is chosen when the first window is shown.
     const QString gpu = qq::preferHighPerformanceGpu();
     QGuiApplication app(argc, argv);
+    // From the start, so the agent can read every QML warning the Studio meets.
+    qq::StudioLog::install();
     QGuiApplication::setApplicationName(QStringLiteral("QQ Studio"));
     QGuiApplication::setOrganizationName(QStringLiteral("Demiurge"));
     QQuickStyle::setStyle(QStringLiteral("Material"));
@@ -95,6 +106,21 @@ int main(int argc, char *argv[])
             QMetaObject::invokeMethod(root, "release");
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     });
+
+    // The agent's tools, on the Studio's window.
+    qq::McpServer mcp;
+    std::unique_ptr<qq::StudioTools> tools;
+    if (!engine.rootObjects().isEmpty()) {
+        if (auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first())) {
+            tools = std::make_unique<qq::StudioTools>(window, &engine, &mcp);
+            // The Agent panel's loop: the same tools, called in the Studio itself. A child of the window, so the panel
+            // that shows it never outlives it.
+            auto *designer = new qq::DesignLoop(&mcp, window, engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO"), window);
+            window->setProperty("designer", QVariant::fromValue<QObject *>(designer));
+            if (!parser.isSet(capture) && !mcp.listen(qq::McpServer::defaultPipeName()))
+                qWarning("Agents cannot connect to this Studio: %s", qPrintable(mcp.error()));
+        }
+    }
 
     if (parser.isSet(capture) && !engine.rootObjects().isEmpty()) {
         if (auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first()))

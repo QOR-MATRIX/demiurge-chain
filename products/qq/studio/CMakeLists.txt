@@ -11,6 +11,7 @@ qt_add_qml_module(qqstudio
         Main.qml
         Inspector.qml
         Gizmo.qml
+        AgentPanel.qml
 )
 
 # The model a new scene opens with: the same fixture the tests render, so what is checked is what is shown.
@@ -26,4 +27,4 @@ target_link_libraries(qqstudio PUBLIC
 )
 
 qt_add_executable(qq-studio WIN32 main.cpp)
-target_link_libraries(qq-studio PRIVATE qqstudio qqstudioplugin)
+target_link_libraries(qq-studio PRIVATE qqstudio qqstudioplugin qqagent)
