@@ -3,7 +3,10 @@
 **Status:** **Decided 10 October 2026: ADR-087**, the owner accepting the recommendation in §4 and the advice on §5's
 four questions (browser only at first; the Player locked down in every mode, built first; native play of others' games
 deferred; games served from a site of their own, a separate `*.vercel.app` project now and a registered domain before
-launch). This document is the write-up ADR-087 was decided from, as ADDRESS_TYPE.md was for ADR-041.
+launch). This document is the write-up ADR-087 was decided from, as ADDRESS_TYPE.md was for ADR-041. **Option C, the
+Player's lockdown, is built** (10 October 2026: `products/qq/runtime/confinement.h`, checked by `tst_lockdown`), with two
+known limits: URLs are refused to the operating system scheme by scheme, and Qt Multimedia cannot be refused natively,
+because Qt's spatial audio library registers it.
 
 **What it answers:** how QQ keeps a game made by one person from harming the person who plays it, once games are
 published (DIRECTION P3.4) and played by others in ARQADE and the launcher (P3.5). Until then every game is played only

@@ -114,7 +114,7 @@ Scene {
   `Logic`; a `Behaviour` in the scene names it and the entity it drives, and it is rebuilt each time it is saved while
   the world plays. It is code with the engine's full reach: before games are published and played by others (P3.4,
   P3.5), it is confined as ADR-087 decides: strangers' games in the browser only, the Player locked down in every
-  mode, native play of others' games deferred ([`../architecture/QQ_LOGIC_SANDBOX.md`](../architecture/QQ_LOGIC_SANDBOX.md)).
+  mode (built: `runtime/confinement.h`), native play of others' games deferred ([`../architecture/QQ_LOGIC_SANDBOX.md`](../architecture/QQ_LOGIC_SANDBOX.md)).
 - **Imported:** `.qq.json` scenes of format 1 from the preview become QML scenes; what has no 3D form yet (motion, the
   pointer follow, which in 3D are logic) is named, not silently dropped; emitters come across as `Emitter`s.
 

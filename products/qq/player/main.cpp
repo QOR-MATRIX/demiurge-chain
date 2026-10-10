@@ -7,6 +7,9 @@
 // began to load (in a browser), and the frame rate over the next three seconds. The report is printed as one line,
 // "QQ-MEASURE {json}"; with --measure it is also written to a file, and the player then exits. --capture saves the
 // first frame proper as an image and exits: exit code 0 done, 1 not saved, 2 timed out, 3 the scene could not play.
+//
+// Every game plays locked down (confinement.h, ADR-087): it loads only its own package and allowed modules, makes no
+// network request, writes no file and opens nothing outside. A stranger's game plays only in the browser.
 
 #include <QCommandLineParser>
 #include <QDateTime>
@@ -22,6 +25,7 @@
 #include <QUrl>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include "confinement.h"
 #include "gpu.h"
 
 #ifdef Q_OS_WIN
@@ -98,6 +102,8 @@ int main(int argc, char *argv[])
                                             : QUrl::fromLocalFile(QDir().absoluteFilePath(positional.first()));
 
     QQmlApplicationEngine engine;
+    // Whatever the game, its logic reaches only its own package (ADR-087 decision 2): before anything is loaded.
+    qq::Confinement::apply(&engine, qq::Confinement::packageOf(scene));
     engine.setInitialProperties({{QStringLiteral("scene"), scene}});
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app, [] { QCoreApplication::exit(1); },

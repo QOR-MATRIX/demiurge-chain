@@ -8,9 +8,10 @@ reaches `main` by pull request. `origin` is the private archive, not the current
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 item 69 (10 October 2026): how a stranger's QQ game is confined, proposed and decided the same day
-(ADR-087): in the browser only at first, from a site of its own; the Player locked down in every mode, built next;
-native play of others' games deferred.** On branch
+**Newest: §4 item 70 (10 October 2026): the QQ Player locks down what a game's logic can reach (ADR-087 decision 2),
+with two known limits.** On branch `session/qq-player-lockdown`. Before it: item 69 the same day: how a stranger's QQ
+game is confined, proposed and decided (ADR-087): in the browser only at first, from a site of its own; the Player
+locked down in every mode; native play of others' games deferred. On branch
 `session/qq-logic-sandbox`. Before it: item 68 the same day: **generation is paid by whoever uses it, and Demiurge pays for none (ADR-086,
 the owner's decision); and P3.3, which merged into #21's branch rather than `main`, is brought to `main` by pull request
 #23.** Both merged (#23 and #24), and CI passed on `main` at `b99c689`. Before it: §4 items 66 and 67 the same day: P3.3 all but its proof. QQ Studio offers fourteen tools to agents over
@@ -254,7 +255,7 @@ Read this before the detail below. "Ready" means it can start today with nothing
 
 | Track | State | Waiting on | What unblocks it |
 | --- | --- | --- | --- |
-| **P3, QQ on Qt 6** (ADR-083) | **P3.1 and P3.2 done; P3.3 built but for its proof** (10 October 2026) | Nobody, for the Player's lockdown (ADR-087, next); **the owner** for CI; **anyone with their own key** for P3.3's proof (ADR-086) | ADR-087 decided how a stranger's game is confined (10 October 2026): the Player's lockdown is built first, then P3.4 (also waiting on L1.4) and P3.5 (strangers' games in the browser only, from a site of their own). CI cannot build QQ until Qt's installer and the owner's Qt account are repository secrets, or a self-hosted runner exists (ADR-083). |
+| **P3, QQ on Qt 6** (ADR-083) | **P3.1 and P3.2 done; P3.3 built but for its proof** (10 October 2026) | Nobody, for P3.4 (the Player's lockdown is built, §4 item 70); **the owner** for CI; **anyone with their own key** for P3.3's proof (ADR-086) | ADR-087 decided how a stranger's game is confined (10 October 2026), and the Player's lockdown is built; P3.4 (also waiting on L1.4) and P3.5 (strangers' games in the browser only, from a site of their own). CI cannot build QQ until Qt's installer and the owner's Qt account are repository secrets, or a self-hosted runner exists (ADR-083). |
 | **P7.17**, paying the welcome grants | **Blocked, 2026-10-08** | **The owner** | ADR-078 decision 7 wants a server that holds the Welcome account's key and nothing else: a new service, which needs the owner's name for it (AGENTS.md §8), the Welcome account created and funded with test CGT on the devnet, and its key set as that service's only secret on Railway. Listing owed grants and marking one paid are built. |
 | **M3, the Substrate chain** | **Unblocked, started 2026-09-17** | Nobody | The owner confirmed ADR-018 to ADR-032 and supplied all four inputs: eighteen decimals (ADR-035), an existential deposit of 100 CGT (ADR-036), the five pallet names, and `pallet-sudo` on development and test networks only (ADR-037). |
 | **U-1, the decimal places** | **Decided 2026-09-17** | Nobody | Eighteen, on both recorded conditions (ADR-035). Removed from `OPEN_QUESTIONS.md`, so the gate reads it as decided. |
@@ -2134,6 +2135,31 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     a registered domain before launch, never a subdomain of the project's domains). In pull request #26 with the
     write-up. **Next:** the Player's lockdown.
 
+70. **10 October 2026: the QQ Player locks down what a game's logic can reach (ADR-087 decision 2).** On branch
+    `session/qq-player-lockdown`. **Built** (`products/qq/runtime/`): `Confinement::apply`, which the Player calls before
+    a game loads, natively and in a browser: a URL interceptor (QML, scripts and files only from the game's package and
+    Qt's and QQ's module folders, the innermost import folder naming a module, version-numbered folders read as their
+    module; imports only from an allowed list: QML, QtQml and under it, QtQuick and QtQuick3D themselves, Quick's
+    Window, Layouts, Shapes, Effects, Particles, Templates and Controls, Quick 3D's Helpers, Physics, Particles3D,
+    SpatialAudio, AssetUtils, Effects and ParticleEffects, and QQ); a network-access factory refusing every request
+    (Qt's WorkerScript makes its manager through the same factory, read from Qt's source); `SceneIO::confineTo`, from
+    C++ only (reads only inside the package, writes and copies nothing); and URL handlers refusing a list of schemes to
+    `Qt.openUrlExternally`. `WebVoice`, QQ's own sound effect for a browser `Sound`, replaces Qt Multimedia's QML
+    `SoundEffect` in `Sound.qml`. `Prop` gives its loader the model's whole path, resolved against the scene file.
+    **Found on the way:** Qt 6 hands a url property to the interceptor as written, relative, so relative paths are let
+    through and checked whole when loaded (a check climbs out of the package to show it); `Qt.openUrlExternally` takes
+    its URL through the interceptor first, so a refused URL arrived as the `qrc:` placeholder, unhandled, and Windows
+    asked "Pick an app" (four such dialogs opened during the runs and were closed; `qrc` is now refused); and Qt
+    Multimedia cannot be refused natively, because `Qt6Quick3DSpatialAudio.dll` links `Qt6MultimediaQuick.dll`, whose
+    types register when it loads, and a registered module is imported without its `qmldir`. **Evidence, on the owner's
+    machine:** all seven QQ suites pass (`tst_lockdown` 7 cases, 12 checks, Qt Multimedia's an expected failure with its
+    reason; `tst_agent` 14 and 1 skipped; `tst_play` 11; `tst_player` 4; `tst_scene` 14; `tst_studio` 10; `tst_world`
+    3); four planted faults (no interceptor; no network policy; `SceneIO` unconfined; every module allowed), each
+    failing its own check, the URL-handler fault not planted because it would open dialogs on the desktop; the bundled
+    game plays with nothing refused; the browser build plays with no error. **Not measured:** what the lockdown costs
+    at start-up. The laptop was on battery at 18% during the last runs (the native Player drew 6 frames a second, against
+    155 to 345 earlier), so those numbers are not comparable; measure again on mains power. **Next:** P3.4, publishing.
+
 ## 5. Traps, so nobody re-learns them
 
 **Launcher checks**
@@ -2188,6 +2214,19 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   12 frames a second on the Intel GPU, 220 on the RTX 4060, for the same build.
 - **A macro's arguments are split at commas outside parentheses**, braces and brackets included: in `EM_ASM`, an
   object or array literal with commas must be wrapped in parentheses.
+- **Qt 6 hands a `url` property to a URL interceptor as written, relative.** An interceptor that refuses what has no
+  scheme refuses every relative path; let relative URLs through and check them whole when loaded. A relative URL given
+  to a type inside a module (`RuntimeLoader` in `Prop.qml`) is resolved against the module, not the scene: resolve it
+  against the entity's file first (`SceneIO.resolvedUrl`).
+- **`Qt.openUrlExternally` takes its URL through the engine's interceptors, then `QDesktopServices`.** A URL an
+  interceptor rewrites goes on to the operating system unless its new scheme has a handler: on Windows an unknown
+  scheme opens "Pick an app" dialogs, which block a test (10 October 2026: four were left on the desktop). `QDesktopServices`
+  has no catch-all handler, only one per scheme.
+- **A module whose types are registered is imported without its `qmldir`.** Qt 6 registers a QML module's types when
+  its library loads: `Qt6Quick3DSpatialAudio.dll` links `Qt6MultimediaQuick.dll`, so wherever spatial audio is loaded,
+  `import QtMultimedia` works even with its `qmldir` refused.
+- **Performance measured on battery is not comparable.** At 18% on battery the native Player drew 6 frames a second
+  against 155 to 345 on mains (10 October 2026): check `Win32_Battery` before recording a measurement.
 - **A pull request based on another's branch merges into that branch, not `main`, if it is merged first or at once.**
   GitHub retargets a stacked pull request only after its base is merged and deleted; #22, merged 16 seconds after #21,
   landed in `session/qq-p3.2-play` (10 October 2026) and needed #23 to reach `main`. Base every pull request on `main`.

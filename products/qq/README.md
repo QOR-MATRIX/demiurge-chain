@@ -48,11 +48,11 @@ description with no human edit, made by whoever runs it with their own key.
 
 | Path | What it is |
 | --- | --- |
-| `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, and `Logic` (what a logic file is). In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `SoftDot` (the particles' sprite, made in memory) and `gpu` (draw with the faster of two GPUs) |
+| `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, and `Logic` (what a logic file is). In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `SoftDot` (the particles' sprite, made in memory) `gpu` (draw with the faster of two GPUs), `Confinement` (what a game may reach in the Player, ADR-087) and `WebVoice` (a sound in a browser, so a game never needs Qt Multimedia's QML) |
 | `studio/` | QQ Studio. `qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>]` |
 | `agent/` | The agent's side of the Studio (P3.3): `McpServer` (MCP's JSON-RPC, served on a local pipe only this user can open), `StudioTools` (the fourteen tools, working the Studio's own window functions, and `StudioLog`, what the Studio has said), `DesignLoop` (a description designed, built, played and judged by Claude through those tools; ADR-085), `keychain` (the provider's key in Windows Credential Manager) and `qq-mcp` (the program an MCP client starts, relaying its standard input and output to the running Studio) |
 | `player/` | The QQ Player. `qq-player [scene.qml] [--capture <frame.png>] [--measure <result.json>]`; its playground (a small game with everything P3.2 plays) bundled inside it; `measure-web.mjs`, which plays the browser build in a headless browser and measures it |
-| `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks, drags and keys), `tst_play` (physics, the player, input, particles, sound and logic, in real frames), `tst_player` (the real Player executable), `tst_agent` (the tools over MCP, in the real Studio and through the real `qq-mcp`) |
+| `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks, drags and keys), `tst_play` (physics, the player, input, particles, sound and logic, in real frames), `tst_player` (the real Player executable), `tst_lockdown` (what a game's logic may reach in the Player, ADR-087), `tst_agent` (the tools over MCP, in the real Studio and through the real `qq-mcp`) |
 | `tests/fixtures/` | `orb.gltf` (written by `make_orb.py`), `chime.wav` (written by `make_chime.py`), `logic/spin.qml`, `scenes/sample.qml` (every entity type, canonical), `first-light.qq.json` (the 2D preview's starter scene) |
 | `build.ps1` | Builds with the owner's Qt, MSVC 2022 and Ninja and runs every test; `-Deploy` makes a self-contained Studio; `-Web` builds the Player for the browser and measures it |
 
@@ -125,6 +125,14 @@ drew about 12 frames a second.
   air with its colour, counted in the frame; a sound is set up where it is, with its reach, only in play, and no sound
   device is opened while editing (what is heard is not judged); logic runs, is rebuilt when its file is saved without
   the world stopping, keeps running through a save that does not build and says why, and does not run while editing.
+- **`tst_lockdown`** (7 cases, 12 checks with the imports' five; ADR-087): a game that keeps to its own files (logic
+  importing Quick 3D Physics, a model from its `assets/`) plays with nothing refused; imports of `QtQuick.LocalStorage`,
+  `QtCore`, `QtQuick.Dialogs` and `Qt.labs.settings` refused with the module named (and `QtMultimedia` an expected
+  failure, the known limit); `SceneIO`'s writing, saving, copying, loading and listing outside the package refused and
+  nothing on disk; a `Loader` and an `Image` aimed outside the package, by whole URL and by a relative path climbing
+  out, both errors; a network request to a listener on this computer never arriving; `Qt.openUrlExternally` refused for
+  a file and a web address, with nothing handed to the system. **Proven to fail** by four planted faults, each caught by
+  its own check: no URL interceptor; no network policy; `SceneIO` left unconfined; every module allowed.
 - **`tst_player`** (4 cases, the real executable): the playground plays and its start is measured; its first frame is
   the game (hundreds of colours, not an empty window); a scene file from disk plays too; a scene that is not there is
   said, not hidden.
@@ -181,10 +189,15 @@ the web has no audio, so in a browser `Sound` is a plain sound effect.
 
 - **In a browser, sounds are not panned.** Their volume follows the distance from the scene's player (full within a
   metre, halving with each doubling, none beyond `reach`); a scene with no player hears them at their own volume.
-- **Logic is code.** A logic file is QML and JavaScript that the Studio and the Player run with the engine's full
-  reach. That is right for a creator's own game; before games are published (P3.4) and played by others (P3.5), how a
-  stranger's logic is confined is decided by ADR-087: in the browser only at first, with the Player locked down in
-  every mode (to be built first).
+- **Logic is code, and the Player locks it down** (ADR-087). In the Studio a creator's logic has the engine's full
+  reach, as it should. In the QQ Player, natively and in a browser, every game is confined (`runtime/confinement.h`):
+  it loads QML and files only from its own package and Qt's and QQ's module folders, imports only an allowed list of
+  modules (no storage, settings, dialogs, sockets or devices), makes no network request, writes and copies no file
+  (`SceneIO::confineTo`), and opens nothing outside QQ. It is a second wall: a stranger's game plays only in the
+  browser (P3.5), whose sandbox is the boundary. **Two limits, both shown by the checks:** Qt refuses URLs to the
+  operating system only scheme by scheme, so a scheme off the list still reaches it; and Qt Multimedia (its camera and
+  microphone types among them) cannot be refused natively, because Qt's spatial audio library registers it when it
+  loads. Natively only a person's own games play; in a browser the browser asks before any camera or microphone.
 - **Gamepads are read through XInput, so on Windows only**, and only Xbox-style pads; the checks give the pad's state
   rather than reading a real one.
 - **One Studio at a time offers its tools.** A second Studio on the same pipe says so and stays out; `QQ_MCP_PIPE`
