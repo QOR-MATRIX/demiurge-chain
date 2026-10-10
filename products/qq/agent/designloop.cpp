@@ -175,6 +175,9 @@ void DesignLoop::start(const QString &description)
     m_before = m_io->write(scene, m_studio->property("sceneFile").toUrl());
     m_steps.clear();
     emit stepsChanged();
+    m_usage = {{QStringLiteral("input"), 0}, {QStringLiteral("cacheWrite"), 0}, {QStringLiteral("cacheRead"), 0},
+               {QStringLiteral("output"), 0}, {QStringLiteral("answers"), 0}};
+    emit usageChanged();
     m_messages = QJsonArray{QJsonObject{{QStringLiteral("role"), QStringLiteral("user")},
                                         {QStringLiteral("content"), description.trimmed()}}};
     m_turns = 0;
@@ -270,6 +273,19 @@ void DesignLoop::received(QNetworkReply *reply)
         return;
     }
     m_attempt = 0;
+
+    // What this answer used on the creator's key, as the provider counted it.
+    const QJsonObject used = answer.value(QStringLiteral("usage")).toObject();
+    auto add = [this, &used](const char *field, const char *from) {
+        m_usage[QLatin1String(field)] = m_usage.value(QLatin1String(field)).toLongLong()
+                                        + used.value(QLatin1String(from)).toInteger();
+    };
+    add("input", "input_tokens");
+    add("cacheWrite", "cache_creation_input_tokens");
+    add("cacheRead", "cache_read_input_tokens");
+    add("output", "output_tokens");
+    m_usage[QStringLiteral("answers")] = m_usage.value(QStringLiteral("answers")).toInt() + 1;
+    emit usageChanged();
 
     const QJsonArray content = answer.value(QStringLiteral("content")).toArray();
     const QString stop = answer.value(QStringLiteral("stop_reason")).toString();

@@ -234,9 +234,13 @@ public:
     /// An answer from the model: its content blocks and why it stopped.
     static Answer said(const QJsonArray &content, const QString &stop)
     {
+        // Every answer counts what it used, as the API's do: 100 in, 50 written to the cache, 30 read from it, 20 out.
+        const QJsonObject usage{{QStringLiteral("input_tokens"), 100}, {QStringLiteral("cache_creation_input_tokens"), 50},
+                                {QStringLiteral("cache_read_input_tokens"), 30}, {QStringLiteral("output_tokens"), 20}};
         return {200, {{QStringLiteral("id"), QStringLiteral("msg_test")}, {QStringLiteral("type"), QStringLiteral("message")},
                       {QStringLiteral("role"), QStringLiteral("assistant")}, {QStringLiteral("model"), QStringLiteral("claude-opus-5-5")},
-                      {QStringLiteral("content"), content}, {QStringLiteral("stop_reason"), stop}},
+                      {QStringLiteral("content"), content}, {QStringLiteral("stop_reason"), stop},
+                      {QStringLiteral("usage"), usage}},
                 {}};
     }
     static QJsonObject text(const QString &t) { return {{QStringLiteral("type"), QStringLiteral("text")}, {QStringLiteral("text"), t}}; }
@@ -696,6 +700,14 @@ private slots:
         for (const QJsonValue &e : qq::StudioLog::instance()->since(logStart).value(QStringLiteral("entries")).toArray())
             QVERIFY(!e.toObject().value(QStringLiteral("text")).toString().contains(d.key));
 
+        // What it used on the creator's key, as the provider counted it: four answers' worth.
+        const QVariantMap used = designer.usage();
+        QCOMPARE(used.value(QStringLiteral("answers")).toInt(), 4);
+        QCOMPARE(used.value(QStringLiteral("input")).toLongLong(), 400);
+        QCOMPARE(used.value(QStringLiteral("cacheWrite")).toLongLong(), 200);
+        QCOMPARE(used.value(QStringLiteral("cacheRead")).toLongLong(), 120);
+        QCOMPARE(used.value(QStringLiteral("output")).toLongLong(), 80);
+
         // And all of it can be taken back.
         QVERIFY(designer.canUndo());
         QVERIFY(designer.undo());
@@ -786,6 +798,45 @@ private slots:
         QVERIFY(finished.wait(60000));
         QVERIFY2(finished.first().first().toString().contains(QStringLiteral("refused the key")),
                  qPrintable(finished.first().first().toString()));
+    }
+
+    void onlyTheCreatorsOwnKeyIsEverUsed()
+    {
+        // ADR-086: generation is paid by the person using it. A key in the environment (as a server or a build might
+        // set one) is never taken up: with no key of the creator's own, nothing is sent at all.
+        Studio s;
+        QVERIFY(s.open());
+        DesignerSetup d;
+        const QByteArray elsewhere = "sk-ant-from-the-environment-not-the-creators";
+        qputenv("ANTHROPIC_API_KEY", elsewhere);
+        qq::DesignLoop designer(&s.server, s.window, s.engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO"));
+        QVERIFY(!designer.hasKey());
+        designer.start(QStringLiteral("a crate"));
+        QVERIFY(!designer.running());
+        QTest::qWait(300);
+        QVERIFY(d.api.requests.isEmpty());
+
+        // With the creator's key, that key and only that key is sent.
+        using F = FakeAnthropic;
+        designer.setKey(d.key);
+        d.api.script = {F::said({F::text(QStringLiteral("ok"))}, QStringLiteral("end_turn"))};
+        QSignalSpy finished(&designer, &qq::DesignLoop::finished);
+        designer.start(QStringLiteral("a crate"));
+        QVERIFY(finished.wait(20000));
+        QCOMPARE(d.api.requests.size(), 1);
+        QCOMPARE(d.api.requests.first().headers.value("x-api-key"), d.key.toUtf8());
+        QVERIFY(!d.api.requests.first().raw.contains(elsewhere));
+        qunsetenv("ANTHROPIC_API_KEY");
+
+        // The panel says who pays before any key is given.
+        designer.forgetKey();
+        s.window->setProperty("designer", QVariant::fromValue<QObject *>(&designer));
+        s.window->setProperty("agentOpen", true);
+        QQuickItem *whoPays = nullptr;
+        QTRY_VERIFY((whoPays = s.window->findChild<QQuickItem *>(QStringLiteral("agentWhoPays"))) && whoPays->isVisible());
+        QVERIFY(whoPays->property("text").toString().contains(QStringLiteral("your own Anthropic account")));
+        QVERIFY(whoPays->property("text").toString().contains(QStringLiteral("does not pay")));
+        s.window->setProperty("designer", QVariant::fromValue<QObject *>(nullptr));
     }
 
     void theAgentPanelAsksForAKeyThenForADescription()

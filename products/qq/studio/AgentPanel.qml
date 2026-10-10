@@ -2,8 +2,10 @@
 // it and revises. Everything it does is shown here as it happens, frames included; nothing is saved: the creator
 // reviews the scene, then saves and commits it, or undoes the whole run.
 //
-// `designer` is the Studio's DesignLoop (agent/designloop.h). The provider's key is typed once and kept in the
-// operating system's keychain; it is never shown again or written anywhere else.
+// `designer` is the Studio's DesignLoop (agent/designloop.h). The provider's key is the creator's own, typed once and
+// kept in the operating system's keychain; it is never shown again or written anywhere else. The provider bills that
+// account for what is used, and Demiurge neither pays for it nor charges for it (ADR-086): without a key, the agent is
+// simply off. What each run used is shown under the steps.
 
 import QtQuick
 import QtQuick.Controls
@@ -79,11 +81,14 @@ ColumnLayout {
             Layout.fillWidth: true
         }
         Label {
+            objectName: "agentWhoPays"
             Layout.fillWidth: true
             wrapMode: Text.Wrap
             opacity: 0.55
             font.pixelSize: 12
-            text: qsTr("Kept in Windows Credential Manager for your account only, and never written to a file or a log.")
+            text: qsTr("The agent runs on your own Anthropic account: Anthropic bills it for what each run uses. Demiurge "
+                       + "does not pay for it and does not charge for it. The key is kept in Windows Credential Manager "
+                       + "for your account only, and never written to a file or a log.")
         }
     }
 
@@ -140,7 +145,7 @@ ColumnLayout {
                 wrapMode: Text.Wrap
                 text: modelData.text
                 font.pixelSize: modelData.kind === "said" ? 13 : 12
-                font.family: modelData.kind === "tool" || modelData.kind === "frame" ? "Consolas" : undefined
+                font.family: modelData.kind === "tool" || modelData.kind === "frame" ? "Consolas" : Qt.application.font.family
                 color: modelData.failed ? "#d57889" : modelData.kind === "done" ? "#3ddc84" : Material.foreground
                 opacity: modelData.kind === "tool" ? 0.65 : 1
             }
@@ -153,6 +158,25 @@ ColumnLayout {
                 asynchronous: true
             }
         }
+    }
+
+    // What the run used on the creator's key, as the provider counted it.
+    Label {
+        objectName: "agentUsage"
+        readonly property var u: panel.designer.usage
+        visible: u !== undefined && u.answers !== undefined && u.answers > 0
+        Layout.fillWidth: true
+        wrapMode: Text.Wrap
+        font.pixelSize: 12
+        opacity: 0.7
+        text: visible ? qsTr("Used on your key: %1 input tokens (%2 read from cache, %3 written to it), %4 output tokens, "
+                             + "in %5 answers.")
+                            .arg(Number(u.input).toLocaleString(Qt.locale(), "f", 0))
+                            .arg(Number(u.cacheRead).toLocaleString(Qt.locale(), "f", 0))
+                            .arg(Number(u.cacheWrite).toLocaleString(Qt.locale(), "f", 0))
+                            .arg(Number(u.output).toLocaleString(Qt.locale(), "f", 0))
+                            .arg(u.answers)
+                      : ""
     }
 
     Button {
