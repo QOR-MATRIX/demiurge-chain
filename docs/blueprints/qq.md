@@ -8,7 +8,7 @@ lit 3D world and keeps it as canonical QML in a Qontrol project, opened from the
 2026: worlds play (physics, a player under keyboard, mouse and gamepad, particles, sound, logic rebuilt on each save),
 in the Studio and in the QQ Player, natively and in a browser
 ([`products/qq/README.md`](../../products/qq/README.md)). P3.3 under way: the MCP server is built (fourteen
-tools, reached through `qq-mcp`); the design loop is next.
+tools, reached through `qq-mcp`) and the design loop is built; its proof needs the owner's key.
 A TypeScript/WebGL2 preview from ADR-082 runs in the launcher meanwhile (below).
 
 ---
@@ -136,10 +136,11 @@ it, and a **design loop** in the Studio's Agent panel:
 5. **The creator approves** what is committed. Nothing reaches Qontrol, and nothing is published, without them.
 
 **Built (10 October 2026):** the tools and the MCP server, on a local pipe only the Studio's user can open, reached by
-any MCP client through `qq-mcp` (`products/qq/agent/`). The agent cannot save or commit; what it changes shows as
-unsaved. **To build:** the design loop and its Agent panel.
+any MCP client through `qq-mcp` (`products/qq/agent/`); and the design loop with its Agent panel, on Claude Opus 5.5
+(ADR-085), its key in Windows Credential Manager. The agent cannot save or commit; what it changes shows as unsaved, and
+a run can be undone. **To do:** the proof, which needs the owner's key.
 
-The model provider is chosen when the agent is built (ADR-081's delegation) and recorded in an ADR. A provider key
+The model provider is Anthropic, Claude Opus 5.5, recorded in ADR-085 under ADR-081's delegation. The provider key
 lives in the operating system's keychain and never reaches a log. Generative assets (models, textures, sound from a
 description) arrive with P3.6.
 

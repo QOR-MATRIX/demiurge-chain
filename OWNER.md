@@ -17,39 +17,30 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 ## Done today: QQ worlds play (P3.2)
 
-- **Play** (F5) in QQ Studio runs the scene; **Stop** (Esc) puts it back exactly as it was.
-- Crates fall and land; a **player** walks, runs and jumps with the keyboard, the mouse or a
-  gamepad, with a camera that follows; sparks and glows; sounds placed in the world.
-- **Game logic** lives in small files you can edit while the game runs: save, and it changes.
-- The **QQ Player** runs a game on its own: on your PC its first picture comes in 1.4 s; in
-  Chrome in 6 s, a 12 MB download once compressed.
-- 42 automated checks pass; five deliberate faults were each caught.
+**Play** (F5) in QQ Studio runs the scene and **Stop** (Esc) restores it exactly. Crates fall;
+a **player** walks, runs and jumps by keyboard, mouse or gamepad; sparks, glows, placed sounds;
+**game logic** you can edit while it runs. The **QQ Player** runs a game alone: first picture
+in 1.4 s on your PC, 6 s in Chrome (a 12 MB download). Try: `pwsh products/qq/build.ps1 -Run`.
+**Limits:** browser sounds do not pan (ADR-084 — *a decision record*); game logic is full code,
+to be fenced in before strangers play each other's games.
 
-Try it: `pwsh products/qq/build.ps1 -Run`, Add a Player, press F5.
+## Also today: AI in QQ Studio (P3.3, all but its proof)
 
-**Limits:** in a browser, sounds get quieter with distance but do not pan left and right (a Qt
-limit, recorded as ADR-084 — *a decision record*). Game logic is full code, so before strangers
-play each other's games we must decide how to fence it in.
+An AI assistant such as Claude can connect to a running Studio and build, play, take pictures
+and read errors; it cannot save or commit, and only your Windows account can connect. The
+**Agent** panel goes further: describe a game, and Claude designs, builds, plays, looks and
+revises, every step shown; you save it or undo it. Your API key stays in Windows Credential
+Manager, never in a file or log; runs are billed to it.
 
-## Also today: AI can now work QQ Studio (first half of P3.3)
-
-An AI assistant such as Claude can connect to a running QQ Studio and build: add and change
-things, write game logic, press Play, hold the controls, take pictures of the result and read
-errors. It cannot save or commit; you see every change and decide. Only your Windows account can
-connect. Checked by 9 automated checks and by the official MCP library — *the standard way
-AI assistants use tools*.
-
-## Next work
-
-**The rest of P3.3:** a panel in the Studio where you describe a game and the AI designs it,
-builds it, plays it, looks at it and revises. It needs an AI provider and an API key from you.
+**Next:** prove P3.3 with one game built from a description with no human edit. Needs your key.
 
 ## What only you can do
 
-1. **Merge pull request #21** (P3.2): all its checks pass. Then the P3.3 pull request.
-2. **An AI provider key** for the design panel, when it is built (the provider is chosen then, in an ADR).
-3. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your licence. Add your Qt account to the
-   repository's secrets, or let your PC run CI jobs (a *self-hosted runner*).
+1. **Merge pull request #21** (P3.2): all its checks pass. Then #22 (P3.3).
+2. **An Anthropic API key** in the Agent panel, so the design loop can be proven (ADR-085 chose
+   Claude Opus 5.5: $4 / $20 per million tokens in / out).
+3. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your
+   licence. Add your Qt account to its secrets, or let your PC run CI (a *self-hosted runner*).
 4. **Check with Qt** that your licence covers CI, AI assistants and shipping the browser Player.
 5. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
 6. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
