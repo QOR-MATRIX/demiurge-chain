@@ -113,7 +113,8 @@ Scene {
 - **Readable by people and models.** Logic is a plain QML and JavaScript file, `logic/<name>.qml`, whose root is a
   `Logic`; a `Behaviour` in the scene names it and the entity it drives, and it is rebuilt each time it is saved while
   the world plays. It is code with the engine's full reach: before games are published and played by others (P3.4,
-  P3.5), how a stranger's logic is confined is still to be decided.
+  P3.5), how a stranger's logic is confined is to be decided; the options and a recommendation are in
+  [`../architecture/QQ_LOGIC_SANDBOX.md`](../architecture/QQ_LOGIC_SANDBOX.md), awaiting the owner.
 - **Imported:** `.qq.json` scenes of format 1 from the preview become QML scenes; what has no 3D form yet (motion, the
   pointer follow, which in 3D are logic) is named, not silently dropped; emitters come across as `Emitter`s.
 
