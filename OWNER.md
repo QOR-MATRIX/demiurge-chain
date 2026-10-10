@@ -15,20 +15,20 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`. 49 tests.
 - **Launcher 0.1.8**, unsigned — *Windows warns on install*.
 
-## For you to decide: keeping players safe from strangers' games
+## Decided today: keeping players safe from strangers' games (ADR-087)
 
 Before people play each other's QQ games, a game must not be able to touch the player's files,
-accounts or network. Today a game's logic can do whatever the player can — fine for your own
-games, not for a stranger's. The options are in
-`docs/architecture/QQ_LOGIC_SANDBOX.md`. **My recommendation:**
+accounts or network; today a game's logic can do whatever the player can. **You chose:**
 
 - strangers' games play **only in the browser** (ARQADE) at first, from a web address of their
   own that holds no logins, boxed inside ARQADE's page;
 - the QQ Player **locks down** what any game's logic can reach, everywhere (cheap);
 - playing others' games **natively** in the launcher waits for an operating-system *sandbox* —
-  *a locked box a program runs in* — which is a bigger job, done if and when you want it.
+  *a locked box a program runs in* — which is a bigger job, done if and when you want it;
+- games are served from a **site of their own**: a separate free Vercel address now, a domain
+  of their own (your choice of name) before launch.
 
-Publishing (P3.4) and ARQADE delivery (P3.5) wait on this.
+**Next:** I build the Player lock-down, then publishing (P3.4).
 
 ## Done earlier today
 
@@ -38,7 +38,7 @@ P3.3 and the rule are on main; automatic checks pass.
 
 ## What only you can do
 
-1. **Decide on strangers' games** (above), then merge the pull request with this proposal.
+1. **Merge #25 and #26** (records, and this decision).
 2. **Optional: prove P3.3** — your own Anthropic key in QQ Studio's Agent panel, billed to you.
 3. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your
    licence. Add your Qt account to its secrets, or let your PC run CI (a *self-hosted runner*).

@@ -8,8 +8,9 @@ reaches `main` by pull request. `origin` is the private archive, not the current
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 item 69 (10 October 2026): a proposal for the owner, how a stranger's QQ game is confined
-([`docs/architecture/QQ_LOGIC_SANDBOX.md`](docs/architecture/QQ_LOGIC_SANDBOX.md)); P3.4 and P3.5 wait on it.** On branch
+**Newest: §4 item 69 (10 October 2026): how a stranger's QQ game is confined, proposed and decided the same day
+(ADR-087): in the browser only at first, from a site of its own; the Player locked down in every mode, built next;
+native play of others' games deferred.** On branch
 `session/qq-logic-sandbox`. Before it: item 68 the same day: **generation is paid by whoever uses it, and Demiurge pays for none (ADR-086,
 the owner's decision); and P3.3, which merged into #21's branch rather than `main`, is brought to `main` by pull request
 #23.** Both merged (#23 and #24), and CI passed on `main` at `b99c689`. Before it: §4 items 66 and 67 the same day: P3.3 all but its proof. QQ Studio offers fourteen tools to agents over
@@ -97,7 +98,7 @@ ticked the same day against the owner's review of a ten-line summary.
 | Infrastructure | **Railway** (project `demiurge`): Postgres, Redis, QOR ID (`id.qorsync.dev`) and Demiurge Devnet (two validators and an RPC node, ADR-068). **Vercel**: ARQADE, project `qor-arqade` (team Astra Matrix, Hobby plan), with Neon Postgres (ADR-074). Fly.io is not used: ADR-015's Fly plan is superseded by ADR-063 and ADR-068. |
 | Production | No production or test network. Live, devnet-only and with test CGT: Demiurge Devnet, QOR ID and ARQADE. |
 | ARQADE (`products/arqade/`) | **Live at `https://qor-arqade-tau.vercel.app`**: standard Next.js 16 on Neon Postgres, migrations 0001 to 0003 applied on production builds (`scripts/migrate.mjs`). **48 tests** (6 October 2026). QOR ID is the only sign-in; Play Now, the solo games, Flux Four and Rift Reversi multiplayer, rankings, chat, devnet reads, tips through the launcher (ADR-076, ADR-077; the owner tipped successfully on 5 and 6 October), and the level bubble and level row. P7.1 to P7.4 are ticked (P7.4 on 6 October 2026). |
-| Decisions | 86 ADRs (ADR-001 to ADR-086); ADR-069 to ADR-086 are accepted. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan; ADR-083 (8 October) builds it on Qt 6; ADR-084 (10 October) settles the Player's web build (Qt's threaded kit, served cross-origin isolated, sound unpanned in a browser). ADR-085 (10 October) chooses the design loop's provider: Claude Opus 5.5, its key in Windows Credential Manager. ADR-086 (10 October, the owner's) makes every user pay for the generation they use, and the project pay for none. The owner's open questions are in §4.0. |
+| Decisions | 87 ADRs (ADR-001 to ADR-087); ADR-069 to ADR-087 are accepted. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan; ADR-083 (8 October) builds it on Qt 6; ADR-084 (10 October) settles the Player's web build (Qt's threaded kit, served cross-origin isolated, sound unpanned in a browser). ADR-085 (10 October) chooses the design loop's provider: Claude Opus 5.5, its key in Windows Credential Manager. ADR-086 (10 October, the owner's) makes every user pay for the generation they use, and the project pay for none. ADR-087 (10 October, the owner's) confines strangers' QQ games to the browser, on a locked-down Player. The owner's open questions are in §4.0. |
 | Not live | Avatars in ARQADE (ADR-079 step 3, not built), paying the welcome grant (grants are recorded as owed, never paid), ARQADE inside the launcher (P7.18), the indexer, the Mesh, fees and issuance. |
 
 ## 2. Known gaps: do not build on these
@@ -253,7 +254,7 @@ Read this before the detail below. "Ready" means it can start today with nothing
 
 | Track | State | Waiting on | What unblocks it |
 | --- | --- | --- | --- |
-| **P3, QQ on Qt 6** (ADR-083) | **P3.1 and P3.2 done; P3.3 built but for its proof** (10 October 2026) | **The owner** for P3.4 and P3.5 (confining a stranger's game) and for CI; **anyone with their own key** for P3.3's proof (ADR-086) | P3.4 and P3.5 wait on the owner's decision on [`docs/architecture/QQ_LOGIC_SANDBOX.md`](docs/architecture/QQ_LOGIC_SANDBOX.md) (proposed 10 October 2026: strangers' games in the browser from an origin of their own, the Player's engine confined in every mode, native play of others' games only under an OS sandbox), and P3.4 also on L1.4. CI cannot build QQ until Qt's installer and the owner's Qt account are repository secrets, or a self-hosted runner exists (ADR-083). |
+| **P3, QQ on Qt 6** (ADR-083) | **P3.1 and P3.2 done; P3.3 built but for its proof** (10 October 2026) | Nobody, for the Player's lockdown (ADR-087, next); **the owner** for CI; **anyone with their own key** for P3.3's proof (ADR-086) | ADR-087 decided how a stranger's game is confined (10 October 2026): the Player's lockdown is built first, then P3.4 (also waiting on L1.4) and P3.5 (strangers' games in the browser only, from a site of their own). CI cannot build QQ until Qt's installer and the owner's Qt account are repository secrets, or a self-hosted runner exists (ADR-083). |
 | **P7.17**, paying the welcome grants | **Blocked, 2026-10-08** | **The owner** | ADR-078 decision 7 wants a server that holds the Welcome account's key and nothing else: a new service, which needs the owner's name for it (AGENTS.md §8), the Welcome account created and funded with test CGT on the devnet, and its key set as that service's only secret on Railway. Listing owed grants and marking one paid are built. |
 | **M3, the Substrate chain** | **Unblocked, started 2026-09-17** | Nobody | The owner confirmed ADR-018 to ADR-032 and supplied all four inputs: eighteen decimals (ADR-035), an existential deposit of 100 CGT (ADR-036), the five pallet names, and `pallet-sudo` on development and test networks only (ADR-037). |
 | **U-1, the decimal places** | **Decided 2026-09-17** | Nobody | Eighteen, on both recorded conditions (ADR-035). Removed from `OPEN_QUESTIONS.md`, so the gate reads it as decided. |
@@ -2127,8 +2128,11 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     stranger's game must hold; five options (the browser from an origin of its own; an OS-sandboxed native Player; a
     confined QML engine; a fixed set of behaviours; review); and a recommendation: strangers' games in the browser only
     at first, the Player's engine confined in every mode, native play of others' games only once an OS sandbox exists.
-    Nothing is decided and no code written; DIRECTION P3.4 and P3.5, the blueprint and the QQ README point at it. What
-    logic can reach is read from the code, not shown by experiment. **Next:** the owner's decision; then its ADR and, if chosen, the confined engine first.
+    What logic can reach is read from the code, not shown by experiment. **Decided the same day: ADR-087**, the owner
+    accepting the recommendation and the advice on its four questions (browser only at first; the Player locked down in
+    every mode, built first; native play of others' games deferred; games from a separate `*.vercel.app` project now and
+    a registered domain before launch, never a subdomain of the project's domains). In pull request #26 with the
+    write-up. **Next:** the Player's lockdown.
 
 ## 5. Traps, so nobody re-learns them
 
