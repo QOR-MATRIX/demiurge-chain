@@ -14,9 +14,10 @@ Node {
     property QtObject target: null
     property vector3d eye: Qt.vector3d(0, 0, 10)
 
-    // A sun has a direction, not a place, and the ground is the floor; neither is moved by handles.
-    visible: target !== null && target.kind !== undefined && target.kind !== "Scene" && target.kind !== "Sun"
-             && target.kind !== "Ground"
+    // Handles for what a file keeps: an entity with no place (a sun, the ground, a behaviour) has none, and one that
+    // keeps no turn or scale has no knob or cube.
+    function keeps(field) { return target !== null && target.fields !== undefined && target.fields.indexOf(field) >= 0 }
+    visible: target !== null && target.kind !== undefined && target.kind !== "Scene" && keeps("position")
     position: target && visible ? target.scenePosition : Qt.vector3d(0, 0, 0)
     readonly property real size: Math.max(0.15, eye.minus(position).length() * 0.12)
     scale: Qt.vector3d(size, size, size)
@@ -50,8 +51,9 @@ Node {
 
     Model {
         readonly property int axis: 3
+        visible: gizmo.keeps("eulerRotation")
         source: "#Sphere"
-        pickable: true
+        pickable: visible
         position: Qt.vector3d(0.55, 0.55, 0)
         scale: Qt.vector3d(0.0016, 0.0016, 0.0016)
         materials: DefaultMaterial { lighting: DefaultMaterial.NoLighting; diffuseColor: "#ffd27a" }
@@ -59,8 +61,9 @@ Node {
 
     Model {
         readonly property int axis: 4
+        visible: gizmo.keeps("scale")
         source: "#Cube"
-        pickable: true
+        pickable: visible
         scale: Qt.vector3d(0.0016, 0.0016, 0.0016)
         materials: DefaultMaterial { lighting: DefaultMaterial.NoLighting; diffuseColor: "#f2f2f2" }
     }

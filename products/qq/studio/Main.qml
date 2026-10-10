@@ -8,6 +8,10 @@
 //
 // The viewport: click to select, drag a handle to move along its axis, turn about the vertical or scale evenly, drag
 // anywhere else to orbit, scroll to zoom, F to frame the selection, Delete to remove it, Ctrl+S to save.
+//
+// Play (F5) runs the scene (DIRECTION P3.2): a copy is built from the scene's canonical text and played in its place,
+// with physics, the player under the keyboard, mouse and gamepad, particles, sound and logic that reloads when its file
+// is saved. Stop (Esc) discards the copy, so the scene comes back exactly as it was; nothing play does can reach it.
 
 import QtQuick
 // Before the Material style: Qt Quick 3D has a type called Material too, and the import that comes later wins.
@@ -46,6 +50,16 @@ ApplicationWindow {
     property string notice: ""
     property bool noticeIsProblem: false
 
+    /// The copy being played, or null while editing.
+    property QtObject playScene: null
+    readonly property bool playing: playScene !== null
+    /// The player the camera follows in play, if the scene has one.
+    readonly property QtObject follow: playScene ? playScene.player : null
+    /// The first problem any logic has while playing: a file that does not build, or cannot be read.
+    readonly property string playProblem: playScene
+                                          ? SceneIO.entities(playScene).map(e => e.error ?? "").find(x => x !== "") ?? ""
+                                          : ""
+
     /// True once a scene is shown and every model in it has loaded or failed: what a capture waits for.
     readonly property bool settled: scene !== null
                                     && entityList.every(e => e.kind !== "Prop" || e.status !== Prop.Empty)
@@ -55,6 +69,10 @@ ApplicationWindow {
     property real pitch: 16
     property real distance: 8
     property vector3d target: Qt.vector3d(0, 1, 0)
+    readonly property vector3d orbitEye: Qt.vector3d(
+        target.x + distance * Math.cos(pitch * Math.PI / 180) * Math.sin(yaw * Math.PI / 180),
+        target.y + distance * Math.sin(pitch * Math.PI / 180),
+        target.z + distance * Math.cos(pitch * Math.PI / 180) * Math.cos(yaw * Math.PI / 180))
 
     // ── the scene ──────────────────────────────────────────────────────────────────────────────
 
@@ -112,7 +130,7 @@ ApplicationWindow {
     }
 
     function saveScene() {
-        if (!scene)
+        if (!scene || playing)
             return false
         if (String(project) === "") {
             projectChooser.thenSave = true
@@ -120,16 +138,18 @@ ApplicationWindow {
             return false
         }
         const name = sceneName.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") || "untitled"
-        // Models from outside the project come into its assets folder first, so the project is whole on its own.
+        // Files from outside the project (models, sounds, logic) come into it first, so the project is whole on its own.
         for (const e of SceneIO.entities(scene)) {
-            if (e.kind !== "Prop")
-                continue
-            const adopted = SceneIO.adopt(SceneIO.resolvedUrl(e, e.source), project)
-            if (String(adopted) === "") {
-                say(SceneIO.lastError, true)
-                return false
+            for (const field of e.fields) {
+                if (SceneIO.fieldType(e, field) !== "url" || String(e[field]) === "")
+                    continue
+                const adopted = SceneIO.adopt(SceneIO.resolvedUrl(e, e[field]), project)
+                if (String(adopted) === "") {
+                    say(SceneIO.lastError, true)
+                    return false
+                }
+                e[field] = adopted
             }
-            e.source = adopted
         }
         scene.name = name
         const file = fileFor(name)
@@ -157,7 +177,7 @@ ApplicationWindow {
         const name = String(file).split("/").pop().replace(/\.qq\.json$/, "").toLowerCase()
         if (!show(SceneIO.loadText(result.qml, fileFor(name), stage), fileFor(name), name, false))
             return
-        say(qsTr("Imported %1 shapes.").arg(result.imported)
+        say(qsTr("Imported %1 entities.").arg(result.imported)
             + (result.skipped.length ? " " + qsTr("Not yet in 3D: %1.").arg(result.skipped.join("; ")) : ""))
     }
 
@@ -170,7 +190,7 @@ ApplicationWindow {
         while (entityList.some(e => e.name === name))
             name = base + " " + (++n)
         properties.name = name
-        if (kind !== "Sun" && kind !== "Ground" && properties.position === undefined)
+        if (kind !== "Sun" && kind !== "Ground" && kind !== "Behaviour" && properties.position === undefined)
             properties.position = Qt.vector3d(window.target.x, Math.max(0.5, window.target.y), window.target.z)
         const made = SceneIO.add(scene, kind, properties)
         if (!made) {
@@ -182,8 +202,73 @@ ApplicationWindow {
         return made
     }
 
+    function play() {
+        if (!scene || playing)
+            return false
+        world.hearing = true  // before any sound is made, so the engine is in metres from the first
+        const copy = SceneIO.play(scene, sceneFile, playStage)
+        if (!copy) {
+            world.hearing = false
+            say(SceneIO.lastError, true)
+            return false
+        }
+        playScene = copy
+        viewport.forceActiveFocus()  // out of any text field, so the keys reach the game
+        say(qsTr("Playing. Esc stops, and the scene comes back as it was."))
+        return true
+    }
+
+    function stop() {
+        if (!playing)
+            return false
+        SceneIO.discard(playScene)
+        playScene = null
+        world.hearing = false
+        Input.release()
+        refresh()
+        say(qsTr("Stopped. The scene is as it was before play."))
+        return true
+    }
+
+    /// Put everything away in a safe order, before the window goes: what the application does as it quits.
+    function release() {
+        stop()
+        if (scene)
+            SceneIO.discard(scene)
+        scene = null
+        selection = null
+    }
+
+    /// Start a new behaviour: a logic file in the project from a template, driving the selection.
+    function addBehaviour() {
+        if (String(project) === "") {
+            say(qsTr("A behaviour's logic lives in the project: choose a project first."), true)
+            return null
+        }
+        const driven = selection && selection !== scene ? selection.name : ""
+        let n = 1
+        let name = "behaviour"
+        const taken = SceneIO.project(project).logic  // never over a file already there
+        while (taken.indexOf(name) >= 0)
+            name = "behaviour-" + (++n)
+        const file = SceneIO.writeLogic(project, name, logicTemplate)
+        if (String(file) === "") {
+            say(SceneIO.lastError, true)
+            return null
+        }
+        const made = add("Behaviour", { name: driven !== "" ? driven + " logic" : "Logic", source: file, target: driven })
+        if (made)
+            say(qsTr("Wrote logic/%1.qml. Edit it while the scene plays; each save is picked up.").arg(name))
+        return made
+    }
+
+    readonly property string logicTemplate: '// Game logic: runs while the scene plays, and is rebuilt each time this file is saved.\n'
+        + '// `target` is the entity this drives, `scene` the scene, `elapsed` the seconds since it was built; `Input` has\n'
+        + '// move, look, jump and run.\n\nimport QQ\n\nLogic {\n    property real speed: 90  // degrees a second\n\n'
+        + '    onFrame: (dt) => {\n        if (target)\n            target.eulerRotation.y += speed * dt\n    }\n}\n'
+
     function removeSelection() {
-        if (!selection || selection === scene)
+        if (playing || !selection || selection === scene)
             return
         SceneIO.remove(selection)
         selection = null
@@ -210,8 +295,10 @@ ApplicationWindow {
     }
 
     Shortcut { sequences: [StandardKey.Save]; onActivated: window.saveScene() }
-    Shortcut { sequences: [StandardKey.Delete]; onActivated: window.removeSelection() }
-    Shortcut { sequence: "F"; onActivated: window.frameSelection() }
+    Shortcut { sequences: [StandardKey.Delete]; enabled: !window.playing; onActivated: window.removeSelection() }
+    Shortcut { sequence: "F"; enabled: !window.playing; onActivated: window.frameSelection() }
+    Shortcut { sequence: "F5"; onActivated: window.playing ? window.stop() : window.play() }
+    Shortcut { sequence: "Escape"; enabled: window.playing; onActivated: window.stop() }
 
     // ── the window ─────────────────────────────────────────────────────────────────────────────
 
@@ -251,17 +338,29 @@ ApplicationWindow {
             Label {
                 Layout.maximumWidth: 560
                 elide: Text.ElideRight
-                text: window.notice
-                color: window.noticeIsProblem ? "#d57889" : Material.foreground
-                opacity: window.noticeIsProblem ? 1 : 0.7
+                text: window.playProblem !== "" ? window.playProblem : window.notice
+                color: window.noticeIsProblem || window.playProblem !== "" ? "#d57889" : Material.foreground
+                opacity: window.noticeIsProblem || window.playProblem !== "" ? 1 : 0.7
                 font.pixelSize: 13
             }
-            ToolButton { text: qsTr("New"); onClicked: window.newScene() }
-            ToolButton { text: qsTr("Import 2D…"); onClicked: importChooser.open() }
+            ToolButton { text: qsTr("New"); enabled: !window.playing; onClicked: window.newScene() }
+            ToolButton { text: qsTr("Import 2D…"); enabled: !window.playing; onClicked: importChooser.open() }
             Button {
                 text: qsTr("Save")
+                enabled: !window.playing
                 highlighted: window.dirty
                 onClicked: window.saveScene()
+            }
+            Button {
+                id: playButton
+                objectName: "playButton"
+                text: window.playing ? qsTr("■  Stop") : qsTr("▶  Play")
+                highlighted: !window.playing
+                Material.accent: window.playing ? "#d57889" : "#3ddc84"
+                Accessible.name: window.playing ? qsTr("Stop") : qsTr("Play")
+                ToolTip.visible: hovered
+                ToolTip.text: window.playing ? qsTr("Stop (Esc)") : qsTr("Play (F5)")
+                onClicked: window.playing ? window.stop() : window.play()
             }
         }
     }
@@ -274,6 +373,8 @@ ApplicationWindow {
         Pane {
             Layout.preferredWidth: 270
             Layout.fillHeight: true
+            enabled: !window.playing
+            opacity: enabled ? 1 : 0.45
             Material.background: "#0d0f15"
             padding: 14
 
@@ -303,6 +404,15 @@ ApplicationWindow {
                                 onTriggered: window.add("Lamp", { position: Qt.vector3d(window.target.x + 1, 2.5, window.target.z + 1) })
                             }
                             MenuItem { text: qsTr("Model…"); onTriggered: modelChooser.open() }
+                            MenuSeparator {}
+                            MenuItem {
+                                text: qsTr("Player")
+                                enabled: !window.entityList.some(e => e.kind === "Player")
+                                onTriggered: window.add("Player", { position: Qt.vector3d(window.target.x, 0, window.target.z + 3) })
+                            }
+                            MenuItem { text: qsTr("Particles"); onTriggered: window.add("Emitter", { name: "Particles" }) }
+                            MenuItem { text: qsTr("Sound…"); onTriggered: soundChooser.open() }
+                            MenuItem { text: qsTr("Behaviour"); onTriggered: window.addBehaviour() }
                         }
                     }
                 }
@@ -391,11 +501,9 @@ ApplicationWindow {
                 id: world
                 objectName: "world"
                 anchors.fill: parent
-                target: window.target
-                eye: Qt.vector3d(
-                    window.target.x + window.distance * Math.cos(window.pitch * Math.PI / 180) * Math.sin(window.yaw * Math.PI / 180),
-                    window.target.y + window.distance * Math.sin(window.pitch * Math.PI / 180),
-                    window.target.z + window.distance * Math.cos(window.pitch * Math.PI / 180) * Math.cos(window.yaw * Math.PI / 180))
+                target: window.follow ? window.follow.lookAt : window.target
+                // In play with a player, the eye follows it; otherwise it orbits as in editing.
+                eye: window.follow ? window.follow.eye : window.orbitEye
                 exposure: window.scene ? window.scene.exposure : 1
                 bloom: window.scene ? window.scene.bloom : true
                 skyLight: window.scene ? window.scene.skyLight : 0.75
@@ -404,7 +512,8 @@ ApplicationWindow {
                 groundHorizon: window.scene ? window.scene.groundHorizon : "#2a1a1a"
                 groundBottom: window.scene ? window.scene.groundBottom : "#07080c"
 
-                Node { id: stage }
+                Node { id: stage; visible: !window.playing }
+                Node { id: playStage }
             }
 
             // The handles, in a view of their own over the world: always on top, never part of the scene.
@@ -428,12 +537,13 @@ ApplicationWindow {
                 Gizmo {
                     id: gizmo
                     objectName: "gizmo"
-                    target: window.selection
+                    target: window.playing ? null : window.selection
                     eye: world.viewCamera.position
                 }
             }
 
             TapHandler {
+                enabled: !window.playing
                 onTapped: (point) => {
                     const hit = world.pick(point.position.x, point.position.y)
                     window.selection = window.entityOf(hit.objectHit)
@@ -449,8 +559,10 @@ ApplicationWindow {
                 property vector3d startScale
                 property real startYaw
                 property real startPitch
+                property point lastTranslation
 
                 onActiveChanged: {
+                    lastTranslation = Qt.point(0, 0)
                     if (active) {
                         const p = centroid.pressPosition
                         const hit = gizmo.visible ? overlay.pick(p.x, p.y) : null
@@ -469,6 +581,12 @@ ApplicationWindow {
                     }
                 }
                 onTranslationChanged: {
+                    // In play, a drag looks around through the player's eyes.
+                    if (window.follow) {
+                        Input.pointerMoved(Qt.point(translation.x - lastTranslation.x, translation.y - lastTranslation.y))
+                        lastTranslation = Qt.point(translation.x, translation.y)
+                        return
+                    }
                     if (handle < 0) {
                         window.yaw = startYaw - translation.x * 0.3
                         window.pitch = Math.max(-5, Math.min(85, startPitch + translation.y * 0.3))
@@ -507,9 +625,49 @@ ApplicationWindow {
                 anchors.left: parent.left
                 anchors.bottom: parent.bottom
                 anchors.margins: 14
-                text: qsTr("Click to select · drag a handle to move · drag to orbit · scroll to zoom · F frames the selection")
+                text: !window.playing ? qsTr("Click to select · drag a handle to move · drag to orbit · scroll to zoom · F frames the selection · F5 plays")
+                    : window.follow ? qsTr("WASD or the left stick to move · Space or A to jump · Shift to run · drag, the arrows or the right stick to look · Esc stops")
+                    : qsTr("Drag to orbit · scroll to zoom · Esc stops · add a Player to walk the world")
                 opacity: 0.45
                 font.pixelSize: 12
+            }
+
+            // While playing, a quiet mark that this is play and not the scene being edited.
+            Rectangle {
+                visible: window.playing
+                anchors.top: parent.top
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.topMargin: 14
+                width: playingLabel.implicitWidth + 28
+                height: 30
+                radius: 15
+                color: Qt.rgba(0.05, 0.06, 0.08, 0.72)
+                border.color: Qt.rgba(0.24, 0.86, 0.52, 0.5)
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 8
+                    Rectangle {
+                        width: 8
+                        height: 8
+                        radius: 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: "#3ddc84"
+                        SequentialAnimation on opacity {
+                            running: window.playing
+                            loops: Animation.Infinite
+                            NumberAnimation { to: 0.3; duration: 700; easing.type: Easing.InOutSine }
+                            NumberAnimation { to: 1; duration: 700; easing.type: Easing.InOutSine }
+                        }
+                    }
+                    Label {
+                        id: playingLabel
+                        text: qsTr("PLAYING") + (Input.gamepad ? "  ·  " + qsTr("gamepad") : "")
+                        font.pixelSize: 11
+                        font.letterSpacing: 1.5
+                        font.weight: Font.DemiBold
+                        color: "#3ddc84"
+                    }
+                }
             }
         }
 
@@ -517,6 +675,8 @@ ApplicationWindow {
         Pane {
             Layout.preferredWidth: 320
             Layout.fillHeight: true
+            enabled: !window.playing
+            opacity: enabled ? 1 : 0.45
             Material.background: "#0d0f15"
             padding: 16
 
@@ -594,6 +754,14 @@ ApplicationWindow {
         nameFilters: [qsTr("glTF 2.0 (*.gltf *.glb)")]
         onAccepted: window.add("Prop", { name: String(selectedFile).split("/").pop().replace(/\.(gltf|glb)$/i, ""),
                                          source: selectedFile })
+    }
+
+    FileDialog {
+        id: soundChooser
+        title: qsTr("Add a sound")
+        nameFilters: [qsTr("Sound (*.wav *.mp3 *.ogg *.flac)")]
+        onAccepted: window.add("Sound", { name: String(selectedFile).split("/").pop().replace(/\.[a-z0-9]+$/i, ""),
+                                          source: selectedFile })
     }
 
     FileDialog {

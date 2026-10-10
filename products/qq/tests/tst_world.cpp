@@ -17,9 +17,14 @@
 #include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
+
+#include "gpu.h"
 #include <QtMath>
 
 #include <cmath>
+
+// Drawn with the GPU the Studio and the Player draw with: chosen before QTEST_MAIN makes the application.
+static const QString chosenGpu = qq::preferHighPerformanceGpu();
 
 Q_IMPORT_QML_PLUGIN(QQPlugin)
 
@@ -123,11 +128,15 @@ Rendered render(const QByteArray &source)
 
     // Let the renderer settle: the sky probe, shadows and bloom take a few frames. A still scene draws once and then
     // waits, so frames are asked for, and counted as they are drawn.
+    // Counted on this thread through `counting`, so no count reaches `frames` from the render thread, or after it.
     int frames = 0;
-    QObject::connect(&view, &QQuickWindow::frameSwapped, [&frames] { ++frames; });
-    for (int i = 0; i < 200 && frames < 8; ++i) {
-        view.update();
-        QTest::qWait(25);
+    {
+        QObject counting;
+        QObject::connect(&view, &QQuickWindow::frameSwapped, &counting, [&frames] { ++frames; });
+        for (int i = 0; i < 200 && frames < 8; ++i) {
+            view.update();
+            QTest::qWait(25);
+        }
     }
     if (frames < 8)
         return out;

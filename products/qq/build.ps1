@@ -9,10 +9,13 @@
         pwsh products/qq/build.ps1                 # build and test
         pwsh products/qq/build.ps1 -Run            # build, then open QQ Studio
         pwsh products/qq/build.ps1 -Deploy         # build, test, then make a self-contained QQ Studio the launcher opens
+        pwsh products/qq/build.ps1 -Web            # build the QQ Player for the browser, then measure it in one
         pwsh products/qq/build.ps1 -Qt C:\Qt\6.12.0\msvc2022_64 -Build D:\qq-build
 
 .NOTES
     The tests render on the machine's GPU in real windows, so they need a desktop session (not a service account).
+    -Web needs the Qt for WebAssembly kit (multithreaded) beside -Qt, the Emscripten SDK that kit names (5.0.5 for Qt
+    6.12) in -Emsdk, Node.js and a Chromium-family browser.
 #>
 param(
     [string] $Qt = 'C:\Qt\6.12.0\msvc2022_64',
@@ -20,7 +23,10 @@ param(
     [string] $Config = 'Release',
     [switch] $Run,
     [switch] $Deploy,
-    [string] $DeployTo = (Join-Path $env:LOCALAPPDATA 'qq-studio')
+    [string] $DeployTo = (Join-Path $env:LOCALAPPDATA 'qq-studio'),
+    [switch] $Web,
+    [string] $WebBuild = (Join-Path $env:LOCALAPPDATA 'qq-wasm'),
+    [string] $Emsdk = (Join-Path $env:LOCALAPPDATA 'emsdk')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,6 +39,22 @@ $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.
 $vcvars = Join-Path $vs 'VC\Auxiliary\Build\vcvars64.bat'
 foreach ($needed in $cmake, $ninja, $vcvars) {
     if (-not (Test-Path $needed)) { throw "Not found: $needed" }
+}
+
+# The QQ Player for the browser: Qt for WebAssembly's multithreaded kit (the one with Qt Multimedia, which spatial audio
+# needs), with the Emscripten SDK that kit names; then played and measured in a headless browser (player/measure-web.mjs).
+if ($Web) {
+    $wasmCmake = Join-Path (Split-Path $Qt -Parent) 'wasm_multithread\bin\qt-cmake.bat'
+    $emsdkEnv = Join-Path $Emsdk 'emsdk_env.bat'
+    foreach ($needed in $wasmCmake, $emsdkEnv) {
+        if (-not (Test-Path $needed)) { throw "Not found: $needed" }
+    }
+    $configureWeb = "`"$wasmCmake`" -S `"$source`" -B `"$WebBuild`" -G Ninja -DCMAKE_MAKE_PROGRAM=`"$ninja`" -DCMAKE_BUILD_TYPE=Release -DQT_HOST_PATH=`"$Qt`""
+    cmd /c "call `"$emsdkEnv`" >nul 2>nul && call $configureWeb && `"$cmake`" --build `"$WebBuild`""
+    if ($LASTEXITCODE -ne 0) { throw "The web build failed ($LASTEXITCODE)." }
+    node (Join-Path $source 'player\measure-web.mjs') (Join-Path $WebBuild 'player') --frame (Join-Path $WebBuild 'first-frame.png')
+    if ($LASTEXITCODE -ne 0) { throw 'The QQ Player did not play in the browser.' }
+    exit 0
 }
 
 $configure = "`"$cmake`" -S `"$source`" -B `"$Build`" -G Ninja -DCMAKE_MAKE_PROGRAM=`"$ninja`" -DCMAKE_PREFIX_PATH=`"$Qt`" -DCMAKE_BUILD_TYPE=$Config"

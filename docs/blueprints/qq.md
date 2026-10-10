@@ -4,8 +4,10 @@
 built on **Qt 6** ([ADR-083](../decisions/ADR-083-qq-on-qt.md)), which superseded the first, browser-only architecture
 of [ADR-082](../decisions/ADR-082-qq-architecture.md) in part. Nothing here overrides `AGENTS.md`'s money, language or
 key-safety rules. **Status:** P3.1 done on 9 October 2026 on Qt 6.12 (Enterprise), in `products/qq/`: QQ Studio edits a
-lit 3D world and keeps it as canonical QML in a Qontrol project, opened from the launcher
-([`products/qq/README.md`](../../products/qq/README.md)). Next, P3.2: worlds that play.
+lit 3D world and keeps it as canonical QML in a Qontrol project, opened from the launcher. P3.2 done on 10 October
+2026: worlds play (physics, a player under keyboard, mouse and gamepad, particles, sound, logic rebuilt on each save),
+in the Studio and in the QQ Player, natively and in a browser
+([`products/qq/README.md`](../../products/qq/README.md)). Next, P3.3: the agent.
 A TypeScript/WebGL2 preview from ADR-082 runs in the launcher meanwhile (below).
 
 ---
@@ -105,10 +107,14 @@ Scene {
   model files relative to the scene. The same scene is the same bytes; one changed value is one changed line in
   Projects. A model from outside the project is copied into its `assets/` when the scene is saved.
 - **Entities today:** `Sun`, `Lamp`, `Ground`, `Shape` (cube, sphere, cylinder, cone, plane, with a physically based
-  surface and glow), `Prop` (a glTF 2.0 model). Bodies, emitters and behaviours arrive with P3.2.
-- **Readable by people and models.** Behaviours (P3.2) will be plain QML and JavaScript, reloaded while the world runs.
+  surface and glow, and a body in play: none, static or dynamic), `Prop` (a glTF 2.0 model), `Player` (a character
+  controller with a camera that follows), `Emitter` (particles), `Sound` (heard where it is), `Behaviour` (logic).
+- **Readable by people and models.** Logic is a plain QML and JavaScript file, `logic/<name>.qml`, whose root is a
+  `Logic`; a `Behaviour` in the scene names it and the entity it drives, and it is rebuilt each time it is saved while
+  the world plays. It is code with the engine's full reach: before games are published and played by others (P3.4,
+  P3.5), how a stranger's logic is confined is still to be decided.
 - **Imported:** `.qq.json` scenes of format 1 from the preview become QML scenes; what has no 3D form yet (motion, the
-  pointer follow, emitters) is named, not silently dropped.
+  pointer follow, which in 3D are logic) is named, not silently dropped; emitters come across as `Emitter`s.
 
 ---
 

@@ -4,68 +4,126 @@ An engine for virtual worlds and experiences, built on **Qt 6** under the owner'
 ([ADR-083](../../docs/decisions/ADR-083-qq-on-qt.md)). The blueprint is [`docs/blueprints/qq.md`](../../docs/blueprints/qq.md);
 the roadmap items are DIRECTION P3.1 to P3.6.
 
-**Status, 9 October 2026: P3.1 done.** QQ Studio edits a 3D world and keeps it in a Qontrol project:
+**Status, 10 October 2026: P3.1 and P3.2 done.** QQ Studio edits a 3D world, keeps it in a Qontrol project, and plays
+it; the QQ Player plays a scene on its own, natively and in a browser.
 
 - **The world:** a procedural sky that also lights the scene, a sun with soft shadows, lamps, filmic tonemapping, bloom,
   ambient occlusion and multisampled edges; shapes with physically based surfaces; glTF 2.0 models loaded at runtime.
+- **Play (P3.2):** shapes with bodies (`body`: none, static or dynamic; mass, bounce, friction) that fall, collide as
+  their shapes and come to rest, under the scene's gravity; a **Player**, a character controller that walks, runs, turns
+  and jumps, is stopped by walls and climbs low steps, with a camera that follows; **input** from the keyboard (WASD or
+  the arrows, Space, Shift), the mouse (a drag looks around) and a gamepad (XInput: sticks past a dead zone, A, the
+  shoulders), read as one set of intentions (`Input`: move, look, jump, run) so every game works with every device and
+  the agent can play one too; **particles** (`Emitter`: soft points of light that rise, spread and fade); **sound**
+  (`Sound`: placed in the world, louder nearer, panned, silent beyond its reach, heard through the camera; in a browser
+  not panned, below); and **logic** (`Behaviour` names a `logic/<name>.qml` file whose root is a `Logic`; it runs only
+  in play and is rebuilt each time the file is saved, without stopping the world).
 - **The Studio:** the scene's entities in a list, the selected one's fields in an inspector (built from what each type
   declares), click to select in the viewport, handles to move along an axis, turn about the vertical or scale evenly,
-  orbit and zoom,
-  add (cube, sphere, cylinder, cone, lamp, model) and delete.
+  orbit and zoom, add (cube, sphere, cylinder, cone, lamp, model, player, emitter, sound, behaviour) and delete.
+  **Play** (F5) plays a copy built from the scene's canonical text; **Stop** (Esc) throws the copy away, so the scene,
+  its unsaved state and the selection are exactly as they were. **New behaviour** writes a starter logic file into the
+  project, never over one that is there.
 - **The files:** a scene is `scenes/<name>.qml` in the project, in one canonical layout: read and written back it is
-  the same bytes, and one changed value is one changed line in Projects. A model from outside the project is copied
-  into its `assets/` first, so the project is whole on its own. 2D scenes from the launcher's preview (`.qq.json`)
-  are imported, with what has no 3D form yet (motion, the pointer follow, emitters: P3.2) named.
+  the same bytes, and one changed value is one changed line in Projects. Models and sounds are copied into `assets/`
+  and logic into `logic/`, so the project is whole on its own. 2D scenes from the launcher's preview (`.qq.json`) are
+  imported, emitters included; motion and the pointer follow, which in 3D are logic, are named as not carried over.
+- **The QQ Player:** plays one scene as a game, full window, natively (`qq-player [scene.qml]`, the bundled playground
+  without one) and as a WebAssembly build in a browser, and measures how long its first frame takes.
 - **The launcher:** **Open in QQ Studio** on the launcher's QQ surface starts the Studio on the project open there.
 
-Next is P3.2: worlds that play (physics, input, particles, spatial audio, live behaviours) and the QQ Player.
+Next is P3.3: the agent that designs and builds a game from a description, through the Studio.
 
 ## What is here
 
 | Path | What it is |
 | --- | --- |
-| `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light and look), `Scene` (the root a file holds), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, and `SceneIO` (C++): canonical writing, loading, saving, adopting models, importing 2D scenes, and the editing operations the Studio uses and the agent will (P3.3) |
+| `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, and `Logic` (what a logic file is). In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `SoftDot` (the particles' sprite, made in memory) and `gpu` (draw with the faster of two GPUs) |
 | `studio/` | QQ Studio. `qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>]` |
-| `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks and drags) |
-| `tests/fixtures/` | `orb.gltf` (written by `make_orb.py`), `scenes/sample.qml` (every entity type, canonical), `first-light.qq.json` (the 2D preview's starter scene) |
-| `build.ps1` | Builds with the owner's Qt, MSVC 2022 and Ninja, runs every test, and with `-Deploy` makes a self-contained Studio |
+| `player/` | The QQ Player. `qq-player [scene.qml] [--capture <frame.png>] [--measure <result.json>]`; its playground (a small game with everything P3.2 plays) bundled inside it; `measure-web.mjs`, which plays the browser build in a headless browser and measures it |
+| `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks, drags and keys), `tst_play` (physics, the player, input, particles, sound and logic, in real frames), `tst_player` (the real Player executable) |
+| `tests/fixtures/` | `orb.gltf` (written by `make_orb.py`), `chime.wav` (written by `make_chime.py`), `logic/spin.qml`, `scenes/sample.qml` (every entity type, canonical), `first-light.qq.json` (the 2D preview's starter scene) |
+| `build.ps1` | Builds with the owner's Qt, MSVC 2022 and Ninja and runs every test; `-Deploy` makes a self-contained Studio; `-Web` builds the Player for the browser and measures it |
 
 ## Build, test, deploy
 
-Needs Qt 6.12 (MSVC 2022 64-bit kit, with Qt Quick 3D) and Visual Studio Build Tools 2022 with the C++ workload.
+Needs Qt 6.12 (MSVC 2022 64-bit kit, with Qt Quick 3D, Quick 3D Physics, Spatial Audio and Multimedia) and Visual
+Studio Build Tools 2022 with the C++ workload. The browser build also needs Qt's WebAssembly kit (multithreaded), the
+Emscripten SDK that kit names (5.0.5 for Qt 6.12, in `%LOCALAPPDATA%\emsdk` by default, `-Emsdk` to change it), Node.js
+and a Chromium-family browser.
 
 ```powershell
 pwsh products/qq/build.ps1           # configure, build, run every test; non-zero if anything fails
 pwsh products/qq/build.ps1 -Run      # build, then open QQ Studio
 pwsh products/qq/build.ps1 -Deploy   # build, test, then put a self-contained QQ Studio where the launcher looks
+pwsh products/qq/build.ps1 -Web      # build the QQ Player for the browser, play it in one and measure it
 ```
 
 The build goes to `%LOCALAPPDATA%\qq-build` (`-Build` to change it); the deployed Studio to `%LOCALAPPDATA%\qq-studio`
-(`-DeployTo`), with the Qt libraries, plugins and QML modules it uses and the Microsoft C++ runtime installer: about 1,500
-files and 113 MB, runnable on a machine with no Qt. The launcher's **Open in QQ Studio** starts that copy, or the one
-the `QQ_STUDIO` environment variable names.
+(`-DeployTo`), with the Qt libraries, plugins and QML modules it uses and the Microsoft C++ runtime installer: about
+1,520 files and 182 MB (113 MB before P3.2 brought physics, audio and Qt Multimedia), runnable on a machine with no
+Qt. The launcher's **Open in QQ Studio** starts that copy, or the one the `QQ_STUDIO` environment variable names.
+
+The browser build goes to `%LOCALAPPDATA%\qq-wasm` (`-WebBuild`): the page, `player/qq-player.html`, with
+`qtloader.js`, `qq-player.js` and `qq-player.wasm` beside it. **Whatever serves it must send
+`Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`**: the build uses threads,
+and a page gets the shared memory threads need only when it is cross-origin isolated (ADR-084).
 
 The tests open real windows and render on the GPU, so they need a desktop session. `QQ_SAVE_FRAMES=<folder>` keeps
 every frame `tst_world` judges.
+
+## The Player, measured (10 October 2026)
+
+On the owner's laptop (RTX 4060 Laptop GPU), playing the bundled playground at 1280 × 720:
+
+| | Native | In a browser (Chrome, headless) |
+| --- | --- | --- |
+| First frame proper (the scene playing, every model loaded) | 1.4 s from the process starting (1,371 and 1,438 ms in two runs) | 5.8 to 6.0 s from the page starting to load, cold, served from this machine (three runs: 5,953, 5,812 and 5,779 ms; `main()` begins at about 1.9 s) |
+| Frames a second over the next three seconds | 229 and 345 | 220 to 227 |
+| Size | the executable, 0.55 MB, with Qt's libraries beside it | 44.1 MB as served (the `.wasm` 43.8 MB); 15.9 MB gzip, 11.7 MB brotli |
+
+The browser's first frame includes compiling 43.8 MB of WebAssembly; across a network it is longer by the download.
+Chrome must be given the faster GPU (`measure-web.mjs` asks for it): on the laptop's integrated Intel GPU the same build
+drew about 12 frames a second.
 
 ## The tests, and how they were proven
 
 - **`tst_world`** (3 cases): a glTF model loads at runtime and is drawn lit in its own colour; bloom lights pixels past
   the glowing band; an unreadable model is an error, not a crash. Proven to fail by two planted faults (bloom ignored;
   a prop that never loads).
-- **`tst_scene`** (12 cases): numbers are written one way only; a scene file reads and writes back byte for byte; one
+- **`tst_scene`** (14 cases): numbers are written one way only; a scene file reads and writes back byte for byte; one
   changed value is one changed line; a saved scene keeps its model relative and loads again; a scene saved elsewhere
   still points at its model (including across drives, where no relative path exists); adopting a model brings its
-  files and never overwrites; what is not a scene is refused with a reason; entities are added and removed and the
-  file follows; a project lists its scenes; the bundled sample can be adopted; a 2D scene imports as a canonical one;
-  a file of another format is not imported.
-- **`tst_studio`** (8 cases, the real window): a new Studio opens a lit scene in its project; a click on the model
+  files and never overwrites; sounds are adopted into `assets/` and logic into `logic/`; playing is a copy, and the
+  scene is not touched; what is not a scene is refused with a reason; entities are added and removed and the file
+  follows; a project lists its scenes; the bundled sample can be adopted; a 2D scene imports as a canonical one; a
+  file of another format is not imported.
+- **`tst_studio`** (10 cases, the real window): a new Studio opens a lit scene in its project; a click on the model
   selects it and a click on the sky selects nothing; dragging the X handle moves along X only; dragging the centre
-  handle scales evenly and leaves the position alone; saving writes a
-  canonical scene and carries the model into the project, and one edit saved again is one changed line; a saved scene
-  opens again as it was; entities are added, named uniquely and deleted; a 2D scene is imported with what cannot come
-  yet said. Proven to fail by two planted faults (a handle that drags along a diagonal; a save that does not copy the
-  model into the project).
+  handle scales evenly and leaves the position alone; saving writes a canonical scene and carries the model into the
+  project, and one edit saved again is one changed line; a saved scene opens again as it was; entities are added,
+  named uniquely and deleted; a 2D scene is imported with what cannot come yet said; **Play then Stop**: Play from its
+  button, a crate falls and rests while the scene's crate stays put, W walks the player and the eye follows, a drag
+  turns the player and tilts the eye, Esc leaves the scene, its unsaved state and the selection exactly as they were,
+  and Play starts again from the same place; a new behaviour is written into the project and never over a file.
+- **`tst_play`** (11 cases, real frames): a dynamic shape falls and comes to rest on the ground; a static one holds
+  what lands on it and one with no body lets it through; a cylinder and a cone collide as their shapes; a fall takes
+  the time the scene's gravity says; the player walks, runs, turns and jumps at the keyboard, with the camera behind
+  and above; a gamepad moves and turns it past its dead zone and is let go when unplugged (the pad's state is given,
+  as the agent will give it: no pad is attached in the run); typing into a field is not playing; an emitter fills the
+  air with its colour, counted in the frame; a sound is set up where it is, with its reach, only in play, and no sound
+  device is opened while editing (what is heard is not judged); logic runs, is rebuilt when its file is saved without
+  the world stopping, keeps running through a save that does not build and says why, and does not run while editing.
+- **`tst_player`** (4 cases, the real executable): the playground plays and its start is measured; its first frame is
+  the game (hundreds of colours, not an empty window); a scene file from disk plays too; a scene that is not there is
+  said, not hidden.
+- **Proven to fail** (10 October 2026) by five planted faults, each caught by its own check: no gamepad dead zone (the
+  gamepad case); a logic file not watched (the rebuild); Play on the scene itself, not a copy (`tst_scene` and
+  `tst_studio`); a sound active while editing (the sound case); a player that ignores the mouse (the drag in
+  `tst_studio`, "turned 0").
+- **In a browser:** `build.ps1 -Web` (`player/measure-web.mjs`) serves the build cross-origin isolated, plays it in
+  headless Chrome, reads the Player's measurement, captures the first frame and fails unless it is the game, with no
+  error on the page or in any of its workers.
 - In the launcher: `check-qq-view.mjs` checks that **Open in QQ Studio** asks the host to start the Studio on the open
   project and nothing more; the host's `qq::` tests check where the Studio is found, that the project is one argument,
   and that a folder that is not a project is refused; `qq_studio_starts_on_a_project` (ignored by default: it opens a
@@ -74,7 +132,20 @@ every frame `tst_world` judges.
 Learned on the way, and recorded in `HANDOFF.md` §5: Qt Quick 3D's `Material` type shadows the Material style's attached
 `Material.*` when it is imported after it; Qt 6 keeps a URL property as written, so relative model URLs are resolved
 against the entity's own file; across drives there is no relative path, and a bare `X:/...` is read back as a URL with
-scheme `x`.
+scheme `x`; a lambda counting `frameSwapped` must not take the window as its context while capturing a local (the
+signal is queued from the render thread, and a late one writes into a stack frame that has gone); Qt for WebAssembly's
+single-threaded kit has no Qt Multimedia, and in the threaded one Qt's spatial audio makes its sound on a worker, where
+the web has no audio, so in a browser `Sound` is a plain sound effect.
+
+## Known limits
+
+- **In a browser, sounds are not panned.** Their volume follows the distance from the scene's player (full within a
+  metre, halving with each doubling, none beyond `reach`); a scene with no player hears them at their own volume.
+- **Logic is code.** A logic file is QML and JavaScript that the Studio and the Player run with the engine's full
+  reach. That is right for a creator's own game; before games are published (P3.4) and played by others (P3.5), how a
+  stranger's logic is confined is a decision to make.
+- **Gamepads are read through XInput, so on Windows only**, and only Xbox-style pads; the checks give the pad's state
+  rather than reading a real one.
 
 ## Not in CI yet
 

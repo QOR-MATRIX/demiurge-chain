@@ -9,6 +9,7 @@ Scene {
     skyLight: 0.75
     exposure: 1
     bloom: true
+    gravity: 9.81
 
     Sun {
         name: "Sun"
@@ -35,6 +36,10 @@ Scene {
         roughness: 0.6
         emissive: "#000000"
         emissivePower: 0
+        body: "static"
+        mass: 1
+        bounce: 0.2
+        friction: 0.6
     }
 
     Lamp {
@@ -51,5 +56,40 @@ Scene {
         eulerRotation: Qt.vector3d(0, 0, 0)
         scale: Qt.vector3d(1, 1, 1)
         source: "../orb.gltf"
+    }
+
+    Player {
+        name: "Player"
+        position: Qt.vector3d(0, 0, 4)
+        eulerRotation: Qt.vector3d(0, 0, 0)
+        colour: "#ff6a00"
+        speed: 4.5
+        jumpHeight: 1.2
+    }
+
+    Emitter {
+        name: "Embers"
+        position: Qt.vector3d(-1.5, 0.1, 0)
+        colour: "#ffb15c"
+        rate: 60
+        life: 2
+        size: 0.12
+        speed: 1.5
+        spread: 0.6
+    }
+
+    Sound {
+        name: "Chime"
+        position: Qt.vector3d(1.5, 1, 0)
+        source: "../chime.wav"
+        volume: 1
+        reach: 25
+        loops: true
+    }
+
+    Behaviour {
+        name: "Spin"
+        source: "../logic/spin.qml"
+        target: "Orb"
     }
 }

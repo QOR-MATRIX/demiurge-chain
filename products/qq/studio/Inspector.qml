@@ -24,10 +24,19 @@ ColumnLayout {
         brightness: qsTr("Brightness"), reach: qsTr("Reach"), elevation: qsTr("Height"), azimuth: qsTr("Direction"),
         extent: qsTr("Extent"), source: qsTr("Model file"), skyTop: qsTr("Sky, top"), skyHorizon: qsTr("Sky, horizon"),
         groundHorizon: qsTr("Ground, horizon"), groundBottom: qsTr("Ground, below"), skyLight: qsTr("Sky light"),
-        exposure: qsTr("Exposure"), bloom: qsTr("Bloom")
+        exposure: qsTr("Exposure"), bloom: qsTr("Bloom"), gravity: qsTr("Gravity"), body: qsTr("In play"),
+        mass: qsTr("Mass"), bounce: qsTr("Bounce"), friction: qsTr("Friction"), speed: qsTr("Speed"),
+        jumpHeight: qsTr("Jump"), rate: qsTr("Rate"), life: qsTr("Life"), size: qsTr("Size"), spread: qsTr("Spread"),
+        volume: qsTr("Volume"), loops: qsTr("Loops"), target: qsTr("Drives")
     })
+    // A file field is named for what it holds.
+    readonly property var fileLabels: ({ Prop: qsTr("Model file"), Sound: qsTr("Sound file"), Behaviour: qsTr("Logic file") })
 
-    function labelFor(field) { return labels[field] ?? field }
+    function labelFor(field) {
+        if (field === "source" && target && fileLabels[target.kind])
+            return fileLabels[target.kind]
+        return labels[field] ?? field
+    }
     function set(field, value) { target[field] = value; inspector.edited() }
 
     Repeater {
@@ -89,7 +98,7 @@ ColumnLayout {
                 visible: numberRow.range !== undefined
                 from: numberRow.range ? numberRow.range[0] : 0
                 to: numberRow.range ? numberRow.range[1] : 1
-                value: inspector.target ? inspector.target[numberRow.field] : 0
+                value: inspector.target ? inspector.target[numberRow.field] ?? 0 : 0
                 onMoved: inspector.set(numberRow.field, value)
             }
             TextField {
@@ -170,7 +179,7 @@ ColumnLayout {
             }
             ColorDialog {
                 id: picker
-                selectedColor: inspector.target ? inspector.target[colourRow.field] : "black"
+                selectedColor: inspector.target ? inspector.target[colourRow.field] ?? "black" : "black"
                 onAccepted: inspector.set(colourRow.field, selectedColor)
             }
         }
@@ -191,7 +200,9 @@ ColumnLayout {
         ColumnLayout {
             id: choiceRow
             readonly property string field: parent ? parent.field : ""
-            readonly property var options: inspector.target ? inspector.target.choices[field] : []
+            // Guarded: while the selection changes, this row can briefly see an entity that has no choices.
+            readonly property var options: inspector.target && inspector.target.choices
+                                           ? inspector.target.choices[field] ?? [] : []
             spacing: 2
             FieldLabel { text: inspector.labelFor(choiceRow.field) }
             ComboBox {
@@ -215,15 +226,25 @@ ColumnLayout {
                 elide: Text.ElideMiddle
                 text: inspector.target ? decodeURIComponent(String(inspector.target[urlRow.field]).split("/").pop()) : ""
             }
-            Button {
-                text: qsTr("Replace…")
-                flat: true
-                onClicked: modelChooser.open()
+            RowLayout {
+                Button {
+                    text: qsTr("Replace…")
+                    flat: true
+                    onClicked: fileChooser.open()
+                }
+                // Logic is edited in the creator's own editor; a save there reloads it in play.
+                Button {
+                    visible: inspector.target !== null && /\.qml$/i.test(String(inspector.target[urlRow.field]))
+                    text: qsTr("Edit")
+                    flat: true
+                    onClicked: Qt.openUrlExternally(SceneIO.resolvedUrl(inspector.target, inspector.target[urlRow.field]))
+                }
             }
             FileDialog {
-                id: modelChooser
-                title: qsTr("Choose a glTF model")
-                nameFilters: [qsTr("glTF 2.0 (*.gltf *.glb)")]
+                id: fileChooser
+                title: qsTr("Choose a file")
+                nameFilters: inspector.target && inspector.target.fileTypes && inspector.target.fileTypes[urlRow.field]
+                             ? inspector.target.fileTypes[urlRow.field] : [qsTr("Any file (*)")]
                 onAccepted: inspector.set(urlRow.field, selectedFile)
             }
         }

@@ -1,7 +1,8 @@
 # QQ, the QOR Engine (ADR-081, ADR-083): Qt 6, C++20 and QML.
 #
-#   runtime/  the QML module "QQ": worlds, light, props
+#   runtime/  the QML module "QQ": worlds, light, props, physics, the player, particles, sound, logic
 #   studio/   QQ Studio, the native editor
+#   player/   the QQ Player, natively and in a browser
 #   tests/    Qt Test suites, rendering for real and reading back pixels
 #
 # Configure with the Qt the owner installed (commercial licence, ADR-083), MSVC 2022 and Ninja:
@@ -19,7 +20,17 @@ project(QQ VERSION 0.1.0 DESCRIPTION "QQ, the QOR Engine" LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick Quick3D QuickControls2 Test)
+# The browser build (Qt for WebAssembly) is the Player alone: no Studio, no tests.
+if(EMSCRIPTEN)
+    set(QQ_PLAYER_ONLY ON)
+endif()
+option(QQ_PLAYER_ONLY "Build only the runtime and the QQ Player" OFF)
+
+if(QQ_PLAYER_ONLY)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick Quick3D)
+else()
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick Quick3D QuickControls2 Test)
+endif()
 
 qt_standard_project_setup(REQUIRES 6.12)
 
@@ -36,7 +47,10 @@ else()
 endif()
 
 add_subdirectory(runtime)
-add_subdirectory(studio)
+add_subdirectory(player)
 
-enable_testing()
-add_subdirectory(tests)
+if(NOT QQ_PLAYER_ONLY)
+    add_subdirectory(studio)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

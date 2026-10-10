@@ -1,14 +1,17 @@
 # Handoff
 
-**Current state, 8 October 2026.** The code is the public repository `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064).
-`main` is at `d97fa69` (PR #15, §4 items 58 and 59), and Pleroma CI is green on `main` after a re-run. Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Work goes on a `session/*` branch and
+**Current state, 10 October 2026.** The code is the public repository `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064).
+`main` is at `0583835` (the merge of PR #19, P3.1, after PR #20), as fetched on 10 October 2026; CI on it was not looked
+at this session. On 8 October Pleroma CI was green on `main` (then `d97fa69`, PR #15) after a re-run. Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Work goes on a `session/*` branch and
 reaches `main` by pull request. `origin` is the private archive, not the current tree. Live, devnet-only and with test
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 item 64 (9 October 2026): P3.1 done. QQ Studio edits a lit 3D world (scene tree, inspector, move, turn
-and scale handles), keeps it as canonical QML in a Qontrol project, imports the 2D preview's scenes, and opens from the
-launcher's "Open in QQ Studio".** On branch `session/qq-p3.1-studio`. Before it: item 63 the same day: QQ's native engine
+**Newest: §4 item 65 (10 October 2026): P3.2 done. Worlds play: physics, a player under keyboard, mouse and gamepad,
+particles, sound and logic rebuilt on each save, in QQ Studio (Play and Stop, the scene restored exactly) and in the QQ
+Player, natively and in a browser, measured (ADR-084).** In pull request #21 (`session/qq-p3.2-play`). Before it:
+item 64 (9 October 2026): P3.1 done, QQ Studio edits a lit 3D world and keeps it in a Qontrol project (merged as pull
+request #19). Before it: item 63 the same day: QQ's native engine
 started on Qt 6.12 (merged as pull request #18). Before them: item 62 (8 October 2026): QQ moves to Qt 6 (ADR-083, the owner's decision); ARQADE's
 window is signed in with the launcher's session; the accessibility flake is found and fixed; item 61 the same day: QQ's
 TypeScript preview, and IBM Bob's unfinished work checked, fixed and finished. Both merged as pull request #17. Before them: item 60 (7 October 2026): the launcher's browser checks
@@ -79,13 +82,13 @@ ticked the same day against the owner's review of a ten-line summary.
 | Security track | Items 1 to 7 done. **The owner confirmed credential rotation on 2026-09-14:** the Postgres password and both JWT secret pairs. **Nine credential-shaped values** (from `docker/n8n/docker-compose.yml` and `docker/docker-compose.testnet.yml`) are not in the current tree or in the public repository's history; they exist only in the private archive's history, and rotating them is still advised if those services ever ran (an owner step in `OWNER.md`). CI's security job scans for committed credentials. **A recovery phrase was pasted into a chat on 5 October; treat that key as exposed and replace it.** Sessions record a placeholder IP address. §3. |
 | `services/qor-auth` (QOR ID) | **Live at `https://id.qorsync.dev`**, the Railway service `qor-auth`, deployed from `main`. **172 tests pass** (8 October 2026, against Postgres 16 and Redis 7.4, `--include-ignored`), the log and SQL checks among them. Latest migration: 022. Password and key sign-in (Sr25519 and SS58; ADR-023, ADR-024, ADR-039); email verification and reset through Resend; the account page `/account` (change the password, add or change the email); sign-in for other apps by OAuth 2.1 with PKCE (ADR-073), the apps registered in `QOR_OAUTH_CLIENTS`, ARQADE among them; one name per account, no `#0001` (ADR-075, migrations 019 and 021); levels, XP and tasks, the welcome grant recorded as owed (since 8 October the owner can list owed grants and mark one paid against its transfer's hash; nothing pays them yet); the launcher signing a person into an app it opened with its own session (`/api/v1/oauth/handoff`, 8 October), and three sign-ups per network address read from Railway's `X-Real-IP` (ADR-078, migration 020); avatars (ADR-079, migration 022). Registration creates no CGT and calls no chain (R-3). Agent keys are authorised, never created (ADR-014). **The Resend bounce webhook is an owner step, and delivery to a real inbox is unconfirmed** (§4.0). One known gap (§2). History: §4 items 5 to 8, 33 and 50 to 57. |
 | `tools/qor-launcher` | **Version 0.1.8** (`tauri.conf.json`). **224 Rust tests pass (9 ignored: 8 without a node, 1 that opens QQ Studio), and all ten browser checks pass** — design 3, accessibility 49, gates view 34, Projects 104, Inventory 238, Market 127, QQ 42, vault gate 65, contrast 54, readability 361 — on 8 October 2026 (§4 item 62; the accessibility flake is fixed). In pull request #17 since 8 October, not in a build: **QQ's preview** on the rail, **ARQADE in a window of its own, signed in with the launcher's session** (P7.18, partly), and **six backdrops** in Settings. The 0.1.8 installer was built locally and is **unsigned, with no update channel** (L6); 0.1.7 added `qor://pay`. Avatars and rings reached `main` after 0.1.8 and need a new build to ship. The default chain endpoint is `wss://rpc.qorsync.dev` (`DEFAULT_RPC` in `src-tauri/src/chain/mod.rs`; `LOCAL_RPC` is `ws://127.0.0.1:9944`). Features: the vault's key in the OS keychain with no lock screen (ADR-056); QOR ID sign-in by key; send, mint, Inventory, trade, sell and buy; the Market view (no search, no indexer); Projects and Qontrol; the gates dashboard; `qor://pay`, approved in the host dialog (ADR-077); the level bubble and XP bar; the avatar with its ring; one QFX backdrop shader. The Nexus still shows nine frozen-app tiles marked "local" or "forming". L1.1, L1.2, L1.3, L1.5, L1.6, L1.7, L3.1 and L3.2 are done (L1.6 and L1.7 ticked on 6 October 2026 against CI). **L1.4 is partly exercised:** the owner approved real `qor://pay` tips in the host dialog on 5 and 6 October; a decline and an endpoint change are not yet exercised (§4.0). History: §4 items 9, 14 to 24 and 54 to 57. |
-| Products | **Seven, each with a blueprint, a track and a gate**: P1 to P6 (§4 item 12) and **P7, ARQADE** (ADR-069). The shared substrate decisions ADR-046 to ADR-051 are all accepted: ADR-047 and ADR-051 on 2026-09-22, ADR-046, ADR-048, ADR-049 and ADR-050 on 2026-09-28. Built inside the launcher: Qontrol's Projects (P1.1, P1.2), QFX's backdrop (P2.1, six to choose from since 8 October), the Market view and, since 8 October, **QQ's TypeScript preview**. **QQ itself moves to Qt 6 (ADR-083)**: its P3 items are rewritten, and P3.1 started on 9 October 2026 on Qt 6.12 (§4 item 63). ARQADE is its own site (row below). GNOSIS and Stream have not started. |
+| Products | **Seven, each with a blueprint, a track and a gate**: P1 to P6 (§4 item 12) and **P7, ARQADE** (ADR-069). The shared substrate decisions ADR-046 to ADR-051 are all accepted: ADR-047 and ADR-051 on 2026-09-22, ADR-046, ADR-048, ADR-049 and ADR-050 on 2026-09-28. Built inside the launcher: Qontrol's Projects (P1.1, P1.2), QFX's backdrop (P2.1, six to choose from since 8 October), the Market view and, since 8 October, **QQ's TypeScript preview**. **QQ itself moves to Qt 6 (ADR-083)**: its P3 items are rewritten; on Qt 6.12, P3.1 is done (9 October 2026, §4 item 64) and P3.2 is done (10 October 2026, §4 item 65): worlds play in QQ Studio and in the QQ Player, natively and in a browser. ARQADE is its own site (row below). GNOSIS and Stream have not started. |
 | Release gates | **`GATES.toml` accepted (2026-09-14).** Coverage: cargo-llvm-cov, 80% of lines, only on pallets that move CGT or own DRC-369 semantics. Public Release gained `public-release.name-clearance` on 2026-09-17, a tightening logged in the file. **On 2026-10-06 (ADR-080) `check-design.mjs` dropped its five effect rules and the QFX and ceremony exemptions**, keeping colour tokens, the type scale and the tracking scale; it is logged in the change log with the owner's approval. **Loosening any evidence rule needs the owner's separate decision** (the rule is in the file). |
 | CI | **"Pleroma CI", GitHub Actions on the public `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064), and green.** Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Jobs run in the `QOR-MATRIX` organisation, where the billing lock that refused the personal account's jobs in late September does not apply (ADR-064), and `probe.yml` is gone: the workflows are `ci.yml` and `devnet-image.yml`. Jobs: `chain` (format, lints and tests, without `SKIP_WASM_BUILD`); `chain-newest-clippy` (the newest Rust, report-only, scheduled); `two-validators` (scheduled); `qor-auth` (with Redis, `--include-ignored`); `launcher` (with the browser checks: nine on `main`, ten with QQ's from §4 item 61); `arqade`; `coverage`; and `security` (dependency audits, the committed-credential scan, the `[patch]` guard and the `framework/` guard). A flaky wait loop in the launcher's browser checks was fixed on 6 October (PR #9). Woodpecker and `ci.qorsync.dev` are retired; deleting the `ci` DNS record in Cloudflare is an owner step. Scope changes are logged in `GATES.toml`. History: §4 items 1, 27 to 32 and 42. |
 | Infrastructure | **Railway** (project `demiurge`): Postgres, Redis, QOR ID (`id.qorsync.dev`) and Demiurge Devnet (two validators and an RPC node, ADR-068). **Vercel**: ARQADE, project `qor-arqade` (team Astra Matrix, Hobby plan), with Neon Postgres (ADR-074). Fly.io is not used: ADR-015's Fly plan is superseded by ADR-063 and ADR-068. |
 | Production | No production or test network. Live, devnet-only and with test CGT: Demiurge Devnet, QOR ID and ARQADE. |
 | ARQADE (`products/arqade/`) | **Live at `https://qor-arqade-tau.vercel.app`**: standard Next.js 16 on Neon Postgres, migrations 0001 to 0003 applied on production builds (`scripts/migrate.mjs`). **48 tests** (6 October 2026). QOR ID is the only sign-in; Play Now, the solo games, Flux Four and Rift Reversi multiplayer, rankings, chat, devnet reads, tips through the launcher (ADR-076, ADR-077; the owner tipped successfully on 5 and 6 October), and the level bubble and level row. P7.1 to P7.4 are ticked (P7.4 on 6 October 2026). |
-| Decisions | 81 ADRs (ADR-001 to ADR-081); ADR-069 to ADR-081 are accepted. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan. The owner's open questions are in §4.0. |
+| Decisions | 84 ADRs (ADR-001 to ADR-084); ADR-069 to ADR-084 are accepted. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan; ADR-083 (8 October) builds it on Qt 6; ADR-084 (10 October) settles the Player's web build (Qt's threaded kit, served cross-origin isolated, sound unpanned in a browser). The owner's open questions are in §4.0. |
 | Not live | Avatars in ARQADE (ADR-079 step 3, not built), paying the welcome grant (grants are recorded as owed, never paid), ARQADE inside the launcher (P7.18), the indexer, the Mesh, fees and issuance. |
 
 ## 2. Known gaps: do not build on these
@@ -1990,6 +1993,42 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     evidence. **Next:** P3.2, worlds that play: physics, input, particles, spatial audio, live behaviours, the Player
     native and in a browser.
 
+65. **10 October 2026: P3.2 done: worlds play, in QQ Studio and in the QQ Player, natively and in a browser.** On branch
+    `session/qq-p3.2-play`, in pull request #21 (commits `3e15e97` and `1b20318`). The work was found uncommitted in the tree at the start of the session,
+    built and tested from scratch, and finished. **Built:** in the runtime, bodies on `Shape` (none, static, dynamic;
+    mass, bounce, friction) under the scene's `gravity`; `Player` (a character controller with its own fall and jump,
+    and a camera that follows); `Input` (C++: keyboard, mouse and an XInput gamepad as move, look, jump and run; not
+    read while a text field has focus; let go when the window loses focus); `Emitter` (particles drawn with `SoftDot`,
+    a sprite made in memory); `Sound`; `Behaviour`, `Logic` and `LogicFile` (a logic file built when play starts and
+    rebuilt on each save, a broken save leaving the running logic in place and saying why); `Game` (a world playing one
+    scene file); `SceneIO.play` (a copy built from the scene's canonical text); `gpu` (draw on the faster of two GPUs).
+    In the Studio: Play (F5) and Stop (Esc), the eye following the player, a drag looking around, New behaviour, and
+    sounds and logic adopted into the project. The QQ Player (`products/qq/player/`): plays a scene file or its bundled
+    playground, `--capture` and `--measure`. The browser build: Qt's multithreaded WebAssembly kit, `build.ps1 -Web`,
+    and `player/measure-web.mjs`; **ADR-084** records why (the single-threaded kit has no Qt Multimedia; Qt's spatial
+    audio makes its sound on a worker, where the web has none, so in a browser a `Sound` is a plain sound effect whose
+    volume follows the player, unpanned; the page must be cross-origin isolated, which binds ARQADE in P3.5).
+    **Found and fixed:** `tst_play` crashed in its gamepad case with an access violation. It was the test: `Stage::open`
+    counted `frameSwapped` through a lambda capturing a local, with the window as context; the signal is queued from the
+    render thread, a late one arrived after `open()` returned and wrote into a stack slot where `qWait`'s event loop had
+    saved `r13`, and the next function to rely on `r13` destroyed a string through a pointer of 1. Found with cdb, a
+    debug-info build and a hardware watchpoint; fixed by counting through a short-lived `QObject` context, whose
+    destruction drops calls still queued (`tst_world` had the same shape). Also: the inspector's "Unable to assign
+    [undefined]" warnings when Play swaps the selection; an unused constant clang warned about in `input.cpp`; mouse
+    look had no check, and has one now. **Evidence, on the owner's machine** (Qt 6.12, MSVC 2022, RTX 4060 laptop):
+    `tst_play` 11 cases, `tst_player` 4, `tst_scene` 14, `tst_studio` 10, `tst_world` 3, all passing; five planted
+    faults (no gamepad dead zone; logic not watched; Play on the scene, not a copy; sound active while editing; a
+    player that ignores the mouse), each failing its own check; the native Player's first frame
+    1,371 and 1,438 ms from the process starting, 229 and 345 frames a second; in headless Chrome, three runs: first
+    frame 5,953, 5,812 and 5,779 ms from the page starting to load (cold, served from the same machine), 220 to 227
+    frames a second, 44.1 MB served (15.9 MB gzip, 11.7 MB brotli), the first frame the game (looked at), no error on
+    the page or in any worker. **Not checked:** what a sound sounds like (the checks see it set up, not heard); a real
+    gamepad (the checks give the pad's state). **Deployed:** `build.ps1 -Deploy` reran every suite and put the P3.2
+    Studio where the launcher's **Open in QQ Studio** finds it (1,520 files, 182 MB, up from 113 MB with physics,
+    audio and Qt Multimedia); started with no Qt on the path, it drew its scene and exited 0. **Open:** a logic file is code with the engine's full reach; before games are
+    published (P3.4) and played by others (P3.5), how a stranger's logic is confined needs deciding. **P3.2 ticked** in
+    DIRECTION with each clause's evidence. **Not in CI** (ADR-083). **Next:** P3.3, the agent.
+
 ## 5. Traps, so nobody re-learns them
 
 **Launcher checks**
@@ -2021,6 +2060,29 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   URL with scheme `x`; write the whole `file:///` URL instead (`sceneio.cpp`, `urlText`).
 - **A still Qt Quick scene draws once and then waits.** A test that waits for frames to be swapped times out; ask for
   frames (`window->update()`) and count them as they come (`products/qq/tests/tst_world.cpp`).
+- **A lambda counting `frameSwapped` must not capture a local with the window as its context.** The signal comes from
+  the render thread, so each call is queued; one still queued when the function returns arrives later and writes into
+  a stack frame that has gone. In `tst_play` it overwrote the slot where `qWait`'s event loop had saved `r13`, and a
+  later case crashed destroying a string (10 October 2026). Count through a local `QObject` as the context: destroying
+  it drops the calls still queued (`products/qq/tests/tst_play.cpp`, `Stage::open`).
+- **A crash in a `QString` destructor inside a test can be another frame's write.** The tools that found it: a
+  `RelWithDebInfo` build in its own folder, `cdb` from the Windows SDK with Qt's `.pdb` files, a conditional breakpoint
+  after each call to see which returns with a register changed, then a hardware watchpoint (`ba w8`) on the stack slot.
+- **Qt for WebAssembly: use the multithreaded kit for QQ.** The single-threaded kit has no Qt Multimedia, so Qt Spatial
+  Audio is not there and every QQ scene fails to load ("module QtQuick3D.SpatialAudio is not installed"). The threaded
+  page must be cross-origin isolated (ADR-084).
+- **Qt's spatial audio cannot sound in a browser.** It makes its sound on a thread of its own, a Web Worker, where the
+  web has no audio; the thread throws in `QWasmAudioDevices::createAudioSink` and dies, and after that **no Qt log line
+  reaches the console**, so the Player's own report vanished too. A threaded page's errors are on its workers'
+  consoles: `measure-web.mjs` attaches to every worker. A function-named build (`--profiling-funcs` at link) gives the
+  stack names.
+- **`emscripten_get_now()` in a threaded build counts from 1970**, so that every thread shares one clock; a time
+  rounded into an `int` from it overflows. For the page's clock, read `performance.now()` on the page's thread
+  (`player/main.cpp`, `sinceStart`).
+- **Headless Chrome on a laptop with two GPUs draws on the slower one** unless given `--force_high_performance_gpu`:
+  12 frames a second on the Intel GPU, 220 on the RTX 4060, for the same build.
+- **A macro's arguments are split at commas outside parentheses**, braces and brackets included: in `EM_ASM`, an
+  object or array literal with commas must be wrapped in parentheses.
 - **`Copy-Item` keeps a file's old time, so Ninja does not rebuild it.** Restoring a source after a planted fault that
   way left the faulty build in place, and the next run tested the fault (9 October 2026). Touch restored files.
 - **`check-design.mjs` matches `rgb(` anywhere outside the token files, a function name included.** A helper
@@ -2564,10 +2626,11 @@ container named here.*
 
 ## 7. Repository state
 
-- **Now (6 October 2026): the public repository `QOR-MATRIX/demiurge-chain`** (ADR-064), whose `main` is at
-  `5e90748` (PR #14). Work goes on a `session/*` branch and reaches `main` by pull request; PRs #1 to #14 are
-  merged. `origin` is the private archive and is not the current tree. §4 item 58's owner confirmations and item 59
-  follow on `session/docs-current`.
+- **Now (10 October 2026): the public repository `QOR-MATRIX/demiurge-chain`** (ADR-064, remote `matrix`), whose
+  `main` is at `0583835` (PR #19, P3.1; PRs #1 to #20 are merged). Work goes on a `session/*` branch and reaches `main`
+  by pull request. `origin` is the private archive and is not the current tree, and the local branch `main` follows
+  it, so it is not the public `main`. §4 item 65 (P3.2) is on `session/qq-p3.2-play`, branched from `0583835`, in
+  pull request #21.
 - **Earlier (29 September 2026): the public repository's start.** Local branch `public-main` then tracked
   `public/main` on `ALaustrup/demiurge-chain`: `e611c99` (import) and `2681a51` (CI and Railway records). The
   repository moved to `QOR-MATRIX` on 1 October 2026 (ADR-064).
