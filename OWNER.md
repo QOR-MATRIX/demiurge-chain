@@ -33,11 +33,13 @@ Until someone switches a feature on with their own key, it is simply off.
 ## Also fixed
 
 Pull request **#22 (P3.3) merged into #21's branch, not into main**: they were merged 16 s
-apart, before GitHub could retarget it. Pull request **#23** brings it to main.
+apart, before GitHub could retarget it. **#23** brought it to main, then **#24** (this rule);
+both are merged and automatic checks pass on main.
 
 ## What only you can do
 
-1. **Merge #23** (P3.3 to main), then **#24** (this AI-costs rule).
+1. **Optional: prove P3.3** — type your own Anthropic key into QQ Studio's Agent panel and
+   describe a game; the run is billed to your key. Anyone with their own key can do it instead.
 2. **CI** — *automatic build and test* — **for QQ:** GitHub cannot build Qt without your
    licence. Add your Qt account to its secrets, or let your PC run CI (a *self-hosted runner*).
 3. **Check with Qt** that your licence covers CI, AI assistants and shipping the browser Player.

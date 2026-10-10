@@ -1,8 +1,8 @@
 # Every system this repository names
 
 **What this is:** one table of everything Demiurge calls a system or a surface, what it actually is, and
-whether it exists. **Last brought up to date on 10 October 2026 (afternoon)**, against the working tree of branch
-`session/generation-paid-by-user`: the QOR Engine (QQ) row was checked against the code and its six Qt Test suites run
+whether it exists. **Last brought up to date on 10 October 2026 (afternoon)**, against `main` at `b99c689`, where CI
+passed: the QOR Engine (QQ) row was checked against the code and its six Qt Test suites run
 that day, with the QQ Player built and played in a browser and the agent's tools driven by the official MCP Python SDK;
 the frozen list's Sophia note was checked against `apps/hub` and `.env.example`; the launcher row's pull request #17 was
 confirmed merged. On 8 October 2026 the QOR ID, launcher, QQ, QFX, Settings and ARQADE rows were checked against the
