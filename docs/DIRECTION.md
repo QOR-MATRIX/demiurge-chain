@@ -930,7 +930,8 @@ preview until the Qt Player plays in the launcher and in ARQADE (ADR-083 decisio
 4. [ ] **Publishing a game.** A Publish action commits the scene through Qontrol and mints that commit as a Cartridge
    (a DRC-369 asset), signed by the launcher's vault behind the host dialog, asked over the local channel the
    launcher opens for the Studio it started; the Studio never holds a key. Depends on P3.2, M4.1 and L1.4's native
-   dialogs being exercised, and on the QQ Player's lockdown (ADR-087 decision 2), built first.
+   dialogs being exercised. The QQ Player's lockdown it waited on (ADR-087 decision 2) is built (10 October 2026,
+   HANDOFF §4 item 70).
 5. [ ] **ARQADE delivery.** Published games appear in ARQADE; Play loads the WebAssembly QQ Player with the game,
    signed in through QOR ID when the player is; the TypeScript preview and its check are retired in this change
    (ADR-083 decision 6). Depends on P3.4 and P7 (ARQADE running). Under ADR-087 strangers' games play only here, in a
