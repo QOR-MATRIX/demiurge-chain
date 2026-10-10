@@ -198,8 +198,30 @@ QString SceneIO::write(QObject *scene, const QUrl &file) const
     return out;
 }
 
+void SceneIO::confineTo(const QUrl &package)
+{
+    m_confined = true;
+    m_package = package.scheme() == QStringLiteral("qrc") ? QStringLiteral("qrc:") + QDir::cleanPath(package.path())
+                                                         : QDir::cleanPath(package.toLocalFile());
+}
+
+bool SceneIO::outside(const QUrl &url) const
+{
+    if (!m_confined || url.isEmpty())
+        return false;
+    if (url.scheme() == QStringLiteral("qrc"))
+        return false;  // the executable's own resources: QQ's modules and a bundled game
+    if (!url.isLocalFile())
+        return true;
+    const QString path = QDir::cleanPath(url.toLocalFile());
+    return !(path.compare(m_package, Qt::CaseInsensitive) == 0
+             || path.startsWith(m_package + QLatin1Char('/'), Qt::CaseInsensitive));
+}
+
 QString SceneIO::save(QObject *scene, const QUrl &file) const
 {
+    if (m_confined)
+        return QStringLiteral("A game cannot write files.");
     if (!isEntity(scene))
         return QStringLiteral("There is no scene to save.");
     if (!file.isLocalFile())
@@ -218,6 +240,10 @@ QString SceneIO::save(QObject *scene, const QUrl &file) const
 
 QObject *SceneIO::load(const QUrl &file, QObject *parent)
 {
+    if (outside(file)) {
+        fail(QStringLiteral("A game reads only its own files."));
+        return nullptr;
+    }
     // A file on this computer, or one bundled in the executable (the QQ Player's own game, in a browser).
     const bool bundled = file.scheme() == QStringLiteral("qrc");
     QFile f(bundled ? QLatin1Char(':') + file.path() : file.toLocalFile());
@@ -230,6 +256,10 @@ QObject *SceneIO::load(const QUrl &file, QObject *parent)
 
 QObject *SceneIO::loadText(const QString &text, const QUrl &file, QObject *parent)
 {
+    if (outside(file)) {
+        fail(QStringLiteral("A game builds scenes only among its own files."));
+        return nullptr;
+    }
     QQmlEngine *qml = engine();
     if (!qml) {
         fail(QStringLiteral("No QML engine to build the scene with."));
@@ -269,6 +299,10 @@ QObject *SceneIO::loadText(const QString &text, const QUrl &file, QObject *paren
 
 QObject *SceneIO::play(QObject *scene, const QUrl &file, QObject *parent)
 {
+    if (outside(file)) {
+        fail(QStringLiteral("A game plays only among its own files."));
+        return nullptr;
+    }
     if (!isEntity(scene) || scene->property("kind").toString() != QStringLiteral("Scene")) {
         fail(QStringLiteral("There is no scene to play."));
         return nullptr;
@@ -307,6 +341,10 @@ QString SceneIO::fieldType(QObject *object, const QString &name) const
 
 QUrl SceneIO::adopt(const QUrl &model, const QUrl &project)
 {
+    if (m_confined) {
+        fail(QStringLiteral("A game cannot copy files."));
+        return {};
+    }
     const bool bundled = model.scheme() == QStringLiteral("qrc");
     if ((!model.isLocalFile() && !bundled) || !project.isLocalFile()) {
         fail(QStringLiteral("Only files on this computer can be added to a project."));
@@ -359,6 +397,10 @@ QUrl SceneIO::adopt(const QUrl &model, const QUrl &project)
 
 QUrl SceneIO::writeLogic(const QUrl &project, const QString &name, const QString &text)
 {
+    if (m_confined) {
+        fail(QStringLiteral("A game cannot write files."));
+        return {};
+    }
     if (!project.isLocalFile() || !QDir(project.toLocalFile()).exists()) {
         fail(QStringLiteral("Logic is written into a project folder."));
         return {};
@@ -469,6 +511,8 @@ void SceneIO::discard(QObject *scene)
 
 QVariantMap SceneIO::project(const QUrl &folder) const
 {
+    if (outside(folder))
+        return {};
     const QDir root(folder.toLocalFile());
     auto names = [&root](const QString &folder) {
         QStringList out;
@@ -494,6 +538,8 @@ QVariantMap SceneIO::importQqJson(const QUrl &file)
         return result;
     };
 
+    if (outside(file))
+        return refuse(QStringLiteral("A game reads only its own files."));
     QFile f(file.toLocalFile());
     if (!file.isLocalFile() || !f.open(QIODevice::ReadOnly))
         return refuse(QStringLiteral("The file could not be read."));

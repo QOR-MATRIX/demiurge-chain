@@ -29,7 +29,9 @@ Node {
 
     RuntimeLoader {
         id: loader
-        source: prop.source
+        // Whole, against the scene file this entity came from: a relative path given to the loader as written would be
+        // taken against QQ's own module, and a confined game's loads are checked whole (ADR-087).
+        source: SceneIO.resolvedUrl(prop, prop.source)
     }
 
     // What a click lands on: an invisible box over the model's bounds. The meshes the loader makes cannot be marked

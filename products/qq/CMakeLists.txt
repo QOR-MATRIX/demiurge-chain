@@ -28,9 +28,9 @@ endif()
 option(QQ_PLAYER_ONLY "Build only the runtime and the QQ Player" OFF)
 
 if(QQ_PLAYER_ONLY)
-    find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick Quick3D)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Multimedia Network Qml Quick Quick3D)
 else()
-    find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Network Qml Quick Quick3D QuickControls2 Test)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Multimedia Network Qml Quick Quick3D QuickControls2 Test)
 endif()
 
 qt_standard_project_setup(REQUIRES 6.12)

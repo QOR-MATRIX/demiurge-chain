@@ -74,3 +74,14 @@ target_link_libraries(tst_agent PRIVATE
 add_dependencies(tst_agent qq-studio qq-mcp)
 
 add_test(NAME tst_agent COMMAND tst_agent)
+
+qt_add_executable(tst_lockdown tst_lockdown.cpp)
+
+target_compile_definitions(tst_lockdown PRIVATE QQ_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+
+target_link_libraries(tst_lockdown PRIVATE
+    Qt6::Test Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Quick3D Qt6::Network
+    qqruntime qqruntimeplugin
+)
+
+add_test(NAME tst_lockdown COMMAND tst_lockdown)

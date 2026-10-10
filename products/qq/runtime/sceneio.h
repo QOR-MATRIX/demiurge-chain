@@ -97,15 +97,26 @@ public:
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
     QString lastError() const { return m_lastError; }
 
+    /// Confine this engine's SceneIO to one game's package (ADR-087): it reads scenes only from inside `package` (a
+    /// folder, on this computer or bundled in qrc:), and writes and copies nothing at all. Called by the QQ Player before
+    /// a game loads, from C++ only, so a game cannot lift it; there is no way back.
+    void confineTo(const QUrl &package);
+    bool confined() const { return m_confined; }
+
 signals:
     void lastErrorChanged();
 
 private:
     void fail(const QString &why);
+    /// Whether `url` is out of bounds for a confined SceneIO: anything not under the package, other than the
+    /// executable's own resources. Always false when not confined.
+    bool outside(const QUrl &url) const;
     QQmlEngine *engine() const;
 
     QQmlEngine *m_engine = nullptr;
     QString m_lastError;
+    bool m_confined = false;
+    QString m_package;
 };
 
 /// A number as a scene file writes it: four decimal places at most, no trailing zeros, never "-0".

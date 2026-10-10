@@ -3,13 +3,13 @@
 //
 // In a browser it is quieter with distance from the scene's player and silent beyond `reach`, but not panned: Qt's
 // spatial audio makes its sound on a thread of its own, and a web page can make sound only on its main thread (Web
-// Audio is not there in a worker), so there it is a plain sound effect whose volume follows the player.
+// Audio is not there in a worker), so there it is a plain sound effect (WebVoice, QQ's own, so a game never needs Qt
+// Multimedia's QML, which also offers the camera) whose volume follows the player.
 
 import QtQml
 import QtQuick
 import QtQuick3D
 import QtQuick3D.SpatialAudio
-import QtMultimedia
 import QQ
 
 Node {
@@ -54,13 +54,13 @@ Node {
     Instantiator {
         id: webVoice
         active: sound.sounding && sound.web
-        delegate: SoundEffect {
+        delegate: WebVoice {
             readonly property QtObject listener: sound.parent ? sound.parent.player : null
             readonly property real distance: listener ? listener.feet.minus(sound.scenePosition).length() : 0
             source: SceneIO.resolvedUrl(sound, sound.source)
             // As SpatialSound's logarithmic model: full within a metre, half at each doubling, none beyond the reach.
             volume: distance > sound.reach ? 0 : Math.min(1, sound.volume / Math.max(1, distance))
-            loops: sound.loops ? SoundEffect.Infinite : 1
+            loops: sound.loops ? -2 : 1  // -2: for ever
             Component.onCompleted: play()
         }
     }
