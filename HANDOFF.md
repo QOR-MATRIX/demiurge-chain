@@ -1,8 +1,10 @@
 # Handoff
 
-**Current state, 10 October 2026.** The code is the public repository `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064).
-`main` is at `cdc3b31` (the merge of PR #28, the lockdown measured and L1.4's dialogs), and **Pleroma CI passed on it**
-(run 38074745950, 10 October 2026: chain, QOR ID, launcher, ARQADE, coverage and security). PRs #1 to #28 are merged.
+**Current state, 15 October 2026.** The code is the public repository `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064).
+`main` is at `455b27d` (the merge of PR #29: P3.4, the unfunded refusal, the week's advisories, ADR-089 and ADR-090);
+every check on #29's last commit passed, security included (15 October 2026). PRs #1 to #29 are merged. On `main`,
+scheduled runs failed the security job on 13, 14 and 15 October, from that week's advisories, which #29 fixes. Before
+that, on 10 October, Pleroma CI passed on `cdc3b31` (run 38074745950).
 On 8 October Pleroma CI was green on `main` (then `d97fa69`, PR #15) after a re-run. Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Work goes on a `session/*` branch and
 reaches `main` by pull request. `origin` is the private archive, not the current tree. Live, devnet-only and with test
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
@@ -2315,6 +2317,27 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     fails with its message on each planted condition (a crate that is built, `rustls`, in `ruzstd`'s place; a crate absent
     from the lockfile); `GATES.toml` and `ci.yml` parse; the launcher's 15 gates tests pass. **Next:** the owner pushes
     (CI on #29 is the proof that the security job is green); the owner publishes again.
+    **That night.** The owner pushed; **every check on #29's last commit (`1f89400`) passed, security included**, and the
+    owner merged #29 (`main` at `455b27d`). For the owner's retry, the launcher's saved chain was the local node
+    (`ws://127.0.0.1:9944`, in its `settings.json`), and the node of the afternoon was gone with its `--tmp` state, so a
+    fresh `demiurge-node --dev --tmp` was started, `5Gx19…5sPwt` funded with 5,000 test CGT from Alice (total issuance
+    unchanged; a script that refuses any chain not named as a development chain) and the launcher started from
+    `1f89400` (`npm run app:dev`). **The owner's run:** a project, "QQTest1", minted from the launcher (block 174:
+    `drc369.mint`, the account's singles collection created, 1,004.375 CGT held as deposits, nonce 1), so the launcher's
+    signing path, the funding and the dialog work. **Publishing from QQ Studio did not:** the launcher's log shows the
+    Studio connecting twice over the host channel and closing once with code 0, and **no request reaching the
+    launcher** (a refused request is logged with its message since item 74; an accepted one is not logged at all), and
+    no further transaction on the chain. **What the Studio said is not recorded**, so the cause is not established.
+    Three candidates fit what was measured, none confirmed: (1) the deployed QQ Studio
+    (`%LOCALAPPDATA%\qq-studio\qq-studio.exe`, 10 October 12:39) predates two Studio fixes still waiting on
+    `build.ps1 -Deploy` (Publish pressable and saying what is missing; a long refusal shown whole), so a precondition
+    may have stopped it silently; (2) the Studio was on a project that is not chosen or not versioned, which it refuses
+    without asking the launcher; (3) the Studio was on QQTest1 at the commit just minted, which the launcher answers
+    `unchanged` with nothing asked and nothing logged. **P3.4 stays unticked.** **Next:** the owner runs
+    `pwsh products/qq/build.ps1 -Deploy`, publishes again from the Studio and reports its notice word for word. **Built
+    so the next run leaves evidence either way:** the launcher now logs an answered product request as well as a
+    refused one, by product and method only, never its parameters or answer (`host/session.rs`; the host's 15 tests,
+    its log check among them, pass; clippy and fmt clean).
 
 ## 5. Traps, so nobody re-learns them
 

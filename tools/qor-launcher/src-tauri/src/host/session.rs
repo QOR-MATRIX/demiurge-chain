@@ -173,7 +173,12 @@ where
             ))
         };
         let reply = match answer {
-            Ok(result) => ToProduct::Result { id, result },
+            Ok(result) => {
+                // Answered requests too, by method only: a publish that left no line either way could not be told apart
+                // from one never sent (15 October 2026). Neither params nor the answer are logged.
+                tracing::info!(product = product.id, %method, "a product's request was answered");
+                ToProduct::Result { id, result }
+            }
             Err(refusal) => {
                 // The message too: the code alone left a refused publish unexplained (15 October 2026). It never holds the
                 // token or the session id, which `nothing_secret_reaches_the_log_at_any_level` checks.
