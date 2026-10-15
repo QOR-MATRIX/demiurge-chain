@@ -37,22 +37,19 @@ The launcher now logs every request a product makes, so the next try shows the c
 
 ## What only you can do
 
-1. **Decide:** Social's library check reports the same harmless notice (`rsa`) you approved
-   ignoring for QOR ID on 14 September. Same arrangement for Social? Until then, GitHub
-   doesn't check Social's libraries.
-2. **Review and merge** pull requests **#30** (tonight's record) and the Social one, when its
-   checks pass.
-3. **Update QQ Studio**, then publish again: with it closed, run
+1. **Review and merge** pull requests **#30** (tonight's record) and **#31** (Social), when
+   their checks pass. Social's library check now follows QOR ID's terms, as you chose.
+2. **Update QQ Studio**, then publish again: with it closed, run
    `pwsh products/qq/build.ps1 -Deploy`; then **Publish**, and send me its message word for word.
-4. **Before Social opens to anyone else:** how long messages are kept, and the rules reports
+3. **Before Social opens to anyone else:** how long messages are kept, and the rules reports
    are judged against (L8.7).
-5. **The last two L1.4 checks** — *the launcher's approval dialogs*: change the QOR ID address
+4. **The last two L1.4 checks** — *the launcher's approval dialogs*: change the QOR ID address
    (decline once, approve once); sign in after QOR ID was unreachable at start-up.
-6. **CI for QQ:** add your Qt account to GitHub's secrets, or a *self-hosted runner* — *your
+5. **CI for QQ:** add your Qt account to GitHub's secrets, or a *self-hosted runner* — *your
    PC running GitHub's checks*. Check with Qt that your licence allows it.
-7. **Name the welcome-grant payer**; **add an email** at `id.qorsync.dev/account`; **replace
+6. **Name the welcome-grant payer**; **add an email** at `id.qorsync.dev/account`; **replace
    the key** pasted into a chat on 5 October.
-8. **Housekeeping:** the GitKraken download (`archive-bZLIQp/`); delete `QOR-MATRIX/arqade`;
+7. **Housekeeping:** the GitKraken download (`archive-bZLIQp/`); delete `QOR-MATRIX/arqade`;
    the Resend bounce webhook; the `ci` record and tunnel in Cloudflare; rotate nine old
    credentials; the nine frozen *home-map* tiles. Before commercial use: a paid Vercel
    plan, legal review, trademark clearance. Open questions: OPEN-1 to OPEN-4, U-4, U-14 to

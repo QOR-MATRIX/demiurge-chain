@@ -760,6 +760,14 @@ type = "tightening"
 change = "Social's suite and CI job. [suites.social] runs cargo test in services/social; [ci].quality_gates gains the social job (fmt, clippy -D warnings, tests against Postgres 16); the social gate gains social.tests (seven required tests in Social's suite) and social.qor-id-tests (four in QOR ID's). Also a correction of fact: [ci].quality_gates described the launcher's audit as plain, which ADR-089 changed the same day with its own entry above; it now says what runs."
 reason = "Tightening: a new job and two criteria with required tests, none relaxed. Each required test was seen to fail against a planted fault first: history read without membership, a blocker still hearing the blocked, the log filter off (tokens, words, bios, notes and status lines in the log), words stored plain, a made name posting, a CRLF migration; in QOR ID, introspection accepting an app's token, a second claim, sessions left on the old name, and the service secret logged. Social's dependency audit is NOT added: rsa (RUSTSEC-2023-0071) is in its lockfile through sqlx's optional MySQL driver and not compiled, as in QOR ID, and whether to ignore it on QOR ID's condition is the owner's decision (HANDOFF.md section 4 item 75)."
 
+[[change_log]]
+date = "2026-10-15"
+type = "ci-exemption"
+change = "services/social cargo audit ignores RUSTSEC-2023-0071 (rsa, the Marvin attack), on QOR ID's condition, and CI's security job audits Social. Recorded, with its justification, in services/social/.cargo/audit.toml; [ci].quality_gates gains the audit."
+reason = "No fixed rsa release exists. rsa is in Social's Cargo.lock only through sqlx's optional MySQL driver and absent from its compiled graph for every target, exactly as in QOR ID, whose identical ignore the owner approved on 2026-09-14. The ignore is conditional: a CI step fails if `cargo tree --locked -i rsa --target all -e all` prints anything in services/social, and it was seen to fail with the crate it checks swapped for one that is built. Before this, Social was not audited at all (the entry above), so the change adds a gate with one named exception rather than relaxing one."
+condition = "rsa stays out of Social's compiled graph, checked on every CI run"
+approved_by = "owner, 2026-10-15 (\"Ignore it on QOR ID's terms\")"
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -807,6 +815,7 @@ quality_gates = [
   "services/social: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test, against a Postgres 16 (a database per test) and a real WebSocket on a loopback port; its log, SQL and migration checks run with the tests",
   "tools/qor-launcher: npm ci, frontend build and npm run check, ten checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
   "cargo audit of services/qor-auth, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside the compiled graph (services/qor-auth/.cargo/audit.toml)",
+  "cargo audit of services/social, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside Social's compiled graph (services/social/.cargo/audit.toml)",
   "cargo audit of tools/qor-launcher/src-tauri, ignoring only RUSTSEC-2026-0344 while CI confirms ruzstd is outside the compiled graph and still in the lockfile (tools/qor-launcher/src-tauri/.cargo/audit.toml, ADR-089)",
   "cargo audit of tools/qor-launcher/qontrol-git, the libgit2 helper",
   "framework/ stays retired: the security job fails if the directory returns, and with it the six advisories its audit.toml exempted until M3.5",

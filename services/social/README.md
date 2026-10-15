@@ -45,6 +45,6 @@ The tests need a Postgres whose user can create databases (`#[sqlx::test]` makes
 public.ecr.aws/docker/library/postgres:16-alpine`. They drive a real WebSocket on a loopback port; QOR ID is stood in
 for, except in the log check, which runs the real QOR ID client against a stand-in QOR ID over HTTP.
 
-**Dependency audit:** `cargo audit` reports RUSTSEC-2023-0071 (`rsa`), which is in `Cargo.lock` through sqlx's optional
-MySQL driver and not compiled (`cargo tree --locked -i rsa --target all -e all` prints nothing), exactly as in QOR ID.
-Whether Social ignores it on QOR ID's condition is the owner's decision; until then CI does not audit Social.
+**Dependency audit:** CI audits Social, ignoring only RUSTSEC-2023-0071 (`rsa`), which is in `Cargo.lock` through
+sqlx's optional MySQL driver and not compiled, exactly as in QOR ID (`.cargo/audit.toml`, approved by the owner on
+15 October 2026). A CI step fails if `cargo tree --locked -i rsa --target all -e all` ever prints anything here.
