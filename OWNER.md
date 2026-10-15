@@ -27,8 +27,9 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
   banner and your colour, a profile editor with a live preview, and the name pick on entry.
   Proven by a new screen check (29 points) that caught three planted faults and two real
   ones, fixed before you see it.
-- **Not yet tried together:** the launcher and Social have each been tested against a
-  stand-in of the other. The first real conversation needs Social online (next step).
+- **Tried together for real on this PC:** QOR ID and Social, two people, rooms, messages,
+  mentions, a direct message and the one-time name pick: 12 of 12. The launcher against a
+  running Social waits on putting Social online; that first conversation is yours.
 - **Pull request #32:** Social's library check on QOR ID's terms, as you chose. It missed #31.
 
 ## Publishing a game (P3.4)
@@ -40,8 +41,8 @@ The launcher now logs every request a product makes, so the next try shows the c
 ## What only you can do
 
 1. **Review and merge** pull requests **#30**, **#32** and **#33** when their checks pass.
-2. **Put Social online** (next step, with me): a Railway service and database for it, its
-   message keys, and registering it with QOR ID. I'll prepare each step; the dashboard is yours.
+2. **Put Social online:** the steps are written in `services/social/DEPLOY-RAILWAY.md` (a
+   Railway service and database, two secrets made on your PC, one line in QOR ID's settings).
 3. **Update QQ Studio**, then publish again: with it closed, run
    `pwsh products/qq/build.ps1 -Deploy`; then **Publish**, and send me its message word for word.
 4. **Before Social opens to anyone else:** how long messages are kept, and the rules reports

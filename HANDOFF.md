@@ -2387,10 +2387,23 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     and clippy clean; the ten browser checks, counts unchanged; the new `check-social-view.mjs`, 29 checks, each of three
     planted faults caught (an extra field in a send, the rail counting nothing, every accent accepted); it also caught two
     faults of the build itself, fixed before commit: a room opened automatically on welcome, which marked it read unseen,
-    and its history asked for twice. **Not done:** the launcher has not run against a running Social: each side is tested
-    against a stand-in of the other speaking the same protocol; that waits on Social running (L8.6), when the owner's
-    first look is the proof. **Next:** CI on the pull request; then L8.6, deploying Social beside QOR ID (a Railway
-    service, its database, `SOCIAL_MESSAGE_KEYS`, and Social registered in `QOR_OAUTH_CLIENTS`: owner steps).
+    and its history asked for twice. **End to end on this PC, the same night:** a real QOR ID (`cargo run`, Postgres and
+    Redis in Docker, Social registered as a service in `QOR_OAUTH_CLIENTS`) and a real Social (`cargo run`, its own
+    database), driven over real WebSockets by a script: a token QOR ID never issued refused; two people welcomed by the
+    names QOR ID vouches for; a room made and joined; a message sealed, delivered and opened; an @mention delivered; a
+    direct message to its one recipient; an account put on a made name told so at hello and refused posting
+    (`name_not_chosen`); QOR ID's one-time claim taken and a second refused; and, after a token refresh, Social welcoming
+    the chosen name and letting it post: 12 of 12. Two script errors were the script's (it read the sender's own echo, and
+    reconnected with the same token inside Social's 30-second introspection cache, which the launcher avoids by
+    refreshing after a claim). Social ran with `RUST_LOG` asking tungstenite for trace: its log held no token, no words,
+    no client secret and no tungstenite line. **Deployment readiness (L8.6):** `GET /ready` (asks the database; tested to
+    answer 503 once the database is closed, while `/health` still says 200), `services/social/Dockerfile` (built here,
+    149 MB; started against a fresh database, migrated it and answered `/ready` 200), and `services/social/DEPLOY-RAILWAY.md`,
+    the owner's steps: a `Social-Postgres` service, the `social` service, two secrets generated on the owner's machine,
+    and Social's entry in QOR ID's `QOR_OAUTH_CLIENTS`. **Not done:** the launcher has not run against a running Social
+    (each side of that seam is tested against a stand-in of the other); that waits on L8.6, when the owner's first look
+    is the proof. **Next:** CI on #33; then L8.6, deploying Social beside QOR ID by `services/social/DEPLOY-RAILWAY.md`
+    (owner steps in Railway).
 
 ## 5. Traps, so nobody re-learns them
 

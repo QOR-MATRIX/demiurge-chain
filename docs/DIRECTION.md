@@ -758,7 +758,8 @@ launcher as its first client. Design: [`blueprints/social.md`](blueprints/social
    conversations, composer, profiles and notifications, in the launcher's themes and QFX; the username claim on entry,
    and the existing QOR ID claim for a person without one.
 6. [ ] Deployed beside QOR ID on Railway (devnet stack), with CI jobs (format, lints, tests with Postgres) and a
-   dependency audit.
+   dependency audit. The CI job is in `main` (#31) and the audit is pull request #32; `GET /ready`, the Dockerfile and
+   `services/social/DEPLOY-RAILWAY.md` are on #33 (15 October 2026). Not deployed.
 7. [ ] The owner's decisions before it is open to others: how long messages are kept, and the content policy reports
    are judged against.
 8. [ ] Release 2: end-to-end encrypted direct messages keyed from the vault, designed in a record of its own first.
