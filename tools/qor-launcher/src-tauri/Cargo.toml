@@ -79,6 +79,10 @@ sp-core          = { version = "=43.0.0", features = ["full_crypto", "serde"] }
 #     enable it without checking whether RUSTSEC-2026-0253 is still open.
 # Default features are jsonrpsee + native, which is what is wanted: a WebSocket
 # transport and nothing else.
+# Not the light client (`unstable-light-client`): its `smoldot` brings `ruzstd` 0.8, under RUSTSEC-2026-0344 (a
+# decompression bomb) with no release on the fixed 0.9 line. It is in Cargo.lock without being built, and
+# .cargo/audit.toml ignores that advisory only on that condition (ADR-089). Enabling the light client builds it, and
+# CI's "Condition of the ruzstd ignore" step then fails: the ignore must be revisited first.
 subxt        = "0.51"
 scale-decode = { version = "0.16", features = ["derive"] }
 # The version subxt 0.51 itself uses, for deriving `EncodeAsType` on the
@@ -111,6 +115,9 @@ uuid       = { version = "1", features = ["v4", "serde"] }
 directories = "5"
 parking_lot = "0.12"
 keyring     = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
+# The product host's operating-system checks (ADR-046, ADR-088): its own crate, because they are FFI and this one
+# forbids unsafe code.
+qor-host-proof = { path = "../host-proof" }
 tracing     = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 

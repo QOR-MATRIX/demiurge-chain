@@ -20,6 +20,7 @@ pub mod config;
 pub mod content;
 pub mod error;
 pub mod gates;
+pub mod host;
 pub mod identity;
 pub mod listings;
 pub mod partners;
@@ -73,7 +74,7 @@ pub trait Confirm: Send + Sync {
 }
 
 /// The launcher's [`Confirm`]: a native dialog drawn by the host.
-struct HostDialog(tauri::AppHandle);
+pub(crate) struct HostDialog(pub(crate) tauri::AppHandle);
 
 impl Confirm for HostDialog {
     fn confirm<'a>(&'a self, prompt: &'a Prompt) -> Answer<'a> {
@@ -501,6 +502,12 @@ fn vault_add_account(
     label: String,
 ) -> Result<AccountView, QorError> {
     state.vault.add_account(&label)
+}
+
+/// The account the person picked: what the rail shows, and what a product's first publish signs as (ADR-090).
+#[tauri::command]
+fn vault_set_active(state: tauri::State<'_, AppState>, address: String) -> Result<(), QorError> {
+    state.vault.set_active(&address)
 }
 
 /// Re-export the recovery phrase, once the person approves a host dialog.
@@ -1499,6 +1506,7 @@ pub fn run() {
             vault_move_to_keychain,
             vault_lock,
             vault_add_account,
+            vault_set_active,
             vault_export_phrase,
             chain_status,
             chain_set_endpoint,

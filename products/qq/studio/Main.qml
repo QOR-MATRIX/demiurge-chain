@@ -62,6 +62,17 @@ ApplicationWindow {
 
     /// The design loop (agent/designloop.h), set by main.cpp: a model that designs and builds from a description.
     property QtObject designer: null
+    /// Publishing, through the launcher that started this Studio (launcherlink.h, ADR-088): null in a test window.
+    property QtObject launcher: null
+    /// Publish can be pressed whenever the launcher is there to ask; what else is missing is said when it is pressed,
+    /// in the notice, rather than left in a tooltip on a grey button.
+    readonly property bool canPublish: launcher !== null && launcher.available && !launcher.busy && !playing
+                                       && scene !== null
+    readonly property string publishHint: launcher === null ? ""
+                                        : !launcher.available ? launcher.reason
+                                        : !projectInfo.repository ? qsTr("Open a versioned project to publish it.")
+                                        : qsTr("Commit the project and publish it as its Cartridge. The launcher asks "
+                                               + "you first, in its own window.")
     /// Whether the Agent panel is open.
     property bool agentOpen: false
 
@@ -288,6 +299,25 @@ ApplicationWindow {
         + '// move, look, jump and run.\n\nimport QQ\n\nLogic {\n    property real speed: 90  // degrees a second\n\n'
         + '    onFrame: (dt) => {\n        if (target)\n            target.eulerRotation.y += speed * dt\n    }\n}\n'
 
+    /// Save the scene, then ask the launcher to commit the project and publish it as its Cartridge (P3.4).
+    function publish() {
+        if (!canPublish)
+            return
+        if (String(project) === "") {
+            say(qsTr("Choose a project to publish: Project, then a folder the launcher's Projects versions."), true)
+            return
+        }
+        if (!projectInfo.repository) {
+            say(qsTr("%1 is not versioned yet: open it in the launcher's Projects first, then publish.")
+                .arg(projectInfo.name), true)
+            return
+        }
+        if (dirty && !saveScene())
+            return
+        say(qsTr("Publishing %1… approve it in the launcher's window.").arg(projectInfo.name))
+        launcher.publish(project, qsTr("Publish %1").arg(sceneName))
+    }
+
     function removeSelection() {
         if (playing || !selection || selection === scene)
             return
@@ -356,13 +386,26 @@ ApplicationWindow {
                 font.pixelSize: 12
             }
             Item { Layout.fillWidth: true }
+            // Two lines, and the whole of it on hover: a refused publish once ended at its transaction hash, before the
+            // reason (15 October 2026).
             Label {
+                id: noticeLabel
+                objectName: "noticeLabel"
                 Layout.maximumWidth: 560
+                wrapMode: Text.Wrap
+                maximumLineCount: 2
                 elide: Text.ElideRight
                 text: window.playProblem !== "" ? window.playProblem : window.notice
                 color: window.noticeIsProblem || window.playProblem !== "" ? "#d57889" : Material.foreground
                 opacity: window.noticeIsProblem || window.playProblem !== "" ? 1 : 0.7
                 font.pixelSize: 13
+                HoverHandler { id: noticeHover }
+                ToolTip {
+                    objectName: "noticeTip"
+                    visible: noticeHover.hovered && noticeLabel.truncated
+                    text: noticeLabel.text
+                    width: Math.min(implicitWidth, 560)
+                }
             }
             ToolButton {
                 objectName: "agentButton"
@@ -379,6 +422,22 @@ ApplicationWindow {
                 enabled: !window.playing
                 highlighted: window.dirty
                 onClicked: window.saveScene()
+            }
+            // Wrapped, so a disabled button still says why it is: a disabled control receives no hover.
+            Item {
+                implicitWidth: publishButton.implicitWidth
+                implicitHeight: publishButton.implicitHeight
+                HoverHandler { id: publishHover }
+                ToolTip.visible: publishHover.hovered && window.publishHint !== ""
+                ToolTip.text: window.publishHint
+                Button {
+                    id: publishButton
+                    objectName: "publishButton"
+                    anchors.fill: parent
+                    text: window.launcher && window.launcher.busy ? qsTr("Publishing…") : qsTr("Publish")
+                    enabled: window.canPublish
+                    onClicked: window.publish()
+                }
             }
             Button {
                 id: playButton
@@ -775,6 +834,27 @@ ApplicationWindow {
                 active: window.designer !== null
                 sourceComponent: AgentPanel { designer: window.designer }
             }
+        }
+    }
+
+    Connections {
+        target: window.launcher
+        function onPublished(answer) {
+            const r = answer.receipt
+            if (answer.action === "minted")
+                window.say(qsTr("Published as Cartridge %1/%2, \"%3\", at commit %4.")
+                           .arg(r.collection).arg(r.item).arg(r.name).arg(r.commit.id.slice(0, 10)))
+            else if (answer.action === "revised")
+                window.say(qsTr("Published again: Cartridge %1/%2 is now at commit %3.")
+                           .arg(r.collection).arg(r.item).arg(r.commit.id.slice(0, 10)))
+            else
+                window.say(qsTr("Already published: Cartridge %1/%2 is at this commit.")
+                           .arg(answer.collection).arg(answer.item))
+            window.projectInfo = SceneIO.project(window.project)
+        }
+        function onFailed(code, message) {
+            window.say(code === "declined" ? qsTr("Not published: you declined it in the launcher. Nothing was signed.")
+                                           : qsTr("Not published: %1").arg(message), code !== "declined")
         }
     }
 

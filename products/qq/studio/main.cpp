@@ -1,6 +1,6 @@
 // QQ Studio: the native editor for QQ, the QOR Engine (ADR-083).
 //
-//   qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>]
+//   qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>] [--launcher-channel <name>]
 //
 // Opens a new scene, with the given glTF 2.0 model or the bundled sample, in the given project folder (the QOR Launcher
 // passes the project open in Projects). With --capture, the Studio renders until its scene has settled, saves the whole
@@ -8,7 +8,9 @@
 // 1 not saved, 2 timed out.
 //
 // The Studio is its own process, started by the QOR Launcher; it never holds a key, and anything to be signed is
-// asked of the launcher's host (ADR-083 decision 5).
+// asked of the launcher's host (ADR-083 decision 5). The launcher names its channel with --launcher-channel and writes
+// a one-time token on the Studio's stdin; through that channel the Studio publishes a project as its Cartridge
+// (launcherlink.h, ADR-088), and when the launcher closes it, the Studio exits (ADR-046 decision 2).
 //
 // It offers its tools to language models (DIRECTION P3.3) on a local pipe only this user can open: an MCP client starts
 // qq-mcp, which relays to it (agent/). One Studio at a time serves the pipe; QQ_MCP_PIPE names another.
@@ -27,6 +29,7 @@
 #include <memory>
 
 #include "gpu.h"
+#include "launcherlink.h"
 #include "mcpserver.h"
 #include "designloop.h"
 #include "sceneio.h"
@@ -83,8 +86,12 @@ int main(int argc, char *argv[])
     const QCommandLineOption capture(QStringLiteral("capture"),
                                      QStringLiteral("Render, save the window to <file> and exit."),
                                      QStringLiteral("file"));
+    const QCommandLineOption channel(QStringLiteral("launcher-channel"),
+                                     QStringLiteral("The launcher's channel, given by the launcher that started this."),
+                                     QStringLiteral("name"));
     parser.addOption(project);
     parser.addOption(capture);
+    parser.addOption(channel);
     parser.process(app);
 
     const QStringList positional = parser.positionalArguments();
@@ -119,6 +126,17 @@ int main(int argc, char *argv[])
             window->setProperty("designer", QVariant::fromValue<QObject *>(designer));
             if (!parser.isSet(capture) && !mcp.listen(qq::McpServer::defaultPipeName()))
                 qWarning("Agents cannot connect to this Studio: %s", qPrintable(mcp.error()));
+
+            // Publishing, through the launcher that started this Studio, if one did.
+            auto *launcher = new qq::LauncherLink(window);
+            if (parser.isSet(channel)) {
+                launcher->connectTo(parser.value(channel), qq::LauncherLink::readToken());
+                QObject::connect(launcher, &qq::LauncherLink::lost, &app, &QCoreApplication::quit);
+            } else {
+                launcher->unavailable(QObject::tr("Open QQ Studio from the launcher to publish: the launcher signs "
+                                                  "what you publish, and this Studio holds no key."));
+            }
+            window->setProperty("launcher", QVariant::fromValue<QObject *>(launcher));
         }
     }
 

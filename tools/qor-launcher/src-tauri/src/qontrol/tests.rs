@@ -379,6 +379,39 @@ fn a_snapshot_refuses_uncommitted_changes() {
     assert!(refused.contains("commit first"), "{refused}");
 }
 
+/// A Cartridge published from this project is found by its commit in the project's history, nearest HEAD first; a
+/// commit from somewhere else is not this project's (ADR-088 decision 2).
+#[test]
+fn the_published_commit_nearest_head_is_found_in_the_history() {
+    let dir = project(Scaffold::Code);
+    if !helper_present("the_published_commit_nearest_head_is_found_in_the_history") {
+        return;
+    }
+    let first = commit(dir.path(), "First build").expect("commit");
+    std::fs::write(dir.path().join("README.md"), "second").expect("edit");
+    let second = commit(dir.path(), "Second build").expect("commit");
+    std::fs::write(dir.path().join("README.md"), "third").expect("edit");
+    let third = commit(dir.path(), "Third build").expect("commit");
+    let elsewhere = "ab".repeat(20);
+
+    let find = |commits: &[&String]| {
+        let commits: Vec<String> = commits.iter().map(|c| c.to_string()).collect();
+        publish::nearest_in_history(dir.path(), &commits).expect("history")
+    };
+    assert_eq!(find(&[&elsewhere]), None, "a commit this project never had");
+    assert_eq!(find(&[&elsewhere, &first]), Some(1));
+    assert_eq!(find(&[&first, &second]), Some(1), "the nearer of two");
+    assert_eq!(
+        find(&[&third.to_uppercase()]),
+        Some(0),
+        "HEAD itself, in either case"
+    );
+    assert_eq!(
+        publish::nearest_in_history(dir.path(), &[]).expect("none"),
+        None
+    );
+}
+
 /// A repository with nothing committed has nothing to pin.
 #[test]
 fn a_snapshot_of_a_repository_with_no_commit_is_refused() {

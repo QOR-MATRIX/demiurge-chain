@@ -1,0 +1,27 @@
+[package]
+name         = "qor-host-proof"
+version      = "0.1.0"
+edition      = "2021"
+rust-version = "1.88"
+license      = "MIT"
+description  = "The operating-system checks the launcher's product host needs (ADR-046 decisions 2 and 5): a pipe only this user can open, who is on its other end, when a process started, and a job that ends a product with the launcher."
+
+# Its own crate because the launcher forbids unsafe code (`src-tauri/Cargo.toml`, `unsafe_code = "forbid"`, which
+# `#[allow]` cannot override) and these calls are FFI (ADR-046 decision 5). Everything unsafe in the launcher is here,
+# in a few small functions, each with its own test. On anything but Windows nothing here is unsafe.
+
+[dependencies]
+tokio = { version = "1", features = ["net"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_Security_Authorization",
+  "Win32_System_JobObjects",
+  "Win32_System_Pipes",
+  "Win32_System_Threading",
+] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["net", "rt", "macros", "io-util", "time"] }

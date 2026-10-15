@@ -11,6 +11,7 @@
  */
 
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 /* ────────────────────────────────── types ───────────────────────────────── */
 
@@ -42,6 +43,7 @@ export type QorErrorKind =
   | 'hello'
   | 'qontrol'
   | 'payment_refused'
+  | 'unfunded'
   | 'internal';
 
 /** An account's level and XP, as QOR ID keeps them (ADR-078). */
@@ -313,6 +315,8 @@ export const vault = {
     call<Arrival>('vault_move_to_keychain', { passphrase }),
   lock: () => call<void>('vault_lock'),
   addAccount: (label: string) => call<AccountView>('vault_add_account', { label }),
+  /** The account the rail shows, which a product's first publish signs as (ADR-090). */
+  setActive: (address: string) => call<void>('vault_set_active', { address }),
   /** The host asks in its own dialog first. */
   exportPhrase: () => call<string>('vault_export_phrase'),
 };
@@ -807,9 +811,38 @@ export const qq = {
     call<QontrolProject>('qq_save_scene', { path, name, scene }),
   load: (path: string, name: string) => call<string>('qq_load_scene', { path, name }),
   list: (path: string) => call<string[]>('qq_list_scenes', { path }),
-  /** QQ Studio, the native editor (ADR-083), as a process of its own, on the project if one is open. */
+  /**
+   * QQ Studio, the native editor (ADR-083), as a process of its own, on the project if one is open. The launcher
+   * starts it through its product host (ADR-046, ADR-088), so the Studio can publish the project as its Cartridge,
+   * asking the launcher, which asks you in its own window.
+   */
   openStudio: (path: string | null) => call<void>('qq_open_studio', { path }),
+  /**
+   * Told when QQ Studio ends badly: its exit code and the last of its error output (ADR-046 decision 1). Returns how
+   * to stop listening. Where there is no host to listen to, nothing is ever told.
+   */
+  onStudioExit: (handler: (exit: ProductExit) => void): (() => void) => {
+    let stop: (() => void) | null = null;
+    let stopped = false;
+    listen<ProductExit>('qq-studio-exited', (event) => handler(event.payload))
+      .then((unlisten) => {
+        if (stopped) unlisten();
+        else stop = unlisten;
+      })
+      .catch(() => {});
+    return () => {
+      stopped = true;
+      stop?.();
+    };
+  },
 };
+
+/** How a product the launcher started ended, when it ended badly. */
+export interface ProductExit {
+  product: string;
+  code: number | null;
+  stderr_tail: string;
+}
 
 /** ARQADE in a window of its own (ADR-078 decision 5). The host decides what that window may load. */
 export const arqade = {

@@ -940,6 +940,15 @@ preview until the Qt Player plays in the launcher and in ARQADE (ADR-083 decisio
    dialogs being exercised; the signing dialog it uses was exercised both ways on 10 October 2026 (L1.4, HANDOFF §4
    item 72), and what L1.4 still lacks concerns QOR ID, not signing. The QQ Player's lockdown it waited on (ADR-087 decision 2) is built (10 October 2026,
    HANDOFF §4 item 70).
+
+   **Built 10 October 2026** (HANDOFF §4 item 73), under ADR-088: a Cartridge holds the manifest of the project's whole
+   tree at the commit published, with that commit; the first Publish mints it and each later one revises it. The local
+   channel is ADR-046 built for its first product: the launcher's `host` module and its `qor-host-proof` crate, the QOR
+   host protocol (`tools/qor-launcher/host-protocol/`), and the Studio's `LauncherLink`. Evidence on the owner's
+   machine: the launcher's host checks (14, and one against a development node that commits, mints, revises, leaves an
+   unchanged project alone and declines, through the real channel), `tst_publish` (9 cases), and eight planted faults,
+   each caught. **Stays unchecked until the owner has published from QQ Studio** started by a launcher built with this
+   change, approving in its dialog.
 5. [ ] **ARQADE delivery.** Published games appear in ARQADE; Play loads the WebAssembly QQ Player with the game,
    signed in through QOR ID when the player is; the TypeScript preview and its check are retired in this change
    (ADR-083 decision 6). Depends on P3.4 and P7 (ARQADE running). Under ADR-087 strangers' games play only here, in a

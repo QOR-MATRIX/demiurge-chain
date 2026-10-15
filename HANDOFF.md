@@ -1,17 +1,21 @@
 # Handoff
 
 **Current state, 10 October 2026.** The code is the public repository `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064).
-`main` is at `808df3b` (the merge of PR #27, the QQ Player's lockdown, after #25 and #26, ADR-087), and **Pleroma CI
-passed on it** (run 38064910997, 10 October 2026: chain, QOR ID, launcher, ARQADE, coverage and security). PRs #1 to #27
-are merged.
+`main` is at `cdc3b31` (the merge of PR #28, the lockdown measured and L1.4's dialogs), and **Pleroma CI passed on it**
+(run 38074745950, 10 October 2026: chain, QOR ID, launcher, ARQADE, coverage and security). PRs #1 to #28 are merged.
 On 8 October Pleroma CI was green on `main` (then `d97fa69`, PR #15) after a re-run. Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Work goes on a `session/*` branch and
 reaches `main` by pull request. `origin` is the private archive, not the current tree. Live, devnet-only and with test
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 item 72 (10 October 2026): L1.4's transfer and RPC endpoint dialogs exercised by the owner, each approved
-and declined; what remains of L1.4 concerns QOR ID.** On branch `session/qq-lockdown-measured`, with item 71 the same
-day: the lockdown measured on mains power, costing nothing measurable; the Player's bundled game had been playing
+**Newest: §4 item 74 (15 October 2026): the owner's first publish from QQ Studio was refused by the node before any
+block; an account that cannot pay is now told so before anyone is asked, naming the account and the chain, and the
+whole reason reaches the Studio and the launcher's log.** Before it: item 73 (10 October 2026): P3.4 built. QQ Studio
+publishes a project as its Cartridge through the launcher that started it (ADR-088, the owner's: a Cartridge holds the
+commit; later publishes revise it), over ADR-046's channel, built for its first product. Both on branch
+`session/qq-p3.4-publish`; item 73 is commit `65bebff`. Before them: item 72 the same day: L1.4's transfer and
+RPC endpoint dialogs exercised by the owner, each approved and declined; what remains of L1.4 concerns QOR ID; with
+item 71 the same day: the lockdown measured on mains power, costing nothing measurable; the Player's bundled game had been playing
 without its model, and now a model that fails to load is reported and fails the checks. Before them: item 70 the same day: the QQ Player locks down what a game's logic
 can reach (ADR-087 decision 2), with two known limits; merged as #27. Before it: item 69 the same day: how a stranger's QQ
 game is confined, proposed and decided (ADR-087): in the browser only at first, from a site of its own; the Player
@@ -96,14 +100,14 @@ ticked the same day against the owner's review of a ten-line summary.
 | The custom devnet (`framework/`) | **Retired and deleted at M3.5, 2026-09-20.** 150 files, 49,058 lines, after everything that referred to it had been rewritten and verified with the tree still present. Its last run passed 285 tests. Untrusted, and nothing of it is carried forward (§2.0). **M3 is not complete:** M3.2 waits on OPEN-2. |
 | Security track | Items 1 to 7 done. **The owner confirmed credential rotation on 2026-09-14:** the Postgres password and both JWT secret pairs. **Nine credential-shaped values** (from `docker/n8n/docker-compose.yml` and `docker/docker-compose.testnet.yml`) are not in the current tree or in the public repository's history; they exist only in the private archive's history, and rotating them is still advised if those services ever ran (an owner step in `OWNER.md`). CI's security job scans for committed credentials. **A recovery phrase was pasted into a chat on 5 October; treat that key as exposed and replace it.** Sessions record a placeholder IP address. §3. |
 | `services/qor-auth` (QOR ID) | **Live at `https://id.qorsync.dev`**, the Railway service `qor-auth`, deployed from `main`. **172 tests pass** (8 October 2026, against Postgres 16 and Redis 7.4, `--include-ignored`), the log and SQL checks among them. Latest migration: 022. Password and key sign-in (Sr25519 and SS58; ADR-023, ADR-024, ADR-039); email verification and reset through Resend; the account page `/account` (change the password, add or change the email); sign-in for other apps by OAuth 2.1 with PKCE (ADR-073), the apps registered in `QOR_OAUTH_CLIENTS`, ARQADE among them; one name per account, no `#0001` (ADR-075, migrations 019 and 021); levels, XP and tasks, the welcome grant recorded as owed (since 8 October the owner can list owed grants and mark one paid against its transfer's hash; nothing pays them yet); the launcher signing a person into an app it opened with its own session (`/api/v1/oauth/handoff`, 8 October), and three sign-ups per network address read from Railway's `X-Real-IP` (ADR-078, migration 020); avatars (ADR-079, migration 022). Registration creates no CGT and calls no chain (R-3). Agent keys are authorised, never created (ADR-014). **The Resend bounce webhook is an owner step, and delivery to a real inbox is unconfirmed** (§4.0). One known gap (§2). History: §4 items 5 to 8, 33 and 50 to 57. |
-| `tools/qor-launcher` | **Version 0.1.8** (`tauri.conf.json`). **224 Rust tests pass (9 ignored: 8 without a node, 1 that opens QQ Studio), and all ten browser checks pass** — design 3, accessibility 49, gates view 34, Projects 104, Inventory 238, Market 127, QQ 42, vault gate 65, contrast 54, readability 361 — on 8 October 2026 (§4 item 62; the accessibility flake is fixed). In pull request #17 since 8 October, not in a build: **QQ's preview** on the rail, **ARQADE in a window of its own, signed in with the launcher's session** (P7.18, partly), and **six backdrops** in Settings. The 0.1.8 installer was built locally and is **unsigned, with no update channel** (L6); 0.1.7 added `qor://pay`. Avatars and rings reached `main` after 0.1.8 and need a new build to ship. The default chain endpoint is `wss://rpc.qorsync.dev` (`DEFAULT_RPC` in `src-tauri/src/chain/mod.rs`; `LOCAL_RPC` is `ws://127.0.0.1:9944`). Features: the vault's key in the OS keychain with no lock screen (ADR-056); QOR ID sign-in by key; send, mint, Inventory, trade, sell and buy; the Market view (no search, no indexer); Projects and Qontrol; the gates dashboard; `qor://pay`, approved in the host dialog (ADR-077); the level bubble and XP bar; the avatar with its ring; one QFX backdrop shader. The Nexus still shows nine frozen-app tiles marked "local" or "forming". L1.1, L1.2, L1.3, L1.5, L1.6, L1.7, L3.1 and L3.2 are done (L1.6 and L1.7 ticked on 6 October 2026 against CI). **L1.4 is mostly exercised:** the owner approved real `qor://pay` tips in the host dialog on 5 and 6 October, and approved and declined a transfer and an RPC endpoint change on 10 October; the QOR ID endpoint change and a sign-in after QOR ID was unreachable are not yet exercised (§4.0). History: §4 items 9, 14 to 24 and 54 to 57. |
+| `tools/qor-launcher` | **Version 0.1.8** (`tauri.conf.json`). **240 Rust tests pass (11 ignored: 10 without a node, 1 that opens QQ Studio), and all ten browser checks pass** — design 3, accessibility 49, gates view 34, Projects 104, Inventory 238, Market 127, QQ 42, vault gate 65, contrast 54, readability 361 — on 15 October 2026 (§4 item 74; the product host's live check passed against a development node). Since 10 October it hosts products (ADR-046, ADR-088): QQ Studio, started with a one-time token, publishes through it. In pull request #17 since 8 October, not in a build: **QQ's preview** on the rail, **ARQADE in a window of its own, signed in with the launcher's session** (P7.18, partly), and **six backdrops** in Settings. The 0.1.8 installer was built locally and is **unsigned, with no update channel** (L6); 0.1.7 added `qor://pay`. Avatars and rings reached `main` after 0.1.8 and need a new build to ship. The default chain endpoint is `wss://rpc.qorsync.dev` (`DEFAULT_RPC` in `src-tauri/src/chain/mod.rs`; `LOCAL_RPC` is `ws://127.0.0.1:9944`). Features: the vault's key in the OS keychain with no lock screen (ADR-056); QOR ID sign-in by key; send, mint, Inventory, trade, sell and buy; the Market view (no search, no indexer); Projects and Qontrol; the gates dashboard; `qor://pay`, approved in the host dialog (ADR-077); the level bubble and XP bar; the avatar with its ring; one QFX backdrop shader. The Nexus still shows nine frozen-app tiles marked "local" or "forming". L1.1, L1.2, L1.3, L1.5, L1.6, L1.7, L3.1 and L3.2 are done (L1.6 and L1.7 ticked on 6 October 2026 against CI). **L1.4 is mostly exercised:** the owner approved real `qor://pay` tips in the host dialog on 5 and 6 October, and approved and declined a transfer and an RPC endpoint change on 10 October; the QOR ID endpoint change and a sign-in after QOR ID was unreachable are not yet exercised (§4.0). History: §4 items 9, 14 to 24 and 54 to 57. |
 | Products | **Seven, each with a blueprint, a track and a gate**: P1 to P6 (§4 item 12) and **P7, ARQADE** (ADR-069). The shared substrate decisions ADR-046 to ADR-051 are all accepted: ADR-047 and ADR-051 on 2026-09-22, ADR-046, ADR-048, ADR-049 and ADR-050 on 2026-09-28. Built inside the launcher: Qontrol's Projects (P1.1, P1.2), QFX's backdrop (P2.1, six to choose from since 8 October), the Market view and, since 8 October, **QQ's TypeScript preview**. **QQ itself moves to Qt 6 (ADR-083)**: its P3 items are rewritten; on Qt 6.12, P3.1 is done (9 October 2026, §4 item 64) and P3.2 is done (10 October 2026, §4 item 65): worlds play in QQ Studio and in the QQ Player, natively and in a browser. ARQADE is its own site (row below). GNOSIS and Stream have not started. |
 | Release gates | **`GATES.toml` accepted (2026-09-14).** Coverage: cargo-llvm-cov, 80% of lines, only on pallets that move CGT or own DRC-369 semantics. Public Release gained `public-release.name-clearance` on 2026-09-17, a tightening logged in the file. **On 2026-10-06 (ADR-080) `check-design.mjs` dropped its five effect rules and the QFX and ceremony exemptions**, keeping colour tokens, the type scale and the tracking scale; it is logged in the change log with the owner's approval. **Loosening any evidence rule needs the owner's separate decision** (the rule is in the file). |
 | CI | **"Pleroma CI", GitHub Actions on the public `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064), and green.** Every completed run on `main` from the merge of #6 (5 October 2026) to the merge of #14 passed. On the merge of #15 (`d97fa69`) the launcher job failed twice, on the push run and the 7 October scheduled run, because Chrome opened no page within the browser checks' 10-second wait; re-running the failed job on 7 October passed, and the wait is 30 seconds since §4 item 60. Before that the merges of #2 to #4 failed, and PR #8 was merged with its launcher job red (a flaky browser-check wait, fixed in #9). Jobs run in the `QOR-MATRIX` organisation, where the billing lock that refused the personal account's jobs in late September does not apply (ADR-064), and `probe.yml` is gone: the workflows are `ci.yml` and `devnet-image.yml`. Jobs: `chain` (format, lints and tests, without `SKIP_WASM_BUILD`); `chain-newest-clippy` (the newest Rust, report-only, scheduled); `two-validators` (scheduled); `qor-auth` (with Redis, `--include-ignored`); `launcher` (with the browser checks: nine on `main`, ten with QQ's from §4 item 61); `arqade`; `coverage`; and `security` (dependency audits, the committed-credential scan, the `[patch]` guard and the `framework/` guard). A flaky wait loop in the launcher's browser checks was fixed on 6 October (PR #9). Woodpecker and `ci.qorsync.dev` are retired; deleting the `ci` DNS record in Cloudflare is an owner step. Scope changes are logged in `GATES.toml`. History: §4 items 1, 27 to 32 and 42. |
 | Infrastructure | **Railway** (project `demiurge`): Postgres, Redis, QOR ID (`id.qorsync.dev`) and Demiurge Devnet (two validators and an RPC node, ADR-068). **Vercel**: ARQADE, project `qor-arqade` (team Astra Matrix, Hobby plan), with Neon Postgres (ADR-074). Fly.io is not used: ADR-015's Fly plan is superseded by ADR-063 and ADR-068. |
 | Production | No production or test network. Live, devnet-only and with test CGT: Demiurge Devnet, QOR ID and ARQADE. |
 | ARQADE (`products/arqade/`) | **Live at `https://qor-arqade-tau.vercel.app`**: standard Next.js 16 on Neon Postgres, migrations 0001 to 0003 applied on production builds (`scripts/migrate.mjs`). **48 tests** (6 October 2026). QOR ID is the only sign-in; Play Now, the solo games, Flux Four and Rift Reversi multiplayer, rankings, chat, devnet reads, tips through the launcher (ADR-076, ADR-077; the owner tipped successfully on 5 and 6 October), and the level bubble and level row. P7.1 to P7.4 are ticked (P7.4 on 6 October 2026). |
-| Decisions | 87 ADRs (ADR-001 to ADR-087); ADR-069 to ADR-087 are accepted. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan; ADR-083 (8 October) builds it on Qt 6; ADR-084 (10 October) settles the Player's web build (Qt's threaded kit, served cross-origin isolated, sound unpanned in a browser). ADR-085 (10 October) chooses the design loop's provider: Claude Opus 5.5, its key in Windows Credential Manager. ADR-086 (10 October, the owner's) makes every user pay for the generation they use, and the project pay for none. ADR-087 (10 October, the owner's) confines strangers' QQ games to the browser, on a locked-down Player. The owner's open questions are in §4.0. |
+| Decisions | 90 ADRs (ADR-001 to ADR-090); ADR-069 to ADR-090 are accepted. **ADR-089** (15 October 2026, the owner's: ignore one advisory in a crate the launcher never builds, on a CI-checked condition) is built: `tools/qor-launcher/src-tauri/.cargo/audit.toml` and the CI step "Condition of the ruzstd ignore". **ADR-090** (15 October, the owner's): a Cartridge is revised by the account holding it, and a first publish signs as the account the rail shows. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan; ADR-083 (8 October) builds it on Qt 6; ADR-084 (10 October) settles the Player's web build (Qt's threaded kit, served cross-origin isolated, sound unpanned in a browser). ADR-085 (10 October) chooses the design loop's provider: Claude Opus 5.5, its key in Windows Credential Manager. ADR-086 (10 October, the owner's) makes every user pay for the generation they use, and the project pay for none. ADR-087 (10 October, the owner's) confines strangers' QQ games to the browser, on a locked-down Player. The owner's open questions are in §4.0. |
 | Not live | Avatars in ARQADE (ADR-079 step 3, not built), paying the welcome grant (grants are recorded as owed, never paid), ARQADE inside the launcher (P7.18), the indexer, the Mesh, fees and issuance. |
 
 ## 2. Known gaps: do not build on these
@@ -259,7 +263,7 @@ Read this before the detail below. "Ready" means it can start today with nothing
 
 | Track | State | Waiting on | What unblocks it |
 | --- | --- | --- | --- |
-| **P3, QQ on Qt 6** (ADR-083) | **P3.1 and P3.2 done; P3.3 built but for its proof** (10 October 2026) | Nobody, for P3.4 (the Player's lockdown is built and measured, §4 items 70 and 71); **the owner** for CI; **anyone with their own key** for P3.3's proof (ADR-086) | ADR-087 decided how a stranger's game is confined (10 October 2026), and the Player's lockdown is built; P3.4 (its signing dialog exercised under L1.4 on 10 October) and P3.5 (strangers' games in the browser only, from a site of their own). CI cannot build QQ until Qt's installer and the owner's Qt account are repository secrets, or a self-hosted runner exists (ADR-083). |
+| **P3, QQ on Qt 6** (ADR-083) | **P3.1 and P3.2 done; P3.3 built but for its proof; P3.4 built** (10 October 2026) | **The owner**, for P3.4's first real publish (§4 item 73) and for CI; **anyone with their own key** for P3.3's proof (ADR-086) | ADR-087 decided how a stranger's game is confined, and the Player's lockdown is built; ADR-088 decided what a Cartridge holds, and P3.4 is built over ADR-046's channel; next, P3.5 (strangers' games in the browser only, from a site of their own). CI cannot build QQ until Qt's installer and the owner's Qt account are repository secrets, or a self-hosted runner exists (ADR-083). |
 | **P7.17**, paying the welcome grants | **Blocked, 2026-10-08** | **The owner** | ADR-078 decision 7 wants a server that holds the Welcome account's key and nothing else: a new service, which needs the owner's name for it (AGENTS.md §8), the Welcome account created and funded with test CGT on the devnet, and its key set as that service's only secret on Railway. Listing owed grants and marking one paid are built. |
 | **M3, the Substrate chain** | **Unblocked, started 2026-09-17** | Nobody | The owner confirmed ADR-018 to ADR-032 and supplied all four inputs: eighteen decimals (ADR-035), an existential deposit of 100 CGT (ADR-036), the five pallet names, and `pallet-sudo` on development and test networks only (ADR-037). |
 | **U-1, the decimal places** | **Decided 2026-09-17** | Nobody | Eighteen, on both recorded conditions (ADR-035). Removed from `OPEN_QUESTIONS.md`, so the gate reads it as decided. |
@@ -2193,6 +2197,125 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     value). **Still to do for L1.4:** the QOR ID endpoint change, approved and declined, and a key sign-in after QOR ID
     was unreachable at unlock. **Next:** P3.4, publishing: its signing dialog is now exercised both ways.
 
+73. **10 October 2026: P3.4 built. QQ Studio publishes a project as its Cartridge, through the launcher that started
+    it.** On branch `session/qq-p3.4-publish`. **Decided first (ADR-088, the owner's choices):** a Cartridge holds the
+    ADR-047 manifest of the project's whole tree at the commit published, with that commit (amending ADR-071 decision
+    2, which said the profile manifest; the profile is a file in the tree); the first Publish mints it, each later one
+    revises it (`Drc369::revise`), so one game is one Cartridge; the names `host`, `qor-host-proof`, the QOR host
+    protocol and `LauncherLink`. **Built, launcher:** `src-tauri/src/host/`, ADR-046 for its first product: a named
+    pipe only this user can open (DACL, first instance, no remote clients; a `0700`/`0600` socket elsewhere) that
+    takes one connection, from the spawned process only (client process id, its start time, its user); a 32-byte token
+    on the product's stdin, good once for 30 seconds, compared in constant time; frames of a 4-byte length and JSON up
+    to 1 MiB; `hello`/`welcome` with a version and capabilities; typed intents only (`qontrol.commit`,
+    `cartridge.publish`); `ProductDialog`, naming the product from the launcher's record at the top of every prompt;
+    a Windows job that ends products with the launcher; the exit code and the end of stderr shown on the QQ screen
+    when the Studio ends badly. The FFI is `tools/qor-launcher/host-proof/` (its own crate; the launcher forbids
+    unsafe code), now in CI. `ChainClient::revise` and its dialog; `qontrol::publish::nearest_in_history` finds a
+    project's Cartridge as the asset this account holds whose commit is nearest HEAD in its history, so nothing is
+    remembered on the machine. The schema and golden frames: `tools/qor-launcher/host-protocol/`. **Built, Studio:**
+    `products/qq/studio/launcherlink.*` (the token from stdin, the hello, commit then publish, exit when the channel
+    closes) and **Publish** in the toolbar, which saves first and says what happened; a Studio not started by the
+    launcher cannot publish and says why. **Evidence, owner's machine:** the launcher's 240 tests pass with
+    `qontrol-no-skips` (10 ignored: the 9 as before and the new live one), format and clippy clean, the ten browser
+    checks pass (QQ 42); 15 host checks, including **a live one against `demiurge-node --dev`**: a stand-in product
+    (`src-tauri/examples/host_fake_product.rs`) started through the real channel commits a project, mints it behind a
+    dialog titled "Fake Product asks: Approve this mint", revises the same Cartridge after a new commit, is answered
+    `unchanged` with nothing asked, and a declined publish leaves the chain as it was; `qor-host-proof`'s 5 Windows
+    checks; all eight QQ suites, with `tst_publish` (9 cases) new. **Eight planted faults, each caught:** the peer
+    check skipped, the token check skipped, the token logged, another product's hello accepted, a second publish
+    minting instead of revising, the Studio publishing without the commit, the Studio publishing without saving, Publish
+    greyed out on an unversioned folder. **Found on the way:** `cargo test` only checks that an example compiles and never builds its executable, so the
+    first host runs used a stand-in built by hand; the tests now build it themselves. The log check first passed with
+    the token logged when run alongside other tests, because `tracing` caches across threads whether a line is wanted;
+    it now installs one process-wide logger. **The owner's first run (10 October) found Publish greyed out:** the Studio
+    had been opened on a folder that is not a Qontrol project, and the reason was only in a tooltip on the grey button.
+    Publish is now pressable whenever the launcher is linked and says what is missing when pressed, asking the launcher
+    nothing (`tst_publish`'s ninth case, which fails with the old condition). **Re-verified 15 October 2026** after a
+    restart had cleared the run's node and logs: the launcher's 240 tests (10 ignored) and all eight QQ suites (73
+    cases) pass; the deployed Studio is not yet rebuilt with the fix (`build.ps1 -Deploy`, the owner's to run). **Not
+    yet:** the owner's first publish from QQ Studio started by a launcher built with this change (P3.4 stays unchecked
+    until then); an installer with it (the release bundles the Qontrol helper, `tauri.bundle.conf.json`). **Next:** the owner's run, then P3.5.
+
+74. **15 October 2026: the owner's first publish was refused, and a refusal now says why.** On branch
+    `session/qq-p3.4-publish`, after item 73's commit. A restart had cleared item 73's node and logs, so a fresh
+    `demiurge-node --dev --tmp` was started, `5DSND…LUV34` funded with 5,000 test CGT from Alice (total issuance
+    unchanged) and the test launcher started. **The owner's run:** Publish in QQ Studio, on the Qontrol project
+    `first-light`, approved in the launcher's dialog, ended "Not published: chain rpc error: the mint 0xa761cbb4bf…",
+    cut off inside the hash: the Studio's notice was one elided line, and the launcher logged only the refusal's code
+    (`rpc`). **Found:** the mint is in no block of that chain, so the node refused it at submission. Ruled out by measurement: a
+    stale connection (a scratch test held one for ten minutes and its transaction still finalised); the live host check
+    on the same node passed (mint, revise, unchanged, decline); payloads over 256 bytes are already hashed by
+    `frame-decode` before the vault signs. **Shown:** the node refuses any transaction from an account it holds
+    nothing for as `1010: Invalid Transaction: Inability to pay some fees`, on a chain with no fees (OPEN-4); and a
+    publish is signed by the vault's **first** account (`host/studio.rs`), which need not be the one that was funded.
+    That is the most likely cause; it is confirmed when the owner's retry names the account. **Built:** a new error,
+    `unfunded` (`QorError::Unfunded`, a sentence naming the account and the chain): `sign_and_finalise` refuses an
+    account holding nothing on the connected chain before anyone is asked, for every path through it (assets, sales,
+    trades, `qor://pay`); and a mint whose deposits exceed the free balance is refused the same way, saying both
+    amounts. The launcher's log line for a refused product request now carries its message. QQ Studio's notice wraps
+    to two lines and shows the whole of it on hover. **Evidence:** the live test
+    `an_account_that_cannot_pay_is_told_so_before_anyone_is_asked` (nothing on chain, then 200 CGT against about
+    1,100 CGT of deposits: refused, account and chain named, nobody asked, nothing written, nonce 0), proven to fail
+    with the deposit check disabled (the 200 CGT mint was asked for and failed on chain with
+    `Balances::InsufficientBalance`); `tst_publish`'s window case now hovers a long refusal and reads it whole.
+    **Also run on 15 October, after the change:** the launcher's 240 tests (11 ignored) under `qontrol-no-skips`,
+    format and clippy clean; the frontend's type check and build; the ten browser checks, counts unchanged; all eight
+    live chain tests together against the node (420 s) and the live host check; all eight QQ suites (73 cases), the hover case proven to fail with the tooltip switched off. **Not yet:** the owner's
+    retry, on a launcher rebuilt with this change; QQ Studio redeployed with it (`build.ps1 -Deploy`, the owner's to
+    run, since this assistant's permissions refuse it). **Next:** the owner retries; if the account named is not
+    `5DSND…LUV34`, fund the named one, or choose which account publishes (a decision for the owner: the first account, or the one shown in the rail).
+    **Later the same day.** The owner pushed both commits and pull request #29 was opened against `main`. **The retry,
+    on the rebuilt launcher, confirmed the cause:** three Publishes were refused as `unfunded`, naming
+    `5Gx19bfX6PpiLaWL3JwuFrLWFDhZ6pFDCP8xHu5FyAZ5sPwt` (the vault's first account) holding 0.00 CGT against 1,003.75 CGT
+    of deposits, and nothing was asked or signed; that account was then funded with 5,000 test CGT (total issuance
+    unchanged). The refusal's sentence had a run of spaces where a line continuation was lost; fixed, and the live test
+    now asserts each message is one sentence. **CI on #29:** chain, QOR ID, ARQADE, coverage and **the launcher, the
+    product host's first run on Linux, passed**; the **security job failed** on advisories published that week, not on
+    this change: `rustls` 0.23.45 (RUSTSEC-2026-0346 to 0349) and `quinn-proto` 0.11.17 (RUSTSEC-2026-0338, 0340,
+    0343), both updated to their fixed releases (`rustls` in the launcher, QOR ID and the chain; `quinn-proto` in the
+    launcher), and `ruzstd` 0.8.3 (RUSTSEC-2026-0344), which no update removes and the launcher never builds: **ADR-089,
+    Proposed**, puts the options to the owner. Until it is decided the security job fails on every branch, `main`
+    included. **Next:** the owner publishes again (the account is now funded); the owner decides ADR-089 and which
+    account publishes.
+    **Verified that afternoon, then committed** (the dependency updates, the one-sentence fix and ADR-089) as the
+    branch's third commit, for the owner to push. `cargo test --workspace --locked` in `chain/`, without
+    `SKIP_WASM_BUILD`: 150 passed. The launcher's `cargo test --locked --features qontrol-no-skips`: 240 passed, 11
+    ignored; of those, against `demiurge-node --dev --tmp` (the release build of 4 October; `chain/` is unchanged
+    since but for `rustls` in its lockfile), the seven `chain::live` tests, the publish through the host's channel
+    (`host::tests::a_project_is_minted_then_revised_then_left_alone_through_the_channel`), the OS keychain and the
+    Hello probe passed; `qq::tests::qq_studio_starts_on_a_project` was not run (it opens QQ Studio on the desktop).
+    QOR ID: 62 passed; the other 81 failed only for want of `DATABASE_URL` and 29 need Redis, since this PC runs no
+    Postgres, Redis or Docker, so those 110 are left to CI. `cargo audit`: the launcher reports RUSTSEC-2026-0344 alone,
+    QOR ID nothing beyond its ignore, the Qontrol helper nothing, and the chain (report-only) no `rustls` or
+    `quinn-proto` advisory; `cargo tree -i ruzstd --locked --target all -e all` prints nothing. On Demiurge Devnet
+    (block 170,917, `spec_version` 8) `5Gx19…5sPwt` holds **35,000** test CGT free and nothing reserved, not the 5,000
+    recorded above; who sent the difference is not established. Nothing reserved means no publish has succeeded.
+    **`main` is already red:** its scheduled CI runs failed the security job on 13, 14 and 15 October (the launcher's
+    audit each day, QOR ID's on the 15th; the run of 12 October passed), so ADR-089's context now says so.
+    **The owner's decisions, the same evening ("Go with best recommendation").** **ADR-089 accepted, option A, not
+    built:** writing `tools/qor-launcher/src-tauri/.cargo/audit.toml` (the one-advisory ignore) was refused by this
+    assistant's permission system as a weakening of security. The CI condition step and the `GATES.toml` change-log
+    entry were written, then taken back out so the tree claims no ignore it lacks; they are kept as a patch outside the
+    repository. Until the owner makes the ignore file or allows it to be made, the security job stays red. **ADR-090
+    accepted and built:** a Cartridge is revised by the vault account holding it, whatever the rail shows, and a first
+    publish signs as the account the rail shows (`Vault::set_active` and `active_address`, the command
+    `vault_set_active`, the interface's store telling the host on every change). Verified: the launcher's 241 tests (one
+    new: `the_active_account_is_the_first_until_another_of_its_own_is_chosen`), clippy `-D warnings` and fmt clean; the
+    frontend's type check and build; all ten browser checks (readability 361); the live publish test, now publishing from
+    a picked second account and revising with the first picked, passed against `demiurge-node --dev --tmp` and failed
+    against each wrong signer planted in turn (the first account for a first publish: `unfunded`; the rail's account for
+    a revision: `unfunded`). **The owner pushed `e540d7c`; CI on #29 (run 38780816958):** chain, QOR ID, the launcher,
+    ARQADE and coverage pass; security fails at "Audit launcher host dependencies" on RUSTSEC-2026-0344 (`ruzstd`) alone,
+    and QOR ID's audit, red on `main` that morning, passes with the `rustls` update. ADR-090's work is committed after
+    it, for the owner to push. **ADR-089 built, the owner having given the permission** ("retry ADR-089 file with
+    permission"): `tools/qor-launcher/src-tauri/.cargo/audit.toml` ignores RUSTSEC-2026-0344 alone; the security job's
+    new step "Condition of the ruzstd ignore" fails if `cargo tree --locked -i ruzstd --target all -e all` prints
+    anything or `ruzstd` leaves `Cargo.lock`; `GATES.toml` logs it (`ci-exemption`, 2026-10-15). Verified on this PC: the
+    launcher's `cargo audit` exits 0 (its 15 warnings unchanged); the step, extracted from `ci.yml` and run, passes, and
+    fails with its message on each planted condition (a crate that is built, `rustls`, in `ruzstd`'s place; a crate absent
+    from the lockfile); `GATES.toml` and `ci.yml` parse; the launcher's 15 gates tests pass. **Next:** the owner pushes
+    (CI on #29 is the proof that the security job is green); the owner publishes again.
+
 ## 5. Traps, so nobody re-learns them
 
 **Launcher checks**
@@ -2258,6 +2381,16 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
 - **A module whose types are registered is imported without its `qmldir`.** Qt 6 registers a QML module's types when
   its library loads: `Qt6Quick3DSpatialAudio.dll` links `Qt6MultimediaQuick.dll`, so wherever spatial audio is loaded,
   `import QtMultimedia` works even with its `qmldir` refused.
+- **`cargo test` does not build an example's executable.** It only checks that the example compiles; the
+  executable in `target/debug/examples/` is whatever `cargo build --example` last made. A test that starts an example
+  builds it first (`host::tests::fake_product`), or it runs stale code (10 October 2026).
+- **A thread's own `tracing` logger misses lines another test first decided nobody wanted.** `tracing` caches each
+  log line's interest across threads; a test that captures the log installs one process-wide logger
+  (`host::tests::captured_log`), or a planted secret in the log can pass (10 October 2026).
+- **"Inability to pay some fees" on a chain with no fees means the account does not exist there.** The node refuses
+  a transaction from an account it holds nothing for before any block, and subxt reports it as a transaction "not
+  accepted". On a fresh `--dev --tmp` node only Alice's well-known accounts hold anything; fund the account that
+  signs, and note that publishing signs with the vault's first account (15 October 2026).
 - **A model that fails to load still lets a game settle, and sooner.** `Game.settled` waits for every model to load
   *or fail*, so a missing model made the bundled game start faster and looked like a pass until item 71; `Game.unloaded`
   now names it and the Player's checks fail on it. Look at a first frame, not only its time.

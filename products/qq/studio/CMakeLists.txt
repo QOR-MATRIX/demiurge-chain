@@ -2,7 +2,10 @@
 #
 # The Studio's QML is a library (module "QQ.Studio") so tests can load the real window; the executable is main.cpp.
 
-qt_add_library(qqstudio STATIC)
+qt_add_library(qqstudio STATIC
+    # The Studio's side of the QOR host protocol: publishing asks the launcher that started it (ADR-088).
+    launcherlink.h launcherlink.cpp
+)
 
 qt_add_qml_module(qqstudio
     URI QQ.Studio
@@ -21,8 +24,10 @@ qt_add_resources(qqstudio "samples"
     FILES "${PROJECT_SOURCE_DIR}/tests/fixtures/orb.gltf"
 )
 
+target_include_directories(qqstudio PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+
 target_link_libraries(qqstudio PUBLIC
-    Qt6::Gui Qt6::Quick Qt6::Quick3D Qt6::QuickControls2
+    Qt6::Gui Qt6::Quick Qt6::Quick3D Qt6::QuickControls2 Qt6::Network
     qqruntime qqruntimeplugin
 )
 

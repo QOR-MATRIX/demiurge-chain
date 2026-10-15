@@ -85,3 +85,15 @@ target_link_libraries(tst_lockdown PRIVATE
 )
 
 add_test(NAME tst_lockdown COMMAND tst_lockdown)
+
+qt_add_executable(tst_publish tst_publish.cpp)
+
+# The Studio's side of publishing (P3.4), against a stand-in launcher; the launcher's side is in its own tests.
+target_compile_definitions(tst_publish PRIVATE QQ_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+
+target_link_libraries(tst_publish PRIVATE
+    Qt6::Test Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Quick3D Qt6::QuickControls2 Qt6::Network
+    qqstudio qqstudioplugin qqruntime qqruntimeplugin
+)
+
+add_test(NAME tst_publish COMMAND tst_publish)

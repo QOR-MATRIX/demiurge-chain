@@ -93,6 +93,15 @@ interface State {
   lock: () => Promise<void>;
 }
 
+/**
+ * Tell the host which account the rail shows, so a product's first publish signs as it (ADR-090). The host refuses only
+ * an account its open vault does not hold, or any account while the vault is shut, and the accounts offered here are
+ * the ones it listed; a refusal leaves the host's choice as it was.
+ */
+function tellHostActive(address: string) {
+  vault.setActive(address).catch(() => {});
+}
+
 export const useQor = create<State>((set, get) => ({
   ready: false,
   version: '',
@@ -231,11 +240,10 @@ export const useQor = create<State>((set, get) => ({
   setAccounts(accounts) {
     const current = get().activeAddress;
     const stillPresent = accounts.some((a) => a.address === current);
+    const activeAddress = stillPresent ? current : (accounts[0]?.address ?? null);
 
-    set({
-      accounts,
-      activeAddress: stillPresent ? current : (accounts[0]?.address ?? null),
-    });
+    set({ accounts, activeAddress });
+    if (activeAddress) tellHostActive(activeAddress);
 
     void get().refreshAllBalances();
     void get().refreshNonce();
@@ -243,6 +251,7 @@ export const useQor = create<State>((set, get) => ({
 
   setActiveAddress(address) {
     set({ activeAddress: address });
+    tellHostActive(address);
     void get().refreshBalance(address);
     void get().refreshNonce();
   },
