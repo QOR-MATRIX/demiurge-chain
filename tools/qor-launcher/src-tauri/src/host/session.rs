@@ -175,7 +175,15 @@ where
         let reply = match answer {
             Ok(result) => ToProduct::Result { id, result },
             Err(refusal) => {
-                tracing::info!(product = product.id, %method, code = %refusal.code, "a product's request was refused");
+                // The message too: the code alone left a refused publish unexplained (15 October 2026). It never holds the
+                // token or the session id, which `nothing_secret_reaches_the_log_at_any_level` checks.
+                tracing::info!(
+                    product = product.id,
+                    %method,
+                    code = %refusal.code,
+                    message = %refusal.message,
+                    "a product's request was refused"
+                );
                 ToProduct::Error {
                     id: Some(id),
                     code: refusal.code,

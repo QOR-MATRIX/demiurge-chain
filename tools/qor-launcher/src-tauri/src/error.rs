@@ -78,6 +78,11 @@ pub enum QorError {
     #[error("{0}")]
     PaymentRefused(String),
 
+    /// The signing account cannot pay for what it is asked to send on the connected chain, found before anything was
+    /// asked or signed. The sentence names the account and the chain, so a person can tell which one to fund.
+    #[error("{0}")]
+    Unfunded(String),
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -105,6 +110,7 @@ impl QorError {
             Self::Io(_) => "io",
             Self::Qontrol(_) => "qontrol",
             Self::PaymentRefused(_) => "payment_refused",
+            Self::Unfunded(_) => "unfunded",
             Self::Declined => "declined",
             Self::Hello(_) => "hello",
             Self::Internal(_) => "internal",

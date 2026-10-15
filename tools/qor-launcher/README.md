@@ -401,7 +401,7 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   first: without it the Qontrol tests that commit skip and say so, and under
   `cargo test --features qontrol-no-skips`, which CI uses, they fail instead. The helper's own 16 tests
   pass in `qontrol-git/`.
-- **240 Rust host tests passing, 10 ignored** (15 October 2026, under `qontrol-no-skips`; 9 need a node and 1 opens
+- **240 Rust host tests passing, 11 ignored** (15 October 2026, under `qontrol-no-skips`; 10 need a node and 1 opens
   QQ Studio). Since 6 October they include **the product host** (P3.4, ADR-046, ADR-088), `src/host/tests.rs`: a
   frame goes and comes back whole, and one over 1 MiB is refused both ways; the product the launcher started is
   welcomed and answered; a wrong token, a token past its 30 seconds, another product's hello with the right token, a
@@ -420,6 +420,13 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   (`cargo test` in `host-proof/`): a process's start time is stable and is this user's, an ended or absent process has
   none, a pipe client is named by its process id, a second pipe of the same name is refused, and closing the job ends
   the process in it.
+- **An account that cannot pay is told so before anyone is asked** (15 October 2026), live and ignored by default:
+  `an_account_that_cannot_pay_is_told_so_before_anyone_is_asked`. A mint from an account the chain holds nothing for,
+  then from one holding 200 CGT against about 1,100 CGT of deposits, is refused as `unfunded` with the account and the
+  chain named; nobody is asked, nothing reaches the temporary store and the nonce stays 0. Without this, the node
+  refuses the first as "Inability to pay some fees", on a chain with no fees, and the second fails in its block with
+  `Balances::InsufficientBalance`, which is what the test shows when the deposit check is disabled. Every transaction
+  through `sign_and_finalise` makes the first check; a mint makes the second.
 - One more host test — the live chain test, ignored by
   default — passing against a development node (2026-09-20): a transfer built from the node's own
   runtime metadata, approved in the host dialog, signed

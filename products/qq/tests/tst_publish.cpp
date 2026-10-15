@@ -368,6 +368,29 @@ private slots:
             [&] { return window->property("notice").toString().contains(QStringLiteral("you declined")); }, 5000));
         QVERIFY(!window->property("noticeIsProblem").toBool());
 
+        // A long refusal can be read whole: hovering the notice shows all of it, the reason after the hash included.
+        // The owner's first refused publish ended at "the mint 0xa761…" (15 October 2026).
+        const QString reason = QStringLiteral("5DSNDZGfA8SnQw2RfU8uBtD5Vx7J5qsKkZXrWJRbH2rLUV34 holds nothing on Demiurge "
+                                              "Development, so it cannot send a mint; nothing was asked or signed. Fund "
+                                              "this account on Demiurge Development, then try again. THE-REASON-ENDS-HERE");
+        launcher.script({{QStringLiteral("commit"), QJsonValue::Null}},
+                        {{QStringLiteral("type"), QStringLiteral("error")},
+                         {QStringLiteral("code"), QStringLiteral("unfunded")},
+                         {QStringLiteral("message"), QString(reason).repeated(2)}});
+        QMetaObject::invokeMethod(window, "publish");
+        QVERIFY(QTest::qWaitFor(
+            [&] { return window->property("notice").toString().contains(QStringLiteral("THE-REASON-ENDS-HERE")); }, 5000));
+        QVERIFY(window->property("noticeIsProblem").toBool());
+        auto *label = window->findChild<QQuickItem *>(QStringLiteral("noticeLabel"));
+        QVERIFY(label);
+        QVERIFY2(label->property("truncated").toBool(), "the test needs a notice too long for the toolbar");
+        auto *tip = window->findChild<QObject *>(QStringLiteral("noticeTip"));
+        QVERIFY(tip);
+        QVERIFY(!tip->property("visible").toBool());
+        QTest::mouseMove(window, label->mapToScene(QPointF(label->width() / 2, label->height() / 2)).toPoint());
+        QVERIFY(QTest::qWaitFor([&] { return tip->property("visible").toBool(); }, 5000));
+        QVERIFY(tip->property("text").toString().endsWith(QStringLiteral("THE-REASON-ENDS-HERE")));
+
         window->setProperty("launcher", QVariant());
         QMetaObject::invokeMethod(window, "release");
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);

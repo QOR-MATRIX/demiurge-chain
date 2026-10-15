@@ -386,13 +386,26 @@ ApplicationWindow {
                 font.pixelSize: 12
             }
             Item { Layout.fillWidth: true }
+            // Two lines, and the whole of it on hover: a refused publish once ended at its transaction hash, before the
+            // reason (15 October 2026).
             Label {
+                id: noticeLabel
+                objectName: "noticeLabel"
                 Layout.maximumWidth: 560
+                wrapMode: Text.Wrap
+                maximumLineCount: 2
                 elide: Text.ElideRight
                 text: window.playProblem !== "" ? window.playProblem : window.notice
                 color: window.noticeIsProblem || window.playProblem !== "" ? "#d57889" : Material.foreground
                 opacity: window.noticeIsProblem || window.playProblem !== "" ? 1 : 0.7
                 font.pixelSize: 13
+                HoverHandler { id: noticeHover }
+                ToolTip {
+                    objectName: "noticeTip"
+                    visible: noticeHover.hovered && noticeLabel.truncated
+                    text: noticeLabel.text
+                    width: Math.min(implicitWidth, 560)
+                }
             }
             ToolButton {
                 objectName: "agentButton"

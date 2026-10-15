@@ -43,6 +43,7 @@ export type QorErrorKind =
   | 'hello'
   | 'qontrol'
   | 'payment_refused'
+  | 'unfunded'
   | 'internal';
 
 /** An account's level and XP, as QOR ID keeps them (ADR-078). */

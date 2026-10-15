@@ -359,6 +359,17 @@ impl ChainClient {
         let deposits = self
             .mint_deposits(&connection, owner, request.name.len())
             .await?;
+        // Caught here, in words naming the account, rather than by the node refusing the signed mint (15 October 2026).
+        let free = self.balance(from).await?;
+        if free < deposits.total {
+            return Err(QorError::Unfunded(format!(
+                "{owner_address} holds {have} {symbol} on {chain}, and this mint holds {need} {symbol} as deposits,                  so nothing was asked or signed. Fund this account on {chain}, then try again.",
+                have = crate::cgt::format_cgt_grouped(free),
+                need = crate::cgt::format_cgt_grouped(deposits.total),
+                symbol = crate::cgt::SYMBOL,
+                chain = connection.chain_name,
+            )));
+        }
 
         let call = dynamic::transaction(
             "Drc369",
@@ -864,6 +875,15 @@ impl ChainClient {
         what: &str,
     ) -> QorResult<Finalised> {
         let signer = AccountId32(normalise_address(from)?);
+        // An account the chain holds nothing for cannot send anything: the node refuses it as unable to pay "fees",
+        // on a chain with none (OPEN-4). Said before anyone is asked, naming the account (15 October 2026).
+        if self.balance(from).await? == 0 {
+            return Err(QorError::Unfunded(format!(
+                "{account} holds nothing on {chain}, so it cannot send a {what}; nothing was asked or signed. Fund                  this account on {chain}, then try again.",
+                account = canonical_address(from)?,
+                chain = connection.chain_name,
+            )));
+        }
         let nonce = connection
             .rpc
             .system_account_next_index(&signer)

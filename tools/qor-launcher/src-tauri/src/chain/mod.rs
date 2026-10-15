@@ -1158,6 +1158,95 @@ pub(crate) mod live {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// An account that cannot pay for what it would send is told so, naming the account and the chain, before anyone
+    /// is asked. The node's own refusal of an account it holds nothing for says "Inability to pay some fees", on a
+    /// chain with no fees (OPEN-4), and reached the owner cut off at the transaction's hash (15 October 2026).
+    #[tokio::test]
+    #[ignore = "needs a running Demiurge development node; see the module docs"]
+    async fn an_account_that_cannot_pay_is_told_so_before_anyone_is_asked() {
+        use crate::chain::assets::MintRequest;
+        use crate::content::{CommitId, ContentRef, Manifest};
+
+        let endpoint = endpoint();
+        let client = ChainClient::new(&endpoint).unwrap();
+        let status = client.status().await;
+        assert!(
+            status.reachable,
+            "no node at {endpoint}: {:?}",
+            status.detail
+        );
+        let chain_name = status.chain_name.clone().expect("a chain name");
+
+        let dir = std::env::temp_dir().join(format!(
+            "qor-unfunded-live-{}-{}",
+            std::process::id(),
+            status.block_number.unwrap_or_default()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        let vault = crate::vault::testing::vault_in(&dir);
+        let phrase = crate::vault::derive::generate_mnemonic().unwrap();
+        let creator = vault.create(&phrase).unwrap()[0].address.clone();
+        let named = canonical_address(&creator).unwrap();
+
+        let bytes = b"a scene".to_vec();
+        let manifest = Manifest::new(
+            vec![("scenes/untitled.qml".into(), ContentRef::of(&bytes))],
+            1_760_500_000,
+            None,
+        )
+        .unwrap();
+        let request = MintRequest {
+            name: "unfunded-mint".into(),
+            reference: manifest.reference(),
+            commit: CommitId::Sha1([0x6b; 20]),
+            branch: None,
+            files: 1,
+        };
+
+        // 1. Nothing at all on this chain: the mint is refused, naming the account and the chain, and nobody is asked.
+        let approving = Scripted::approving();
+        let mut wrote = false;
+        let refused = client
+            .mint(&vault, &approving, &creator, &request, || {
+                wrote = true;
+                Ok(())
+            })
+            .await
+            .unwrap_err();
+        assert_eq!(refused.kind(), "unfunded", "{refused}");
+        let said = refused.to_string();
+        assert!(said.contains(&named), "the account is named: {said}");
+        assert!(said.contains(&chain_name), "the chain is named: {said}");
+        assert_eq!(approving.times_asked(), 0, "nobody is asked");
+        assert!(!wrote, "nothing is written to the store");
+
+        // 2. Something, but less than the deposits the mint would hold: refused the same way, saying how much.
+        fund_from_alice(
+            &endpoint,
+            normalise_address(&creator).unwrap(),
+            200 * crate::cgt::SPARKS_PER_CGT,
+        )
+        .await;
+        let refused = client
+            .mint(&vault, &approving, &creator, &request, || {
+                wrote = true;
+                Ok(())
+            })
+            .await
+            .unwrap_err();
+        assert_eq!(refused.kind(), "unfunded", "{refused}");
+        let said = refused.to_string();
+        assert!(
+            said.contains(&named) && said.contains("as deposits"),
+            "{said}"
+        );
+        assert_eq!(approving.times_asked(), 0);
+        assert!(!wrote);
+        assert_eq!(client.nonce(&creator).await.unwrap(), 0, "nothing was sent");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     /// L4.5, end to end against a real node: three assets minted, two of them
     /// traded away in one transaction with a message, and the chain asked
     /// afterwards who holds what.

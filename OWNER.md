@@ -15,45 +15,45 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`. 49 tests.
 - **Launcher 0.1.8**, unsigned — *Windows warns on install*.
 
-## Where publishing stands (P3.4)
+## Publishing a game (P3.4): your try this morning
 
-**Publish** in QQ Studio saves your game, records it as a version in Qontrol and turns it
-into a **Cartridge** — *the game as one on-chain asset* — through the launcher, which asks
-you first. Publishing again updates the same Cartridge.
+**Publish** in QQ Studio turns your game into a **Cartridge** — *the game as one on-chain
+asset* — after the launcher asks you.
 
-- **Your first try (10 October) found a fault:** Publish was greyed out because the Studio
-  was open on a folder Qontrol doesn't track, and the reason was only in a hover tip. Now
-  Publish can always be pressed and says what's missing. A new automatic check fails on
-  the old behaviour.
-- **Re-checked today**, after your PC restarted and wiped the test chain: all launcher tests
-  (240) and all QQ tests (73) pass.
-- **Ready for you now:** a local test chain is running, your account holds 5,000 test CGT
-  on it, and the test launcher is open.
+- **Your publish was refused** before reaching the chain, and the message was cut off.
+  The likely cause: publishing signs with your vault's **first** account, and the test
+  CGT went to a different one, so the chain saw an empty account. Its own wording,
+  "unable to pay fees", is misleading: this chain has no fees.
+- **Fixed:** the launcher now checks first and says *which account* is empty *on which
+  chain*, before asking you anything. QQ Studio shows the whole message on hover. Both
+  have automatic checks, each proven to catch the old behaviour.
+- **Re-checked today:** launcher 240 tests, every live chain test against a test chain,
+  all 73 QQ tests.
+- **Saved:** P3.4 is committed on this PC (two commits), not yet on GitHub (below).
 
 ## What only you can do
 
-1. **Publish once, for real**, in the open launcher:
-   1. **Chain → Local node**, and approve.
-   2. **Projects:** open or create a project folder.
-   3. **QQ page:** choose that same folder, then **Open in QQ Studio**.
-   4. In the Studio, add something, press **Publish**, and approve **"Approve this mint"**.
-   5. Change something, **Publish** again, and approve **"Approve this revision"**.
-   6. Tell me what each window said. I'll check the chain.
-2. **Update QQ Studio on your PC** with today's fix (my tools aren't allowed to): close the
-   Studio, then run `pwsh products/qq/build.ps1 -Deploy`.
-3. **The last two L1.4 checks** — *the launcher's approval dialogs*: change the QOR ID address
+1. **Push to GitHub** — *my tools aren't allowed to*. In the project folder, run
+   `git push matrix session/qq-p3.4-publish`. Then tell me, and I'll open the pull request.
+2. **Retry the publish:** close the test launcher (tray icon → Quit; QQ Studio closes with
+   it), tell me, and I'll start the new one. Then QQ page → **Open in QQ Studio** →
+   **Publish**. If it names an empty account, I'll fund that one.
+3. **Decide:** should publishing use the **first** account, or the one shown in the rail?
+4. **Update QQ Studio** with today's fixes: with it closed, run
+   `pwsh products/qq/build.ps1 -Deploy`.
+5. **The last two L1.4 checks** — *the launcher's approval dialogs*: change the QOR ID address
    (decline once, approve once); sign in after QOR ID was unreachable at start-up.
-4. **Optional: prove P3.3** — your own Anthropic key in QQ Studio's Agent panel, billed to you.
-5. **CI** — *automatic build and test* — **for QQ:** add your Qt account to GitHub's secrets,
+6. **CI** — *automatic build and test* — **for QQ:** add your Qt account to GitHub's secrets,
    or let your PC run CI (a *self-hosted runner*). Check with Qt that your licence allows it.
-6. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
-7. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
-8. **Housekeeping:** a GitKraken download (`archive-bZLIQp/`) appeared in the project folder
+7. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
+8. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
+9. **Housekeeping:** a GitKraken download (`archive-bZLIQp/`) appeared in the project folder
    this morning — delete it or tell me to; delete `QOR-MATRIX/arqade`; the Resend bounce
    webhook; the `ci` record and tunnel in Cloudflare; rotate nine old credentials; decide the
    nine frozen *home-map* tiles.
-9. **Before commercial use:** a paid Vercel plan, a legal review, trademark clearance.
-10. **Open questions:** OPEN-1 to OPEN-4, U-4, U-14 to U-19, Q-19 and Q-20.
+10. **Before commercial use:** a paid Vercel plan, a legal review, trademark clearance.
+11. **Open questions:** OPEN-1 to OPEN-4, U-4, U-14 to U-19, Q-19 and Q-20. Optional: prove
+    P3.3 with your own Anthropic key.
 
 ## Cost per month
 

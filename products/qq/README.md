@@ -151,11 +151,12 @@ drew about 12 frames a second.
   reports the receipt; a decline is said and nothing more is asked; a refused handshake leaves publishing unavailable
   with the reason; frames a byte at a time and two in one write read alike; a frame over 1 MiB is not read; the
   launcher closing the channel is told (and the Studio exits); and the real Studio window, not started by the launcher,
-  cannot publish, then, linked, saves an unsaved scene first and says what was published, or that it was declined;
+  cannot publish, then, linked, saves an unsaved scene first and says what was published, or that it was declined,
+  and a refusal too long for the toolbar is shown whole when the notice is hovered;
   and, linked but on a folder that is not versioned, Publish can still be pressed, says what is missing and asks the
-  launcher nothing. **Proven to fail** by three planted faults: publishing without the commit (three cases);
+  launcher nothing. **Proven to fail** by four planted faults: publishing without the commit (three cases);
   publishing without saving first; Publish greyed out on a folder that is not versioned (the owner's first run, 10
-  October 2026). The launcher's side, the channel's proofs and a run against a development node, is in the launcher's tests.
+  October 2026); the whole notice not shown on hover (15 October 2026). The launcher's side, the channel's proofs and a run against a development node, is in the launcher's tests.
 - **`tst_player`** (4 cases, the real executable): the playground plays and its start is measured; its first frame is
   the game (hundreds of colours, not an empty window); a scene file from disk plays too, with every model loaded in it
   and in the playground; a scene that is not there is said, not hidden. **Proven to fail** (10 October 2026) by putting
