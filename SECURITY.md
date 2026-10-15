@@ -26,6 +26,11 @@ serious today:
   is the devnet's sudo key, replace it with `sudo.setKey` from the current sudo account, signed in the owner's
   wallet, then move anything the old account holds. The devnet holds nothing of value (ADR-037), but whoever has
   its sudo key can replace its runtime.
+- **Social can read the messages it holds** (ADR-091 decision 4, the owner's choice for release 1). Bodies are sealed
+  at rest with the service's own keys and travel only over TLS, so a copy of its database alone reads nothing; but
+  the service, and whoever runs it, can open them, which is what lets reports and moderation work. End-to-end
+  encrypted direct messages are release 2 (L8.8), designed in a record of their own first. Social is not deployed
+  (15 October 2026).
 - **The wallet extension** (`apps/wallet-extension`) derives keys non-standardly. Keys created there
   cannot be recovered by any other wallet (D-011).
 - **Nine credential-shaped values from the private archive's history are covered by no rotation record.**

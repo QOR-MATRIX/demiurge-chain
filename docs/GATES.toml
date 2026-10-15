@@ -754,6 +754,12 @@ type = "tightening"
 change = "A social gate is appended after ARQADE's: social.decisions counts ADR-091 and social.roadmap counts L8.1 to L8.7, Social's release 1 (ADR-091, accepted by the owner on 2026-10-15). L7.3 stays where it was, in public-release.platform, and is ticked when L8.1 to L8.7 are."
 reason = "Tightening: a new gate with units, none relaxed. L8 is new in DIRECTION.md the same day; counting it at once keeps the gate-coverage check in HANDOFF.md section 5 from reporting it as uncounted. L8.8 to L8.10 are later releases, left uncounted on purpose, as this note says. A tests criterion is added when services/social has a suite."
 
+[[change_log]]
+date = "2026-10-15"
+type = "tightening"
+change = "Social's suite and CI job. [suites.social] runs cargo test in services/social; [ci].quality_gates gains the social job (fmt, clippy -D warnings, tests against Postgres 16); the social gate gains social.tests (seven required tests in Social's suite) and social.qor-id-tests (four in QOR ID's). Also a correction of fact: [ci].quality_gates described the launcher's audit as plain, which ADR-089 changed the same day with its own entry above; it now says what runs."
+reason = "Tightening: a new job and two criteria with required tests, none relaxed. Each required test was seen to fail against a planted fault first: history read without membership, a blocker still hearing the blocked, the log filter off (tokens, words, bios, notes and status lines in the log), words stored plain, a made name posting, a CRLF migration; in QOR ID, introspection accepting an app's token, a second claim, sessions left on the old name, and the service secret logged. Social's dependency audit is NOT added: rsa (RUSTSEC-2023-0071) is in its lockfile through sqlx's optional MySQL driver and not compiled, as in QOR ID, and whether to ignore it on QOR ID's condition is the owner's decision (HANDOFF.md section 4 item 75)."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -798,9 +804,10 @@ quality_gates = [
   "chain/: cargo fmt --all --check; cargo clippy --workspace --all-targets -D warnings; cargo test --workspace --locked, WITHOUT SKIP_WASM_BUILD, which cannot build a chain specification and is never evidence. On Rust 1.98.1, pinned by chain/rust-toolchain.toml since 2026-10-04 (ADR-072)",
   "chain/: two validators agree, finalise and catch up. A job of its own, because it needs a release build with the sudo feature: cargo build -p demiurge-node --release --features sudo --locked, then node scripts/check-two-validators.mjs. It fails the run; criterion alpha.multi-validator reads it. Since 2026-09-21 it runs NIGHTLY (03:00 UTC) and on workflow_dispatch, not on every push",
   "services/qor-auth: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test -- --include-ignored, against a migrated Postgres 16 and a Redis 7.4",
+  "services/social: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test, against a Postgres 16 (a database per test) and a real WebSocket on a loopback port; its log, SQL and migration checks run with the tests",
   "tools/qor-launcher: npm ci, frontend build and npm run check, ten checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
   "cargo audit of services/qor-auth, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside the compiled graph (services/qor-auth/.cargo/audit.toml)",
-  "cargo audit of tools/qor-launcher/src-tauri",
+  "cargo audit of tools/qor-launcher/src-tauri, ignoring only RUSTSEC-2026-0344 while CI confirms ruzstd is outside the compiled graph and still in the lockfile (tools/qor-launcher/src-tauri/.cargo/audit.toml, ADR-089)",
   "cargo audit of tools/qor-launcher/qontrol-git, the libgit2 helper",
   "framework/ stays retired: the security job fails if the directory returns, and with it the six advisories its audit.toml exempted until M3.5",
   "no private key material tracked in git",
@@ -857,6 +864,11 @@ needs = "DATABASE_URL pointing at a migrated Postgres whose user can create data
 [suites.launcher]
 dir = "tools/qor-launcher/src-tauri"
 command = "cargo test"
+
+[suites.social]
+dir = "services/social"  # Social (ADR-091). Since 2026-10-15.
+command = "cargo test"
+needs = "DATABASE_URL pointing at a Postgres whose user can create databases (#[sqlx::test] creates a database per test and migrates it)"
 
 # The product suites (see THE PRODUCT GATES at the end). Qontrol's code and
 # QFX's are launcher code today, so their suites run in tools/qor-launcher, and
@@ -1812,3 +1824,32 @@ Rooms, direct messages, presence and profiles per QOR ID, in a service of its ow
   id = "social.roadmap"
   kind = "roadmap"
   items = ["L8.1", "L8.2", "L8.3", "L8.4", "L8.5", "L8.6", "L8.7"]
+
+  # The rules docs/blueprints/social.md section 4 says are tested, not hoped for.
+  # Each failed against a planted fault first (HANDOFF.md section 4 item 75).
+  [[gates.criteria]]
+  id = "social.tests"
+  kind = "tests"
+  suite = "social"
+  require = [
+    "only_members_read_and_a_private_room_is_joined_by_invitation",
+    "a_direct_conversation_is_two_people_and_a_block_ends_what_reaches_the_blocker",
+    "an_account_on_a_made_name_reads_but_does_not_post_until_it_chooses",
+    "words_are_sealed_at_rest_and_open_only_for_members",
+    "nothing_secret_reaches_a_log_at_any_level",
+    "every_query_in_the_source_is_a_literal_with_bound_parameters",
+    "no_migration_file_holds_a_carriage_return",
+  ]
+
+  # QOR ID's side of Social (L8.1), in QOR ID's own suite. Each failed against a
+  # planted fault first.
+  [[gates.criteria]]
+  id = "social.qor-id-tests"
+  kind = "tests"
+  suite = "qor_auth"
+  require = [
+    "a_service_learns_whether_a_persons_own_token_is_live",
+    "an_account_on_a_made_name_chooses_its_own_once",
+    "a_public_profile_shows_a_name_avatar_and_level_and_nothing_else",
+    "nothing_secret_reaches_a_log_at_any_level",
+  ]
