@@ -62,6 +62,10 @@ pub struct OAuthClient {
     /// either way.
     #[serde(default)]
     pub secret_sha256: Option<String>,
+    /// A service rather than an app (ADR-091 decision 2): it may ask `POST /oauth/introspect` whether a person's own
+    /// access token is live. It signs nobody in, so it has a secret and no redirect URI.
+    #[serde(default)]
+    pub introspect: bool,
 }
 
 impl OAuthConfig {
@@ -85,7 +89,17 @@ impl OAuthConfig {
             if !seen.insert(c.id.as_str()) {
                 anyhow::bail!("OAuth client {} is registered twice", c.id);
             }
-            if c.redirect_uris.is_empty() {
+            if c.introspect {
+                if c.secret_sha256.is_none() {
+                    anyhow::bail!("OAuth service {} must have a secret to introspect", c.id);
+                }
+                if !c.redirect_uris.is_empty() {
+                    anyhow::bail!(
+                        "OAuth service {} signs nobody in, so it has no redirect URI",
+                        c.id
+                    );
+                }
+            } else if c.redirect_uris.is_empty() {
                 anyhow::bail!("OAuth client {} has no redirect URI", c.id);
             }
             for uri in &c.redirect_uris {

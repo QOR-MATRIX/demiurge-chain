@@ -204,7 +204,7 @@ pub async fn register_agent(
     .fetch_one(&state.db)
     .await
     .map_err(|e| {
-        if matches!(&e, sqlx::Error::Database(db) if db.constraint() == Some("users_username_unique")) {
+        if crate::handlers::auth::name_taken(&e) {
             AppError::ValidationError("An account with this name already exists".into())
         } else {
             AppError::DatabaseError(e)

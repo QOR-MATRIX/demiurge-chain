@@ -748,6 +748,12 @@ reason = "No update removes it: every published smoldot requires ruzstd ^0.8 and
 condition = "ruzstd stays out of the launcher's compiled graph, and in its Cargo.lock, checked on every CI run"
 approved_by = "owner, 2026-10-15 (ADR-089: 'Go with best recommendation')"
 
+[[change_log]]
+date = "2026-10-15"
+type = "tightening"
+change = "A social gate is appended after ARQADE's: social.decisions counts ADR-091 and social.roadmap counts L8.1 to L8.7, Social's release 1 (ADR-091, accepted by the owner on 2026-10-15). L7.3 stays where it was, in public-release.platform, and is ticked when L8.1 to L8.7 are."
+reason = "Tightening: a new gate with units, none relaxed. L8 is new in DIRECTION.md the same day; counting it at once keeps the gate-coverage check in HANDOFF.md section 5 from reporting it as uncounted. L8.8 to L8.10 are later releases, left uncounted on purpose, as this note says. A tests criterion is added when services/social has a suite."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1788,3 +1794,21 @@ player's own Vault, and a developer SDK with which others publish games."""
   kind = "tests"
   suite = "arqade"
   require = []
+
+[[gates]]
+id = "social"
+name = "Social"
+means = """
+Rooms, direct messages, presence and profiles per QOR ID, in a service of its own with the launcher as its first client (ADR-091, L7.3 and L8)."""
+
+  [[gates.criteria]]
+  id = "social.decisions"
+  kind = "adr"
+  adrs = ["ADR-091"]
+
+  # Release 1. L8.8 to L8.10 (end-to-end encrypted DMs, the web client, voice
+  # and feeds) are later releases and are not counted here.
+  [[gates.criteria]]
+  id = "social.roadmap"
+  kind = "roadmap"
+  items = ["L8.1", "L8.2", "L8.3", "L8.4", "L8.5", "L8.6", "L8.7"]

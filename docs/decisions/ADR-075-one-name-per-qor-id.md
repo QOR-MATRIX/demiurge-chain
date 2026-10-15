@@ -4,7 +4,8 @@
 all. There should NOT be multiple names per QOR ID." The owner also chose how existing shared names are resolved
 (decision 3). It changes the identity form that [ADR-027](ADR-027-identity-stays-off-chain.md),
 [ADR-049](ADR-049-data-ownership-and-the-user-directory.md) and [ADR-074](ADR-074-arqade-on-vercel.md) describe as
-`name#0001`; each says so. It decides no economic value.
+`name#0001`; each says so. It decides no economic value. **Amended by [ADR-091](ADR-091-social.md)** decision 5
+(15 October 2026): an account still on an automatic `key_…` name chooses its username once.
 
 ## Context
 
