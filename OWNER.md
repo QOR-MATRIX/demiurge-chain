@@ -16,54 +16,44 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`. 49 tests.
 - **Launcher 0.1.8**, unsigned — *Windows warns on install*.
 
-## Publishing a game (P3.4): your tries today
+## Publishing a game (P3.4): your decisions tonight
 
 **Publish** in QQ Studio turns your game into a **Cartridge** — *the game as one on-chain
 asset* — after the launcher asks you.
 
-- **Cause found:** publishing signs with your vault's **first** account, `5Gx19…5sPwt`,
-  which held nothing on the test chain; I had funded a different one. Your second try
-  proved it: the launcher now says which account is empty, before asking you anything.
-  That account now holds **35,000** test CGT, read from the chain this afternoon (my notes
-  said 5,000; I can't say who sent the rest). Nothing is held back yet, so no publish has
-  gone through.
-- **Pull request #29** is open with all of it. **Its checks:** chain, QOR ID, ARQADE and the
-  launcher pass (the launcher's first run on Linux). **Security fails**, from security
-  notices published this week, not from this work. I updated the two libraries that had
-  fixes. The third, `ruzstd` — *a decompression library* — has no fix and sits in a part
-  of a library the launcher never uses. Silencing it is your call:
-  **ADR-089** — *a written decision* — lists the options.
-- **Re-checked this afternoon, with the library updates:** chain 150 tests; launcher 240,
-  plus its live tests against a test chain, publishing included; QOR ID's 62 tests that need
-  no database (its other 110 need Postgres and Redis, which this PC isn't running: GitHub
-  runs them). The only audit failure left is `ruzstd`. QQ is unchanged since its last commit;
-  its 73 tests are recorded as passing then, not re-run (they open windows on your screen).
-- **Committed** on this PC as a third commit on the branch, not yet on GitHub.
+- **Your first tries failed** because publishing signed with your vault's first account,
+  `5Gx19…5sPwt`, which held nothing. It now holds 35,000 test CGT (read from the chain;
+  my notes said 5,000). No publish has gone through yet.
+- **Which account publishes — done (ADR-090):** a first publish signs as the account in
+  the rail, like everything else in the launcher; once a game is published, the account
+  holding it publishes its updates, whatever the rail shows. The dialog names the account.
+  Tested against a test chain, and proven to catch both wrong accounts.
+- **Pull request #29, after your push:** everything passes except security, and that fails
+  on `ruzstd` alone, as expected. **ADR-089 (option A) is decided, not done:** my permissions
+  refused to write the file that silences it, as a weakening of security. The automatic
+  check and the record are ready.
+- **Re-checked tonight:** chain 150 tests; launcher 241, its ten screen checks and its live
+  tests; QOR ID's 62 that need no database (GitHub runs the other 110).
 
 ## What only you can do
 
-1. **Publish again**: QQ page → **Open in QQ Studio** → **Publish** → approve
-   **"Approve this mint"**. Tell me what the Studio says.
-2. **Decide ADR-089** (`docs/decisions/ADR-089-…`). I recommend **A**: ignore that one
-   notice, with an automatic check that fails if the launcher ever uses that code — the
-   same arrangement you approved for QOR ID on 14 September. Until you decide, the
-   security check stays red on every branch, `main` included.
-3. **Decide:** should publishing sign with the **first** account, or the one in the rail?
-4. **Push** today's third commit: `git push matrix session/qq-p3.4-publish` (pull request #29
-   picks it up).
-5. **Update QQ Studio** with today's fixes: with it closed, run
-   `pwsh products/qq/build.ps1 -Deploy`.
-6. **The last two L1.4 checks** — *the launcher's approval dialogs*: change the QOR ID address
+1. **Let ADR-089 be built:** tell me to retry with permission, or allow it in Claude Code's
+   settings. Without it the security check stays red on every branch, `main` included.
+2. **Push** tonight's commit (ADR-090): `git push matrix session/qq-p3.4-publish`.
+3. **Publish again** on a launcher with tonight's change: quit the test launcher (tray →
+   Quit), tell me, and I'll start the new one. Then QQ → **Open in QQ Studio** → **Publish**.
+4. **Update QQ Studio:** with it closed, run `pwsh products/qq/build.ps1 -Deploy`.
+5. **The last two L1.4 checks** — *the launcher's approval dialogs*: change the QOR ID address
    (decline once, approve once); sign in after QOR ID was unreachable at start-up.
-7. **CI for QQ:** add your Qt account to GitHub's secrets, or let your PC run CI (a
-   *self-hosted runner*). Check with Qt that your licence allows it.
-8. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
-9. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
-10. **Housekeeping:** the GitKraken download (`archive-bZLIQp/`) in the project folder —
-    delete it or tell me to; delete `QOR-MATRIX/arqade`; the Resend bounce webhook; the `ci`
-    record and tunnel in Cloudflare; rotate nine old credentials; the nine frozen
-    *home-map* tiles. Before commercial use: a paid Vercel plan, legal review, trademark
-    clearance. Open questions: OPEN-1 to OPEN-4, U-4, U-14 to U-19, Q-19 and Q-20.
+6. **CI for QQ:** add your Qt account to GitHub's secrets, or a *self-hosted runner* — *your
+   PC running GitHub's checks*. Check with Qt that your licence allows it.
+7. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
+8. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
+9. **Housekeeping:** the GitKraken download (`archive-bZLIQp/`) in the project folder;
+   delete `QOR-MATRIX/arqade`; the Resend bounce webhook; the `ci` record and tunnel in
+   Cloudflare; rotate nine old credentials; the nine frozen *home-map* tiles. Before
+   commercial use: a paid Vercel plan, legal review, trademark clearance. Open questions:
+   OPEN-1 to OPEN-4, U-4, U-14 to U-19, Q-19 and Q-20.
 
 ## Cost per month
 

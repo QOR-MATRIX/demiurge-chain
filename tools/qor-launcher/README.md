@@ -259,6 +259,9 @@ key and never holds one. `src-tauri/src/host/` is the product host:
   4-byte big-endian length and a JSON object of at most 1 MiB; `hello` / `welcome` with a version and capabilities;
   then **typed intents**, never bytes to sign. QQ Studio is offered `qontrol.commit` and `cartridge.publish`
   (`studio.rs`).
+- **Who signs a publish** (ADR-090): the vault account holding the project's Cartridge revises it, whichever account
+  the rail shows; a first publish signs as the account the rail shows, which the interface tells the host
+  (`vault_set_active`, `Vault::active_address`). The dialog names it (`Owner:`).
 - **The dialog** (`ProductDialog`): every prompt a product's request raises starts with the product's name and the
   program the launcher started, from the launcher's own record.
 - **Lifetime**: each product is in a Windows job that ends it when the launcher ends; its exit code and the end of its

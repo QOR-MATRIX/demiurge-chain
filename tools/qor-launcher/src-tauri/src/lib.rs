@@ -504,6 +504,12 @@ fn vault_add_account(
     state.vault.add_account(&label)
 }
 
+/// The account the person picked: what the rail shows, and what a product's first publish signs as (ADR-090).
+#[tauri::command]
+fn vault_set_active(state: tauri::State<'_, AppState>, address: String) -> Result<(), QorError> {
+    state.vault.set_active(&address)
+}
+
 /// Re-export the recovery phrase, once the person approves a host dialog.
 #[tauri::command]
 async fn vault_export_phrase(
@@ -1500,6 +1506,7 @@ pub fn run() {
             vault_move_to_keychain,
             vault_lock,
             vault_add_account,
+            vault_set_active,
             vault_export_phrase,
             chain_status,
             chain_set_endpoint,

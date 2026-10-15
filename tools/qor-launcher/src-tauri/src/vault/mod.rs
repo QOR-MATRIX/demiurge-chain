@@ -113,6 +113,8 @@ struct Unlocked {
     root: RootKey,
     accounts: Vec<DerivedAccount>,
     labels: Vec<String>,
+    /// The account the person picked in the launcher (the one its rail shows), if not the first (ADR-090).
+    active: Option<String>,
 }
 
 impl Unlocked {
@@ -430,6 +432,7 @@ impl Vault {
             root,
             accounts: vec![first],
             labels: vec!["Primary".to_string()],
+            active: None,
         };
 
         let views = session.views();
@@ -440,6 +443,35 @@ impl Vault {
     /// Wipe secret state. Idempotent.
     pub fn lock(&self) {
         *self.inner.lock() = None;
+    }
+
+    /// Make `address` the account the launcher acts as: the one its rail shows, and the one a product's first publish
+    /// signs with (ADR-090). Only an account this open vault holds can be chosen.
+    pub fn set_active(&self, address: &str) -> QorResult<()> {
+        let mut guard = self.inner.lock();
+        let session = guard.as_mut().ok_or(QorError::VaultLocked)?;
+        let address = canonical_address(address)?;
+        if !session.accounts.iter().any(|a| a.address() == address) {
+            return Err(QorError::BadAddress(format!(
+                "{address} is not an account in this vault"
+            )));
+        }
+        session.active = Some(address);
+        Ok(())
+    }
+
+    /// The account the launcher acts as: the one chosen with [`Self::set_active`], or the first while none is.
+    pub fn active_address(&self) -> QorResult<String> {
+        let guard = self.inner.lock();
+        let session = guard.as_ref().ok_or(QorError::VaultLocked)?;
+        Ok(match &session.active {
+            Some(address) => address.clone(),
+            None => session
+                .accounts
+                .first()
+                .map(|a| a.address())
+                .ok_or(QorError::VaultLocked)?,
+        })
     }
 
     /// Derive the next account in the chain.
@@ -689,6 +721,55 @@ mod tests {
         let reopened = vault.unlock(&hello).unwrap();
         assert_eq!(reopened[0].address, accounts[0].address);
         assert_eq!(asked(&hello), 0, "a keychain vault asks nothing");
+    }
+
+    /// ADR-090: the launcher acts as the first account until the person picks another the vault holds, and a lock
+    /// forgets the choice.
+    #[test]
+    fn the_active_account_is_the_first_until_another_of_its_own_is_chosen() {
+        let (vault, _keys, _dir) = temp_vault();
+        assert_eq!(vault.active_address().unwrap_err().kind(), "vault_locked");
+        let first = vault.create(PHRASE).unwrap()[0].address.clone();
+        assert_eq!(vault.active_address().unwrap(), first);
+
+        let second = vault.add_account("").unwrap().address;
+        assert_eq!(
+            vault.active_address().unwrap(),
+            first,
+            "adding is not choosing"
+        );
+        vault.set_active(&second).unwrap();
+        assert_eq!(vault.active_address().unwrap(), second);
+
+        let stranger = Vault::preview(
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+        )
+        .unwrap();
+        assert_eq!(
+            vault.set_active(&stranger).unwrap_err().kind(),
+            "bad_address"
+        );
+        assert_eq!(
+            vault.set_active("not an address").unwrap_err().kind(),
+            "bad_address"
+        );
+        assert_eq!(
+            vault.active_address().unwrap(),
+            second,
+            "a refused choice changes nothing"
+        );
+
+        vault.lock();
+        assert_eq!(
+            vault.set_active(&second).unwrap_err().kind(),
+            "vault_locked"
+        );
+        vault.unlock(&FakeHello::new()).unwrap();
+        assert_eq!(
+            vault.active_address().unwrap(),
+            first,
+            "a lock forgets the choice"
+        );
     }
 
     #[test]

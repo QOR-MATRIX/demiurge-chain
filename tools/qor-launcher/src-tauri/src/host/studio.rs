@@ -5,9 +5,11 @@
 //!   from here: the answer names it, and the person commits it in Projects, where each warning is read and accepted.
 //!   Nothing changed is not an error: the answer's `commit` is null.
 //! - `cartridge.publish` `{project}`: the commit HEAD points at, minted as the project's Cartridge the first time and
-//!   revising it each time after (ADR-088 decisions 1 and 2), signed by the vault's first account behind the launcher's
-//!   dialog, which names QQ Studio. The Cartridge is the asset this account holds whose commit is nearest HEAD in the
-//!   project's history; if that is already HEAD, nothing is asked and the answer says `unchanged`.
+//!   revising it each time after (ADR-088 decisions 1 and 2), behind the launcher's dialog, which names QQ Studio and
+//!   the account that signs. The Cartridge is the asset any of the vault's accounts holds whose commit is nearest HEAD
+//!   in the project's history; if that is already HEAD, nothing is asked and the answer says `unchanged`. A revision is
+//!   signed by the account holding the Cartridge, the only one that can revise it; a first publish by the account the
+//!   launcher's rail shows (ADR-090).
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -85,18 +87,19 @@ fn commit(request: CommitParams) -> Result<Value, Refusal> {
     }
 }
 
-/// The asset `owned` holds whose commit is nearest HEAD in the project's history, if any.
+/// Of the assets `held` (each with the account holding it), the one whose commit is nearest HEAD in the project's
+/// history, if any.
 fn cartridge_of<'a>(
     path: &std::path::Path,
-    owned: &'a [OwnedAsset],
-) -> Result<Option<&'a OwnedAsset>, Refusal> {
-    let pinned: Vec<&OwnedAsset> = owned
+    held: &'a [(String, OwnedAsset)],
+) -> Result<Option<&'a (String, OwnedAsset)>, Refusal> {
+    let pinned: Vec<&(String, OwnedAsset)> = held
         .iter()
-        .filter(|asset| asset.commit.is_some())
+        .filter(|(_, asset)| asset.commit.is_some())
         .collect();
     let commits: Vec<String> = pinned
         .iter()
-        .filter_map(|asset| asset.commit.as_ref().map(|c| c.id.clone()))
+        .filter_map(|(_, asset)| asset.commit.as_ref().map(|c| c.id.clone()))
         .collect();
     Ok(qontrol::publish::nearest_in_history(path, &commits)
         .map_err(refused)?
@@ -108,19 +111,28 @@ impl StudioHandler {
         let path = qontrol::resolve(&request.project).map_err(refused)?;
         let snapshot = qontrol::publish::snapshot(&path).map_err(refused)?;
 
-        let from = match self.vault.status() {
-            VaultStatus::Unlocked { accounts } => accounts
-                .first()
-                .map(|account| account.address.clone())
-                .ok_or_else(|| Refusal::from(QorError::VaultLocked))?,
+        let accounts = match self.vault.status() {
+            VaultStatus::Unlocked { accounts } => accounts,
             _ => return Err(Refusal::new(
                 "vault_locked",
                 "the launcher's vault is not open. Open it in the launcher, then publish again.",
             )),
         };
 
-        let owned = self.chain.assets_of(&from).await?;
-        let cartridge = cartridge_of(&path, &owned)?;
+        // Whichever of the vault's accounts holds the Cartridge revises it; a first publish signs as the account the
+        // rail shows (ADR-090).
+        let mut held = Vec::new();
+        for account in &accounts {
+            for asset in self.chain.assets_of(&account.address).await? {
+                held.push((account.address.clone(), asset));
+            }
+        }
+        let cartridge = cartridge_of(&path, &held)?;
+        let from = match cartridge {
+            Some((holder, _)) => holder.clone(),
+            None => self.vault.active_address()?,
+        };
+        let cartridge = cartridge.map(|(_, asset)| asset);
         let request = MintRequest {
             name: snapshot.name.clone(),
             reference: snapshot.reference,

@@ -315,6 +315,8 @@ export const vault = {
     call<Arrival>('vault_move_to_keychain', { passphrase }),
   lock: () => call<void>('vault_lock'),
   addAccount: (label: string) => call<AccountView>('vault_add_account', { label }),
+  /** The account the rail shows, which a product's first publish signs as (ADR-090). */
+  setActive: (address: string) => call<void>('vault_set_active', { address }),
   /** The host asks in its own dialog first. */
   exportPhrase: () => call<string>('vault_export_phrase'),
 };

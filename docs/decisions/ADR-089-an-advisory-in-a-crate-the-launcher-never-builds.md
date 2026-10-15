@@ -1,7 +1,10 @@
 # ADR-089: An advisory in a crate the launcher never builds
 
-**Status:** **Proposed**, 15 October 2026. The owner's decision: every option but D loosens the launcher's dependency
-audit, and loosening evidence is the owner's separate call (`docs/GATES.toml`; AGENTS.md §8). Nothing below is built.
+**Status:** **Accepted**, 15 October 2026, by the owner, who chose the recommendation ("Go with best recommendation"):
+**option A**. Proposed the same day; every option but D loosens the launcher's dependency audit, and loosening evidence
+is the owner's separate call (`docs/GATES.toml`; AGENTS.md §8). **Not yet built:** writing the ignore file was refused
+by the assistant's own permission system as a weakening of security, so the change below waits for the owner to allow
+it or make it (HANDOFF §4 item 74).
 
 **Relates to:** [ADR-063](ADR-063-public-repository-actions-and-railway.md) (CI), the RUSTSEC-2023-0071 ignore in
 `services/qor-auth/.cargo/audit.toml` (approved 14 September 2026 and logged in `docs/GATES.toml`), whose shape option A
@@ -65,4 +68,11 @@ where someone enabling the light client would read it.
 
 ## Decision
 
-None yet.
+**Option A**, chosen by the owner on 15 October 2026. `tools/qor-launcher/src-tauri/.cargo/audit.toml` ignores
+RUSTSEC-2026-0344 alone, saying why, when it was verified and on what condition. A step in CI's security job,
+"Condition of the ruzstd ignore", fails when `cargo tree --locked -i ruzstd --target all -e all` prints anything, and also
+when `ruzstd` has left the launcher's `Cargo.lock`, so the ignore is deleted rather than left behind. The ignore is
+logged in `docs/GATES.toml`'s change log. Every other advisory still fails the launcher's audit.
+
+This is the launcher's first ignore. The owner's instruction of 20 September 2026 kept it free of them; this decision is
+the owner's exception, for this advisory, on this condition.

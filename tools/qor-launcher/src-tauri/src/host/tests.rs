@@ -616,7 +616,9 @@ async fn a_process_the_launcher_did_not_start_is_not_welcomed() {
 /// started commits a project and publishes it, through the channel, the token and the operating system's checks, with
 /// the dialog's answer scripted. The first publish mints the Cartridge, behind a dialog that names the product; a later
 /// commit revises the same Cartridge; publishing again with nothing new asks nothing; a declined publish changes
-/// nothing on the chain. QQ Studio's own side of this is `products/qq/tests/tst_publish.cpp`.
+/// nothing on the chain. The account that signs is ADR-090's: the first publish signs as the account the rail shows (here
+/// the vault's second), and a revision as the account holding the Cartridge, whatever the rail shows by then. QQ
+/// Studio's own side of this is `products/qq/tests/tst_publish.cpp`.
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "needs a running Demiurge development node; see the chain module's live tests"]
 async fn a_project_is_minted_then_revised_then_left_alone_through_the_channel() {
@@ -636,7 +638,11 @@ async fn a_project_is_minted_then_revised_then_left_alone_through_the_channel() 
     let data = tempfile::tempdir().unwrap();
     let vault = crate::vault::testing::vault_in(data.path());
     let phrase = crate::vault::derive::generate_mnemonic().unwrap();
-    let creator = vault.create(&phrase).unwrap()[0].address.clone();
+    let first_account = vault.create(&phrase).unwrap()[0].address.clone();
+    // The rail shows the second account, and only it holds anything: a publish signed by the first would be refused as
+    // unfunded (ADR-090).
+    let creator = vault.add_account("").unwrap().address;
+    vault.set_active(&creator).unwrap();
     // A first mint at the placeholder deposits (U-14) holds about 1,002.5 CGT; room to spare.
     fund_from_alice(
         &endpoint,
@@ -706,8 +712,15 @@ async fn a_project_is_minted_then_revised_then_left_alone_through_the_channel() 
         "the dialog names the commit:\n{}",
         asked.body
     );
+    assert!(
+        asked.body.contains(&format!("Owner: {creator}")),
+        "the rail's account signs, and the dialog says so:\n{}",
+        asked.body
+    );
 
-    // 2. A later commit revises the same Cartridge: no second asset.
+    // 2. A later commit revises the same Cartridge: no second asset. The rail now shows the first account, which holds
+    // nothing; the revision is still signed by the Cartridge's holder.
+    vault.set_active(&first_account).unwrap();
     std::fs::write(&level, "import QQ\nScene { name: \"level, again\" }\n").unwrap();
     let (exited, _) = run_fake_with(args(), handler(approving.clone())).await;
     assert_eq!(exited.code, Some(11), "revised: {exited:?}");
@@ -721,6 +734,16 @@ async fn a_project_is_minted_then_revised_then_left_alone_through_the_channel() 
     assert_eq!(
         approving.asked.lock()[1].title,
         "Fake Product asks: Approve this revision"
+    );
+    assert!(
+        approving.asked.lock()[1]
+            .body
+            .contains(&format!("Owner: {creator}")),
+        "the holder revises"
+    );
+    assert!(
+        chain.assets_of(&first_account).await.unwrap().is_empty(),
+        "nothing went to the rail's account"
     );
 
     // 3. Nothing new: nothing asked, nothing sent.
