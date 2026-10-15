@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use crate::error::QorError;
+use crate::host;
 use crate::qontrol::{self, Project};
 
 /// The folder inside a project that holds its scenes.
@@ -229,11 +230,10 @@ fn studio_args(project: Option<&Path>) -> Vec<std::ffi::OsString> {
     }
 }
 
-/// Start QQ Studio as a process of its own (ADR-083 decision 5), on the project open in Projects if there is one. The
-/// project must be a repository; it is passed as one argument, never through a shell. The Studio holds no key.
-#[tauri::command]
-pub async fn qq_open_studio(path: Option<String>) -> Result<(), QorError> {
-    let project = match path.as_deref() {
+/// What starting QQ Studio means, checked: the deployed Studio, on the project open in Projects if there is one. The
+/// project must be a repository; it is passed as one argument, never through a shell.
+pub fn studio_launch(path: Option<&str>) -> Result<host::Launch, QorError> {
+    let project = match path {
         Some(p) => {
             let dir = qontrol::resolve(p)?;
             qontrol::open(&dir)?;
@@ -244,15 +244,50 @@ pub async fn qq_open_studio(path: Option<String>) -> Result<(), QorError> {
     let studio = find_studio(std::env::var_os("QQ_STUDIO"), std::env::var_os("LOCALAPPDATA").map(PathBuf::from))
         .ok_or_else(|| {
             refuse(
-                "QQ Studio is not installed on this computer. Build it with products/qq/build.ps1 -Deploy,                  or set QQ_STUDIO to where it is.",
+                "QQ Studio is not installed on this computer. Build it with products/qq/build.ps1 -Deploy, or set \
+                 QQ_STUDIO to where it is.",
             )
         })?;
-    std::process::Command::new(&studio)
-        .args(studio_args(project.as_deref()))
-        .current_dir(studio.parent().unwrap_or(Path::new(".")))
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| refuse(format!("QQ Studio could not be started: {e}")))
+    Ok(host::Launch {
+        args: studio_args(project.as_deref()),
+        cwd: studio.parent().unwrap_or(Path::new(".")).to_path_buf(),
+        product: host::ProductRecord {
+            id: STUDIO_ID,
+            name: "QQ Studio",
+            path: studio,
+        },
+    })
+}
+
+/// QQ Studio's id in the QOR host protocol's hello.
+pub const STUDIO_ID: &str = "qq-studio";
+
+/// Start QQ Studio as a process of its own (ADR-083 decision 5), through the product host (ADR-046, ADR-088): it can
+/// ask the launcher to commit its project and publish it as a Cartridge, and holds no key. If it ends badly, the
+/// interface is told (`qq-studio-exited`) with its exit code and the last of its error output.
+#[tauri::command]
+pub async fn qq_open_studio(app: tauri::AppHandle, path: Option<String>) -> Result<(), QorError> {
+    use tauri::Emitter;
+
+    use tauri::Manager;
+
+    let launch = studio_launch(path.as_deref())?;
+    let state = app.state::<crate::AppState>();
+    let handler = std::sync::Arc::new(host::studio::StudioHandler {
+        product: launch.product.clone(),
+        vault: state.vault.clone(),
+        chain: state.chain.clone(),
+        data_dir: state.data_dir.clone(),
+        confirm: std::sync::Arc::new(crate::HostDialog(app.clone())),
+    });
+    host::launch(launch, handler, move |exited| {
+        if exited.code != Some(0) {
+            let _ = app.emit("qq-studio-exited", exited);
+        }
+    })
+    .await
+    .map(|_| ())
+    .map_err(|e| refuse(format!("QQ Studio could not be started: {e}")))
 }
 
 /// Save a scene into an open project, and return the project as it now reads, so Projects shows the change.
@@ -470,24 +505,16 @@ mod tests {
         assert!(studio_args(None).is_empty());
     }
 
-    #[tokio::test]
-    async fn qq_studio_is_not_opened_on_a_folder_that_is_not_a_project() {
+    #[test]
+    fn qq_studio_is_not_opened_on_a_folder_that_is_not_a_project() {
         let dir = tempfile::tempdir().expect("a folder");
-        assert!(
-            qq_open_studio(Some(dir.path().to_string_lossy().into_owned()))
-                .await
-                .is_err()
-        );
-        assert!(qq_open_studio(Some(
-            dir.path().join("missing").to_string_lossy().into_owned()
-        ))
-        .await
-        .is_err());
+        assert!(studio_launch(Some(&dir.path().to_string_lossy())).is_err());
+        assert!(studio_launch(Some(&dir.path().join("missing").to_string_lossy())).is_err());
     }
 
-    /// The real thing: the deployed QQ Studio started on a real project, seen in the process list, then closed. Ignored
-    /// by default because it opens a window and needs `products/qq/build.ps1 -Deploy` to have run:
-    /// `cargo test qq_studio_starts_on_a_project -- --ignored`.
+    /// The real thing: the deployed QQ Studio started on a real project through the product host, seen in the process
+    /// list, then closed. Ignored by default because it opens a window and needs `products/qq/build.ps1 -Deploy` to
+    /// have run: `cargo test qq_studio_starts_on_a_project -- --ignored`.
     #[cfg(windows)]
     #[tokio::test]
     #[ignore = "opens QQ Studio's window; needs a deployed QQ Studio"]
@@ -501,9 +528,20 @@ mod tests {
                 .matches("qq-studio.exe")
                 .count()
         };
+        struct Nothing;
+        impl host::Handler for Nothing {
+            fn capabilities(&self) -> &'static [&'static str] {
+                &[]
+            }
+            async fn handle(&self, _: &str, _: Value) -> Result<Value, host::Refusal> {
+                Err(host::Refusal::new("unsupported_method", "nothing here"))
+            }
+        }
         let before = running();
         let dir = project();
-        qq_open_studio(Some(dir.path().to_string_lossy().into_owned()))
+        let launch =
+            studio_launch(Some(&dir.path().to_string_lossy())).expect("a deployed QQ Studio");
+        host::launch(launch, std::sync::Arc::new(Nothing), |_| {})
             .await
             .expect("QQ Studio starts");
         let mut seen = false;

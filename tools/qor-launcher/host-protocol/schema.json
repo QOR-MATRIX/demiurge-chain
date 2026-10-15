@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/QOR-MATRIX/demiurge-chain/tools/qor-launcher/host-protocol/schema.json",
+  "title": "QOR host protocol, version 1",
+  "description": "What a product the launcher started (QQ Studio, first) and the launcher say to each other (ADR-046, ADR-088). Each frame is a 4-byte big-endian length and then one UTF-8 JSON object of at most 1 MiB. The product opens with hello and the launcher answers welcome, or an error and closes the channel; then the product sends requests, one at a time, each answered by a result or an error with its id. Unknown fields are ignored. The golden/ folder holds frames the launcher's tests read (src-tauri/src/host/tests.rs).",
+  "oneOf": [
+    { "$ref": "#/$defs/hello" },
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/welcome" },
+    { "$ref": "#/$defs/result" },
+    { "$ref": "#/$defs/error" }
+  ],
+  "$defs": {
+    "hello": {
+      "description": "Product to launcher, first frame and only once. token is the 64 hex characters the product read from its stdin; it is good once, for 30 seconds from the spawn.",
+      "type": "object",
+      "required": ["type", "protocol", "min_protocol", "product", "version", "token"],
+      "properties": {
+        "type": { "const": "hello" },
+        "protocol": { "type": "integer", "minimum": 1 },
+        "min_protocol": { "type": "integer", "minimum": 1 },
+        "product": { "type": "string", "description": "The product's id, which must be the one the launcher started (qq-studio)." },
+        "version": { "type": "string" },
+        "token": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "request": {
+      "description": "Product to launcher: a typed intent. method is one of the capabilities the welcome announced.",
+      "type": "object",
+      "required": ["type", "id", "method"],
+      "properties": {
+        "type": { "const": "request" },
+        "id": { "type": "integer", "minimum": 0 },
+        "method": { "type": "string" },
+        "params": { "type": "object" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "method": { "const": "qontrol.commit" } } },
+          "then": {
+            "properties": {
+              "params": {
+                "description": "Commit everything changed in the project. Answered {commit: <hex id>} or {commit: null} when nothing changed; refused (code qontrol) when Qontrol's guard warns about a file.",
+                "type": "object",
+                "required": ["project", "message"],
+                "properties": { "project": { "type": "string" }, "message": { "type": "string", "minLength": 1 } }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "method": { "const": "cartridge.publish" } } },
+          "then": {
+            "properties": {
+              "params": {
+                "description": "Publish the commit HEAD points at as the project's Cartridge (ADR-088): answered {action: minted|revised, receipt} after the launcher's dialog, or {action: unchanged, collection, item, name, commit} with no dialog when the Cartridge is already at HEAD.",
+                "type": "object",
+                "required": ["project"],
+                "properties": { "project": { "type": "string" } }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "welcome": {
+      "description": "Launcher to product, after a good hello. session is never logged.",
+      "type": "object",
+      "required": ["type", "protocol", "capabilities", "session"],
+      "properties": {
+        "type": { "const": "welcome" },
+        "protocol": { "type": "integer", "minimum": 1 },
+        "capabilities": { "type": "array", "items": { "type": "string" } },
+        "session": { "type": "string", "pattern": "^[0-9a-f]{32}$" }
+      }
+    },
+    "result": {
+      "description": "Launcher to product: the request with this id, done.",
+      "type": "object",
+      "required": ["type", "id", "result"],
+      "properties": { "type": { "const": "result" }, "id": { "type": "integer" }, "result": {} }
+    },
+    "error": {
+      "description": "Launcher to product: the request with this id refused, or, with id null, the handshake refused and the channel closed. code is stable (unsupported_method, bad_request, protocol_mismatch, not_authorised, or one of the launcher's own: declined, vault_locked, qontrol, rpc, …); message is a sentence for the person.",
+      "type": "object",
+      "required": ["type", "id", "code", "message"],
+      "properties": {
+        "type": { "const": "error" },
+        "id": { "type": ["integer", "null"] },
+        "code": { "type": "string" },
+        "message": { "type": "string" }
+      }
+    }
+  }
+}

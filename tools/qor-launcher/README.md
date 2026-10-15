@@ -244,6 +244,33 @@ signs those bytes verbatim, behind a host dialog. There is no second encoder to
 drift from the chain's, which is what `src-tauri/src/chain/payload.rs` used to
 be for: it ported the custom devnet's byte layout by hand, and went with it.
 
+### Products the launcher starts (ADR-046, ADR-088)
+
+QQ Studio is the first **product**: a program of its own the launcher starts, which asks the launcher for what needs a
+key and never holds one. `src-tauri/src/host/` is the product host:
+
+- **The channel** (`channel.rs`): a named pipe whose DACL grants only this user, created as the first instance of an
+  unguessable name with remote clients refused (a `0700` folder and `0600` socket elsewhere). It accepts **one**
+  connection, and only from the process the launcher spawned: the operating system's client process id, that process's
+  start time (so a reused id cannot pass) and its user, all checked.
+- **The token** (`mod.rs`, `session.rs`): 32 random bytes, written as hex on the product's **stdin**, which is then
+  closed (never an argument or an environment variable); good once, for 30 seconds, compared in constant time.
+- **The protocol** (`frame.rs`, `protocol.rs`; schema and golden frames in `tools/qor-launcher/host-protocol/`): a
+  4-byte big-endian length and a JSON object of at most 1 MiB; `hello` / `welcome` with a version and capabilities;
+  then **typed intents**, never bytes to sign. QQ Studio is offered `qontrol.commit` and `cartridge.publish`
+  (`studio.rs`).
+- **The dialog** (`ProductDialog`): every prompt a product's request raises starts with the product's name and the
+  program the launcher started, from the launcher's own record.
+- **Lifetime**: each product is in a Windows job that ends it when the launcher ends; its exit code and the end of its
+  error output reach the QQ screen if it ends badly.
+- **Nothing secret in the log**: a test runs good and refused sessions with every log level on and looks for the token
+  and the session id.
+
+The operating-system calls are FFI, and this crate forbids unsafe code, so they are their own crate,
+`tools/qor-launcher/host-proof/` (`qor-host-proof`), with a test for each. The tests start a stand-in product
+(`src-tauri/examples/host_fake_product.rs`, built by the tests themselves) through the real channel, including a
+connection from a process the launcher did not start, which is never answered.
+
 ---
 
 ### Payments asked by websites: `qor://pay` (ADR-076, ADR-077)
@@ -374,6 +401,25 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   first: without it the Qontrol tests that commit skip and say so, and under
   `cargo test --features qontrol-no-skips`, which CI uses, they fail instead. The helper's own 16 tests
   pass in `qontrol-git/`.
+- **240 Rust host tests passing, 10 ignored** (15 October 2026, under `qontrol-no-skips`; 9 need a node and 1 opens
+  QQ Studio). Since 6 October they include **the product host** (P3.4, ADR-046, ADR-088), `src/host/tests.rs`: a
+  frame goes and comes back whole, and one over 1 MiB is refused both ways; the product the launcher started is
+  welcomed and answered; a wrong token, a token past its 30 seconds, another product's hello with the right token, a
+  request before hello and a second hello are each refused; a product needing a later protocol is told which this
+  speaks; a product's dialog names the product from the launcher's record; nothing secret reaches the log at any level
+  (one process-wide logger, since `tracing` caches interest across threads); the golden frames in
+  `tools/qor-launcher/host-protocol/` are what each side reads and writes; and, with the stand-in product
+  `examples/host_fake_product.rs` built by the tests themselves, a spawned product proves itself and is answered, a
+  spawned product with the wrong token or name is refused, and a process the launcher did not start is never welcomed.
+  Also new: the revision dialog names both commits and keeps the asset (`chain/assets.rs`); the published commit
+  nearest HEAD is found in a project's history (`qontrol/tests.rs`); QQ Studio is not opened on a folder that is not
+  a project (`qq.rs`). **The fifteenth host check is live**, ignored by default:
+  `a_project_is_minted_then_revised_then_left_alone_through_the_channel` commits, mints behind a dialog naming the
+  product, revises after a new commit, answers `unchanged` with nothing asked, and leaves the chain alone on a decline,
+  against `demiurge-node --dev` (passed 10 and 15 October 2026). `qor-host-proof`'s own checks run in its crate
+  (`cargo test` in `host-proof/`): a process's start time is stable and is this user's, an ended or absent process has
+  none, a pipe client is named by its process id, a second pipe of the same name is refused, and closing the job ends
+  the process in it.
 - One more host test — the live chain test, ignored by
   default — passing against a development node (2026-09-20): a transfer built from the node's own
   runtime metadata, approved in the host dialog, signed

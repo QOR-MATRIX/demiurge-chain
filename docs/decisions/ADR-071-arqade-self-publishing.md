@@ -7,7 +7,9 @@ Wallet** (ADR-070). The developer-facing descriptions are
 [`products/arqade/sdk/docs/publishing.md`](../../products/arqade/sdk/docs/publishing.md),
 [`backing.md`](../../products/arqade/sdk/docs/backing.md) and
 [`building-with-agents.md`](../../products/arqade/sdk/docs/building-with-agents.md); the steps are P7.12 to P7.15 in
-[`../DIRECTION.md`](../DIRECTION.md).
+[`../DIRECTION.md`](../DIRECTION.md). **Amended by [ADR-088](ADR-088-a-cartridge-holds-a-commit.md)** (10 October
+2026) on decision 2's content: a Cartridge holds the manifest of the project's whole tree at the commit published, the
+profile manifest among its files.
 
 **Relates to:** [ADR-069](ADR-069-arqade-the-gaming-platform.md) (ARQADE), [ADR-070](ADR-070-game-vaults.md) (Game
 Vaults and the Cartridge, Proposed); [ADR-010](ADR-010-agent-rails.md), [ADR-014](ADR-014-agent-keys-authorised-not-created.md)

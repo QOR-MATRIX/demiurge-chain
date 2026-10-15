@@ -103,6 +103,19 @@ export function QQView() {
     };
   }, []);
 
+  // QQ Studio is a process of its own; if it ends badly, say so, with the last line it wrote (ADR-046 decision 1).
+  useEffect(
+    () =>
+      qq.onStudioExit((exit) => {
+        const last = exit.stderr_tail.trim().split('\n').pop()?.slice(0, 240) ?? '';
+        notify(
+          'bad',
+          `QQ Studio ended unexpectedly (exit code ${exit.code ?? 'none'}).${last ? ` Its last words: ${last}` : ''}`,
+        );
+      }),
+    [notify],
+  );
+
   useEffect(() => engine.current?.setScene(scene), [scene]);
   useEffect(() => engine.current?.setSelected(selected), [selected]);
   // Themes are CSS variables; read them after the new ones are applied.
@@ -238,7 +251,7 @@ export function QQView() {
       <ViewHeader
         eyebrow="Create"
         title="QQ"
-        body="The QOR Engine. Build a small game on this canvas, play it here, and save it into a project, where Projects versions it like any other file. Nothing is published or signed from here yet."
+        body="The QOR Engine. Build a small game on this canvas, play it here, and save it into a project, where Projects versions it like any other file. QQ Studio publishes a project as its Cartridge, and the launcher asks you first."
         action={
           <>
             <button

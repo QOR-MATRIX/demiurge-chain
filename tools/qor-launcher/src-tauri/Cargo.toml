@@ -111,6 +111,9 @@ uuid       = { version = "1", features = ["v4", "serde"] }
 directories = "5"
 parking_lot = "0.12"
 keyring     = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
+# The product host's operating-system checks (ADR-046, ADR-088): its own crate, because they are FFI and this one
+# forbids unsafe code.
+qor-host-proof = { path = "../host-proof" }
 tracing     = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 

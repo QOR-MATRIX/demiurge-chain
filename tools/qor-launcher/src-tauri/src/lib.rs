@@ -20,6 +20,7 @@ pub mod config;
 pub mod content;
 pub mod error;
 pub mod gates;
+pub mod host;
 pub mod identity;
 pub mod listings;
 pub mod partners;
@@ -73,7 +74,7 @@ pub trait Confirm: Send + Sync {
 }
 
 /// The launcher's [`Confirm`]: a native dialog drawn by the host.
-struct HostDialog(tauri::AppHandle);
+pub(crate) struct HostDialog(pub(crate) tauri::AppHandle);
 
 impl Confirm for HostDialog {
     fn confirm<'a>(&'a self, prompt: &'a Prompt) -> Answer<'a> {

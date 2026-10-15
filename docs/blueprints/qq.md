@@ -196,7 +196,9 @@ The roadmap items are DIRECTION P3.1 to P3.6; in short:
    started from the launcher.
 2. **Worlds play** — physics, input, particles, spatial audio, live behaviours; the Player native and in a browser.
 3. **The agent designs and builds** — MCP server and the design loop, proven on a scene built from a description.
-4. **Publishing** — Qontrol commit and a Cartridge minted through the launcher's vault.
+4. **Publishing** — Qontrol commit and a Cartridge minted through the launcher's vault. Built 10 October 2026 under
+   ADR-088 (the Cartridge holds the commit; later publishes revise it), over ADR-046's channel; the owner's own run is
+   still to do.
 5. **ARQADE delivery** — the WebAssembly Player in ARQADE; the preview retired.
 6. **Collectibles, generation and the Mesh** — DRC-369 items in games, generative assets, Mesh delivery, settlement
    in CGT.

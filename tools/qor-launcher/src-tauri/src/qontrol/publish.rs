@@ -148,3 +148,31 @@ impl Snapshot {
         Ok(())
     }
 }
+
+/// Which of `commits` (hex ids) is nearest HEAD in this project's history, HEAD itself included, by its index in
+/// `commits`; `None` when none of them is in it. A game's Cartridge is the one whose commit this project grew from
+/// (ADR-088 decision 2), so publishing again revises it rather than minting a second; nothing is kept on this machine
+/// to remember it, and a clone elsewhere finds it the same way.
+pub fn nearest_in_history(path: &Path, commits: &[String]) -> Result<Option<usize>, QontrolError> {
+    if commits.is_empty() {
+        return Ok(None);
+    }
+    let repo = open(path)?;
+    let Ok(head) = repo.head_id() else {
+        return Ok(None);
+    };
+    let walk = repo
+        .rev_walk([head])
+        .all()
+        .map_err(|e| QontrolError::Git(format!("the project's history could not be read: {e}")))?;
+    for info in walk {
+        let info = info.map_err(|e| {
+            QontrolError::Git(format!("the project's history could not be read: {e}"))
+        })?;
+        let id = info.id().to_string();
+        if let Some(found) = commits.iter().position(|c| c.eq_ignore_ascii_case(&id)) {
+            return Ok(Some(found));
+        }
+    }
+    Ok(None)
+}

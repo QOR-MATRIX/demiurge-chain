@@ -31,6 +31,14 @@ it; the QQ Player plays a scene on its own, natively and in a browser.
 - **The QQ Player:** plays one scene as a game, full window, natively (`qq-player [scene.qml]`, the bundled playground
   without one) and as a WebAssembly build in a browser, and measures how long its first frame takes.
 - **The launcher:** **Open in QQ Studio** on the launcher's QQ surface starts the Studio on the project open there.
+- **Publishing (P3.4, built 10 October 2026):** **Publish** saves the scene, then asks the launcher that started the
+  Studio to commit the project through Qontrol and publish it as its **Cartridge** (ADR-088): the first time a DRC-369
+  asset is minted, holding the manifest of every file at that commit; each time after, the same Cartridge is revised
+  to the new commit; with nothing new, nothing is asked. The launcher's own window asks first and names QQ Studio; the
+  Studio holds no key and never sees a transaction. It asks over a channel only the process the launcher started can
+  use (ADR-046: a one-time token on its stdin and the operating system's word on who connected), and exits when the
+  launcher closes it. A Studio started any other way works as before but cannot publish, and its Publish button says
+  why.
 
 **P3.3 under way (10 October 2026): the Studio's tools for agents.** A running QQ Studio offers fourteen tools to
 language models over MCP (the Model Context Protocol): read the scene and what can be added, add, change and remove
@@ -49,10 +57,10 @@ description with no human edit, made by whoever runs it with their own key.
 | Path | What it is |
 | --- | --- |
 | `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, and `Logic` (what a logic file is). In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `SoftDot` (the particles' sprite, made in memory) `gpu` (draw with the faster of two GPUs), `Confinement` (what a game may reach in the Player, ADR-087) and `WebVoice` (a sound in a browser, so a game never needs Qt Multimedia's QML) |
-| `studio/` | QQ Studio. `qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>]` |
+| `studio/` | QQ Studio. `qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>] [--launcher-channel <name>]`; `LauncherLink`, its side of the QOR host protocol (publishing through the launcher that started it, ADR-088) |
 | `agent/` | The agent's side of the Studio (P3.3): `McpServer` (MCP's JSON-RPC, served on a local pipe only this user can open), `StudioTools` (the fourteen tools, working the Studio's own window functions, and `StudioLog`, what the Studio has said), `DesignLoop` (a description designed, built, played and judged by Claude through those tools; ADR-085), `keychain` (the provider's key in Windows Credential Manager) and `qq-mcp` (the program an MCP client starts, relaying its standard input and output to the running Studio) |
 | `player/` | The QQ Player. `qq-player [scene.qml] [--capture <frame.png>] [--measure <result.json>]`; its playground (a small game with everything P3.2 plays) bundled inside it; `measure-web.mjs`, which plays the browser build in a headless browser and measures it |
-| `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks, drags and keys), `tst_play` (physics, the player, input, particles, sound and logic, in real frames), `tst_player` (the real Player executable), `tst_lockdown` (what a game's logic may reach in the Player, ADR-087), `tst_agent` (the tools over MCP, in the real Studio and through the real `qq-mcp`) |
+| `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks, drags and keys), `tst_play` (physics, the player, input, particles, sound and logic, in real frames), `tst_player` (the real Player executable), `tst_lockdown` (what a game's logic may reach in the Player, ADR-087), `tst_publish` (publishing through a stand-in launcher, P3.4), `tst_agent` (the tools over MCP, in the real Studio and through the real `qq-mcp`) |
 | `tests/fixtures/` | `orb.gltf` (written by `make_orb.py`), `chime.wav` (written by `make_chime.py`), `logic/spin.qml`, `scenes/sample.qml` (every entity type, canonical), `first-light.qq.json` (the 2D preview's starter scene) |
 | `build.ps1` | Builds with the owner's Qt, MSVC 2022 and Ninja and runs every test; `-Deploy` makes a self-contained Studio; `-Web` builds the Player for the browser and measures it |
 
@@ -138,6 +146,16 @@ drew about 12 frames a second.
   out, both errors; a network request to a listener on this computer never arriving; `Qt.openUrlExternally` refused for
   a file and a web address, with nothing handed to the system. **Proven to fail** by four planted faults, each caught by
   its own check: no URL interceptor; no network policy; `SceneIO` left unconfined; every module allowed.
+- **`tst_publish`** (9 cases; P3.4, ADR-088), against a stand-in launcher speaking the QOR host protocol: the hello
+  carries the token and the Studio's id; Publish asks for the commit and then the publish, with the project, and
+  reports the receipt; a decline is said and nothing more is asked; a refused handshake leaves publishing unavailable
+  with the reason; frames a byte at a time and two in one write read alike; a frame over 1 MiB is not read; the
+  launcher closing the channel is told (and the Studio exits); and the real Studio window, not started by the launcher,
+  cannot publish, then, linked, saves an unsaved scene first and says what was published, or that it was declined;
+  and, linked but on a folder that is not versioned, Publish can still be pressed, says what is missing and asks the
+  launcher nothing. **Proven to fail** by three planted faults: publishing without the commit (three cases);
+  publishing without saving first; Publish greyed out on a folder that is not versioned (the owner's first run, 10
+  October 2026). The launcher's side, the channel's proofs and a run against a development node, is in the launcher's tests.
 - **`tst_player`** (4 cases, the real executable): the playground plays and its start is measured; its first frame is
   the game (hundreds of colours, not an empty window); a scene file from disk plays too, with every model loaded in it
   and in the playground; a scene that is not there is said, not hidden. **Proven to fail** (10 October 2026) by putting

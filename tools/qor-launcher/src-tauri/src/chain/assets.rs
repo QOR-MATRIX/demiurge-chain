@@ -298,6 +298,18 @@ pub struct TradeReceipt {
     pub block_hash: String,
 }
 
+/// A finalised revision: the asset, and what it now points at.
+#[derive(Debug, Clone, Serialize)]
+pub struct RevisionReceipt {
+    pub collection: u32,
+    pub item: u32,
+    pub name: String,
+    pub reference: ContentView,
+    pub commit: CommitView,
+    pub tx_hash: String,
+    pub block_hash: String,
+}
+
 /// A finalised switch to permanent.
 #[derive(Debug, Clone, Serialize)]
 pub struct PermanenceReceipt {
@@ -450,6 +462,74 @@ impl ChainClient {
         Ok(PermanenceReceipt {
             collection,
             item,
+            tx_hash: finalised.tx_hash,
+            block_hash: finalised.block_hash,
+        })
+    }
+
+    /// Point a revisable asset at a later commit: a game published again keeps
+    /// its Cartridge (ADR-088 decision 2). `before_submit` is as for a mint.
+    pub async fn revise(
+        &self,
+        vault: &Vault,
+        confirm: &dyn Confirm,
+        from: &str,
+        asset: &OwnedAsset,
+        request: &MintRequest,
+        before_submit: impl FnOnce() -> QorResult<()>,
+    ) -> QorResult<RevisionReceipt> {
+        let owner_address = canonical_address(from)?;
+        if !asset.revisable {
+            return Err(QorError::Qontrol(format!(
+                "{} is permanent, so it cannot be revised",
+                asset.name
+            )));
+        }
+        if request.reference.algo != HashAlgo::Blake3_256 {
+            return Err(QorError::Internal(
+                "only a BLAKE3-256 reference can be minted (ADR-047 decision 1)".into(),
+            ));
+        }
+        let commit = CommitView::from(&request.commit);
+        if asset.commit.as_ref() == Some(&commit) {
+            return Err(QorError::Qontrol(format!(
+                "{} is already at commit {}",
+                asset.name, commit.id
+            )));
+        }
+
+        let connection = self.connected().await?;
+        let call = dynamic::transaction(
+            "Drc369",
+            "revise",
+            (
+                asset.collection,
+                asset.item,
+                ContentRefArg::from(&request.reference),
+                Some(CommitIdArg::from(&request.commit)),
+            ),
+        );
+        let finalised = self
+            .sign_and_finalise(
+                &connection,
+                vault,
+                confirm,
+                from,
+                &call,
+                |chain_name, endpoint| {
+                    revise_prompt(asset, request, &owner_address, chain_name, endpoint)
+                },
+                before_submit,
+                "revision",
+            )
+            .await?;
+
+        Ok(RevisionReceipt {
+            collection: asset.collection,
+            item: asset.item,
+            name: asset.name.clone(),
+            reference: ContentView::from(&request.reference),
+            commit,
             tx_hash: finalised.tx_hash,
             block_hash: finalised.block_hash,
         })
@@ -1021,6 +1101,51 @@ fn permanence_prompt(asset: &OwnedAsset, owner: &str, chain_name: &str, endpoint
     }
 }
 
+fn revise_prompt(
+    asset: &OwnedAsset,
+    request: &MintRequest,
+    owner: &str,
+    chain_name: &str,
+    endpoint: &str,
+) -> Prompt {
+    let branch = request
+        .branch
+        .as_deref()
+        .map(|b| format!(", on {b}"))
+        .unwrap_or_default();
+    let was = asset
+        .commit
+        .as_ref()
+        .map(|c| c.id.as_str())
+        .unwrap_or("none");
+    Prompt {
+        title: "Approve this revision".into(),
+        body: format!(
+            "Revise \"{name}\" to a new commit\n\n\
+             Asset: {collection}/{item}\n\
+             Was: commit {was}\n\
+             Now: commit {commit} ({kind}){branch}\n\
+             Files: {files}\n\
+             Fingerprint: {algo} {root}\n\
+             Manifest: {size} bytes\n\n\
+             The asset stays the same asset; what it points at changes. It can be revised again, \
+             until you make it permanent. No deposit is held.\n\n\
+             Owner: {owner}\nChain: {chain_name}\nNode: {endpoint}\n\n\
+             Approving signs this revision with your key and sends it.",
+            name = asset.name,
+            collection = asset.collection,
+            item = asset.item,
+            commit = request.commit.hex(),
+            kind = request.commit.kind(),
+            files = request.files,
+            algo = request.reference.algo.label(),
+            root = request.reference.root_hex(),
+            size = request.reference.size,
+        ),
+        approve: "Revise".into(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1152,6 +1277,44 @@ mod tests {
         assert!(prompt.body.contains("cannot be undone"));
         assert!(prompt.body.contains("3/9"));
         assert!(prompt.body.contains(&ContentRef::of(b"two").root_hex()));
+    }
+
+    /// The dialog before a revision names the asset, the commit it leaves and
+    /// the one it moves to, and that it is the same asset afterwards.
+    #[test]
+    fn the_revision_prompt_names_both_commits_and_keeps_the_asset() {
+        let owner = crate::vault::derive::address_of(&[0x06u8; 32]);
+        let asset = OwnedAsset {
+            commit: Some(CommitView::from(&CommitId::Sha1([0xcd; 20]))),
+            ..asset(4, 2, "a-game")
+        };
+        let prompt = revise_prompt(
+            &asset,
+            &request(),
+            &owner,
+            "Demiurge Development",
+            super::super::LOCAL_RPC,
+        );
+        assert_eq!(prompt.approve, "Revise");
+        for expected in [
+            "a-game",
+            "4/2",
+            &format!("Was: commit {}", "cd".repeat(20)),
+            &format!("Now: commit {}", "ab".repeat(20)),
+            "on main",
+            "Files: 7",
+            &request().reference.root_hex(),
+            "stays the same asset",
+            "No deposit is held",
+            owner.as_str(),
+            "Demiurge Development",
+        ] {
+            assert!(
+                prompt.body.contains(expected),
+                "missing {expected:?} in\n{}",
+                prompt.body
+            );
+        }
     }
 
     fn asset(collection: u32, item: u32, name: &str) -> OwnedAsset {

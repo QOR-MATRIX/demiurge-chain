@@ -843,7 +843,7 @@ mod tests {
 ///
 /// Point it elsewhere with `QOR_LAUNCHER_TEST_RPC`.
 #[cfg(test)]
-mod live {
+pub(crate) mod live {
     use super::*;
     use crate::testing::Scripted;
     use sp_core::{crypto::Pair as _, sr25519};
@@ -854,7 +854,7 @@ mod live {
     const FUNDING: u128 = 1_000 * crate::cgt::SPARKS_PER_CGT;
     const SENDING: u128 = 200 * crate::cgt::SPARKS_PER_CGT;
 
-    fn endpoint() -> String {
+    pub(crate) fn endpoint() -> String {
         std::env::var("QOR_LAUNCHER_TEST_RPC").unwrap_or_else(|_| LOCAL_RPC.to_string())
     }
 
@@ -866,7 +866,7 @@ mod live {
     /// Put CGT into `account` from the development chain's Alice, which is the
     /// only source of it that exists: the chain has no issuance (OPEN-1) and
     /// the launcher must never grow a path that creates any.
-    async fn fund_from_alice(endpoint: &str, account: [u8; 32], amount: u128) {
+    pub(crate) async fn fund_from_alice(endpoint: &str, account: [u8; 32], amount: u128) {
         let _one_at_a_time = ALICE.lock().await;
         let alice = sr25519::Pair::from_string("//Alice", None).expect("the dev key");
         let alice_account = AccountId32(alice.public().0);
