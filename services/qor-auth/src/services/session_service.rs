@@ -299,6 +299,29 @@ impl SessionService {
         Ok(written.is_some())
     }
 
+    /// Give every live session of a user its new QOR ID, after the account chose its name (ADR-091 decision 5), so the
+    /// tokens each one mints from now on carry it. `XX` writes only a session still there and `KEEPTTL` keeps its
+    /// expiry, as [`Self::record_use`] does. Tokens already issued keep the old name until they expire (15 minutes).
+    pub async fn rename_sessions(&self, user_id: Uuid, qor_id: &str) -> AppResult<()> {
+        for session in self.list_sessions(user_id).await? {
+            let mut renamed = session;
+            renamed.qor_id = qor_id.to_string();
+            let session_json = serde_json::to_string(&renamed).map_err(|e| {
+                AppError::InternalError(anyhow::anyhow!("Serialization failed: {}", e))
+            })?;
+            let mut conn = self.redis.get().await?;
+            deadpool_redis::redis::cmd("SET")
+                .arg(format!("session:{}", renamed.session_id))
+                .arg(&session_json)
+                .arg("XX")
+                .arg("KEEPTTL")
+                .query_async::<Option<String>>(&mut conn)
+                .await
+                .map_err(|e| AppError::InternalError(anyhow::anyhow!("Redis error: {}", e)))?;
+        }
+        Ok(())
+    }
+
     /// List a user's live sessions, oldest first.
     ///
     /// The user's session set can still name sessions that expired or were deleted. Those ids are

@@ -132,7 +132,7 @@ pub async fn register(
     .fetch_one(&mut *tx)
     .await
     .map_err(|e| {
-        if matches!(&e, sqlx::Error::Database(db) if db.constraint() == Some("users_username_unique")) {
+        if name_taken(&e) {
             AppError::ValidationError("Username already taken".into())
         } else {
             AppError::DatabaseError(e)
@@ -1154,6 +1154,17 @@ pub async fn keypair_login(
     Ok(Json(tokens))
 }
 
+/// Whether a write was refused because the name is another account's. Two constraints say so: ADR-075's unique index on
+/// `LOWER(username)`, and the older `unique_qor_id` on the name and its retired discriminator, which is always 1 and so
+/// fires first for a name taken exactly. Matching only the first left an exact clash reported as a database error.
+pub(crate) fn name_taken(error: &sqlx::Error) -> bool {
+    matches!(
+        error,
+        sqlx::Error::Database(db)
+            if matches!(db.constraint(), Some("users_username_unique") | Some("unique_qor_id"))
+    )
+}
+
 /// Register with keypair (create new account)
 /// POST /api/v1/auth/keypair-register
 pub async fn keypair_register(
@@ -1180,7 +1191,9 @@ pub async fn keypair_register(
         ));
     }
 
-    // A name derived from the account's own bytes, when none was asked for.
+    // A name derived from the account's own bytes, when none was asked for. Such an account chooses its own once, later
+    // (ADR-091 decision 5).
+    let username_chosen = req.username.is_some();
     let username = req.username.unwrap_or_else(|| {
         format!(
             "key_{}",
@@ -1221,9 +1234,9 @@ pub async fn keypair_register(
         INSERT INTO users (
             username, discriminator, password_hash,
             email_verified, role, status,
-            auth_method, chain_account_id
+            auth_method, chain_account_id, username_chosen
         )
-        VALUES ($1, $2, $3, TRUE, 'user', 'active', 'keypair', $4)
+        VALUES ($1, $2, $3, TRUE, 'user', 'active', 'keypair', $4, $5)
         RETURNING id
         "#,
     )
@@ -1231,10 +1244,11 @@ pub async fn keypair_register(
     .bind(discriminator)
     .bind(&password_hash)
     .bind(account.as_bytes())
+    .bind(username_chosen)
     .fetch_one(&state.db)
     .await
     .map_err(|e| {
-        if matches!(&e, sqlx::Error::Database(db) if db.constraint() == Some("users_username_unique")) {
+        if name_taken(&e) {
             AppError::ValidationError("Username already taken".into())
         } else {
             AppError::DatabaseError(e)
@@ -1275,6 +1289,7 @@ pub async fn keypair_register(
             "address": account.address(state.config.chain.ss58_prefix),
             "account_id": account.account_id_hex(),
             "auth_method": "keypair",
+            "username_chosen": username_chosen,
             "message": "Account created successfully with keypair authentication",
             "access_token": tokens.access_token,
             "refresh_token": tokens.refresh_token,
@@ -2713,6 +2728,14 @@ mod chain_account_tests {
         (address, account_id, issued.challenge, signature)
     }
 
+    async fn username_chosen(db: &PgPool, username: &str) -> bool {
+        sqlx::query_scalar("SELECT username_chosen FROM users WHERE username = $1")
+            .bind(username)
+            .fetch_one(db)
+            .await
+            .expect("the account row")
+    }
+
     async fn stored_account(db: &PgPool, username: &str) -> Option<Vec<u8>> {
         sqlx::query_scalar("SELECT chain_account_id FROM users WHERE username = $1")
             .bind(username)
@@ -2744,6 +2767,54 @@ mod chain_account_tests {
             "registration must not report an address: {body}"
         );
         assert_eq!(stored_account(&db, "nochain").await, None);
+    }
+
+    /// ADR-091 decision 5: a key registered without a name is on a name QOR ID made, `key_` and four bytes of the
+    /// account, and may choose its own later; a key registered with a name has chosen it.
+    #[sqlx::test]
+    #[ignore = "needs a Redis at QOR_AUTH_TEST_REDIS_URL"]
+    async fn a_key_registered_without_a_name_is_on_a_made_name(db: PgPool) {
+        let state = state(db.clone());
+        let unnamed = key(0x31);
+        let (address, _, challenge, signature) = signed_challenge(&state, &unnamed, false).await;
+        let (_, Json(body)) = keypair_register(
+            State(state.clone()),
+            Json(KeypairRegisterRequest {
+                address,
+                account_id: None,
+                username: None,
+                challenge,
+                signature,
+                device_id: None,
+            }),
+        )
+        .await
+        .expect("registered");
+        let made = format!("key_{}", &account(&unnamed).account_id_hex()[2..10]);
+        assert_eq!(body["qor_id"].as_str(), Some(made.as_str()));
+        assert_eq!(body["username_chosen"], false);
+        assert!(
+            !username_chosen(&db, &made).await,
+            "a made name is not a chosen one"
+        );
+
+        let named = key(0x32);
+        let (address, _, challenge, signature) = signed_challenge(&state, &named, false).await;
+        let (_, Json(body)) = keypair_register(
+            State(state),
+            Json(KeypairRegisterRequest {
+                address,
+                account_id: None,
+                username: Some("namedkey".into()),
+                challenge,
+                signature,
+                device_id: None,
+            }),
+        )
+        .await
+        .expect("registered");
+        assert_eq!(body["username_chosen"], true);
+        assert!(username_chosen(&db, "namedkey").await);
     }
 
     /// The two forms of one account reach the same row (ADR-024): registered as

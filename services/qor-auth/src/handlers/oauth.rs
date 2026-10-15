@@ -722,6 +722,79 @@ pub async fn userinfo(
 }
 
 #[derive(Deserialize)]
+pub struct IntrospectForm {
+    client_id: Option<String>,
+    client_secret: Option<String>,
+    token: Option<String>,
+}
+
+/// POST /oauth/introspect — whether a person's own access token is live, asked by a registered service with a secret
+/// of its own (ADR-091 decision 2), in RFC 7662's shape. A token an app was given (`cid`) is not a person's own and is
+/// answered inactive, as is anything that is not a live session's token. Who it belongs to comes from the database, so
+/// a name chosen since the token was minted is the one returned.
+pub async fn introspect(
+    State(state): State<Arc<AppState>>,
+    Form(form): Form<IntrospectForm>,
+) -> AppResult<Response> {
+    let service = authenticated_client(
+        &state,
+        form.client_id.as_deref(),
+        form.client_secret.as_deref(),
+    )
+    .filter(|client| client.introspect && client.secret_sha256.is_some());
+    if service.is_none() {
+        return Ok(oauth_error(
+            StatusCode::UNAUTHORIZED,
+            "invalid_client",
+            "the service could not be authenticated",
+        ));
+    }
+    let inactive = || Ok(no_store(Json(json!({ "active": false })).into_response()));
+    let Some(token) = form.token.as_deref() else {
+        return inactive();
+    };
+
+    let sessions = SessionService::new(state.redis.clone(), state.config.jwt.clone());
+    let claims = match sessions.authenticate_access_token(token).await {
+        Ok(claims) => claims,
+        // Not live: say so. Anything else (Redis unreachable) is QOR ID's failure, not the person's, and is not
+        // reported as a signed-out person.
+        Err(AppError::InvalidToken | AppError::TokenExpired) => return inactive(),
+        Err(other) => return Err(other),
+    };
+    if claims.cid.is_some() {
+        return inactive();
+    }
+    let user_id = Uuid::parse_str(&claims.sub).map_err(|_| AppError::InvalidToken)?;
+    let row: Option<(String, bool, Option<String>, String)> = sqlx::query_as(
+        "SELECT username, username_chosen, avatar_url, account_type FROM users \
+         WHERE id = $1 AND status = 'active'",
+    )
+    .bind(user_id)
+    .fetch_optional(&state.db)
+    .await?;
+    let Some((username, username_chosen, avatar_url, account_type)) = row else {
+        return inactive();
+    };
+    let qor_id = username.to_lowercase();
+    Ok(no_store(
+        Json(json!({
+            "active": true,
+            "sub": claims.sub,
+            "qor_id": qor_id,
+            "username": qor_id,
+            "username_chosen": username_chosen,
+            "avatar_url": avatar_url,
+            "account_type": account_type,
+            "role": claims.role,
+            "exp": claims.exp,
+            "progress": crate::handlers::progress::summary(&state.db, user_id).await?,
+        }))
+        .into_response(),
+    ))
+}
+
+#[derive(Deserialize)]
 pub struct RevokeForm {
     client_id: Option<String>,
     client_secret: Option<String>,
@@ -856,6 +929,7 @@ mod tests {
 
     const CALLBACK: &str = "https://arqade.test/api/auth/callback";
     const SECRET: &str = "arqade-test-client-secret-0123456789";
+    const SERVICE_SECRET: &str = "social-test-service-secret-0123456789";
     const PASSWORD: &str = "a sign-in test password";
     const VERIFIER: &str = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk-and-some-more";
 
@@ -868,7 +942,16 @@ mod tests {
             name: "ARQADE".into(),
             redirect_uris: vec![CALLBACK.into()],
             secret_sha256: Some(hex::encode(Sha256::digest(SECRET.as_bytes()))),
+            introspect: false,
         }];
+        // A service, not an app (ADR-091): no redirect URI, a secret, and introspection.
+        config.oauth.clients.push(OAuthClient {
+            id: "social".into(),
+            name: "Social".into(),
+            redirect_uris: vec![],
+            secret_sha256: Some(hex::encode(Sha256::digest(SERVICE_SECRET.as_bytes()))),
+            introspect: true,
+        });
         config.oauth.validate().expect("a valid registry");
         let url = std::env::var("QOR_AUTH_TEST_REDIS_URL")
             .unwrap_or_else(|_| "redis://127.0.0.1:1".into());
@@ -1375,6 +1458,7 @@ mod tests {
             name: "App".into(),
             redirect_uris: vec![uri.into()],
             secret_sha256: None,
+            introspect: false,
         };
         for bad in [
             "http://example.com/cb",
@@ -1397,11 +1481,39 @@ mod tests {
         assert!(config.validate().is_err(), "an id registered twice");
         config.clients = vec![OAuthClient {
             secret_sha256: Some("abc".into()),
+            introspect: false,
             ..client("https://a.test/cb")
         }];
         assert!(
             config.validate().is_err(),
             "a secret hash that is not 64 hex characters"
+        );
+
+        // A service (ADR-091) signs nobody in and must prove itself: a secret, and no redirect URI.
+        let secret = Some("0".repeat(64));
+        let service = |redirect_uris: Vec<String>, secret_sha256: Option<String>| OAuthClient {
+            id: "social".into(),
+            name: "Social".into(),
+            redirect_uris,
+            secret_sha256,
+            introspect: true,
+        };
+        config.clients = vec![service(vec![], secret.clone())];
+        assert!(config.validate().is_ok(), "a service with a secret");
+        config.clients = vec![service(vec![], None)];
+        assert!(config.validate().is_err(), "a service without a secret");
+        config.clients = vec![service(vec!["https://a.test/cb".into()], secret)];
+        assert!(
+            config.validate().is_err(),
+            "a service that could be sent codes"
+        );
+        config.clients = vec![OAuthClient {
+            redirect_uris: vec![],
+            ..client("https://a.test/cb")
+        }];
+        assert!(
+            config.validate().is_err(),
+            "an app with nowhere to send codes"
         );
     }
 
@@ -1569,6 +1681,293 @@ mod tests {
         assert_eq!(
             handoff_with(&app, Some(&own), "not a url").await.status,
             StatusCode::BAD_REQUEST
+        );
+    }
+
+    async fn introspect_as(app: &Router, client: &str, secret: &str, token: &str) -> Reply {
+        form(
+            app,
+            "/oauth/introspect",
+            &[
+                ("client_id", client),
+                ("client_secret", secret),
+                ("token", token),
+            ],
+        )
+        .await
+    }
+
+    async fn with_bearer(
+        app: &Router,
+        method: &str,
+        path: &str,
+        token: Option<&str>,
+        body: Option<serde_json::Value>,
+    ) -> Reply {
+        let mut request = Request::builder().method(method).uri(path);
+        if let Some(token) = token {
+            request = request.header("authorization", format!("Bearer {token}"));
+        }
+        let request = match body {
+            Some(body) => request
+                .header("content-type", "application/json")
+                .body(Body::from(body.to_string())),
+            None => request.body(Body::empty()),
+        };
+        send(app, request.expect("request")).await
+    }
+
+    /// The `qor_id` a token carries, read from its payload.
+    fn qor_id_in(token: &str) -> String {
+        let payload = token.split('.').nth(1).expect("a JWT");
+        let bytes =
+            base64::Engine::decode(&base64::engine::general_purpose::URL_SAFE_NO_PAD, payload)
+                .expect("base64url");
+        serde_json::from_slice::<serde_json::Value>(&bytes).expect("json")["qor_id"]
+            .as_str()
+            .expect("a qor_id")
+            .to_string()
+    }
+
+    async fn app_token(app: &Router, username: &str) -> String {
+        let code = sign_in(app, username).await;
+        exchange(app, &code, VERIFIER, SECRET).await.json()["access_token"]
+            .as_str()
+            .expect("an app token")
+            .to_string()
+    }
+
+    fn assert_inactive(r: Reply) {
+        assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+        assert_eq!(r.json(), json!({ "active": false }));
+    }
+
+    /// ADR-091 decision 2: a registered service learns whether a person's own token is live, and whose it is; an app,
+    /// a wrong secret and an app's token learn nothing.
+    #[sqlx::test]
+    #[ignore = "needs a Redis at QOR_AUTH_TEST_REDIS_URL"]
+    async fn a_service_learns_whether_a_persons_own_token_is_live(db: PgPool) {
+        let app = app(db.clone());
+        register(&app, "socialite").await;
+        let own = own_session(&app, "socialite").await;
+
+        let r = introspect_as(&app, "social", SERVICE_SECRET, &own).await;
+        assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+        assert_eq!(
+            r.headers
+                .get(header::CACHE_CONTROL)
+                .and_then(|v| v.to_str().ok()),
+            Some("no-store")
+        );
+        let body = r.json();
+        assert_eq!(body["active"], true);
+        assert_eq!(body["qor_id"], "socialite");
+        assert_eq!(body["username_chosen"], true);
+        assert!(
+            body["sub"]
+                .as_str()
+                .is_some_and(|s| Uuid::parse_str(s).is_ok())
+        );
+        assert!(
+            body["exp"]
+                .as_i64()
+                .is_some_and(|exp| exp > chrono::Utc::now().timestamp())
+        );
+        assert!(body["progress"]["level"].is_u64(), "{body}");
+
+        // Only a service with its secret may ask.
+        for (client, secret) in [
+            ("social", "not the secret"),
+            ("arqade", SECRET),
+            ("nobody", SERVICE_SECRET),
+        ] {
+            let r = introspect_as(&app, client, secret, &own).await;
+            assert_eq!(r.status, StatusCode::UNAUTHORIZED, "{client}: {}", r.body);
+            assert_eq!(r.json()["error"], "invalid_client");
+        }
+
+        // An app's token was given to that app, not to a service; nor is anything else a live token.
+        let app_token = app_token(&app, "socialite").await;
+        assert_inactive(introspect_as(&app, "social", SERVICE_SECRET, &app_token).await);
+        assert_inactive(introspect_as(&app, "social", SERVICE_SECRET, "not.a.token").await);
+        assert_inactive(
+            form(
+                &app,
+                "/oauth/introspect",
+                &[("client_id", "social"), ("client_secret", SERVICE_SECRET)],
+            )
+            .await,
+        );
+
+        // A banned account's token is no longer live for anyone.
+        sqlx::query("UPDATE users SET status = 'banned' WHERE username = 'socialite'")
+            .execute(&db)
+            .await
+            .expect("banned");
+        assert_inactive(introspect_as(&app, "social", SERVICE_SECRET, &own).await);
+    }
+
+    /// ADR-091 decision 5: an account on a name QOR ID made chooses its own, once, under ADR-075's rules, from its own
+    /// session; its sessions carry the new name from then on.
+    #[sqlx::test]
+    #[ignore = "needs a Redis at QOR_AUTH_TEST_REDIS_URL"]
+    async fn an_account_on_a_made_name_chooses_its_own_once(db: PgPool) {
+        let app = app(db.clone());
+        register(&app, "takenname").await;
+        register(&app, "key_0a1b2c3d").await;
+        sqlx::query("UPDATE users SET username_chosen = FALSE WHERE username = 'key_0a1b2c3d'")
+            .execute(&db)
+            .await
+            .expect("on a made name");
+        let login = send(
+            &app,
+            Request::post("/api/v1/auth/login")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({ "identifier": "key_0a1b2c3d", "password": PASSWORD }).to_string(),
+                ))
+                .expect("request"),
+        )
+        .await;
+        assert_eq!(login.status, StatusCode::OK, "{}", login.body);
+        let own = login.json()["access_token"]
+            .as_str()
+            .expect("access")
+            .to_string();
+        let refresh = login.json()["refresh_token"]
+            .as_str()
+            .expect("refresh")
+            .to_string();
+        let claim = |token: Option<String>, name: &str| {
+            let body = json!({ "username": name });
+            let app = app.clone();
+            async move {
+                with_bearer(
+                    &app,
+                    "POST",
+                    "/api/v1/profile/username",
+                    token.as_deref(),
+                    Some(body),
+                )
+                .await
+            }
+        };
+
+        let profile = with_bearer(&app, "GET", "/api/v1/profile", Some(&own), None).await;
+        assert_eq!(profile.json()["username_chosen"], false, "{}", profile.body);
+
+        // Refused, and nothing changed: no session, an app's session, a bad name, a taken name in any case.
+        assert_eq!(
+            claim(None, "freshname").await.status,
+            StatusCode::UNAUTHORIZED
+        );
+        let app_token = app_token(&app, "key_0a1b2c3d").await;
+        assert_eq!(
+            claim(Some(app_token), "freshname").await.status,
+            StatusCode::FORBIDDEN
+        );
+        for bad in ["no", "has-hyphen", "far_too_long_a_name_123"] {
+            assert_eq!(
+                claim(Some(own.clone()), bad).await.status,
+                StatusCode::BAD_REQUEST,
+                "{bad}"
+            );
+        }
+        let taken = claim(Some(own.clone()), "TakenName").await;
+        assert_eq!(taken.status, StatusCode::BAD_REQUEST, "{}", taken.body);
+
+        // Chosen: the name is the account's, in lower case, and its session's next tokens carry it.
+        let r = claim(Some(own.clone()), "  FreshName ").await;
+        assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+        assert_eq!(r.json()["qor_id"], "freshname");
+        let profile = with_bearer(&app, "GET", "/api/v1/profile", Some(&own), None).await;
+        assert_eq!(profile.json()["qor_id"], "freshname", "{}", profile.body);
+        assert_eq!(profile.json()["username_chosen"], true);
+        let renewed = send(
+            &app,
+            Request::post("/api/v1/auth/refresh")
+                .header("content-type", "application/json")
+                .body(Body::from(json!({ "refresh_token": refresh }).to_string()))
+                .expect("request"),
+        )
+        .await;
+        assert_eq!(renewed.status, StatusCode::OK, "{}", renewed.body);
+        assert_eq!(
+            qor_id_in(renewed.json()["access_token"].as_str().expect("access")),
+            "freshname"
+        );
+        let audited: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM audit_log WHERE action = 'username_chosen' AND details->>'to' = 'freshname'",
+        )
+        .fetch_one(&db)
+        .await
+        .expect("audit");
+        assert_eq!(audited, 1);
+
+        // Once: a chosen name stays (ADR-075). And an account never on a made name cannot choose at all.
+        let again = claim(Some(own.clone()), "anothername").await;
+        assert_eq!(again.status, StatusCode::CONFLICT, "{}", again.body);
+        let other = own_session(&app, "takenname").await;
+        assert_eq!(
+            claim(Some(other), "newtaken").await.status,
+            StatusCode::CONFLICT
+        );
+    }
+
+    /// ADR-091: another person's public profile is their name, avatar, level, kind and when they joined, to a signed-in
+    /// caller, and nothing at all for an account that is not active.
+    #[sqlx::test]
+    #[ignore = "needs a Redis at QOR_AUTH_TEST_REDIS_URL"]
+    async fn a_public_profile_shows_a_name_avatar_and_level_and_nothing_else(db: PgPool) {
+        let app = app(db.clone());
+        register(&app, "viewer").await;
+        register(&app, "shown").await;
+        let own = own_session(&app, "viewer").await;
+
+        let r = with_bearer(&app, "GET", "/api/v1/users/Shown", Some(&own), None).await;
+        assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+        let body = r.json();
+        let mut keys: Vec<&str> = body
+            .as_object()
+            .expect("an object")
+            .keys()
+            .map(String::as_str)
+            .collect();
+        keys.sort_unstable();
+        assert_eq!(
+            keys,
+            ["account_type", "avatar_url", "joined", "level", "qor_id"]
+        );
+        assert_eq!(body["qor_id"], "shown");
+        assert!(body["level"].is_u64(), "{body}");
+
+        let status = |token: Option<String>, path: &'static str| {
+            let app = app.clone();
+            async move {
+                with_bearer(&app, "GET", path, token.as_deref(), None)
+                    .await
+                    .status
+            }
+        };
+        assert_eq!(
+            status(None, "/api/v1/users/shown").await,
+            StatusCode::UNAUTHORIZED
+        );
+        assert_eq!(
+            status(Some(own.clone()), "/api/v1/users/nobody_here").await,
+            StatusCode::NOT_FOUND
+        );
+        assert_eq!(
+            status(Some(own.clone()), "/api/v1/users/not-a-name").await,
+            StatusCode::NOT_FOUND
+        );
+        sqlx::query("UPDATE users SET status = 'banned' WHERE username = 'shown'")
+            .execute(&db)
+            .await
+            .expect("banned");
+        assert_eq!(
+            status(Some(own), "/api/v1/users/shown").await,
+            StatusCode::NOT_FOUND
         );
     }
 }

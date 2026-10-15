@@ -191,6 +191,14 @@ pub(crate) fn router(state: Arc<AppState>) -> Router {
         .route("/oauth/token", post(handlers::oauth::token))
         .route("/oauth/userinfo", get(handlers::oauth::userinfo))
         .route("/oauth/revoke", post(handlers::oauth::revoke))
+        // A registered service (Social, ADR-091) asks whether a person's own token is live. Server to server.
+        .route("/oauth/introspect", post(handlers::oauth::introspect))
+        // Another person's public profile, for a signed-in caller (ADR-091).
+        .route(
+            "/api/v1/users/{username}",
+            get(handlers::profile::public_profile)
+                .layer(from_fn(crate::middleware::auth::require_auth)),
+        )
         // The launcher signs a person into an app it opened with its own session (P7.18): a person's own session only.
         .route(
             "/api/v1/oauth/handoff",
@@ -340,6 +348,8 @@ fn profile_routes() -> Router<Arc<AppState>> {
         )
         .route("/email", post(handlers::profile::request_email_change))
         .route("/password", post(handlers::account::change_password_api))
+        // A name QOR ID made is replaced by one the person chooses, once (ADR-091 decision 5).
+        .route("/username", post(handlers::profile::claim_username))
         .route("/progress", get(handlers::progress::get_progress))
         .route(
             "/progress/tutorial",
