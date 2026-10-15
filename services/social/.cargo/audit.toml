@@ -1,0 +1,19 @@
+# cargo audit configuration for services/social.
+#
+# RUSTSEC-2023-0071 (rsa, the "Marvin Attack": potential key recovery through
+# timing side channels) has no fixed release.
+#
+# JUSTIFICATION: rsa is present in Cargo.lock, through sqlx's optional MySQL
+# driver, but absent from the compiled dependency graph for every target.
+# `cargo tree --locked -i rsa --target all -e all` prints nothing (verified
+# 2026-10-15). Exactly QOR ID's case (services/qor-auth/.cargo/audit.toml).
+#
+# MUST BE REVISITED if rsa ever enters the compiled graph. CI enforces this: the
+# security job fails when that command prints anything, so this ignore cannot
+# silently cover a dependency that is actually built.
+#
+# Approved by the owner on 2026-10-15 ("Ignore it on QOR ID's terms") and logged
+# in docs/GATES.toml [[change_log]].
+
+[advisories]
+ignore = ["RUSTSEC-2023-0071"]
