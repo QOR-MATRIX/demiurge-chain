@@ -84,6 +84,14 @@ pub struct Session {
     /// On-chain address, when the account has one linked.
     pub address: Option<String>,
     pub avatar_url: Option<String>,
+    /// False while the account is on a name QOR ID made for it (`key_…`); it may then choose its own once (ADR-091
+    /// decision 5). A QOR ID from before that sends nothing, which is read as chosen.
+    #[serde(default = "chosen")]
+    pub username_chosen: bool,
+}
+
+fn chosen() -> bool {
+    true
 }
 
 /// Token pair returned by the auth service.
@@ -410,6 +418,34 @@ impl IdentityClient {
             .as_str()
             .map(str::to_owned)
             .ok_or_else(|| QorError::Auth("QOR ID answered the sign-in without a redirect".into()))
+    }
+
+    /// The access token, for Social's socket (ADR-091, L8.5); refreshed first when `fresh`, after Social said the last
+    /// one was not live. It goes from the keychain into the socket's first frame and nowhere else.
+    pub async fn access_token(&self, fresh: bool) -> QorResult<String> {
+        if fresh {
+            self.refresh().await?;
+        }
+        read_token(TokenKind::Access)
+    }
+
+    /// Choose this account's QOR ID name, once, while it is on a name QOR ID made (ADR-091 decision 5). QOR ID renames
+    /// the live sessions, so the tokens refreshed here carry the new name, and so does the session returned.
+    pub async fn claim_username(&self, username: &str) -> QorResult<Session> {
+        validate_username(username)?;
+        let body = serde_json::json!({ "username": username.trim() });
+        self.with_fresh_token(
+            |token| {
+                self.http
+                    .post(self.url("profile/username"))
+                    .bearer_auth(token)
+                    .json(&body)
+                    .send()
+            },
+            "profile/username",
+        )
+        .await?;
+        self.refresh().await
     }
 
     /// Send a request with the access token, and once more after a refresh if QOR ID says the token is spent.
@@ -770,6 +806,10 @@ fn parse_session(value: &serde_json::Value) -> QorResult<Session> {
             .get("avatar_url")
             .and_then(serde_json::Value::as_str)
             .map(str::to_owned),
+        username_chosen: root
+            .get("username_chosen")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(true),
     })
 }
 

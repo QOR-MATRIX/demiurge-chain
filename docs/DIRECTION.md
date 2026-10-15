@@ -740,13 +740,17 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 Rooms, direct messages, presence and profiles per QOR ID, in a service of its own (`services/social/`) with the
 launcher as its first client. Design: [`blueprints/social.md`](blueprints/social.md). L8.1 to L8.7 are release 1.
 
-1. [ ] QOR ID for Social: token introspection for registered services (`POST /oauth/introspect`); an account on an
+1. [x] QOR ID for Social: token introspection for registered services (`POST /oauth/introspect`); an account on an
    automatic `key_…` name chooses its username once; another person's public profile by username. Each flow joins the
-   log check.
-2. [ ] The Social service: rooms (public, and private by invitation) with owner and moderator roles; direct messages;
+   log check. Done 2026-10-15: merged with pull request #31, CI green on `main` at `76ffbf4`, and live at
+   `id.qorsync.dev` (deployed from `main`; migration 023 applied; checked by an unauthenticated call answered
+   `invalid_client`). 176 tests; each new one failed against a planted fault first.
+2. [x] The Social service: rooms (public, and private by invitation) with owner and moderator roles; direct messages;
    messages sealed at rest, with replies, reactions, edits and deletes; read positions and unread counts; mentions;
    blocks; reports. One WebSocket per client, typed frames, versioned; rate limits and size caps; tests against
-   Postgres, the log check and bound SQL from the first commit.
+   Postgres, the log check and bound SQL from the first commit. Done 2026-10-15: `services/social/`, merged with pull
+   request #31, its CI job green on `main` at `76ffbf4`; 29 tests, each rule failing against a planted fault first. Not
+   deployed: that is L8.6.
 3. [ ] Profiles per QOR ID: a display line, a bio, an accent, a banner from the QFX backdrops, a showcase of DRC-369
    assets the account holds, and a card opened from any message; username, avatar and level as QOR ID returns them.
 4. [ ] Presence: online and away, typing, a status line, and what someone is playing when a product says so.

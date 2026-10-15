@@ -86,13 +86,17 @@ retry after a dropped connection idempotent. Unknown methods and versions are re
 Every surface that shows a person opens their **card**: avatar with the level ring (ADR-079, ADR-080), username,
 display line, status, and the banner. A full profile adds the bio and the **showcase**.
 
-- **Banner:** one of the QFX backdrops (drift, aurora, nebula, lattice, starfield, liquid) with the person's accent and
-  parameters, rendered live where motion is allowed and as a still where it is not (the QFX contrast and frame-time
-  contracts apply).
+- **Banner:** one of the QFX backdrops (drift, aurora, nebula, lattice, starfield, liquid) with the person's hue and
+  intensity, moving where motion is allowed and still where it is not. **As built:** drawn in CSS after the six presets
+  rather than by the QFX shader, which is one full-window canvas; a CSS banner costs nothing per card, and text on it sits
+  behind a scrim so it reads in every theme.
 - **Accent:** a colour from the person's theme that tints their name, ring and message rail for everyone who reads
   them, checked for contrast against every theme before it is accepted.
-- **Showcase:** up to six DRC-369 assets the account holds, read from the chain each time it is shown, so a sold asset
-  leaves the showcase by itself.
+- **Showcase:** up to six DRC-369 assets the account holds. **As built (15 October 2026):** a person chooses from the
+  assets their own account holds, read from the chain when they choose; another person's showcase is shown by asset
+  number and marked unchecked, because a Social profile does not yet carry the chain account to read it against. Checking
+  it each time it is shown, so a sold asset leaves by itself, needs that account in the profile (from QOR ID's
+  `chain_account`), and is not built.
 - **Room ambience:** a room's owner chooses a backdrop that the launcher plays while the room is open.
 - **Status and presence:** online, away or invisible; a status line; and "playing …" when a product the launcher
   started says so.

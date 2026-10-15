@@ -303,6 +303,23 @@ The rail's avatar carries the account's level in a small bubble, and an XP bar u
 Both are read from QOR ID (`GET /api/v1/profile/progress`, `qor_progress`), which is the only place XP is granted;
 finishing the tutorial reports it once (`qor_tutorial_done`). Signed out, nothing is shown.
 
+### Social (ADR-091, roadmap L8.5)
+
+The Social surface is the first client of Social (`services/social/`). **The host holds the one socket and the token**
+(`src-tauri/src/social.rs`): the QOR ID access token goes from the keychain into the socket's first frame and nowhere
+else; the webview asks through `social_request` and hears `social://status`, `social://welcome` and `social://event`.
+The socket is jsonrpsee's WebSocket transport, which subxt already brings for the chain, so Social adds no library to the
+process that holds the vault. It reconnects by itself (1, 2, 4 … 30 s), swaps an expired token without a pause, refreshes
+once when Social says a session is not live and then reports `signed_out`, and never leaves a request hanging. Social's
+address is `social_url` in the settings file (`QOR_SOCIAL_URL` overrides it): `wss://`, or `ws://` on this machine only;
+until Social is deployed (L8.6) the default is `ws://127.0.0.1:8090/v1/socket`.
+
+The interface (`src/social/`) stays connected while the shell is open, so the rail counts unread messages from any
+surface. Entering asks for nothing already known: with no QOR ID the name is chosen first; on a name QOR ID made
+(`key_…`) a name is chosen once (`qor_claim_username`, ADR-091 decision 5) and Social is told again who this is.
+Rooms, direct conversations, replies, reactions, edits, deletes, @mentions with completion, typing, presence, profiles
+with a banner and an accent (refused when it would not read on the theme), and a showcase chosen from the account's own assets. Evidence: the host's socket tests and its log check (`social::tests`), and `scripts/check-social-view.mjs`.
+
 ## Release gates (development dashboard)
 
 The Gates surface shows Alpha, Beta and Public Release progress, computed by

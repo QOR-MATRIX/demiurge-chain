@@ -8,26 +8,28 @@ A blockchain that pays makers when their work is used, and a desktop launcher to
 The currency, **CGT**, is for spending, not holding. Seven products are planned on one
 sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurge-chain`.
 
-## Live today (checked this afternoon)
+## Live today (checked tonight)
 
 - **Devnet** — *the test chain on servers* — at `wss://rpc.qorsync.dev`, version 8. 150 tests.
-- **QOR ID** — *the one sign-in* — at `id.qorsync.dev`, healthy. 172 tests live.
+- **QOR ID** — *the one sign-in* — at `id.qorsync.dev`. Since you merged #31 it includes
+  what Social needs, the one-time name pick among it: 176 tests.
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`. 49 tests.
 - **Launcher 0.1.8**, unsigned — *Windows warns on install*. `main` passes every check.
 
-## Social: started tonight (ADR-091, your four choices)
+## Social (ADR-091, your four choices)
 
-- **Decided:** a service of its own; messages locked on its disk but readable by it (so
-  reports work), with private messages only the two people can read coming next; the
-  launcher first; and anyone on an automatic `key_…` name picks a real QOR ID name once.
-- **Built and tested, not live yet:** the Social service — *the server behind the chat* —
-  with rooms, private rooms by invitation, direct messages, replies, reactions, edits,
-  unread counts, @mentions, blocking, reports, online/away/playing, and profiles: a bio,
-  your colour, a living banner from the launcher's backdrops, and a shelf of your assets.
-  29 tests. QOR ID gained what Social needs, including the one-time name pick: 176 tests.
-- **Each rule was proven to catch its own failure.** One real leak was found and closed: a
-  library would have written people's words and sign-in tokens into the logs.
-- **Next:** the Social screen in the launcher, then putting it online.
+- **In `main`:** the Social service — *the server behind the chat* — with rooms, private
+  rooms, direct messages, replies, reactions, edits, unread counts, @mentions, blocking,
+  reports, online/away/playing, and profiles. Not online yet.
+- **Built tonight, waiting for your review (pull request #33):** the **Social screen in the**
+  **launcher**. Your conversations with unread counts (also on the rail), messages with
+  reactions and replies, @name completion, who is typing, profile cards with a living
+  banner and your colour, a profile editor with a live preview, and the name pick on entry.
+  Proven by a new screen check (29 points) that caught three planted faults and two real
+  ones, fixed before you see it.
+- **Not yet tried together:** the launcher and Social have each been tested against a
+  stand-in of the other. The first real conversation needs Social online (next step).
+- **Pull request #32:** Social's library check on QOR ID's terms, as you chose. It missed #31.
 
 ## Publishing a game (P3.4)
 
@@ -37,19 +39,20 @@ The launcher now logs every request a product makes, so the next try shows the c
 
 ## What only you can do
 
-1. **Review and merge** pull requests **#30** (tonight's record) and **#31** (Social), when
-   their checks pass. Social's library check now follows QOR ID's terms, as you chose.
-2. **Update QQ Studio**, then publish again: with it closed, run
+1. **Review and merge** pull requests **#30**, **#32** and **#33** when their checks pass.
+2. **Put Social online** (next step, with me): a Railway service and database for it, its
+   message keys, and registering it with QOR ID. I'll prepare each step; the dashboard is yours.
+3. **Update QQ Studio**, then publish again: with it closed, run
    `pwsh products/qq/build.ps1 -Deploy`; then **Publish**, and send me its message word for word.
-3. **Before Social opens to anyone else:** how long messages are kept, and the rules reports
+4. **Before Social opens to anyone else:** how long messages are kept, and the rules reports
    are judged against (L8.7).
-4. **The last two L1.4 checks** — *the launcher's approval dialogs*: change the QOR ID address
+5. **The last two L1.4 checks** — *the launcher's approval dialogs*: change the QOR ID address
    (decline once, approve once); sign in after QOR ID was unreachable at start-up.
-5. **CI for QQ:** add your Qt account to GitHub's secrets, or a *self-hosted runner* — *your
+6. **CI for QQ:** add your Qt account to GitHub's secrets, or a *self-hosted runner* — *your
    PC running GitHub's checks*. Check with Qt that your licence allows it.
-6. **Name the welcome-grant payer**; **add an email** at `id.qorsync.dev/account`; **replace
+7. **Name the welcome-grant payer**; **add an email** at `id.qorsync.dev/account`; **replace
    the key** pasted into a chat on 5 October.
-7. **Housekeeping:** the GitKraken download (`archive-bZLIQp/`); delete `QOR-MATRIX/arqade`;
+8. **Housekeeping:** the GitKraken download (`archive-bZLIQp/`); delete `QOR-MATRIX/arqade`;
    the Resend bounce webhook; the `ci` record and tunnel in Cloudflare; rotate nine old
    credentials; the nine frozen *home-map* tiles. Before commercial use: a paid Vercel
    plan, legal review, trademark clearance. Open questions: OPEN-1 to OPEN-4, U-4, U-14 to

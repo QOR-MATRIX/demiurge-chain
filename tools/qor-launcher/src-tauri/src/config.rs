@@ -45,6 +45,13 @@ const FILE: &str = "settings.json";
 pub struct Settings {
     pub rpc_url: String,
     pub auth_url: String,
+    /// Social's socket (ADR-091, L8.5): `wss://`, or `ws://` on this machine. Absent from settings written before it.
+    #[serde(default = "default_social")]
+    pub social_url: String,
+}
+
+fn default_social() -> String {
+    crate::social::DEFAULT_SOCIAL.to_string()
 }
 
 impl Default for Settings {
@@ -52,6 +59,7 @@ impl Default for Settings {
         Self {
             rpc_url: crate::chain::DEFAULT_RPC.to_string(),
             auth_url: crate::identity::DEFAULT_AUTH.to_string(),
+            social_url: default_social(),
         }
     }
 }
@@ -72,6 +80,9 @@ impl Settings {
         }
         if let Some(auth) = env_url("QOR_AUTH_URL") {
             settings.auth_url = auth;
+        }
+        if let Some(social) = env_url("QOR_SOCIAL_URL") {
+            settings.social_url = social;
         }
 
         // A stored or overridden chain endpoint from before ADR-040 names the
@@ -95,6 +106,17 @@ impl Settings {
             );
             settings.auth_url = crate::identity::DEFAULT_AUTH.to_string();
         }
+
+        settings.social_url = match crate::social::normalise_endpoint(&settings.social_url) {
+            Ok(endpoint) => endpoint,
+            Err(_) => {
+                tracing::warn!(
+                    social = %settings.social_url,
+                    "stored Social endpoint is not wss://, or ws:// on this machine; using the default"
+                );
+                default_social()
+            }
+        };
 
         settings
     }
@@ -167,12 +189,30 @@ mod tests {
         let saved = Settings {
             rpc_url: crate::chain::LOCAL_RPC.into(),
             auth_url: "http://127.0.0.1:8080/api/v1".into(),
+            social_url: "wss://social.example/v1/socket".into(),
         };
         saved.save(&dir).unwrap();
 
         let loaded = Settings::load(&dir);
         assert_eq!(loaded.rpc_url, saved.rpc_url);
         assert_eq!(loaded.auth_url, saved.auth_url);
+        assert_eq!(loaded.social_url, saved.social_url);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Settings written before Social existed carry no Social address, and read as the default (ADR-091).
+    #[test]
+    fn settings_from_before_social_read_as_the_default_social() {
+        let dir = scratch();
+        std::fs::write(
+            dir.join(FILE),
+            br#"{ "rpc_url": "ws://127.0.0.1:9944", "auth_url": "https://id.qorsync.dev/api/v1" }"#,
+        )
+        .unwrap();
+        let loaded = Settings::load(&dir);
+        assert_eq!(loaded.social_url, crate::social::DEFAULT_SOCIAL);
+        assert_eq!(loaded.rpc_url, "ws://127.0.0.1:9944");
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -188,6 +228,7 @@ mod tests {
         Settings {
             rpc_url: "http://127.0.0.1:9944".into(),
             auth_url: "http://127.0.0.1:8080/api/v1".into(),
+            social_url: default_social(),
         }
         .save(&dir)
         .unwrap();
@@ -205,6 +246,8 @@ mod tests {
         Settings {
             rpc_url: "file:///etc/passwd".into(),
             auth_url: "ws://localhost".into(),
+            // Words and a token in the clear, across a network.
+            social_url: "ws://social.example/v1/socket".into(),
         }
         .save(&dir)
         .unwrap();
@@ -212,6 +255,7 @@ mod tests {
         let loaded = Settings::load(&dir);
         assert_eq!(loaded.rpc_url, crate::chain::DEFAULT_RPC);
         assert_eq!(loaded.auth_url, crate::identity::DEFAULT_AUTH);
+        assert_eq!(loaded.social_url, crate::social::DEFAULT_SOCIAL);
 
         let _ = std::fs::remove_dir_all(&dir);
     }
