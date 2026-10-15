@@ -2407,8 +2407,15 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
 
 ## 5. Traps, so nobody re-learns them
 
+**CI's database images**
+- The QOR ID and Social jobs pull `postgres` and `redis` from Amazon ECR Public anonymously. On 15 October 2026 it
+  refused twice in one evening (`toomanyrequests: Data limit exceeded`, `Docker pull failed`), failing a job before any
+  step of the change ran (#30, #32); re-running the failed job passed both. A job that fails at "UNKNOWN STEP" with a
+  Docker pull error is this, not the change. A lasting fix (an authenticated pull, or the images from another registry)
+  needs a credential, so it is the owner's to choose.
+
 **Launcher checks**
-- `npm run check` runs ten checks: design, accessibility, the gates view, the Projects view, the Inventory
+- `npm run check` runs eleven checks (the Social view since 15 October 2026): design, accessibility, the gates view, the Projects view, the Inventory
   view, the Market view (`check-market-view.mjs`), QQ (`check-qq-view.mjs`, since 2026-10-08), the Gate and Windows Hello (`check-vault-gate.mjs`), QFX
   contrast and readability. It needs `npm run build` first, because nine of them serve `dist`, and a
   Chromium-family browser (set `BROWSER_PATH` for one that is not Edge or Chrome in the usual places).
