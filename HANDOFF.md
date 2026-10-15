@@ -107,7 +107,7 @@ ticked the same day against the owner's review of a ten-line summary.
 | Infrastructure | **Railway** (project `demiurge`): Postgres, Redis, QOR ID (`id.qorsync.dev`) and Demiurge Devnet (two validators and an RPC node, ADR-068). **Vercel**: ARQADE, project `qor-arqade` (team Astra Matrix, Hobby plan), with Neon Postgres (ADR-074). Fly.io is not used: ADR-015's Fly plan is superseded by ADR-063 and ADR-068. |
 | Production | No production or test network. Live, devnet-only and with test CGT: Demiurge Devnet, QOR ID and ARQADE. |
 | ARQADE (`products/arqade/`) | **Live at `https://qor-arqade-tau.vercel.app`**: standard Next.js 16 on Neon Postgres, migrations 0001 to 0003 applied on production builds (`scripts/migrate.mjs`). **48 tests** (6 October 2026). QOR ID is the only sign-in; Play Now, the solo games, Flux Four and Rift Reversi multiplayer, rankings, chat, devnet reads, tips through the launcher (ADR-076, ADR-077; the owner tipped successfully on 5 and 6 October), and the level bubble and level row. P7.1 to P7.4 are ticked (P7.4 on 6 October 2026). |
-| Decisions | 87 ADRs (ADR-001 to ADR-087); ADR-069 to ADR-087 are accepted. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan; ADR-083 (8 October) builds it on Qt 6; ADR-084 (10 October) settles the Player's web build (Qt's threaded kit, served cross-origin isolated, sound unpanned in a browser). ADR-085 (10 October) chooses the design loop's provider: Claude Opus 5.5, its key in Windows Credential Manager. ADR-086 (10 October, the owner's) makes every user pay for the generation they use, and the project pay for none. ADR-087 (10 October, the owner's) confines strangers' QQ games to the browser, on a locked-down Player. The owner's open questions are in §4.0. |
+| Decisions | 89 ADRs (ADR-001 to ADR-089); ADR-069 to ADR-088 are accepted, and **ADR-089 is Proposed** (15 October 2026: an advisory in a crate the launcher never builds, which fails CI's security job until the owner decides). ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan; ADR-083 (8 October) builds it on Qt 6; ADR-084 (10 October) settles the Player's web build (Qt's threaded kit, served cross-origin isolated, sound unpanned in a browser). ADR-085 (10 October) chooses the design loop's provider: Claude Opus 5.5, its key in Windows Credential Manager. ADR-086 (10 October, the owner's) makes every user pay for the generation they use, and the project pay for none. ADR-087 (10 October, the owner's) confines strangers' QQ games to the browser, on a locked-down Player. The owner's open questions are in §4.0. |
 | Not live | Avatars in ARQADE (ADR-079 step 3, not built), paying the welcome grant (grants are recorded as owed, never paid), ARQADE inside the launcher (P7.18), the indexer, the Mesh, fees and issuance. |
 
 ## 2. Known gaps: do not build on these
@@ -2264,6 +2264,34 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     retry, on a launcher rebuilt with this change; QQ Studio redeployed with it (`build.ps1 -Deploy`, the owner's to
     run, since this assistant's permissions refuse it). **Next:** the owner retries; if the account named is not
     `5DSND…LUV34`, fund the named one, or choose which account publishes (a decision for the owner: the first account, or the one shown in the rail).
+    **Later the same day.** The owner pushed both commits and pull request #29 was opened against `main`. **The retry,
+    on the rebuilt launcher, confirmed the cause:** three Publishes were refused as `unfunded`, naming
+    `5Gx19bfX6PpiLaWL3JwuFrLWFDhZ6pFDCP8xHu5FyAZ5sPwt` (the vault's first account) holding 0.00 CGT against 1,003.75 CGT
+    of deposits, and nothing was asked or signed; that account was then funded with 5,000 test CGT (total issuance
+    unchanged). The refusal's sentence had a run of spaces where a line continuation was lost; fixed, and the live test
+    now asserts each message is one sentence. **CI on #29:** chain, QOR ID, ARQADE, coverage and **the launcher, the
+    product host's first run on Linux, passed**; the **security job failed** on advisories published that week, not on
+    this change: `rustls` 0.23.45 (RUSTSEC-2026-0346 to 0349) and `quinn-proto` 0.11.17 (RUSTSEC-2026-0338, 0340,
+    0343), both updated to their fixed releases (`rustls` in the launcher, QOR ID and the chain; `quinn-proto` in the
+    launcher), and `ruzstd` 0.8.3 (RUSTSEC-2026-0344), which no update removes and the launcher never builds: **ADR-089,
+    Proposed**, puts the options to the owner. Until it is decided the security job fails on every branch, `main`
+    included. **Next:** the owner publishes again (the account is now funded); the owner decides ADR-089 and which
+    account publishes.
+    **Verified that afternoon, then committed** (the dependency updates, the one-sentence fix and ADR-089) as the
+    branch's third commit, for the owner to push. `cargo test --workspace --locked` in `chain/`, without
+    `SKIP_WASM_BUILD`: 150 passed. The launcher's `cargo test --locked --features qontrol-no-skips`: 240 passed, 11
+    ignored; of those, against `demiurge-node --dev --tmp` (the release build of 4 October; `chain/` is unchanged
+    since but for `rustls` in its lockfile), the seven `chain::live` tests, the publish through the host's channel
+    (`host::tests::a_project_is_minted_then_revised_then_left_alone_through_the_channel`), the OS keychain and the
+    Hello probe passed; `qq::tests::qq_studio_starts_on_a_project` was not run (it opens QQ Studio on the desktop).
+    QOR ID: 62 passed; the other 81 failed only for want of `DATABASE_URL` and 29 need Redis, since this PC runs no
+    Postgres, Redis or Docker, so those 110 are left to CI. `cargo audit`: the launcher reports RUSTSEC-2026-0344 alone,
+    QOR ID nothing beyond its ignore, the Qontrol helper nothing, and the chain (report-only) no `rustls` or
+    `quinn-proto` advisory; `cargo tree -i ruzstd --locked --target all -e all` prints nothing. On Demiurge Devnet
+    (block 170,917, `spec_version` 8) `5Gx19…5sPwt` holds **35,000** test CGT free and nothing reserved, not the 5,000
+    recorded above; who sent the difference is not established. Nothing reserved means no publish has succeeded.
+    **`main` is already red:** its scheduled CI runs failed the security job on 13, 14 and 15 October (the launcher's
+    audit each day, QOR ID's on the 15th; the run of 12 October passed), so ADR-089's context now says so.
 
 ## 5. Traps, so nobody re-learns them
 

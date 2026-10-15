@@ -363,7 +363,8 @@ impl ChainClient {
         let free = self.balance(from).await?;
         if free < deposits.total {
             return Err(QorError::Unfunded(format!(
-                "{owner_address} holds {have} {symbol} on {chain}, and this mint holds {need} {symbol} as deposits,                  so nothing was asked or signed. Fund this account on {chain}, then try again.",
+                "{owner_address} holds {have} {symbol} on {chain}, and this mint holds {need} {symbol} as deposits, \
+                 so nothing was asked or signed. Fund this account on {chain}, then try again.",
                 have = crate::cgt::format_cgt_grouped(free),
                 need = crate::cgt::format_cgt_grouped(deposits.total),
                 symbol = crate::cgt::SYMBOL,
@@ -879,7 +880,8 @@ impl ChainClient {
         // on a chain with none (OPEN-4). Said before anyone is asked, naming the account (15 October 2026).
         if self.balance(from).await? == 0 {
             return Err(QorError::Unfunded(format!(
-                "{account} holds nothing on {chain}, so it cannot send a {what}; nothing was asked or signed. Fund                  this account on {chain}, then try again.",
+                "{account} holds nothing on {chain}, so it cannot send a {what}; nothing was asked or signed. Fund \
+                 this account on {chain}, then try again.",
                 account = canonical_address(from)?,
                 chain = connection.chain_name,
             )));

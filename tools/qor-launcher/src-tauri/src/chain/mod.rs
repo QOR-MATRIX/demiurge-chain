@@ -1217,6 +1217,10 @@ pub(crate) mod live {
         let said = refused.to_string();
         assert!(said.contains(&named), "the account is named: {said}");
         assert!(said.contains(&chain_name), "the chain is named: {said}");
+        assert!(
+            !said.contains("  "),
+            "one sentence, not a broken line: {said}"
+        );
         assert_eq!(approving.times_asked(), 0, "nobody is asked");
         assert!(!wrote, "nothing is written to the store");
 
@@ -1237,7 +1241,7 @@ pub(crate) mod live {
         assert_eq!(refused.kind(), "unfunded", "{refused}");
         let said = refused.to_string();
         assert!(
-            said.contains(&named) && said.contains("as deposits"),
+            said.contains(&named) && said.contains("as deposits") && !said.contains("  "),
             "{said}"
         );
         assert_eq!(approving.times_asked(), 0);
