@@ -740,6 +740,14 @@ type = "tightening"
 change = "check-accessibility.mjs (the qfx_ambience suite) gains eight cases: each of the six QFX backdrops must compile and run, Still must hold a non-default one, and a launcher with ambience stored as off must create no GL context. Where the backdrop's GL program is rebuilt (off to live, another backdrop), the check now brings the page to the front again before counting frames, as it already did after every reload."
 reason = "Tightening: eight cases added, none removed or relaxed. The bring-to-front step is not a relaxation: 'stored off, then live' failed about two runs in five on main as on branches because headless Chrome stopped producing frames for the whole page (a bare animation loop beside the backdrop stalled with it, the main thread idle). After the step the check passed 10 runs in 10, and planted faults still fail it with 0 frames: a switch from off to live that never restarts the loop, and a backdrop shader that does not compile. The header of the check records the measurements."
 
+[[change_log]]
+date = "2026-10-15"
+type = "ci-exemption"
+change = "tools/qor-launcher/src-tauri cargo audit ignores RUSTSEC-2026-0344 (ruzstd 0.8.3, a decompression bomb). Recorded, with its justification, in tools/qor-launcher/src-tauri/.cargo/audit.toml; ADR-089 option A. The launcher's first ignore."
+reason = "No update removes it: every published smoldot requires ruzstd ^0.8 and the fix is on 0.9. ruzstd is in Cargo.lock only through subxt's optional light client (subxt-lightclient, smoldot-light, smoldot), which the launcher never builds, so the advisory does not apply to anything built, and it left the security job red on every branch from 13 October 2026. The ignore is conditional, as the rsa ignore is: CI fails if `cargo tree --locked -i ruzstd --target all -e all` prints anything, and also when ruzstd leaves Cargo.lock, so the ignore is deleted rather than left behind. Every other advisory still fails the launcher's audit. The same day's rustls and quinn-proto advisories were fixed by updates, not ignored."
+condition = "ruzstd stays out of the launcher's compiled graph, and in its Cargo.lock, checked on every CI run"
+approved_by = "owner, 2026-10-15 (ADR-089: 'Go with best recommendation')"
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------

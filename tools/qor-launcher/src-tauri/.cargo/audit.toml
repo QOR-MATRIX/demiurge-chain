@@ -1,0 +1,21 @@
+# cargo audit configuration for tools/qor-launcher/src-tauri (ADR-089).
+#
+# RUSTSEC-2026-0344 (ruzstd 0.8.3, a decompression bomb: a tiny input can
+# exhaust memory) is fixed only on ruzstd's 0.9 line, and no published smoldot
+# uses that line, so no update removes it.
+#
+# JUSTIFICATION: ruzstd is in Cargo.lock only through smoldot, smoldot-light and
+# subxt-lightclient, subxt's optional light client, which the launcher does not
+# enable: it talks to a node over WebSocket (ADR-040). `cargo tree --locked -i
+# ruzstd --target all -e all` prints nothing (verified 2026-10-15).
+#
+# MUST BE REVISITED if ruzstd ever enters the compiled graph. CI enforces this:
+# the security job fails when that command prints anything, so this ignore
+# cannot silently cover a dependency that is actually built. Delete it when a
+# lockfile update removes ruzstd 0.8, which CI also reports.
+#
+# Approved by the owner on 2026-10-15 (ADR-089, option A) and logged in
+# docs/GATES.toml [[change_log]]. This is the launcher's only ignore.
+
+[advisories]
+ignore = ["RUSTSEC-2026-0344"]

@@ -29,27 +29,26 @@ asset* — after the launcher asks you.
   holding it publishes its updates, whatever the rail shows. The dialog names the account.
   Tested against a test chain, and proven to catch both wrong accounts.
 - **Pull request #29, after your push:** everything passes except security, and that fails
-  on `ruzstd` alone, as expected. **ADR-089 (option A) is decided, not done:** my permissions
-  refused to write the file that silences it, as a weakening of security. The automatic
-  check and the record are ready.
+  on `ruzstd` alone, as expected. **ADR-089 is now done** with your permission: that one
+  notice is ignored, and an automatic check fails if the launcher ever builds `ruzstd`.
+  The audit passes on this PC; GitHub proves it once you push.
 - **Re-checked tonight:** chain 150 tests; launcher 241, its ten screen checks and its live
   tests; QOR ID's 62 that need no database (GitHub runs the other 110).
 
 ## What only you can do
 
-1. **Let ADR-089 be built:** tell me to retry with permission, or allow it in Claude Code's
-   settings. Without it the security check stays red on every branch, `main` included.
-2. **Push** tonight's commit (ADR-090): `git push matrix session/qq-p3.4-publish`.
-3. **Publish again** on a launcher with tonight's change: quit the test launcher (tray →
+1. **Push** tonight's two commits (ADR-090, ADR-089): `git push matrix session/qq-p3.4-publish`.
+   Security should then pass on #29; merging #29 makes `main` green again.
+2. **Publish again** on a launcher with tonight's change: quit the test launcher (tray →
    Quit), tell me, and I'll start the new one. Then QQ → **Open in QQ Studio** → **Publish**.
-4. **Update QQ Studio:** with it closed, run `pwsh products/qq/build.ps1 -Deploy`.
-5. **The last two L1.4 checks** — *the launcher's approval dialogs*: change the QOR ID address
+3. **Update QQ Studio:** with it closed, run `pwsh products/qq/build.ps1 -Deploy`.
+4. **The last two L1.4 checks** — *the launcher's approval dialogs*: change the QOR ID address
    (decline once, approve once); sign in after QOR ID was unreachable at start-up.
-6. **CI for QQ:** add your Qt account to GitHub's secrets, or a *self-hosted runner* — *your
+5. **CI for QQ:** add your Qt account to GitHub's secrets, or a *self-hosted runner* — *your
    PC running GitHub's checks*. Check with Qt that your licence allows it.
-7. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
-8. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
-9. **Housekeeping:** the GitKraken download (`archive-bZLIQp/`) in the project folder;
+6. **Name the welcome-grant payer** — *the server that pays new players' 100 test CGT*.
+7. **Add an email** at `id.qorsync.dev/account`; **replace the key** pasted into a chat on 5 October.
+8. **Housekeeping:** the GitKraken download (`archive-bZLIQp/`) in the project folder;
    delete `QOR-MATRIX/arqade`; the Resend bounce webhook; the `ci` record and tunnel in
    Cloudflare; rotate nine old credentials; the nine frozen *home-map* tiles. Before
    commercial use: a paid Vercel plan, legal review, trademark clearance. Open questions:

@@ -490,7 +490,32 @@ jobs:
         working-directory: ./services/qor-auth
         run: cargo audit
 
-      - name: Audit launcher host dependencies
+      # tools/qor-launcher/src-tauri/.cargo/audit.toml ignores RUSTSEC-2026-0344
+      # (ruzstd) on one condition, as the rsa ignore above does (ADR-089): ruzstd
+      # is in Cargo.lock, through subxt's light client, but not in the compiled
+      # graph. This step enforces it, and says when the ignore can go.
+      - name: "Condition of the ruzstd ignore: ruzstd stays out of the launcher's compiled graph"
+        if: always()
+        working-directory: ./tools/qor-launcher/src-tauri
+        run: |
+          set -o pipefail
+          if ! grep -q '^name = "ruzstd"$' Cargo.lock; then
+            echo "::error::ruzstd has left Cargo.lock. Remove the RUSTSEC-2026-0344 ignore from tools/qor-launcher/src-tauri/.cargo/audit.toml (ADR-089)."
+            exit 1
+          fi
+          if ! graph=$(cargo tree --locked -i ruzstd --target all -e all 2>tree.err); then
+            cat tree.err
+            echo "::error::cargo tree could not check for ruzstd, so the RUSTSEC-2026-0344 ignore in tools/qor-launcher/src-tauri/.cargo/audit.toml is unproven (ADR-089)."
+            exit 1
+          fi
+          if [ -n "$graph" ]; then
+            echo "$graph"
+            echo "::error::ruzstd has entered the compiled graph. The RUSTSEC-2026-0344 ignore in tools/qor-launcher/src-tauri/.cargo/audit.toml no longer holds and must be revisited (ADR-089)."
+            exit 1
+          fi
+          echo "ruzstd is not in the compiled graph; the ignore still holds."
+
+      - name: "Audit launcher host dependencies (ignores only RUSTSEC-2026-0344; see .cargo/audit.toml)"
         if: always()
         working-directory: ./tools/qor-launcher/src-tauri
         run: cargo audit

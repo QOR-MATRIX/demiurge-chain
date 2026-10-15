@@ -107,7 +107,7 @@ ticked the same day against the owner's review of a ten-line summary.
 | Infrastructure | **Railway** (project `demiurge`): Postgres, Redis, QOR ID (`id.qorsync.dev`) and Demiurge Devnet (two validators and an RPC node, ADR-068). **Vercel**: ARQADE, project `qor-arqade` (team Astra Matrix, Hobby plan), with Neon Postgres (ADR-074). Fly.io is not used: ADR-015's Fly plan is superseded by ADR-063 and ADR-068. |
 | Production | No production or test network. Live, devnet-only and with test CGT: Demiurge Devnet, QOR ID and ARQADE. |
 | ARQADE (`products/arqade/`) | **Live at `https://qor-arqade-tau.vercel.app`**: standard Next.js 16 on Neon Postgres, migrations 0001 to 0003 applied on production builds (`scripts/migrate.mjs`). **48 tests** (6 October 2026). QOR ID is the only sign-in; Play Now, the solo games, Flux Four and Rift Reversi multiplayer, rankings, chat, devnet reads, tips through the launcher (ADR-076, ADR-077; the owner tipped successfully on 5 and 6 October), and the level bubble and level row. P7.1 to P7.4 are ticked (P7.4 on 6 October 2026). |
-| Decisions | 90 ADRs (ADR-001 to ADR-090); ADR-069 to ADR-090 are accepted. **ADR-089** (15 October 2026, the owner's: ignore one advisory in a crate the launcher never builds, on a CI-checked condition) is **not yet built**, because the assistant's permissions refused the ignore file; until it is, CI's security job fails. **ADR-090** (15 October, the owner's): a Cartridge is revised by the account holding it, and a first publish signs as the account the rail shows. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan; ADR-083 (8 October) builds it on Qt 6; ADR-084 (10 October) settles the Player's web build (Qt's threaded kit, served cross-origin isolated, sound unpanned in a browser). ADR-085 (10 October) chooses the design loop's provider: Claude Opus 5.5, its key in Windows Credential Manager. ADR-086 (10 October, the owner's) makes every user pay for the generation they use, and the project pay for none. ADR-087 (10 October, the owner's) confines strangers' QQ games to the browser, on a locked-down Player. The owner's open questions are in §4.0. |
+| Decisions | 90 ADRs (ADR-001 to ADR-090); ADR-069 to ADR-090 are accepted. **ADR-089** (15 October 2026, the owner's: ignore one advisory in a crate the launcher never builds, on a CI-checked condition) is built: `tools/qor-launcher/src-tauri/.cargo/audit.toml` and the CI step "Condition of the ruzstd ignore". **ADR-090** (15 October, the owner's): a Cartridge is revised by the account holding it, and a first publish signs as the account the rail shows. ADR-081 (6 October 2026) makes QQ QOR Engine and withdraws the Godot plan; ADR-083 (8 October) builds it on Qt 6; ADR-084 (10 October) settles the Player's web build (Qt's threaded kit, served cross-origin isolated, sound unpanned in a browser). ADR-085 (10 October) chooses the design loop's provider: Claude Opus 5.5, its key in Windows Credential Manager. ADR-086 (10 October, the owner's) makes every user pay for the generation they use, and the project pay for none. ADR-087 (10 October, the owner's) confines strangers' QQ games to the browser, on a locked-down Player. The owner's open questions are in §4.0. |
 | Not live | Avatars in ARQADE (ADR-079 step 3, not built), paying the welcome grant (grants are recorded as owed, never paid), ARQADE inside the launcher (P7.18), the indexer, the Mesh, fees and issuance. |
 
 ## 2. Known gaps: do not build on these
@@ -2307,8 +2307,14 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     a revision: `unfunded`). **The owner pushed `e540d7c`; CI on #29 (run 38780816958):** chain, QOR ID, the launcher,
     ARQADE and coverage pass; security fails at "Audit launcher host dependencies" on RUSTSEC-2026-0344 (`ruzstd`) alone,
     and QOR ID's audit, red on `main` that morning, passes with the `rustls` update. ADR-090's work is committed after
-    it, for the owner to push. **Next:** the owner pushes; the owner makes or allows ADR-089's ignore file, the only
-    thing between #29 and a green run; the owner publishes again.
+    it, for the owner to push. **ADR-089 built, the owner having given the permission** ("retry ADR-089 file with
+    permission"): `tools/qor-launcher/src-tauri/.cargo/audit.toml` ignores RUSTSEC-2026-0344 alone; the security job's
+    new step "Condition of the ruzstd ignore" fails if `cargo tree --locked -i ruzstd --target all -e all` prints
+    anything or `ruzstd` leaves `Cargo.lock`; `GATES.toml` logs it (`ci-exemption`, 2026-10-15). Verified on this PC: the
+    launcher's `cargo audit` exits 0 (its 15 warnings unchanged); the step, extracted from `ci.yml` and run, passes, and
+    fails with its message on each planted condition (a crate that is built, `rustls`, in `ruzstd`'s place; a crate absent
+    from the lockfile); `GATES.toml` and `ci.yml` parse; the launcher's 15 gates tests pass. **Next:** the owner pushes
+    (CI on #29 is the proof that the security job is green); the owner publishes again.
 
 ## 5. Traps, so nobody re-learns them
 

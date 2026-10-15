@@ -2,9 +2,9 @@
 
 **Status:** **Accepted**, 15 October 2026, by the owner, who chose the recommendation ("Go with best recommendation"):
 **option A**. Proposed the same day; every option but D loosens the launcher's dependency audit, and loosening evidence
-is the owner's separate call (`docs/GATES.toml`; AGENTS.md §8). **Not yet built:** writing the ignore file was refused
-by the assistant's own permission system as a weakening of security, so the change below waits for the owner to allow
-it or make it (HANDOFF §4 item 74).
+is the owner's separate call (`docs/GATES.toml`; AGENTS.md §8). **Built the same day:** writing the ignore file was
+first refused by the assistant's permission system as a weakening of security, and made once the owner gave that
+permission ("retry ADR-089 file with permission"); HANDOFF §4 item 74.
 
 **Relates to:** [ADR-063](ADR-063-public-repository-actions-and-railway.md) (CI), the RUSTSEC-2023-0071 ignore in
 `services/qor-auth/.cargo/audit.toml` (approved 14 September 2026 and logged in `docs/GATES.toml`), whose shape option A
