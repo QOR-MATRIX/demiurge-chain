@@ -16,8 +16,9 @@
 # Linguist weighs a repository by BYTES, and `apps/` alone is about 10.5 MB of
 # roughly 14.4 MB tracked. Left alone, GitHub's language bar says Demiurge is a
 # TypeScript project. It is not: the active code is a Rust Substrate L1 in
-# `chain/`, a Rust identity service in `services/qor-auth/`, and a Rust and
-# React desktop application in `tools/qor-launcher/`, together about 2.2 MB.
+# `chain/`, a Rust identity service in `services/qor-auth/`, a Rust social
+# service in `services/social/` (since 2026-10-15), and a Rust and React desktop
+# application in `tools/qor-launcher/`, together about 2.2 MB when this was written.
 #
 # The trees below are frozen (D-011, amended by ADR-011) or dead, and
 # `docs/DIRECTION.md` section 8 lists them as such: not maintained, not a
@@ -131,6 +132,8 @@ infra/**/*.yaml text eol=lf
 # Linux build read LF, so the two could not share a database. LF everywhere.
 # `services/qor-auth/src/migration_hygiene.rs` fails the tests on a carriage return.
 services/qor-auth/migrations/*.sql text eol=lf
+# Social's, for the same reason (ADR-091); services/social/src/migration_hygiene.rs checks them.
+services/social/migrations/*.sql text eol=lf
 
 # The node image's boot script runs in a Linux container, built from whichever
 # checkout runs `docker build`. With core.autocrlf=true a Windows checkout would

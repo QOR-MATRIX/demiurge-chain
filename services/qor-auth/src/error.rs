@@ -32,6 +32,10 @@ pub enum AppError {
     #[error("Not found: {0}")]
     NotFound(String),
 
+    /// The request conflicts with what is already so, such as a name already chosen; nothing was changed.
+    #[error("Conflict: {0}")]
+    Conflict(String),
+
     /// The endpoint exists but does nothing yet. It refuses rather than
     /// reporting a success it did not achieve.
     #[error("Not implemented: {0}")]
@@ -91,6 +95,7 @@ impl IntoResponse for AppError {
             ),
             AppError::ValidationError(msg) => (StatusCode::BAD_REQUEST, "VALIDATION_ERROR", msg),
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, "NOT_FOUND", msg),
+            AppError::Conflict(msg) => (StatusCode::CONFLICT, "CONFLICT", msg),
             AppError::NotImplemented(msg) => (StatusCode::NOT_IMPLEMENTED, "NOT_IMPLEMENTED", msg),
             AppError::ServiceUnavailable(msg) => {
                 (StatusCode::SERVICE_UNAVAILABLE, "SERVICE_UNAVAILABLE", msg)

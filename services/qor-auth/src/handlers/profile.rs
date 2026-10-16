@@ -54,6 +54,12 @@ pub async fn get_profile(
             .bind(user_id)
             .fetch_one(&state.db)
             .await?;
+    // False while the account is on a name QOR ID made for it; it may then choose its own once (ADR-091 decision 5).
+    let username_chosen: bool =
+        sqlx::query_scalar("SELECT username_chosen FROM users WHERE id = $1")
+            .bind(user_id)
+            .fetch_one(&state.db)
+            .await?;
 
     let chain_account = user
         .chain_account_id
@@ -72,6 +78,7 @@ pub async fn get_profile(
         "id": user.id.to_string(),
         "qor_id": qor_id,
         "renamed_from": renamed_from,
+        "username_chosen": username_chosen,
         "email": user.email,
         "email_deliverable": email_deliverable,
         "display_name": user.username, // Use username as display name for now
@@ -92,6 +99,114 @@ pub async fn get_profile(
             .unwrap_or(Value::Null),
         "account_type": user.account_type,
         "auth_method": user.auth_method
+    })))
+}
+
+#[derive(serde::Deserialize)]
+pub struct ClaimUsernameRequest {
+    pub username: String,
+}
+
+/// Choose the account's username, once, while it is on a name QOR ID made for it (ADR-091 decision 5, amending
+/// ADR-075). The rules are ADR-075's: 3 to 20 letters, digits and underscores, one account per name in any case.
+/// POST /api/v1/profile/username
+pub async fn claim_username(
+    State(state): State<Arc<AppState>>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(current): Extension<CurrentSession>,
+    Json(req): Json<ClaimUsernameRequest>,
+) -> AppResult<Json<Value>> {
+    // A person's own session: an app a person signed in to cannot rename them.
+    let sessions = SessionService::new(state.redis.clone(), state.config.jwt.clone());
+    match sessions.get_session(current.0).await? {
+        Some(session) if session.client_id.is_none() => {}
+        _ => return Err(AppError::InsufficientPermissions),
+    }
+
+    let name = req.username.trim().to_lowercase();
+    if !crate::models::QorId::is_valid_username(&name) {
+        return Err(AppError::ValidationError(
+            "Username must be 3-20 characters, alphanumeric and underscores only".into(),
+        ));
+    }
+
+    // One statement decides: only an account still on a made name, only an active one, and never a taken name, which
+    // the unique index on LOWER(username) refuses whatever checked it first.
+    let mut tx = state.db.begin().await?;
+    let previous: Option<String> = sqlx::query_scalar(
+        "UPDATE users AS u SET username = $2, username_chosen = TRUE, updated_at = NOW() \
+         FROM users AS before \
+         WHERE u.id = $1 AND before.id = u.id AND u.username_chosen = FALSE AND u.status = 'active' \
+         RETURNING before.username",
+    )
+    .bind(user_id)
+    .bind(&name)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(|e| {
+        if crate::handlers::auth::name_taken(&e) {
+            AppError::ValidationError("Username already taken".into())
+        } else {
+            AppError::DatabaseError(e)
+        }
+    })?;
+    let Some(previous) = previous else {
+        return Err(AppError::Conflict(
+            "This account's name was already chosen, and a QOR ID keeps its name (ADR-075)".into(),
+        ));
+    };
+    sqlx::query(
+        "INSERT INTO audit_log (user_id, action, details) VALUES ($1, 'username_chosen', $2)",
+    )
+    .bind(user_id)
+    .bind(json!({ "from": previous, "to": name }))
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+
+    // The tokens each live session mints from now on carry the name.
+    sessions.rename_sessions(user_id, &name).await?;
+
+    Ok(Json(json!({
+        "qor_id": name,
+        "username": name,
+        "username_chosen": true,
+    })))
+}
+
+/// Another person's public profile, by their QOR ID, for a signed-in caller (ADR-091): their name, avatar, level and
+/// when they joined, and nothing else. An account that is not active is not found.
+/// GET /api/v1/users/{username}
+pub async fn public_profile(
+    State(state): State<Arc<AppState>>,
+    Path(username): Path<String>,
+) -> AppResult<Json<Value>> {
+    let name = crate::models::QorId::parse(&username)
+        .ok_or_else(|| AppError::NotFound("No such QOR ID".into()))?
+        .username;
+    type PublicRow = (
+        Uuid,
+        String,
+        Option<String>,
+        String,
+        chrono::DateTime<chrono::Utc>,
+    );
+    let row: Option<PublicRow> = sqlx::query_as(
+        "SELECT id, username, avatar_url, account_type, created_at FROM users \
+         WHERE LOWER(username) = $1 AND status = 'active'",
+    )
+    .bind(&name)
+    .fetch_optional(&state.db)
+    .await?;
+    let (id, username, avatar_url, account_type, created_at) =
+        row.ok_or_else(|| AppError::NotFound("No such QOR ID".into()))?;
+    let progress = crate::handlers::progress::summary(&state.db, id).await?;
+    Ok(Json(json!({
+        "qor_id": username.to_lowercase(),
+        "avatar_url": avatar_url,
+        "level": progress["level"],
+        "account_type": account_type,
+        "joined": created_at.date_naive().to_string(),
     })))
 }
 

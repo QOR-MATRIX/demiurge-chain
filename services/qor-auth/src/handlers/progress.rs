@@ -481,6 +481,7 @@ mod db_tests {
                 redirect_uris: vec!["https://arqade.test/api/auth/callback".into()],
                 secret_sha256: secret
                     .map(|s| hex::encode(<Sha256 as sha2::Digest>::digest(s.as_bytes()))),
+                introspect: false,
             },
             OAuthClient {
                 id: "other".into(),
@@ -489,6 +490,7 @@ mod db_tests {
                 secret_sha256: Some(hex::encode(<Sha256 as sha2::Digest>::digest(
                     b"other-secret",
                 ))),
+                introspect: false,
             },
         ];
         Arc::new(AppState::new(

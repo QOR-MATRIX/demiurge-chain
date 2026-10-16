@@ -730,9 +730,41 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 
 1. [ ] Library: install, delta patch and launch.
 2. [ ] Market.
-3. [ ] Social (named Agora until 2026-09-28, by the owner).
+3. [ ] Social (named Agora until 2026-09-28, by the owner). **Brought forward of M8 by ADR-091** (15 October 2026),
+   since nothing it needs is in M8; its steps are L8, and it is ticked when L8.1 to L8.7 are.
 4. [ ] Mesh seeding.
 5. [ ] Studio inside the launcher.
+
+#### L8: Social (ADR-091; depends on nothing in M8)
+
+Rooms, direct messages, presence and profiles per QOR ID, in a service of its own (`services/social/`) with the
+launcher as its first client. Design: [`blueprints/social.md`](blueprints/social.md). L8.1 to L8.7 are release 1.
+
+1. [x] QOR ID for Social: token introspection for registered services (`POST /oauth/introspect`); an account on an
+   automatic `key_…` name chooses its username once; another person's public profile by username. Each flow joins the
+   log check. Done 2026-10-15: merged with pull request #31, CI green on `main` at `76ffbf4`, and live at
+   `id.qorsync.dev` (deployed from `main`; migration 023 applied; checked by an unauthenticated call answered
+   `invalid_client`). 176 tests; each new one failed against a planted fault first.
+2. [x] The Social service: rooms (public, and private by invitation) with owner and moderator roles; direct messages;
+   messages sealed at rest, with replies, reactions, edits and deletes; read positions and unread counts; mentions;
+   blocks; reports. One WebSocket per client, typed frames, versioned; rate limits and size caps; tests against
+   Postgres, the log check and bound SQL from the first commit. Done 2026-10-15: `services/social/`, merged with pull
+   request #31, its CI job green on `main` at `76ffbf4`; 29 tests, each rule failing against a planted fault first. Not
+   deployed: that is L8.6.
+3. [ ] Profiles per QOR ID: a display line, a bio, an accent, a banner from the QFX backdrops, a showcase of DRC-369
+   assets the account holds, and a card opened from any message; username, avatar and level as QOR ID returns them.
+4. [ ] Presence: online and away, typing, a status line, and what someone is playing when a product says so.
+5. [ ] The launcher's Social surface, its first client: the socket held by the Rust host, events to the interface; rooms,
+   conversations, composer, profiles and notifications, in the launcher's themes and QFX; the username claim on entry,
+   and the existing QOR ID claim for a person without one.
+6. [ ] Deployed beside QOR ID on Railway (devnet stack), with CI jobs (format, lints, tests with Postgres) and a
+   dependency audit. The CI job is in `main` (#31) and the audit is pull request #32; `GET /ready`, the Dockerfile and
+   `services/social/DEPLOY-RAILWAY.md` are on #33 (15 October 2026). Not deployed.
+7. [ ] The owner's decisions before it is open to others: how long messages are kept, and the content policy reports
+   are judged against.
+8. [ ] Release 2: end-to-end encrypted direct messages keyed from the vault, designed in a record of its own first.
+9. [ ] A web client on the same service, and ARQADE's chat moved onto Social.
+10. [ ] Voice, feeds, and search across rooms.
 
 ### The product tracks
 

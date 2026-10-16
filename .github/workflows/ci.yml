@@ -261,6 +261,56 @@ jobs:
       - name: Tests, including those that need Redis
         run: cargo test --locked -- --include-ignored
 
+  social:
+    # Social (ADR-091): rooms, messages, presence and profiles, in a service of its own. Its tests run against a real
+    # Postgres, a database each (#[sqlx::test]), and a real WebSocket on a loopback port; its log check, SQL check and
+    # migration check run with them. Same images as QOR ID's job, for the same reason.
+    name: "Social (services/social): format, lints, tests"
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: public.ecr.aws/docker/library/postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: social_build
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://ci:ci@localhost:5432/social_build
+    defaults:
+      run:
+        working-directory: ./services/social
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            services/social/target
+          key: ${{ runner.os }}-social-${{ hashFiles('services/social/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-social-
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Lints
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Tests
+        run: cargo test --locked
+
   launcher:
     name: "QOR Launcher host (tools/qor-launcher): frontend build, format, lints, tests"
     runs-on: ubuntu-latest
@@ -488,6 +538,30 @@ jobs:
       - name: "Audit QOR ID dependencies (ignores only RUSTSEC-2023-0071; see .cargo/audit.toml)"
         if: always()
         working-directory: ./services/qor-auth
+        run: cargo audit
+
+      # Social's audit ignores the same advisory on the same condition (services/social/.cargo/audit.toml, approved by
+      # the owner on 2026-10-15): rsa is in its lockfile through sqlx's optional MySQL driver and never built.
+      - name: "Condition of Social's rsa ignore: rsa stays out of Social's compiled graph"
+        if: always()
+        working-directory: ./services/social
+        run: |
+          set -o pipefail
+          if ! graph=$(cargo tree --locked -i rsa --target all -e all 2>tree.err); then
+            cat tree.err
+            echo "::error::cargo tree could not check for rsa. If rsa has left Cargo.lock, remove the RUSTSEC-2023-0071 ignore from services/social/.cargo/audit.toml."
+            exit 1
+          fi
+          if [ -n "$graph" ]; then
+            echo "$graph"
+            echo "::error::rsa has entered Social's compiled graph. The RUSTSEC-2023-0071 ignore in services/social/.cargo/audit.toml no longer holds and must be revisited."
+            exit 1
+          fi
+          echo "rsa is not in Social's compiled graph; the ignore still holds."
+
+      - name: "Audit Social dependencies (ignores only RUSTSEC-2023-0071; see .cargo/audit.toml)"
+        if: always()
+        working-directory: ./services/social
         run: cargo audit
 
       # tools/qor-launcher/src-tauri/.cargo/audit.toml ignores RUSTSEC-2026-0344

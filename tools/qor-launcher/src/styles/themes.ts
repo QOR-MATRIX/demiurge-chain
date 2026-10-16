@@ -271,3 +271,10 @@ export const QQ_PALETTE = {
   ice: '#5ad1ff',
   slate: '#2b3140',
 } as const;
+
+/**
+ * The accents a Social profile offers (ADR-091): a person's colour on their name and the rail beside their words,
+ * for everyone who reads them. Bright, so each clears 4.5:1 on the dark grounds; any other `#rrggbb` a person types is
+ * checked against the current theme before it is kept (`src/social/Profile.tsx`).
+ */
+export const PROFILE_ACCENTS = ['#7c5cff', '#4fd1c5', '#f6ad55', '#f687b3', '#63b3ed', '#9ae6b4', '#feb2b2', '#e9d8fd'] as const;

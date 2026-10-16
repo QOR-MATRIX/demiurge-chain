@@ -251,7 +251,19 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         secret_sha256: Some(hex::encode(<Sha256 as sha2::Digest>::digest(
             client_secret.as_bytes(),
         ))),
+        introspect: false,
     }];
+    // A service (Social, ADR-091): it introspects people's tokens with a secret of its own.
+    let service_secret = format!("logcheck-service-secret-{}", uuid::Uuid::new_v4().simple());
+    config.oauth.clients.push(crate::config::OAuthClient {
+        id: "logcheck-service".into(),
+        name: "Log Check Service".into(),
+        redirect_uris: vec![],
+        secret_sha256: Some(hex::encode(<Sha256 as sha2::Digest>::digest(
+            service_secret.as_bytes(),
+        ))),
+        introspect: true,
+    });
     let email = EmailService::new(EmailConfig {
         resend_api_key: api_key.clone(),
         from: "Log Check <noreply@sender.logcheck.invalid>".into(),
@@ -1097,6 +1109,53 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
             .unwrap_or(false)
     );
 
+    // Social (ADR-091): a service asks whether a person's own token is live, with a secret of its own, and is refused
+    // with a wrong one; another person's public profile; and an account on a made name choosing its own. The service's
+    // secrets and the person's token are in the list above. Last, because the claim renames the account.
+    secrets.push(service_secret.clone());
+    let wrong_service_secret = format!("logcheck-wrong-service-{}", uuid::Uuid::new_v4().simple());
+    secrets.push(wrong_service_secret.clone());
+    let r = client
+        .form(
+            "/oauth/introspect",
+            &[
+                ("client_id", "logcheck-service"),
+                ("client_secret", &service_secret),
+                ("token", &progress_token),
+            ],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    assert_eq!(r.json()["active"], true, "{}", r.body);
+    let r = client
+        .form(
+            "/oauth/introspect",
+            &[
+                ("client_id", "logcheck-service"),
+                ("client_secret", &wrong_service_secret),
+                ("token", &progress_token),
+            ],
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::UNAUTHORIZED, "{}", r.body);
+    let r = client
+        .get(&format!("/api/v1/users/{username}"), Some(&progress_token))
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+    sqlx::query("UPDATE users SET username_chosen = FALSE WHERE username = $1")
+        .bind(username)
+        .execute(&db)
+        .await
+        .expect("on a made name");
+    let r = client
+        .json(
+            "/api/v1/profile/username",
+            json!({ "username": "logcheck_named" }),
+            Some(&progress_token),
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+
     let log = String::from_utf8_lossy(&captured.0.lock().expect("lock")).into_owned();
 
     // The capture worked: an empty log would pass everything below.
@@ -1126,6 +1185,9 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         "/api/v1/profile/avatar",
         "/api/v1/avatars/report",
         "/api/v1/admin/avatar-reports",
+        "/oauth/introspect",
+        "/api/v1/users/",
+        "/api/v1/profile/username",
     ] {
         assert!(
             log.contains(expected),

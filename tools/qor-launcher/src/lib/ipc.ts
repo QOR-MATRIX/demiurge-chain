@@ -102,6 +102,8 @@ export interface Session {
   role: string;
   address: string | null;
   avatar_url: string | null;
+  /** False while the account is on a name QOR ID made for it; it chooses its own once (ADR-091 decision 5). */
+  username_chosen?: boolean;
 }
 
 export interface ChainStatus {

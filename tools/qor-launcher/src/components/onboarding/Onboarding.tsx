@@ -18,7 +18,8 @@ import { useQor } from '../../state/store';
 import { AwakenNotice } from '../../qfx/ceremony/Awaken';
 import { Tutorial, tutorialDone } from '../../qfx/ceremony/Tutorial';
 
-const NAME = /^[A-Za-z0-9_-]{3,20}$/;
+// QOR ID's rule exactly (ADR-075): letters, digits and underscore. A hyphen was allowed here and refused there.
+const NAME = /^[A-Za-z0-9_]{3,20}$/;
 
 export function Onboarding() {
   const session = useQor((s) => s.session);
@@ -147,8 +148,8 @@ function ClaimCard({ onClose }: { onClose: () => void }) {
   };
 
   const status: Record<Availability, { text: string; tone: string }> = {
-    idle: { text: '3 to 20 letters, numbers, _ or -. A number is added after it.', tone: 'text-ink-muted' },
-    invalid: { text: 'Only letters, numbers, _ and -, from 3 to 20 of them.', tone: 'text-bad' },
+    idle: { text: '3 to 20 letters, numbers or _. It is your name everywhere: no number is added.', tone: 'text-ink-muted' },
+    invalid: { text: 'Only letters, numbers and _, from 3 to 20 of them.', tone: 'text-bad' },
     checking: { text: 'Checking…', tone: 'text-ink-muted' },
     free: { text: `${name} is yours to take.`, tone: 'text-ok' },
     taken: { text: `${name} is taken. Try another.`, tone: 'text-bad' },
@@ -199,7 +200,7 @@ function ClaimCard({ onClose }: { onClose: () => void }) {
         onClick={() => void claim()}
       >
         {busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-        Claim {name ? `${name}#…` : 'my name'}
+        Claim {name || 'my name'}
       </button>
       {problem && (
         <p role="alert" className="mt-3 text-caption text-bad">
