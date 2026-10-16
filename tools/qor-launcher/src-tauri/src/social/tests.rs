@@ -149,7 +149,9 @@ async fn hello_carries_the_token_and_events_and_answers_come_back() {
         matches!(social.request("rooms.list", json!({})).await, Err(QorError::Social { code, .. }) if code == "unavailable"),
         "not connected yet"
     );
-    social.connect(tokens.clone(), recorder.clone());
+    social
+        .connect(tokens.clone(), recorder.clone())
+        .expect("connects");
 
     let mut peer = Peer::accept(&listener).await;
     assert_eq!(peer.hello().await, "token-first");
@@ -202,7 +204,9 @@ async fn hello_carries_the_token_and_events_and_answers_come_back() {
 #[tokio::test(flavor = "multi_thread")]
 async fn a_session_that_is_not_live_is_refreshed_once_then_reported_signed_out() {
     let (listener, social, tokens, recorder) = setup().await;
-    social.connect(tokens.clone(), recorder.clone());
+    social
+        .connect(tokens.clone(), recorder.clone())
+        .expect("connects");
     let mut first = Peer::accept(&listener).await;
     assert_eq!(first.hello().await, "token-first");
     first
@@ -230,7 +234,9 @@ async fn a_session_that_is_not_live_is_refreshed_once_then_reported_signed_out()
 #[tokio::test(flavor = "multi_thread")]
 async fn an_expired_token_is_replaced_and_hello_said_again_at_once() {
     let (listener, social, tokens, recorder) = setup().await;
-    social.connect(tokens.clone(), recorder.clone());
+    social
+        .connect(tokens.clone(), recorder.clone())
+        .expect("connects");
     let mut first = Peer::accept(&listener).await;
     first.hello().await;
     first.welcome().await;
@@ -256,7 +262,9 @@ async fn an_expired_token_is_replaced_and_hello_said_again_at_once() {
 #[tokio::test(flavor = "multi_thread")]
 async fn a_lost_connection_fails_what_waits_on_it_and_comes_back() {
     let (listener, social, tokens, recorder) = setup().await;
-    social.connect(tokens.clone(), recorder.clone());
+    social
+        .connect(tokens.clone(), recorder.clone())
+        .expect("connects");
     let mut first = Peer::accept(&listener).await;
     first.hello().await;
     first.welcome().await;
@@ -296,7 +304,9 @@ async fn a_lost_connection_fails_what_waits_on_it_and_comes_back() {
 async fn a_signed_out_launcher_does_not_knock() {
     let (listener, social, tokens, recorder) = setup().await;
     *tokens.signed_out.lock() = true;
-    social.connect(tokens.clone(), recorder.clone());
+    social
+        .connect(tokens.clone(), recorder.clone())
+        .expect("connects");
     wait_for(&recorder, |s| *s == Status::SignedOut).await;
     assert!(
         tokio::time::timeout(Duration::from_millis(300), listener.accept())
@@ -339,7 +349,9 @@ async fn nothing_secret_from_social_reaches_the_log_at_any_level() {
         std::process::id()
     );
 
-    social.connect(tokens.clone(), recorder.clone());
+    social
+        .connect(tokens.clone(), recorder.clone())
+        .expect("connects");
     let mut peer = Peer::accept(&listener).await;
     let token = peer.hello().await;
     peer.welcome().await;
@@ -387,4 +399,20 @@ async fn nothing_secret_from_social_reaches_the_log_at_any_level() {
             secret.len()
         );
     }
+}
+
+/// The launcher aborted at start-up when a synchronous command connected from the main thread, outside any runtime
+/// (16 October 2026). Outside a runtime, connecting is refused, and nothing panics.
+#[test]
+fn connecting_outside_a_runtime_is_refused_not_a_panic() {
+    let social = Arc::new(Social::new("ws://127.0.0.1:9/v1/socket".into()));
+    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        social.connect(
+            Arc::new(FakeTokens::default()),
+            Arc::new(Recorder::default()),
+        )
+    }));
+    let refused = outcome.expect("no panic");
+    assert!(refused.is_err(), "refused outside a runtime");
+    assert_eq!(social.status(), Status::Off, "and nothing started");
 }

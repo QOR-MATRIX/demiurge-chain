@@ -156,11 +156,22 @@ impl Social {
         events.status(&status);
     }
 
-    /// Connect, and stay connected until [`Self::disconnect`]. Connecting while connected does nothing.
-    pub fn connect(self: &Arc<Self>, tokens: Arc<dyn Tokens>, events: Arc<dyn Events>) {
+    /// Connect, and stay connected until [`Self::disconnect`]. Connecting while connected does nothing. The connection is
+    /// a task on the caller's Tokio runtime; called outside one it is refused rather than panicking, which aborted the
+    /// launcher when a synchronous Tauri command called it on the main thread (16 October 2026).
+    pub fn connect(
+        self: &Arc<Self>,
+        tokens: Arc<dyn Tokens>,
+        events: Arc<dyn Events>,
+    ) -> QorResult<()> {
+        if tokio::runtime::Handle::try_current().is_err() {
+            return Err(QorError::Internal(
+                "Social connects from an async runtime".into(),
+            ));
+        }
         let mut link = self.link.lock();
         if link.as_ref().is_some_and(|l| !l.task.is_finished()) {
-            return;
+            return Ok(());
         }
         let (outgoing, receiver) = mpsc::channel(256);
         let pending: Pending = Arc::default();
@@ -171,6 +182,7 @@ impl Social {
             pending,
             task,
         });
+        Ok(())
     }
 
     /// Close the connection, failing whatever was waiting on it.

@@ -2448,7 +2448,11 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     (`DEFAULT_SOCIAL`; a saved `social_url` or `QOR_SOCIAL_URL` still wins). `services/social/DEPLOY-RAILWAY.md` is now the
     record of the setup, with how to rotate each secret and how to tell the two refusals apart. **A trap:** a variable
     changed in Railway's dashboard does not reach a service until it next deploys; the connector's `redeploy` does that.
-    **Not done:** the owner's first conversation in the launcher (it needs a launcher built with this change), and the
+    **A launcher fault found on the first start against it:** `social_connect` was a synchronous Tauri command, so it ran
+    on the main thread, outside Tokio, and `tokio::spawn` panicked there and aborted the launcher at start-up ("there is no
+    reactor running"). The command is now async, and `Social::connect` refuses outside a runtime instead of panicking
+    (`connecting_outside_a_runtime_is_refused_not_a_panic`). The stand-in server tests could not see it: they run inside a
+    runtime. **Not done:** the owner's first conversation in the launcher (it needs a launcher built with this change), and the
     owner's decisions before anyone else uses Social (L8.7). **Next:** the owner's first look; then L8.7, and L8.8 (end-to-end
     encrypted direct messages, its own record first).
 
