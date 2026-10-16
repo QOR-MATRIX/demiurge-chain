@@ -757,9 +757,11 @@ launcher as its first client. Design: [`blueprints/social.md`](blueprints/social
 5. [ ] The launcher's Social surface, its first client: the socket held by the Rust host, events to the interface; rooms,
    conversations, composer, profiles and notifications, in the launcher's themes and QFX; the username claim on entry,
    and the existing QOR ID claim for a person without one.
-6. [ ] Deployed beside QOR ID on Railway (devnet stack), with CI jobs (format, lints, tests with Postgres) and a
-   dependency audit. The CI job is in `main` (#31) and the audit is pull request #32; `GET /ready`, the Dockerfile and
-   `services/social/DEPLOY-RAILWAY.md` are on #33 (15 October 2026). Not deployed.
+6. [x] Deployed beside QOR ID on Railway (devnet stack), with CI jobs (format, lints, tests with Postgres) and a
+   dependency audit. Done 2026-10-16: live at `wss://social-production-e05c.up.railway.app/v1/socket`, its database
+   `Postgres-Yj3Q`, registered with QOR ID as a service; checked from outside (`/ready` 200, and a hello with a token that
+   is not live answered `unauthorized`, which needs QOR ID to accept Social's credential). The CI job (#31) and the audit
+   (#32) are in `main`; the setup is recorded in `services/social/DEPLOY-RAILWAY.md`.
 7. [ ] The owner's decisions before it is open to others: how long messages are kept, and the content policy reports
    are judged against.
 8. [ ] Release 2: end-to-end encrypted direct messages keyed from the vault, designed in a record of its own first.

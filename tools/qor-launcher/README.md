@@ -312,7 +312,8 @@ The socket is jsonrpsee's WebSocket transport, which subxt already brings for th
 process that holds the vault. It reconnects by itself (1, 2, 4 … 30 s), swaps an expired token without a pause, refreshes
 once when Social says a session is not live and then reports `signed_out`, and never leaves a request hanging. Social's
 address is `social_url` in the settings file (`QOR_SOCIAL_URL` overrides it): `wss://`, or `ws://` on this machine only;
-until Social is deployed (L8.6) the default is `ws://127.0.0.1:8090/v1/socket`.
+the default is the deployment on Railway, `wss://social-production-e05c.up.railway.app/v1/socket` (L8.6, since
+16 October 2026).
 
 The interface (`src/social/`) stays connected while the shell is open, so the rail counts unread messages from any
 surface. Entering asks for nothing already known: with no QOR ID the name is chosen first; on a name QOR ID made

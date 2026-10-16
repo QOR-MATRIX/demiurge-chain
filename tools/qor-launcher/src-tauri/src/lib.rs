@@ -1270,11 +1270,17 @@ impl social::Events for SocialEvents {
 }
 
 /// Connect to Social as the signed-in person, and stay connected. The host holds the socket and the token.
+///
+/// Async, so Tauri runs it on its Tokio runtime: the connection is a task spawned there, and a synchronous command runs
+/// on the main thread, where spawning panicked and aborted the launcher at start-up (16 October 2026).
 #[tauri::command]
-fn social_connect(app: tauri::AppHandle, state: tauri::State<'_, AppState>) {
+async fn social_connect(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), QorError> {
     state
         .social
-        .connect(state.identity.clone(), Arc::new(SocialEvents(app)));
+        .connect(state.identity.clone(), Arc::new(SocialEvents(app)))
 }
 
 #[tauri::command]
