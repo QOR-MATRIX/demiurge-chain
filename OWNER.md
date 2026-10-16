@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 15 October 2026 (night). One page, rewritten every session.
+For Andrew, 16 October 2026. One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -21,16 +21,15 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **In `main`:** the Social service — *the server behind the chat* — with rooms, private
   rooms, direct messages, replies, reactions, edits, unread counts, @mentions, blocking,
   reports, online/away/playing, and profiles. Not online yet.
-- **Built tonight, waiting for your review (pull request #33):** the **Social screen in the**
-  **launcher**. Your conversations with unread counts (also on the rail), messages with
+- **In `main` too (you merged #33):** the **Social screen in the launcher**. Your conversations with unread counts (also on the rail), messages with
   reactions and replies, @name completion, who is typing, profile cards with a living
   banner and your colour, a profile editor with a live preview, and the name pick on entry.
   Proven by a new screen check (29 points) that caught three planted faults and two real
-  ones, fixed before you see it.
+  ones, fixed before you saw it. Not in an installed launcher yet.
 - **Tried together for real on this PC:** QOR ID and Social, two people, rooms, messages,
   mentions, a direct message and the one-time name pick: 12 of 12. The launcher against a
   running Social waits on putting Social online; that first conversation is yours.
-- **Pull request #32:** Social's library check on QOR ID's terms, as you chose. It missed #31.
+- **Social's library check** runs on QOR ID's terms, as you chose (#32, merged).
 
 ## Publishing a game (P3.4)
 
@@ -40,9 +39,10 @@ The launcher now logs every request a product makes, so the next try shows the c
 
 ## What only you can do
 
-1. **Review and merge** pull requests **#30**, **#32** and **#33** when their checks pass.
-2. **Put Social online:** the steps are written in `services/social/DEPLOY-RAILWAY.md` (a
-   Railway service and database, two secrets made on your PC, one line in QOR ID's settings).
+1. **Merge** pull request **#30** (the publish run's record) once its checks pass.
+2. **Put Social online** in Railway, step by step in `services/social/DEPLOY-RAILWAY.md`: a
+   database and a service, two secrets made on your PC, one line in QOR ID's settings. Then
+   send me Social's address, and I'll check it and point the launcher at it.
 3. **Update QQ Studio**, then publish again: with it closed, run
    `pwsh products/qq/build.ps1 -Deploy`; then **Publish**, and send me its message word for word.
 4. **Before Social opens to anyone else:** how long messages are kept, and the rules reports
