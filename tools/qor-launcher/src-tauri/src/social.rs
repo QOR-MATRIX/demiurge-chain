@@ -30,8 +30,9 @@ use tokio::sync::{mpsc, oneshot};
 
 use crate::error::{QorError, QorResult};
 
-/// Where Social is until it is deployed (L8.6): one running on this machine.
-pub const DEFAULT_SOCIAL: &str = "ws://127.0.0.1:8090/v1/socket";
+/// Where Social is: the deployment on Railway beside QOR ID (L8.6, since 16 October 2026). A saved `social_url`, or
+/// `QOR_SOCIAL_URL`, still wins; `ws://127.0.0.1:8090/v1/socket` reaches one running on this machine.
+pub const DEFAULT_SOCIAL: &str = "wss://social-production-e05c.up.railway.app/v1/socket";
 /// The protocol version spoken (`services/social/src/socket.rs`).
 const VERSION: u32 = 1;
 /// The largest frame either side sends.

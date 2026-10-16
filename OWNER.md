@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 16 October 2026. One page, rewritten every session.
+For Andrew, 16 October 2026 (afternoon). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -16,20 +16,19 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`. 49 tests.
 - **Launcher 0.1.8**, unsigned — *Windows warns on install*. `main` passes every check.
 
-## Social (ADR-091, your four choices)
+## Social is online (ADR-091)
 
-- **In `main`:** the Social service — *the server behind the chat* — with rooms, private
-  rooms, direct messages, replies, reactions, edits, unread counts, @mentions, blocking,
-  reports, online/away/playing, and profiles. Not online yet.
-- **In `main` too (you merged #33):** the **Social screen in the launcher**. Your conversations with unread counts (also on the rail), messages with
-  reactions and replies, @name completion, who is typing, profile cards with a living
-  banner and your colour, a profile editor with a live preview, and the name pick on entry.
-  Proven by a new screen check (29 points) that caught three planted faults and two real
-  ones, fixed before you saw it. Not in an installed launcher yet.
-- **Tried together for real on this PC:** QOR ID and Social, two people, rooms, messages,
-  mentions, a direct message and the one-time name pick: 12 of 12. The launcher against a
-  running Social waits on putting Social online; that first conversation is yours.
-- **Social's library check** runs on QOR ID's terms, as you chose (#32, merged).
+- **Live since today** on Railway, beside QOR ID: the Social service — *the server behind
+  the chat* — with rooms, private rooms, direct messages, replies, reactions, edits, unread
+  counts, @mentions, blocking, reports, online/away/playing, and profiles. Checked from
+  outside: it answers, and QOR ID vouches for it.
+- **The launcher's Social screen** now points at it (pull request #34). Your first
+  conversation needs a launcher built with that change: I can start a test one for you.
+- **Two snags fixed on the way:** QOR ID hadn't been told about Social (now done), and
+  Social held a different secret from the one QOR ID expected (you replaced it). The secret
+  you pasted in chat was never registered, so it unlocks nothing.
+- **Your Desktop file** `social-secrets.txt`: move it to where you keep credentials, or
+  delete it. The message key in it can't be recovered if lost.
 
 ## Publishing a game (P3.4)
 
@@ -39,10 +38,8 @@ The launcher now logs every request a product makes, so the next try shows the c
 
 ## What only you can do
 
-1. **Merge** pull request **#30** (the publish run's record) once its checks pass.
-2. **Put Social online** in Railway, step by step in `services/social/DEPLOY-RAILWAY.md`: a
-   database and a service, two secrets made on your PC, one line in QOR ID's settings. Then
-   send me Social's address, and I'll check it and point the launcher at it.
+1. **Merge pull request #34** (the launcher pointed at the live Social) once its checks pass.
+2. **Your first Social conversation:** tell me, and I'll start a test launcher.
 3. **Update QQ Studio**, then publish again: with it closed, run
    `pwsh products/qq/build.ps1 -Deploy`; then **Publish**, and send me its message word for word.
 4. **Before Social opens to anyone else:** how long messages are kept, and the rules reports
