@@ -1,0 +1,9 @@
+# Four tests at a time, wherever they run.
+#
+# Every `#[sqlx::test]` takes its connections from one parent pool of 20 that sqlx shares between all of a run's tests
+# (sqlx-postgres 0.8, `testing/mod.rs`: the parent holds 20, each test's pool up to 5). Four tests at a time can never
+# want more than 20, which is what CI's four-core runners give by default. On a machine with more cores, cargo runs as
+# many tests as it has cores, and they wait on one another for connections until some give up with `PoolTimedOut`
+# (16 October 2026, on a twenty-core PC). This is not a limit on what the tests check, only on how many run at once.
+[env]
+RUST_TEST_THREADS = "4"

@@ -140,6 +140,7 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
     let bio = format!("a private bio {}", Uuid::new_v4().simple());
     let note = format!("a report's note {}", Uuid::new_v4().simple());
     let status = format!("a status {}", &Uuid::new_v4().simple().to_string()[..8]);
+    let world_words = format!("words said in World {}", Uuid::new_v4().simple());
 
     let (mut a, welcome) = harness.connect(&tokens[0]).await;
     assert_eq!(welcome["type"], "welcome", "{welcome}");
@@ -157,6 +158,26 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         .expect("an id")
         .to_string();
     b.ok("rooms.join", json!({ "room": room })).await;
+    // ADR-092's flows: World, with the language of what is said; friends; a circle and the room it opens.
+    let world = welcome["world"]["id"].as_str().expect("World").to_string();
+    a.ok(
+        "messages.send",
+        json!({ "room": world, "body": world_words, "lang": "en" }),
+    )
+    .await;
+    b.ok("messages.history", json!({ "room": world })).await;
+    a.ok("friends.request", json!({ "qor_id": "bob" })).await;
+    b.ok("friends.accept", json!({ "sub": subs[0] })).await;
+    let circle = a
+        .ok("circles.create", json!({ "name": "Log circle" }))
+        .await["circle"]["id"]
+        .as_str()
+        .expect("an id")
+        .to_string();
+    a.ok("circles.add", json!({ "circle": circle, "sub": subs[1] }))
+        .await;
+    a.ok("circles.open", json!({ "circle": circle })).await;
+    a.ok("profile.update", json!({ "language": "en" })).await;
     let message = a
         .ok("messages.send", json!({ "room": room, "body": words }))
         .await["message"]["id"]
@@ -227,6 +248,7 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         bio.clone(),
         note.clone(),
         status.clone(),
+        world_words.clone(),
         "a token QOR ID never issued".into(),
     ];
     plain.extend(tokens.iter().cloned());

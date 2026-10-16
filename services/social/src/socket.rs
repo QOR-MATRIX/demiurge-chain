@@ -137,6 +137,8 @@ async fn session(mut socket: WebSocket, state: Arc<AppState>) {
         let invites = state.store.invites_for(person.sub).await?;
         let blocked = state.store.blocked_by(person.sub).await?;
         let contacts = state.store.contacts(person.sub).await?;
+        let world = state.store.world().await?;
+        let muted_until = state.store.muted_until(world, person.sub).await?;
         let mut presence = serde_json::Map::new();
         for sub in contacts {
             presence.insert(sub.to_string(), json!(state.hub.presence(sub).await));
@@ -150,6 +152,7 @@ async fn session(mut socket: WebSocket, state: Arc<AppState>) {
             "invites": invites,
             "blocked": blocked,
             "presence": presence,
+            "world": { "id": world, "muted_until": muted_until },
         }))
     }
     .await;

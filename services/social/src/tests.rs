@@ -29,7 +29,7 @@ pub struct Harness {
 pub async fn start(db: PgPool) -> Harness {
     let fake = Arc::new(Fake::default());
     let state = Arc::new(AppState {
-        store: Store::new(db.clone(), Sealer::random()),
+        store: Store::new(db.clone(), Sealer::random()).with_world_moderators(["Warden".into()]),
         identity: fake.clone(),
         hub: Hub::default(),
     });
@@ -237,7 +237,14 @@ async fn hello_is_first_and_only_a_live_qor_id_session_gets_in(db: PgPool) {
     assert_eq!(welcome["me"]["qor_id"], "alice");
     assert_eq!(welcome["me"]["level"], 3);
     assert_eq!(welcome["username_chosen"], true);
-    assert_eq!(welcome["rooms"], json!([]));
+    // A newcomer is in World, and nothing else, with nothing unread there.
+    let rooms = welcome["rooms"].as_array().expect("rooms");
+    assert_eq!(rooms.len(), 1, "{welcome}");
+    assert_eq!(rooms[0]["kind"], "world");
+    assert_eq!(rooms[0]["name"], "World");
+    assert_eq!(rooms[0]["unread"], 0);
+    assert_eq!(welcome["world"]["id"], rooms[0]["id"]);
+    assert_eq!(welcome["world"]["muted_until"], Value::Null);
 }
 
 #[sqlx::test]
@@ -957,4 +964,571 @@ Connection: close
         "200",
         "which /health would not say"
     );
+}
+
+// ── ADR-092: World, friends and circles, and the language of what is said ───────────────────────────────────────
+
+fn world_of(welcome: &Value) -> String {
+    welcome["world"]["id"]
+        .as_str()
+        .expect("World's id")
+        .to_string()
+}
+
+#[sqlx::test]
+async fn world_is_everyones_and_a_newcomer_starts_at_its_newest_message(db: PgPool) {
+    let h = start(db).await;
+    let (ta, alice) = h.person("alice");
+    let (tb, bob) = h.person("bob");
+    let (mut a, welcome) = h.connect(&ta).await;
+    let world = world_of(&welcome);
+
+    for n in 0..3 {
+        a.ok(
+            "messages.send",
+            json!({ "room": world, "body": format!("before bob {n}"), "lang": "en" }),
+        )
+        .await;
+    }
+    let (mut b, welcome) = h.connect(&tb).await;
+    assert_eq!(world_of(&welcome), world, "one World");
+    let mine = &welcome["rooms"][0];
+    assert_eq!(mine["kind"], "world");
+    assert_eq!(mine["unread"], 0, "a newcomer starts at the newest message");
+    assert_eq!(mine["last_seq"], 3);
+    let history = b.ok("messages.history", json!({ "room": world })).await;
+    assert_eq!(
+        history["messages"].as_array().expect("messages").len(),
+        3,
+        "and reads what came before"
+    );
+    assert_eq!(history["messages"][0]["lang"], "en");
+
+    // What is said there reaches whoever is connected (alice heard her own three; those are not what is awaited).
+    a.forget("message.created").await;
+    b.ok(
+        "messages.send",
+        json!({ "room": world, "body": "hello world" }),
+    )
+    .await;
+    let heard = a.event("message.created").await;
+    assert_eq!(heard["message"]["body"], "hello world");
+    assert_eq!(
+        heard["message"]["lang"],
+        Value::Null,
+        "no language given, none kept"
+    );
+
+    // It is not left, changed, invited to, or found among public rooms; joining it again changes nothing.
+    assert_eq!(
+        a.refused("rooms.leave", json!({ "room": world })).await,
+        "forbidden"
+    );
+    a.ok("rooms.join", json!({ "room": world })).await;
+    assert_eq!(
+        a.refused("rooms.update", json!({ "room": world, "topic": "mine" }))
+            .await,
+        "forbidden"
+    );
+    assert_eq!(
+        a.refused("rooms.invite", json!({ "room": world, "qor_id": "bob" }))
+            .await,
+        "forbidden"
+    );
+    assert_eq!(
+        a.refused("rooms.remove", json!({ "room": world, "sub": bob.sub }))
+            .await,
+        "forbidden"
+    );
+    assert_eq!(
+        a.refused(
+            "rooms.role",
+            json!({ "room": world, "sub": bob.sub, "role": "moderator" })
+        )
+        .await,
+        "forbidden"
+    );
+    let found = b.ok("rooms.discover", json!({})).await;
+    assert!(
+        !found["rooms"].to_string().contains(&world),
+        "World is not a public room to find"
+    );
+
+    // World makes nobody a contact: presence and typing do not cross it.
+    a.forget("presence").await;
+    b.ok("presence.set", json!({ "state": "away" })).await;
+    a.none("presence").await;
+    b.ok("typing", json!({ "room": world })).await;
+    a.none("typing").await;
+
+    // Who is here: the people connected and showing, not the invisible.
+    let here = a.ok("rooms.members", json!({ "room": world })).await;
+    let listed = here["members"].to_string();
+    assert!(listed.contains(&alice.sub.to_string()) && listed.contains(&bob.sub.to_string()));
+    b.ok("presence.set", json!({ "state": "invisible" })).await;
+    let here = a.ok("rooms.members", json!({ "room": world })).await;
+    assert!(
+        !here.to_string().contains(&bob.sub.to_string()),
+        "invisible is not listed"
+    );
+
+    // A block holds in World as everywhere: the blocker does not hear the blocked.
+    a.ok("block", json!({ "sub": bob.sub })).await;
+    a.forget("message.created").await;
+    b.ok(
+        "messages.send",
+        json!({ "room": world, "body": "can you hear me" }),
+    )
+    .await;
+    a.none("message.created").await;
+}
+
+#[sqlx::test]
+async fn world_moves_at_its_own_pace(db: PgPool) {
+    let h = start(db).await;
+    let (ta, _) = h.person("alice");
+    let (mut a, welcome) = h.connect(&ta).await;
+    let world = world_of(&welcome);
+    // Five in twenty seconds, on top of the ordinary limit.
+    for n in 0..5 {
+        a.ok(
+            "messages.send",
+            json!({ "room": world, "body": format!("w{n}") }),
+        )
+        .await;
+    }
+    assert_eq!(
+        a.refused(
+            "messages.send",
+            json!({ "room": world, "body": "one too many" })
+        )
+        .await,
+        "rate_limited"
+    );
+    // A room of one's own keeps the ordinary pace.
+    let room = id(&a
+        .ok("rooms.create", json!({ "kind": "public", "name": "Mine" }))
+        .await["room"]);
+    a.ok(
+        "messages.send",
+        json!({ "room": room, "body": "still fine" }),
+    )
+    .await;
+}
+
+#[sqlx::test]
+async fn worlds_moderators_delete_and_mute_and_nobody_else_does(db: PgPool) {
+    let h = start(db).await;
+    let (tw, warden) = h.person("warden");
+    let (ta, alice) = h.person("alice");
+    let (tb, _) = h.person("bob");
+    let (tk, _) = h.person_with("warden", false, 3600);
+    let (mut w, welcome) = h.connect(&tw).await;
+    let world = world_of(&welcome);
+    assert_eq!(
+        welcome["rooms"][0]["role"], "moderator",
+        "named in the configuration, in any case"
+    );
+    let (mut a, _) = h.connect(&ta).await;
+    let (mut b, _) = h.connect(&tb).await;
+    let (_k, welcome) = h.connect(&tk).await;
+    assert_eq!(
+        welcome["rooms"][0]["role"], "member",
+        "a name its holder has not chosen never moderates"
+    );
+
+    let said = id(&a
+        .ok(
+            "messages.send",
+            json!({ "room": world, "body": "rude words" }),
+        )
+        .await["message"]);
+    let warden_said = id(&w
+        .ok("messages.send", json!({ "room": world, "body": "be kind" }))
+        .await["message"]);
+    assert_eq!(
+        b.refused("messages.delete", json!({ "message": said }))
+            .await,
+        "forbidden",
+        "a member deletes only their own"
+    );
+    assert_eq!(
+        a.refused("messages.delete", json!({ "message": warden_said }))
+            .await,
+        "forbidden"
+    );
+    w.ok("messages.delete", json!({ "message": said })).await;
+
+    // Only a moderator mutes; a moderator is not muted; a mute lasts one of four lengths.
+    assert_eq!(
+        b.refused("world.mute", json!({ "sub": alice.sub, "minutes": 10 }))
+            .await,
+        "forbidden"
+    );
+    assert_eq!(
+        a.refused("world.mute", json!({ "sub": warden.sub, "minutes": 10 }))
+            .await,
+        "forbidden"
+    );
+    assert_eq!(
+        w.refused("world.mute", json!({ "sub": alice.sub, "minutes": 7 }))
+            .await,
+        "bad_request"
+    );
+    assert_eq!(
+        w.refused("world.mute", json!({ "sub": warden.sub, "minutes": 10 }))
+            .await,
+        "forbidden"
+    );
+    let until = w
+        .ok("world.mute", json!({ "sub": alice.sub, "minutes": 60 }))
+        .await["until"]
+        .clone();
+    assert!(until.is_string(), "{until}");
+    assert_eq!(a.event("world.muted").await["until"], until);
+    let told = a
+        .call(
+            "messages.send",
+            json!({ "room": world, "body": "let me speak" }),
+        )
+        .await
+        .expect_err("muted");
+    assert_eq!(told.code, "forbidden");
+    assert!(
+        told.message.contains("muted you here until"),
+        "{}",
+        told.message
+    );
+    // Muted in World only: a room of their own still carries their words.
+    let room = id(&a
+        .ok(
+            "rooms.create",
+            json!({ "kind": "public", "name": "Elsewhere" }),
+        )
+        .await["room"]);
+    a.ok(
+        "messages.send",
+        json!({ "room": room, "body": "here I may" }),
+    )
+    .await;
+    // Saying hello again shows the mute.
+    let (_again, welcome) = h.connect(&ta).await;
+    assert!(welcome["world"]["muted_until"].is_string(), "{welcome}");
+
+    w.ok("world.unmute", json!({ "sub": alice.sub })).await;
+    assert_eq!(a.event("world.muted").await["until"], Value::Null);
+    a.ok(
+        "messages.send",
+        json!({ "room": world, "body": "thank you" }),
+    )
+    .await;
+}
+
+#[sqlx::test]
+async fn friends_ask_and_answer_and_friends_see_each_others_presence(db: PgPool) {
+    let h = start(db).await;
+    let (ta, alice) = h.person("alice");
+    let (tb, bob) = h.person("bob");
+    let (tc, _) = h.person("carol");
+    let (td, dave) = h.person("dave");
+    let (tk, _) = h.person_with("key_00aa11bb", false, 3600);
+    let (mut a, _) = h.connect(&ta).await;
+    let (mut b, _) = h.connect(&tb).await;
+    let (mut c, _) = h.connect(&tc).await;
+    let (mut d, _) = h.connect(&td).await;
+    let (mut k, _) = h.connect(&tk).await;
+
+    assert_eq!(
+        a.refused("friends.request", json!({ "qor_id": "alice" }))
+            .await,
+        "bad_request"
+    );
+    assert_eq!(
+        a.refused("friends.request", json!({ "qor_id": "nobody" }))
+            .await,
+        "not_found"
+    );
+    assert_eq!(
+        k.refused("friends.request", json!({ "qor_id": "alice" }))
+            .await,
+        "name_not_chosen"
+    );
+
+    // A request, seen by both; answered by the one asked.
+    let asked = a.ok("friends.request", json!({ "qor_id": "BOB" })).await;
+    assert_eq!(asked["friends"], false);
+    let told = b.event("friend.requested").await;
+    assert_eq!(told["from"], alice.sub.to_string());
+    assert_eq!(told["profiles"][alice.sub.to_string()]["qor_id"], "alice");
+    a.event("friend.requested").await;
+    a.ok("friends.request", json!({ "qor_id": "bob" })).await;
+    let list = b.ok("friends.list", json!({})).await;
+    assert_eq!(
+        list["incoming"].as_array().expect("incoming").len(),
+        1,
+        "asking twice is one request"
+    );
+    assert_eq!(list["incoming"][0]["sub"], alice.sub.to_string());
+    assert_eq!(list["profiles"][alice.sub.to_string()]["qor_id"], "alice");
+    assert_eq!(
+        a.ok("friends.list", json!({})).await["outgoing"][0]["sub"],
+        bob.sub.to_string()
+    );
+    assert_eq!(
+        a.refused("friends.accept", json!({ "sub": bob.sub })).await,
+        "not_found",
+        "the one who asked does not answer"
+    );
+    b.ok("friends.accept", json!({ "sub": alice.sub })).await;
+    let accepted = a.event("friend.accepted").await;
+    assert!(
+        accepted["between"]
+            .to_string()
+            .contains(&bob.sub.to_string()),
+        "{accepted}"
+    );
+    assert_eq!(
+        a.ok("friends.list", json!({})).await["friends"],
+        json!([bob.sub])
+    );
+    assert_eq!(
+        a.refused("friends.request", json!({ "qor_id": "bob" }))
+            .await,
+        "conflict",
+        "friends already"
+    );
+
+    // Friends see each other's presence, though they share no room but World.
+    a.forget("presence").await;
+    b.ok(
+        "presence.set",
+        json!({ "state": "away", "playing": "Flux Four" }),
+    )
+    .await;
+    let seen = a.event("presence").await;
+    assert_eq!(seen["sub"], bob.sub.to_string());
+    assert_eq!(seen["presence"]["state"], "away");
+
+    // Two who ask each other are friends at once.
+    c.ok("friends.request", json!({ "qor_id": "alice" })).await;
+    assert_eq!(
+        a.ok("friends.request", json!({ "qor_id": "carol" })).await["friends"],
+        true
+    );
+    c.event("friend.accepted").await;
+
+    // Declined by the one asked, or taken back by the one who asked: both hear it ended.
+    d.ok("friends.request", json!({ "qor_id": "alice" })).await;
+    a.ok("friends.decline", json!({ "sub": dave.sub })).await;
+    assert_eq!(
+        d.event("friend.declined").await["to"],
+        alice.sub.to_string()
+    );
+    d.ok("friends.request", json!({ "qor_id": "alice" })).await;
+    d.ok("friends.cancel", json!({ "sub": alice.sub })).await;
+    assert_eq!(a.ok("friends.list", json!({})).await["incoming"], json!([]));
+    assert_eq!(
+        a.refused("friends.decline", json!({ "sub": dave.sub }))
+            .await,
+        "not_found"
+    );
+
+    // Ending a friendship ends the presence that came with it.
+    a.forget("presence").await;
+    a.ok("friends.remove", json!({ "sub": bob.sub })).await;
+    b.event("friend.removed").await;
+    let gone = a.event("presence").await;
+    assert_eq!(gone["sub"], bob.sub.to_string());
+    assert_eq!(gone["presence"]["state"], "offline");
+    b.ok("presence.set", json!({ "state": "online" })).await;
+    a.none("presence").await;
+    assert_eq!(
+        a.refused("friends.remove", json!({ "sub": bob.sub })).await,
+        "not_found"
+    );
+
+    // A block ends a friendship and refuses a new one, either way.
+    let carol = h.fake.people.lock().expect("lock")[&tc].sub;
+    c.ok("block", json!({ "sub": alice.sub })).await;
+    assert!(
+        !a.ok("friends.list", json!({})).await["friends"]
+            .to_string()
+            .contains(&carol.to_string())
+    );
+    assert_eq!(
+        a.refused("friends.request", json!({ "qor_id": "carol" }))
+            .await,
+        "forbidden"
+    );
+    assert_eq!(
+        c.refused("friends.request", json!({ "qor_id": "alice" }))
+            .await,
+        "forbidden"
+    );
+}
+
+#[sqlx::test]
+async fn circles_are_their_owners_alone_and_open_a_private_room(db: PgPool) {
+    let h = start(db).await;
+    let (ta, alice) = h.person("alice");
+    let (tb, bob) = h.person("bob");
+    let (tc, carol) = h.person("carol");
+    let (mut a, _) = h.connect(&ta).await;
+    let (mut b, _) = h.connect(&tb).await;
+    let (mut c, _) = h.connect(&tc).await;
+    a.ok("friends.request", json!({ "qor_id": "bob" })).await;
+    b.ok("friends.accept", json!({ "sub": alice.sub })).await;
+
+    assert_eq!(
+        a.refused("circles.create", json!({ "name": "  " })).await,
+        "bad_request"
+    );
+    assert_eq!(
+        a.refused(
+            "circles.create",
+            json!({ "name": "Squad", "color": "teal" })
+        )
+        .await,
+        "bad_request"
+    );
+    let circle = a
+        .ok(
+            "circles.create",
+            json!({ "name": "  Squad ", "color": "#AABBCC" }),
+        )
+        .await["circle"]
+        .clone();
+    assert_eq!(circle["name"], "Squad");
+    assert_eq!(circle["color"], "#aabbcc");
+    assert_eq!(circle["members"], json!([]));
+    let circle_id = id(&circle);
+
+    assert_eq!(
+        a.refused("circles.open", json!({ "circle": circle_id }))
+            .await,
+        "bad_request",
+        "an empty circle opens nothing"
+    );
+    let with_bob = a
+        .ok(
+            "circles.add",
+            json!({ "circle": circle_id, "sub": bob.sub }),
+        )
+        .await;
+    assert_eq!(with_bob["circle"]["members"], json!([bob.sub]));
+    assert_eq!(
+        a.refused(
+            "circles.add",
+            json!({ "circle": circle_id, "sub": carol.sub })
+        )
+        .await,
+        "forbidden",
+        "only friends"
+    );
+
+    // Nobody else sees it, or touches it.
+    assert_eq!(b.ok("circles.list", json!({})).await["circles"], json!([]));
+    assert_eq!(
+        b.refused(
+            "circles.update",
+            json!({ "circle": circle_id, "name": "Mine" })
+        )
+        .await,
+        "not_found"
+    );
+    assert_eq!(
+        c.refused("circles.delete", json!({ "circle": circle_id }))
+            .await,
+        "not_found"
+    );
+    let renamed = a
+        .ok(
+            "circles.update",
+            json!({ "circle": circle_id, "name": "Crew", "color": null }),
+        )
+        .await;
+    assert_eq!(renamed["circle"]["name"], "Crew");
+    assert_eq!(renamed["circle"]["color"], Value::Null);
+
+    // One step from a circle to a private room, its friends invited.
+    let room = a.ok("circles.open", json!({ "circle": circle_id })).await["room"].clone();
+    assert_eq!(room["kind"], "private");
+    assert_eq!(room["name"], "Crew");
+    let invite = b.event("invite").await;
+    assert_eq!(invite["room"], room["id"]);
+    b.ok("rooms.join", json!({ "room": room["id"] })).await;
+
+    // Ending the friendship takes them out of the circle.
+    b.ok("friends.remove", json!({ "sub": alice.sub })).await;
+    assert_eq!(
+        a.ok("circles.list", json!({})).await["circles"][0]["members"],
+        json!([])
+    );
+
+    // Twenty circles at most.
+    for n in 1..20 {
+        a.ok("circles.create", json!({ "name": format!("c{n}") }))
+            .await;
+    }
+    assert_eq!(
+        a.refused("circles.create", json!({ "name": "one more" }))
+            .await,
+        "conflict"
+    );
+    a.ok("circles.delete", json!({ "circle": circle_id })).await;
+    a.ok("circles.create", json!({ "name": "room again" }))
+        .await;
+}
+
+#[sqlx::test]
+async fn a_message_keeps_its_language_and_a_profile_its_readers(db: PgPool) {
+    let h = start(db).await;
+    let (ta, _) = h.person("alice");
+    let (mut a, welcome) = h.connect(&ta).await;
+    let world = world_of(&welcome);
+    assert_eq!(welcome["me"]["language"], Value::Null);
+
+    let sent = a
+        .ok(
+            "messages.send",
+            json!({ "room": world, "body": "olá a todos", "lang": "pt-br" }),
+        )
+        .await["message"]
+        .clone();
+    assert_eq!(sent["lang"], "pt-BR", "kept in its usual case");
+    assert_eq!(
+        a.refused(
+            "messages.send",
+            json!({ "room": world, "body": "hi", "lang": "english" })
+        )
+        .await,
+        "bad_request"
+    );
+    let edited = a
+        .ok(
+            "messages.edit",
+            json!({ "message": sent["id"], "body": "hello everyone", "lang": "en" }),
+        )
+        .await;
+    assert_eq!(edited["message"]["lang"], "en");
+    let kept = a
+        .ok(
+            "messages.edit",
+            json!({ "message": sent["id"], "body": "hello all" }),
+        )
+        .await;
+    assert_eq!(
+        kept["message"]["lang"], "en",
+        "an edit without a language keeps the one it had"
+    );
+
+    let profile = a.ok("profile.update", json!({ "language": "JA" })).await;
+    assert_eq!(profile["profile"]["language"], "ja");
+    assert_eq!(
+        a.refused("profile.update", json!({ "language": "klingon!" }))
+            .await,
+        "bad_request"
+    );
+    let (_, again) = h.connect(&ta).await;
+    assert_eq!(again["me"]["language"], "ja", "it follows them");
 }
