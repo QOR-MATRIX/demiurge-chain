@@ -299,44 +299,7 @@ async fn a_products_dialog_says_which_product_asks_from_the_launchers_record() {
 
 // ── Nothing secret reaches a log (ADR-046 decision 10) ────────────────────────────────────────────────────────────
 
-#[derive(Clone, Default)]
-struct Captured(Arc<Mutex<Vec<u8>>>);
-
-impl std::io::Write for Captured {
-    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-        self.0.lock().unwrap().extend_from_slice(bytes);
-        Ok(bytes.len())
-    }
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for Captured {
-    type Writer = Captured;
-    fn make_writer(&'a self) -> Self::Writer {
-        self.clone()
-    }
-}
-
-/// The whole test process's log, at every level, from the first time it is asked for. One logger for the process,
-/// not one for a test: `tracing` caches across threads whether each log line is wanted, and a logger set for one test's
-/// thread loses lines that other tests, running without one, first decided nobody wanted. With this one installed
-/// everything is wanted, always.
-fn captured_log() -> &'static Captured {
-    static CAPTURED: std::sync::OnceLock<Captured> = std::sync::OnceLock::new();
-    CAPTURED.get_or_init(|| {
-        let captured = Captured::default();
-        let subscriber = tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::TRACE)
-            .with_ansi(false)
-            .with_writer(captured.clone())
-            .finish();
-        tracing::subscriber::set_global_default(subscriber)
-            .expect("the only process-wide logger in these tests");
-        captured
-    })
-}
+use crate::testing::captured_log;
 
 /// A whole session, a good one and a refused one, with every level of the launcher's log on: neither the token, nor
 /// the session id, nor the wrong token offered appears in it. The log is checked to have something in it, so a

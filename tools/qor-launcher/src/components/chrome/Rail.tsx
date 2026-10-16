@@ -10,6 +10,7 @@
  */
 
 import { useEffect } from 'react';
+import { useUnread } from '../../social/link';
 import {
   Boxes,
   FolderGit2,
@@ -54,7 +55,7 @@ const ITEMS: Item[] = [
   { id: 'qq', label: 'QQ', icon: Shapes, hint: 'The QOR Engine: build and play a game here' },
   { id: 'arqade', label: 'ARQADE', icon: Gamepad2, hint: 'Games and collectibles on the Demiurge devnet' },
   { id: 'library', label: 'Library', icon: Library, hint: 'Games and applications' },
-  { id: 'social', label: 'Social', icon: MessagesSquare, hint: 'Rooms, messages and presence' },
+  { id: 'social', label: 'Social', icon: MessagesSquare, hint: 'Rooms, messages, presence and profiles' },
   { id: 'mesh', label: 'Mesh', icon: Share2, hint: 'Peer-to-peer distribution' },
   { id: 'chain', label: 'Chain', icon: Radio, hint: 'Node, network and validators' },
   { id: 'gates', label: 'Gates', icon: ListChecks, hint: 'Release-gate progress from docs/GATES.toml' },
@@ -62,6 +63,7 @@ const ITEMS: Item[] = [
 ];
 
 export function Rail() {
+  const unread = useUnread();
   const surface = useQor((s) => s.surface);
   const go = useQor((s) => s.go);
   const session = useQor((s) => s.session);
@@ -113,6 +115,15 @@ export function Rail() {
                   className={active ? 'text-accent' : 'text-current'}
                 />
                 <span className="heading text-caption tracking-label">{label}</span>
+                {id === 'social' && unread > 0 && (
+                  <span
+                    className="numeric ml-auto min-w-5 bg-accent px-1.5 text-center text-micro font-semibold text-void"
+                    aria-label={`${unread} unread`}
+                    data-social-unread
+                  >
+                    {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
               </button>
             </li>
           );

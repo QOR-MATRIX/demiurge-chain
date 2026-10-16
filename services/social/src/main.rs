@@ -40,9 +40,24 @@ mod tests;
 
 use state::AppState;
 
+/// Whether Social can serve: its database answers. A platform's health check points here; `/health` answers whatever
+/// the database's state, and would call a service with a dead database healthy.
+async fn ready(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+) -> axum::http::StatusCode {
+    match sqlx::query_scalar::<_, i32>("SELECT 1")
+        .fetch_one(&state.store.db)
+        .await
+    {
+        Ok(_) => axum::http::StatusCode::OK,
+        Err(_) => axum::http::StatusCode::SERVICE_UNAVAILABLE,
+    }
+}
+
 pub fn router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/health", get(|| async { "ok" }))
+        .route("/ready", get(ready))
         .route("/v1/socket", get(socket::upgrade))
         .with_state(state)
 }

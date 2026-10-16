@@ -30,6 +30,8 @@ import { QfxCanvas } from './qfx/Canvas';
 import { Nexus } from './views/Nexus';
 import { SettingsView } from './views/SettingsView';
 import { VaultView } from './views/VaultView';
+import { SocialView } from './social/SocialView';
+import { useSocialLink } from './social/link';
 
 /** Spoken name for each surface, used as the main landmark's label. */
 const SURFACE_LABELS: Record<string, string> = {
@@ -59,6 +61,12 @@ const REDUCED_MOTION: Record<Motion, 'user' | 'always' | 'never'> = {
   full: 'never',
   reduced: 'always',
 };
+
+/** Social stays connected while the shell is open (ADR-091), so the rail counts what is unread from anywhere. */
+function SocialLink() {
+  useSocialLink();
+  return null;
+}
 
 export function App() {
   const ready = useQor((s) => s.ready);
@@ -113,6 +121,7 @@ export function App() {
         <div className="relative flex min-h-0 flex-1">
           {inside ? (
             <>
+              <SocialLink />
               <Rail />
               <main id="qor-main" tabIndex={-1} aria-label={SURFACE_LABELS[surface]} className="min-w-0 flex-1">
                 <AnimatePresence mode="wait">
@@ -134,9 +143,8 @@ export function App() {
                     {surface === 'chain' && <ChainView />}
                     {surface === 'gates' && <GatesView />}
                     {surface === 'settings' && <SettingsView />}
-                    {(surface === 'library' || surface === 'social' || surface === 'mesh') && (
-                      <Horizon surface={surface} />
-                    )}
+                    {surface === 'social' && <SocialView />}
+                    {(surface === 'library' || surface === 'mesh') && <Horizon surface={surface} />}
                   </motion.div>
                 </AnimatePresence>
               </main>

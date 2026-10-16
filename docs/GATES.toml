@@ -768,6 +768,12 @@ reason = "No fixed rsa release exists. rsa is in Social's Cargo.lock only throug
 condition = "rsa stays out of Social's compiled graph, checked on every CI run"
 approved_by = "owner, 2026-10-15 (\"Ignore it on QOR ID's terms\")"
 
+[[change_log]]
+date = "2026-10-15"
+type = "tightening"
+change = "The Social view check (tools/qor-launcher/scripts/check-social-view.mjs) joins npm run check, so CI's launcher job runs eleven checks, not ten ([ci].quality_gates updated). No criterion, kind or threshold changes."
+reason = "Tightening: a check added, none removed or relaxed. It drives the launcher's Social surface (ADR-091, L8.5) in a real browser against a stand-in host, from connecting and the one-time name claim to sending, receiving, profiles and refusals; HANDOFF.md section 4 item 76 records the faults it was seen to catch."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -813,7 +819,7 @@ quality_gates = [
   "chain/: two validators agree, finalise and catch up. A job of its own, because it needs a release build with the sudo feature: cargo build -p demiurge-node --release --features sudo --locked, then node scripts/check-two-validators.mjs. It fails the run; criterion alpha.multi-validator reads it. Since 2026-09-21 it runs NIGHTLY (03:00 UTC) and on workflow_dispatch, not on every push",
   "services/qor-auth: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test -- --include-ignored, against a migrated Postgres 16 and a Redis 7.4",
   "services/social: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test, against a Postgres 16 (a database per test) and a real WebSocket on a loopback port; its log, SQL and migration checks run with the tests",
-  "tools/qor-launcher: npm ci, frontend build and npm run check, ten checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
+  "tools/qor-launcher: npm ci, frontend build and npm run check, eleven checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
   "cargo audit of services/qor-auth, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside the compiled graph (services/qor-auth/.cargo/audit.toml)",
   "cargo audit of services/social, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside Social's compiled graph (services/social/.cargo/audit.toml)",
   "cargo audit of tools/qor-launcher/src-tauri, ignoring only RUSTSEC-2026-0344 while CI confirms ruzstd is outside the compiled graph and still in the lockfile (tools/qor-launcher/src-tauri/.cargo/audit.toml, ADR-089)",

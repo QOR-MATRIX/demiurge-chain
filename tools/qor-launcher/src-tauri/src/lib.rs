@@ -27,6 +27,7 @@ pub mod partners;
 pub mod pay;
 pub mod qontrol;
 pub mod qq;
+pub mod social;
 pub mod vault;
 
 use std::future::Future;
@@ -242,6 +243,8 @@ pub struct AppState {
     pub vault: Arc<Vault>,
     pub chain: Arc<ChainClient>,
     pub identity: Arc<IdentityClient>,
+    /// Social's socket (ADR-091, L8.5), held here so no token reaches the webview.
+    pub social: Arc<social::Social>,
     /// Release-gate progress for the development dashboard (roadmap L2.2).
     pub dashboard: Arc<gates::Dashboard>,
     /// Open briefly after an unlock, for the QOR ID sign-in (ADR-016).
@@ -259,6 +262,7 @@ impl AppState {
             vault: Arc::new(Vault::new(&data_dir)),
             chain: Arc::new(ChainClient::new(settings.rpc_url)?),
             identity: Arc::new(IdentityClient::new(settings.auth_url)?),
+            social: Arc::new(social::Social::new(settings.social_url)),
             dashboard: Arc::new(gates::Dashboard::new()?),
             arrival: ArrivalGrant::default(),
             data_dir,
@@ -270,6 +274,7 @@ impl AppState {
         config::Settings {
             rpc_url: self.chain.endpoint(),
             auth_url: self.identity.endpoint(),
+            social_url: self.social.endpoint(),
         }
         .save(&self.data_dir)
     }
@@ -1227,9 +1232,85 @@ async fn qor_tutorial_done(
 }
 
 #[tauri::command]
-async fn qor_logout(state: tauri::State<'_, AppState>) -> Result<(), QorError> {
+async fn qor_logout(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<(), QorError> {
+    // Social's socket speaks as this person; it closes with their session.
+    state.social.disconnect(&SocialEvents(app));
     state.identity.logout().await;
     Ok(())
+}
+
+/// Choose this account's QOR ID name, once, while it is on a name QOR ID made (ADR-091 decision 5).
+#[tauri::command]
+async fn qor_claim_username(
+    state: tauri::State<'_, AppState>,
+    username: String,
+) -> Result<Session, QorError> {
+    state.identity.claim_username(&username).await
+}
+
+/// Social's connection reports to the interface as Tauri events (ADR-091 decision 3).
+struct SocialEvents(tauri::AppHandle);
+
+impl social::Events for SocialEvents {
+    fn status(&self, status: &social::Status) {
+        use tauri::Emitter;
+        let _ = self.0.emit("social://status", status);
+    }
+    fn welcome(&self, welcome: &serde_json::Value) {
+        use tauri::Emitter;
+        let _ = self.0.emit("social://welcome", welcome);
+    }
+    fn event(&self, event: &serde_json::Value) {
+        use tauri::Emitter;
+        let _ = self.0.emit("social://event", event);
+    }
+}
+
+/// Connect to Social as the signed-in person, and stay connected. The host holds the socket and the token.
+#[tauri::command]
+fn social_connect(app: tauri::AppHandle, state: tauri::State<'_, AppState>) {
+    state
+        .social
+        .connect(state.identity.clone(), Arc::new(SocialEvents(app)));
+}
+
+#[tauri::command]
+fn social_disconnect(app: tauri::AppHandle, state: tauri::State<'_, AppState>) {
+    state.social.disconnect(&SocialEvents(app));
+}
+
+/// Where the connection stands, and its last welcome, for an interface that opens after it connected.
+#[tauri::command]
+fn social_status(state: tauri::State<'_, AppState>) -> serde_json::Value {
+    serde_json::json!({
+        "status": state.social.status(),
+        "welcome": state.social.welcome(),
+        "endpoint": state.social.endpoint(),
+    })
+}
+
+/// Ask Social something (`services/social/src/api.rs` lists the methods); Social checks every rule itself.
+#[tauri::command]
+async fn social_request(
+    state: tauri::State<'_, AppState>,
+    method: String,
+    params: serde_json::Value,
+) -> Result<serde_json::Value, QorError> {
+    if method.is_empty()
+        || method.len() > 40
+        || !method
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c == '.' || c == '_')
+    {
+        return Err(QorError::Social {
+            code: "bad_request".into(),
+            message: "not a Social method".into(),
+        });
+    }
+    state.social.request(&method, params).await
 }
 
 /// ARQADE in a window of its own (ADR-078 decision 5): opened, or brought forward if it already is.
@@ -1531,6 +1612,11 @@ pub fn run() {
             qor_avatar,
             qor_tutorial_done,
             qor_logout,
+            qor_claim_username,
+            social_connect,
+            social_disconnect,
+            social_status,
+            social_request,
             qor_set_auth_endpoint,
             arqade_open,
             gates_report,
@@ -1544,6 +1630,46 @@ pub fn run() {
 #[cfg(test)]
 pub(crate) mod testing {
     use super::{Answer, Confirm, Prompt};
+
+    // The whole test process's log (moved from host::tests so Social's check shares the one logger).
+    #[derive(Clone, Default)]
+    pub struct Captured(pub std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
+
+    impl std::io::Write for Captured {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.0.lock().unwrap().extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for Captured {
+        type Writer = Captured;
+        fn make_writer(&'a self) -> Self::Writer {
+            self.clone()
+        }
+    }
+
+    /// The whole test process's log, at every level, from the first time it is asked for. One logger for the process,
+    /// not one for a test: `tracing` caches across threads whether each log line is wanted, and a logger set for one test's
+    /// thread loses lines that other tests, running without one, first decided nobody wanted. With this one installed
+    /// everything is wanted, always.
+    pub fn captured_log() -> &'static Captured {
+        static CAPTURED: std::sync::OnceLock<Captured> = std::sync::OnceLock::new();
+        CAPTURED.get_or_init(|| {
+            let captured = Captured::default();
+            let subscriber = tracing_subscriber::fmt()
+                .with_max_level(tracing::Level::TRACE)
+                .with_ansi(false)
+                .with_writer(captured.clone())
+                .finish();
+            tracing::subscriber::set_global_default(subscriber)
+                .expect("the only process-wide logger in these tests");
+            captured
+        })
+    }
 
     pub struct Scripted {
         answer: bool,

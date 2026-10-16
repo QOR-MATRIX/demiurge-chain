@@ -908,3 +908,53 @@ async fn a_mention_reaches_the_member_named_and_nobody_outside_the_room(db: PgPo
     c.none("mention").await;
     a.none("mention").await;
 }
+
+#[sqlx::test]
+async fn ready_answers_only_while_the_database_does(db: PgPool) {
+    let h = start(db.clone()).await;
+    let base = h.url.replace("ws://", "http://").replace("/v1/socket", "");
+    let status = |path: &'static str| {
+        let url = format!("{base}{path}");
+        async move {
+            let (mut socket, _) = tokio::net::TcpStream::connect(
+                url.trim_start_matches("http://")
+                    .split('/')
+                    .next()
+                    .expect("host"),
+            )
+            .await
+            .map(|s| (s, ()))
+            .expect("connects");
+            use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+            socket
+                .write_all(
+                    format!(
+                        "GET {path} HTTP/1.1
+Host: x
+Connection: close
+
+"
+                    )
+                    .as_bytes(),
+                )
+                .await
+                .expect("sent");
+            let mut answer = String::new();
+            socket.read_to_string(&mut answer).await.expect("read");
+            answer.split(' ').nth(1).unwrap_or_default().to_string()
+        }
+    };
+    assert_eq!(status("/ready").await, "200");
+    assert_eq!(status("/health").await, "200");
+    db.close().await;
+    assert_eq!(
+        status("/ready").await,
+        "503",
+        "a closed database is not ready"
+    );
+    assert_eq!(
+        status("/health").await,
+        "200",
+        "which /health would not say"
+    );
+}

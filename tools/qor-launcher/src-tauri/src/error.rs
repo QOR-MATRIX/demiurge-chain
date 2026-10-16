@@ -83,6 +83,11 @@ pub enum QorError {
     #[error("{0}")]
     Unfunded(String),
 
+    /// Social refused a request, or could not be reached (ADR-091, L8.5). `code` is Social's own (`rate_limited`,
+    /// `name_not_chosen`, `not_found`, …, or `unavailable` when there is no connection), for the interface to act on.
+    #[error("{message}")]
+    Social { code: String, message: String },
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -113,6 +118,7 @@ impl QorError {
             Self::Unfunded(_) => "unfunded",
             Self::Declined => "declined",
             Self::Hello(_) => "hello",
+            Self::Social { .. } => "social",
             Self::Internal(_) => "internal",
         }
     }
@@ -125,9 +131,12 @@ impl QorError {
 impl serde::Serialize for QorError {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeStruct;
-        let mut st = s.serialize_struct("QorError", 2)?;
+        let mut st = s.serialize_struct("QorError", 3)?;
         st.serialize_field("kind", self.kind())?;
         st.serialize_field("message", &self.to_string())?;
+        if let Self::Social { code, .. } = self {
+            st.serialize_field("code", code)?;
+        }
         st.end()
     }
 }

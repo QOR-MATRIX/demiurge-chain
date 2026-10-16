@@ -32,6 +32,11 @@ surface, is the next step (L8.5), then a deployment beside QOR ID (L8.6).
 | `PORT` | 8090 unless set |
 | `RUST_LOG` | `social=info` unless set; the WebSocket library never logs below info whatever it says |
 
+## Deploying
+
+`Dockerfile` builds the service (context `services/social`); `GET /ready` asks the database and is what a health check
+points at (`/health` answers 200 whatever the database's state). `DEPLOY-RAILWAY.md` is the plan for Railway (L8.6).
+
 ## Build and test
 
 ```bash

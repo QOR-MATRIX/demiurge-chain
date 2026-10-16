@@ -8,7 +8,7 @@ reaches `main` by pull request. `origin` is the private archive, not the current
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 item 75 (15 October 2026): Social decided (ADR-091), QOR ID ready for it, and the Social service built and tested on branch `session/social-foundation`, not deployed.** Before it: §4 item 74 (15 October 2026): the owner's first publish from QQ Studio was refused by the node before any
+**Newest: §4 item 76 (15 October 2026): #31 merged, QOR ID's side of Social live, and the launcher's Social surface built on branch `session/social-launcher`.** Before it: §4 item 75 (15 October 2026): Social decided (ADR-091), QOR ID ready for it, and the Social service built and tested, now in `main`. Before it: §4 item 74 (15 October 2026): the owner's first publish from QQ Studio was refused by the node before any
 block; an account that cannot pay is now told so before anyone is asked, naming the account and the chain, and the
 whole reason reaches the Studio and the launcher's log.** Before it: item 73 (10 October 2026): P3.4 built. QQ Studio
 publishes a project as its Cartridge through the launcher that started it (ADR-088, the owner's: a Cartridge holds the
@@ -100,7 +100,7 @@ ticked the same day against the owner's review of a ten-line summary.
 | The custom devnet (`framework/`) | **Retired and deleted at M3.5, 2026-09-20.** 150 files, 49,058 lines, after everything that referred to it had been rewritten and verified with the tree still present. Its last run passed 285 tests. Untrusted, and nothing of it is carried forward (§2.0). **M3 is not complete:** M3.2 waits on OPEN-2. |
 | Security track | Items 1 to 7 done. **The owner confirmed credential rotation on 2026-09-14:** the Postgres password and both JWT secret pairs. **Nine credential-shaped values** (from `docker/n8n/docker-compose.yml` and `docker/docker-compose.testnet.yml`) are not in the current tree or in the public repository's history; they exist only in the private archive's history, and rotating them is still advised if those services ever ran (an owner step in `OWNER.md`). CI's security job scans for committed credentials. **A recovery phrase was pasted into a chat on 5 October; treat that key as exposed and replace it.** Sessions record a placeholder IP address. §3. |
 | `services/qor-auth` (QOR ID) | **Live at `https://id.qorsync.dev`**, the Railway service `qor-auth`, deployed from `main`. **172 tests pass** (8 October 2026, against Postgres 16 and Redis 7.4, `--include-ignored`), the log and SQL checks among them. Latest migration: 022. Password and key sign-in (Sr25519 and SS58; ADR-023, ADR-024, ADR-039); email verification and reset through Resend; the account page `/account` (change the password, add or change the email); sign-in for other apps by OAuth 2.1 with PKCE (ADR-073), the apps registered in `QOR_OAUTH_CLIENTS`, ARQADE among them; one name per account, no `#0001` (ADR-075, migrations 019 and 021); levels, XP and tasks, the welcome grant recorded as owed (since 8 October the owner can list owed grants and mark one paid against its transfer's hash; nothing pays them yet); the launcher signing a person into an app it opened with its own session (`/api/v1/oauth/handoff`, 8 October), and three sign-ups per network address read from Railway's `X-Real-IP` (ADR-078, migration 020); avatars (ADR-079, migration 022). Registration creates no CGT and calls no chain (R-3). Agent keys are authorised, never created (ADR-014). **The Resend bounce webhook is an owner step, and delivery to a real inbox is unconfirmed** (§4.0). One known gap (§2). History: §4 items 5 to 8, 33 and 50 to 57. |
-| `services/social` (Social) | **Built and tested, not deployed** (15 October 2026, branch `session/social-foundation`, ADR-091, §4 item 75): rooms, direct messages, sealed messages, reactions, replies, edits, deletes, unread counts, mentions, blocks, reports, presence and profiles over one WebSocket, identity from QOR ID's introspection. 29 tests against Postgres 16. No client yet (L8.5), no deployment (L8.6). On the same branch QOR ID gains introspection, the one-time name claim and public profiles: 176 tests, migration 023. Audited in CI, ignoring only `rsa` on QOR ID's condition (the owner's choice) |
+| `services/social` (Social) | **Built and tested, in `main` (pull request #31), not deployed** (15 October 2026, ADR-091, §4 item 75): rooms, direct messages, sealed messages, reactions, replies, edits, deletes, unread counts, mentions, blocks, reports, presence and profiles over one WebSocket, identity from QOR ID's introspection. 29 tests against Postgres 16. Its first client, the launcher's Social surface, is on branch `session/social-launcher` (L8.5, §4 item 76); no deployment (L8.6). QOR ID's side is live: introspection, the one-time name claim and public profiles, 176 tests, migration 023. Audited in CI, ignoring only `rsa` on QOR ID's condition (the owner's choice) |
 | `tools/qor-launcher` | **Version 0.1.8** (`tauri.conf.json`). **240 Rust tests pass (11 ignored: 10 without a node, 1 that opens QQ Studio), and all ten browser checks pass** — design 3, accessibility 49, gates view 34, Projects 104, Inventory 238, Market 127, QQ 42, vault gate 65, contrast 54, readability 361 — on 15 October 2026 (§4 item 74; the product host's live check passed against a development node). Since 10 October it hosts products (ADR-046, ADR-088): QQ Studio, started with a one-time token, publishes through it. In pull request #17 since 8 October, not in a build: **QQ's preview** on the rail, **ARQADE in a window of its own, signed in with the launcher's session** (P7.18, partly), and **six backdrops** in Settings. The 0.1.8 installer was built locally and is **unsigned, with no update channel** (L6); 0.1.7 added `qor://pay`. Avatars and rings reached `main` after 0.1.8 and need a new build to ship. The default chain endpoint is `wss://rpc.qorsync.dev` (`DEFAULT_RPC` in `src-tauri/src/chain/mod.rs`; `LOCAL_RPC` is `ws://127.0.0.1:9944`). Features: the vault's key in the OS keychain with no lock screen (ADR-056); QOR ID sign-in by key; send, mint, Inventory, trade, sell and buy; the Market view (no search, no indexer); Projects and Qontrol; the gates dashboard; `qor://pay`, approved in the host dialog (ADR-077); the level bubble and XP bar; the avatar with its ring; one QFX backdrop shader. The Nexus still shows nine frozen-app tiles marked "local" or "forming". L1.1, L1.2, L1.3, L1.5, L1.6, L1.7, L3.1 and L3.2 are done (L1.6 and L1.7 ticked on 6 October 2026 against CI). **L1.4 is mostly exercised:** the owner approved real `qor://pay` tips in the host dialog on 5 and 6 October, and approved and declined a transfer and an RPC endpoint change on 10 October; the QOR ID endpoint change and a sign-in after QOR ID was unreachable are not yet exercised (§4.0). History: §4 items 9, 14 to 24 and 54 to 57. |
 | Products | **Seven, each with a blueprint, a track and a gate**: P1 to P6 (§4 item 12) and **P7, ARQADE** (ADR-069). The shared substrate decisions ADR-046 to ADR-051 are all accepted: ADR-047 and ADR-051 on 2026-09-22, ADR-046, ADR-048, ADR-049 and ADR-050 on 2026-09-28. Built inside the launcher: Qontrol's Projects (P1.1, P1.2), QFX's backdrop (P2.1, six to choose from since 8 October), the Market view and, since 8 October, **QQ's TypeScript preview**. **QQ itself moves to Qt 6 (ADR-083)**: its P3 items are rewritten; on Qt 6.12, P3.1 is done (9 October 2026, §4 item 64) and P3.2 is done (10 October 2026, §4 item 65): worlds play in QQ Studio and in the QQ Player, natively and in a browser. ARQADE is its own site (row below). GNOSIS and Stream have not started. |
 | Release gates | **`GATES.toml` accepted (2026-09-14).** Coverage: cargo-llvm-cov, 80% of lines, only on pallets that move CGT or own DRC-369 semantics. Public Release gained `public-release.name-clearance` on 2026-09-17, a tightening logged in the file. **On 2026-10-06 (ADR-080) `check-design.mjs` dropped its five effect rules and the QFX and ceremony exemptions**, keeping colour tokens, the type scale and the tracking scale; it is logged in the change log with the owner's approval. **Loosening any evidence rule needs the owner's separate decision** (the rule is in the file). |
@@ -2362,10 +2362,60 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     the fault, not the fix; restores now touch the file. Pull request #31. **Next:** CI on #31; then L8.5, the
     launcher's Social surface.
 
+76. **15 October 2026, late: #31 merged and QOR ID's side of Social live; the launcher's Social surface built (L8.5).**
+    **Merged:** the owner merged pull request #31 at `7821e4d` (`main` at `76ffbf4`, CI green). It deployed QOR ID from
+    `main`: `POST /oauth/introspect` answers an unregistered caller `invalid_client` at `id.qorsync.dev`, so L8.1 is live,
+    migration 023 applied in production; L8.1 and L8.2 are ticked. Social's audit commit was pushed after that merge, so
+    it is pull request #32 on its own (`session/social-audit`). Pull request #30's QOR ID job had failed before any step
+    (a Docker image pull) and was re-run.
+    **The launcher's Social surface, on branch `session/social-launcher`, not merged:** the host holds the one socket and
+    the token (`src-tauri/src/social.rs`): jsonrpsee's WebSocket transport, already in the graph through subxt, so the
+    lockfile gains no package; reconnects at 1, 2, 4 … 30 s; an expired token is swapped and hello said again at once; a
+    session that is not live is refreshed once, then reported `signed_out`; a request never hangs past a lost connection.
+    `social_url` joins the settings (`wss://`, or `ws://` on this machine; `QOR_SOCIAL_URL` overrides; default
+    `ws://127.0.0.1:8090/v1/socket` until L8.6). Commands `social_connect`, `social_disconnect`, `social_status`,
+    `social_request` and `qor_claim_username`; refusals reach the interface as `kind: "social"` with Social's own
+    `code`. The interface (`src/social/`): connected while the shell is open, so the rail counts unread from anywhere;
+    the claim on entry (a new QOR ID, or a made name once, then Social told again who this is); conversations, direct and
+    rooms apart, with invitations; a room's messages with day rules, grouping, replies, reactions, edits, deletes,
+    @mentions marked and completed, typing, and older pages; profile cards and an editor with a live preview, banners in
+    the six QFX presets drawn in CSS, an accent refused when it would not read on the theme, and a showcase chosen from the
+    account's own assets (another person's is shown unchecked: a profile carries no chain account yet); dialogs for a new
+    room, finding one, a direct message, inviting, and room settings with ambience. Onboarding's claim card lost copy left
+    from before ADR-075 (a hyphen allowed, "a number is added", `name#…`). **Evidence:** the launcher's 249 tests (eight
+    new for the socket, among them its own log check, proven to fail with the hello frame logged; one for settings), fmt
+    and clippy clean; the ten browser checks, counts unchanged; the new `check-social-view.mjs`, 29 checks, each of three
+    planted faults caught (an extra field in a send, the rail counting nothing, every accent accepted); it also caught two
+    faults of the build itself, fixed before commit: a room opened automatically on welcome, which marked it read unseen,
+    and its history asked for twice. **End to end on this PC, the same night:** a real QOR ID (`cargo run`, Postgres and
+    Redis in Docker, Social registered as a service in `QOR_OAUTH_CLIENTS`) and a real Social (`cargo run`, its own
+    database), driven over real WebSockets by a script: a token QOR ID never issued refused; two people welcomed by the
+    names QOR ID vouches for; a room made and joined; a message sealed, delivered and opened; an @mention delivered; a
+    direct message to its one recipient; an account put on a made name told so at hello and refused posting
+    (`name_not_chosen`); QOR ID's one-time claim taken and a second refused; and, after a token refresh, Social welcoming
+    the chosen name and letting it post: 12 of 12. Two script errors were the script's (it read the sender's own echo, and
+    reconnected with the same token inside Social's 30-second introspection cache, which the launcher avoids by
+    refreshing after a claim). Social ran with `RUST_LOG` asking tungstenite for trace: its log held no token, no words,
+    no client secret and no tungstenite line. **Deployment readiness (L8.6):** `GET /ready` (asks the database; tested to
+    answer 503 once the database is closed, while `/health` still says 200), `services/social/Dockerfile` (built here,
+    149 MB; started against a fresh database, migrated it and answered `/ready` 200), and `services/social/DEPLOY-RAILWAY.md`,
+    the owner's steps: a `Social-Postgres` service, the `social` service, two secrets generated on the owner's machine,
+    and Social's entry in QOR ID's `QOR_OAUTH_CLIENTS`. **Not done:** the launcher has not run against a running Social
+    (each side of that seam is tested against a stand-in of the other); that waits on L8.6, when the owner's first look
+    is the proof. **Next:** CI on #33; then L8.6, deploying Social beside QOR ID by `services/social/DEPLOY-RAILWAY.md`
+    (owner steps in Railway).
+
 ## 5. Traps, so nobody re-learns them
 
+**CI's database images**
+- The QOR ID and Social jobs pull `postgres` and `redis` from Amazon ECR Public anonymously. On 15 October 2026 it
+  refused twice in one evening (`toomanyrequests: Data limit exceeded`, `Docker pull failed`), failing a job before any
+  step of the change ran (#30, #32); re-running the failed job passed both. A job that fails at "UNKNOWN STEP" with a
+  Docker pull error is this, not the change. A lasting fix (an authenticated pull, or the images from another registry)
+  needs a credential, so it is the owner's to choose.
+
 **Launcher checks**
-- `npm run check` runs ten checks: design, accessibility, the gates view, the Projects view, the Inventory
+- `npm run check` runs eleven checks (the Social view since 15 October 2026): design, accessibility, the gates view, the Projects view, the Inventory
   view, the Market view (`check-market-view.mjs`), QQ (`check-qq-view.mjs`, since 2026-10-08), the Gate and Windows Hello (`check-vault-gate.mjs`), QFX
   contrast and readability. It needs `npm run build` first, because nine of them serve `dist`, and a
   Chromium-family browser (set `BROWSER_PATH` for one that is not Edge or Chrome in the usual places).
