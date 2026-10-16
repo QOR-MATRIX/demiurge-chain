@@ -28,6 +28,7 @@ pub mod pay;
 pub mod qontrol;
 pub mod qq;
 pub mod social;
+pub mod translate;
 pub mod vault;
 
 use std::future::Future;
@@ -245,6 +246,8 @@ pub struct AppState {
     pub identity: Arc<IdentityClient>,
     /// Social's socket (ADR-091, L8.5), held here so no token reaches the webview.
     pub social: Arc<social::Social>,
+    /// Translation on this PC (ADR-092): Mozilla's catalogue, and the engine and models kept by hash.
+    pub translate: Arc<translate::Translator>,
     /// Release-gate progress for the development dashboard (roadmap L2.2).
     pub dashboard: Arc<gates::Dashboard>,
     /// Open briefly after an unlock, for the QOR ID sign-in (ADR-016).
@@ -254,7 +257,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    fn new(data_dir: std::path::PathBuf) -> QorResult<Self> {
+    fn new(data_dir: std::path::PathBuf, cache_dir: std::path::PathBuf) -> QorResult<Self> {
         let settings = config::Settings::load(&data_dir);
         tracing::info!(rpc = %settings.rpc_url, auth = %settings.auth_url, "endpoints");
 
@@ -263,6 +266,7 @@ impl AppState {
             chain: Arc::new(ChainClient::new(settings.rpc_url)?),
             identity: Arc::new(IdentityClient::new(settings.auth_url)?),
             social: Arc::new(social::Social::new(settings.social_url)),
+            translate: Arc::new(translate::Translator::new(cache_dir.join("translations"))?),
             dashboard: Arc::new(gates::Dashboard::new()?),
             arrival: ArrivalGrant::default(),
             data_dir,
@@ -1251,6 +1255,73 @@ async fn qor_claim_username(
     state.identity.claim_username(&username).await
 }
 
+/// How a translation download is going, for the interface (ADR-092).
+struct TranslateProgress(tauri::AppHandle);
+
+impl translate::Progress for TranslateProgress {
+    fn progress(&self, file: &translate::File, done: u64) {
+        use tauri::Emitter;
+        let _ = self.0.emit(
+            "translate://progress",
+            serde_json::json!({ "hash": file.hash, "kind": file.kind, "done": done, "total": file.download_size() }),
+        );
+    }
+}
+
+/// The languages Mozilla can translate between on this PC, and the language this PC is set to (ADR-092).
+#[tauri::command]
+async fn translate_languages(
+    state: tauri::State<'_, AppState>,
+) -> Result<serde_json::Value, QorError> {
+    let languages = state.translate.languages().await?;
+    Ok(serde_json::json!({ "languages": languages, "system": translate::system_language() }))
+}
+
+/// What translating from one language to another needs, and how much is still to download; null when nothing is needed
+/// or nothing can be done.
+#[tauri::command]
+async fn translate_plan(
+    state: tauri::State<'_, AppState>,
+    from: String,
+    to: String,
+) -> Result<Option<translate::Plan>, QorError> {
+    state.translate.plan(&from, &to).await
+}
+
+/// Fetch what a translation needs, reporting `translate://progress` as it goes.
+#[tauri::command]
+async fn translate_prepare(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    from: String,
+    to: String,
+) -> Result<Option<translate::Plan>, QorError> {
+    let plan = state.translate.plan(&from, &to).await?;
+    if let Some(plan) = &plan {
+        state
+            .translate
+            .prepare(plan, &TranslateProgress(app))
+            .await?;
+    }
+    Ok(plan)
+}
+
+/// A checked file's bytes, for the engine in the webview, as raw bytes rather than JSON.
+#[tauri::command]
+fn translate_file(
+    state: tauri::State<'_, AppState>,
+    hash: String,
+) -> Result<tauri::ipc::Response, QorError> {
+    Ok(tauri::ipc::Response::new(state.translate.read(&hash)?))
+}
+
+/// The language some words are in, told on this PC, or null when there are too few to tell. The words are not kept or
+/// logged.
+#[tauri::command]
+fn translate_detect(text: String) -> Option<String> {
+    translate::detect(&text)
+}
+
 /// Social's connection reports to the interface as Tauri events (ADR-091 decision 3).
 struct SocialEvents(tauri::AppHandle);
 
@@ -1523,7 +1594,12 @@ pub fn run() {
 
             tracing::info!(dir = %data_dir.display(), "QOR Launcher starting");
 
-            app.manage(AppState::new(data_dir).map_err(|e| e.to_string())?);
+            // Translation models are large and this machine's own, so they are kept with its local data, not roaming.
+            let cache_dir = app
+                .path()
+                .app_local_data_dir()
+                .map_err(|e| format!("cannot locate the local data directory: {e}"))?;
+            app.manage(AppState::new(data_dir, cache_dir).map_err(|e| e.to_string())?);
 
             // `qor://pay` (ADR-076). The installer registers the scheme; registering again here covers a launcher run
             // without installing, and points the scheme at this copy.
@@ -1623,6 +1699,11 @@ pub fn run() {
             social_disconnect,
             social_status,
             social_request,
+            translate_languages,
+            translate_plan,
+            translate_prepare,
+            translate_file,
+            translate_detect,
             qor_set_auth_endpoint,
             arqade_open,
             gates_report,

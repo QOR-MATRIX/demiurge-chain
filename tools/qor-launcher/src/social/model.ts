@@ -1,5 +1,5 @@
 /**
- * Social, as the interface holds it (ADR-091; docs/blueprints/social.md; roadmap L8.5).
+ * Social, as the interface holds it (ADR-091, ADR-092; docs/blueprints/social.md; roadmap L8.5).
  *
  * The launcher's host holds the one socket to Social and the QOR ID token; this side only asks (`social_request`)
  * and listens (`social://status`, `social://welcome`, `social://event`). Every event is folded into one store here, so
@@ -44,13 +44,15 @@ export interface Profile {
   banner: Backdrop;
   showcase: string[];
   status_line: string;
+  /** The language they read in, and write in when their words are too few to tell (ADR-092). */
+  language: string | null;
   seen_at: string;
   presence?: Presence;
 }
 
 export interface Room {
   id: string;
-  kind: 'public' | 'private' | 'direct';
+  kind: 'public' | 'private' | 'direct' | 'world';
   name: string;
   topic: string;
   ambience: Backdrop;
@@ -81,6 +83,8 @@ export interface Message {
   edited_at: string | null;
   deleted: boolean;
   created_at: string;
+  /** The language it was written in, as its sender's launcher found it. */
+  lang: string | null;
 }
 
 export interface Invite {
@@ -103,6 +107,23 @@ export interface Welcome {
   invites: Invite[];
   blocked: string[];
   presence: Record<string, Presence>;
+  /** World, which everyone is in, and until when the reader is muted there, if they are (ADR-092). */
+  world?: { id: string; muted_until: string | null };
+}
+
+/** A friend request, from the other person's side of it. */
+export interface FriendRequest {
+  sub: string;
+  created_at: string;
+}
+
+/** One of the reader's circles: their own group of friends, which nobody else sees. */
+export interface Circle {
+  id: string;
+  name: string;
+  color: string | null;
+  created_at: string;
+  members: string[];
 }
 
 /** A refusal from Social, with its own code. */
@@ -175,6 +196,13 @@ interface SocialState {
   active: string | null;
   /** Whose card is open, if anyone's. */
   card: string | null;
+  /** World's id, and until when the reader may not post there. */
+  world: string | null;
+  mutedUntil: string | null;
+  friends: string[];
+  incoming: FriendRequest[];
+  outgoing: FriendRequest[];
+  circles: Circle[];
 
   setStatus: (s: Status) => void;
   welcome: (w: Welcome) => void;
@@ -186,6 +214,8 @@ interface SocialState {
   putRoom: (room: Room, role: RoomSummary['role']) => void;
   dropRoom: (room: string) => void;
   putMessage: (m: Message) => void;
+  loadFriends: () => Promise<void>;
+  putCircle: (c: Circle) => void;
 }
 
 const sorted = (messages: Message[]) => [...messages].sort((a, b) => a.seq - b.seq);
@@ -204,6 +234,12 @@ export const useSocial = create<SocialState>((set, get) => ({
   mentions: {},
   active: null,
   card: null,
+  world: null,
+  mutedUntil: null,
+  friends: [],
+  incoming: [],
+  outgoing: [],
+  circles: [],
 
   setStatus: (status) => set({ status }),
 
@@ -222,6 +258,8 @@ export const useSocial = create<SocialState>((set, get) => ({
         blocked: w.blocked,
         presence: { ...s.presence, ...w.presence, [w.me.sub]: { state: 'online', playing: null } },
         profiles: { ...s.profiles, [w.me.sub]: w.me },
+        world: w.world?.id ?? null,
+        mutedUntil: w.world?.muted_until ?? null,
         active,
         // What was held may be stale after a reconnect: each room reloads when it is next shown.
         threads: {},
@@ -322,6 +360,42 @@ export const useSocial = create<SocialState>((set, get) => ({
         if (room) set({ rooms: { ...s.rooms, [room.id]: { ...room, unread: 0 } } });
         break;
       }
+      case 'friend.requested': {
+        get().remember((data.profiles ?? {}) as Record<string, Profile>);
+        const request = { sub: '', created_at: new Date().toISOString() };
+        if (data.to === s.me?.sub)
+          set({ incoming: [{ ...request, sub: data.from as string }, ...s.incoming.filter((r) => r.sub !== data.from)] });
+        else if (data.from === s.me?.sub)
+          set({ outgoing: [{ ...request, sub: data.to as string }, ...s.outgoing.filter((r) => r.sub !== data.to)] });
+        break;
+      }
+      case 'friend.accepted': {
+        get().remember((data.profiles ?? {}) as Record<string, Profile>);
+        const other = (data.between as string[]).find((x) => x !== s.me?.sub);
+        if (other)
+          set({
+            friends: s.friends.includes(other) ? s.friends : [...s.friends, other],
+            incoming: s.incoming.filter((r) => r.sub !== other),
+            outgoing: s.outgoing.filter((r) => r.sub !== other),
+          });
+        break;
+      }
+      case 'friend.declined': {
+        const other = data.from === s.me?.sub ? data.to : data.from;
+        set({ incoming: s.incoming.filter((r) => r.sub !== other), outgoing: s.outgoing.filter((r) => r.sub !== other) });
+        break;
+      }
+      case 'friend.removed': {
+        const other = (data.between as string[]).find((x) => x !== s.me?.sub);
+        set({
+          friends: s.friends.filter((f) => f !== other),
+          circles: s.circles.map((c) => ({ ...c, members: c.members.filter((m) => m !== other) })),
+        });
+        break;
+      }
+      case 'world.muted':
+        set({ mutedUntil: (data.until as string | null) ?? null });
+        break;
     }
   },
 
@@ -383,12 +457,31 @@ export const useSocial = create<SocialState>((set, get) => ({
       const others = thread.messages.filter((x) => x.id !== m.id);
       return { threads: { ...s.threads, [m.room]: { ...thread, messages: sorted([...others, m]) } } };
     }),
+
+  loadFriends: async () => {
+    const [friends, circles] = await Promise.all([
+      host.request<{ friends: string[]; incoming: FriendRequest[]; outgoing: FriendRequest[]; profiles: Record<string, Profile> }>(
+        'friends.list',
+      ),
+      host.request<{ circles: Circle[] }>('circles.list'),
+    ]);
+    get().remember(friends.profiles);
+    set({ friends: friends.friends, incoming: friends.incoming, outgoing: friends.outgoing, circles: circles.circles });
+  },
+
+  putCircle: (c) =>
+    set((s) => ({ circles: s.circles.some((x) => x.id === c.id) ? s.circles.map((x) => (x.id === c.id ? c : x)) : [...s.circles, c] })),
 }));
 
 /** The name a person shows: their display line, else their QOR ID. */
 export function shownName(p: Profile | undefined | null): string {
   if (!p) return 'someone';
   return p.display.trim() || p.qor_id;
+}
+
+/** The reader's language: what their Social profile says, else what the PC is set to. */
+export function readerLanguage(me: Profile | null): string | null {
+  return me?.language ?? (typeof navigator !== 'undefined' ? navigator.language : null) ?? null;
 }
 
 /** A room's title as one member sees it: a direct room is the other person. */

@@ -783,6 +783,231 @@
     border-radius: 2px;
     padding: 0 2px;
   }
+
+  /* ADR-092: chats and friends, World, levels beside names, translation, circles. */
+  .social-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--edge);
+    background: var(--well);
+    border-radius: var(--radius-qor);
+  }
+  .social-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border-radius: calc(var(--radius-qor) - 1px);
+    font-size: var(--text-ui);
+    color: var(--ink-muted);
+    transition:
+      background 160ms var(--ease-expo),
+      color 160ms var(--ease-expo);
+  }
+  .social-tab:hover {
+    color: var(--ink);
+  }
+  .social-tab-on {
+    background: var(--raised);
+    color: var(--ink);
+    box-shadow: inset 0 -2px 0 var(--accent);
+  }
+  .social-tab-count {
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--accent-bright);
+    color: var(--void);
+    font-size: var(--text-micro);
+    font-weight: 600;
+    line-height: 16px;
+  }
+
+  .social-world-row {
+    position: relative;
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--edge));
+    border-radius: var(--radius-qor);
+    transition:
+      border-color 160ms var(--ease-expo),
+      box-shadow 160ms var(--ease-expo);
+  }
+  .social-world-row::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--void) 70%, transparent), color-mix(in srgb, var(--void) 35%, transparent));
+    pointer-events: none;
+  }
+  .social-world-row > * {
+    z-index: 1;
+  }
+  .social-world-row:hover,
+  .social-world-row-on {
+    border-color: var(--accent);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .social-world-globe {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    flex: none;
+    border-radius: 50%;
+    color: var(--void);
+    background: conic-gradient(from 200deg, var(--accent-bright), var(--accent), var(--accent-dim), var(--accent-bright));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  .social-world-globe-lg {
+    width: 36px;
+    height: 36px;
+  }
+  .social-world-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-bright);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-bright) 60%, transparent);
+    animation: social-pulse 2.4s ease-out infinite;
+  }
+  @keyframes social-pulse {
+    70% {
+      box-shadow: 0 0 0 8px transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+
+  /* A level beside a name: the same accent as the ring on the avatar. */
+  .social-level {
+    flex: none;
+    padding: 0 6px;
+    border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent-bright);
+    font-size: var(--text-micro);
+    font-weight: 600;
+    line-height: 16px;
+  }
+
+  .social-translated {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-faint);
+    font-size: var(--text-micro);
+  }
+  .social-translated-toggle {
+    color: var(--accent-bright);
+    font-weight: 600;
+  }
+  .social-translated-toggle:hover {
+    text-decoration: underline;
+  }
+  .social-translating {
+    background: linear-gradient(90deg, var(--ink-faint) 30%, var(--ink) 50%, var(--ink-faint) 70%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: social-shimmer 1.6s linear infinite;
+  }
+  @keyframes social-shimmer {
+    to {
+      background-position: -200% 0;
+    }
+  }
+  .social-translate-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 11rem;
+    padding: 5px 10px;
+    border: 1px solid var(--edge);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--void) 55%, transparent);
+    color: var(--ink-muted);
+    font-size: var(--text-micro);
+    transition:
+      border-color 160ms var(--ease-expo),
+      color 160ms var(--ease-expo);
+  }
+  .social-translate-switch:hover {
+    color: var(--ink);
+  }
+  .social-translate-switch-on {
+    border-color: var(--accent);
+    color: var(--ink);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  .social-translate-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 24px;
+    border-bottom: 1px solid var(--edge);
+    background: color-mix(in srgb, var(--accent) 8%, var(--well));
+    color: var(--ink-body);
+    font-size: var(--text-caption);
+  }
+  .social-translate-bar-bad {
+    background: color-mix(in srgb, var(--color-bad) 10%, var(--well));
+  }
+  .social-translate-meter {
+    position: relative;
+    width: 7rem;
+    height: 4px;
+    flex: none;
+    overflow: hidden;
+    border-radius: 2px;
+    background: var(--edge);
+  }
+  .social-translate-meter > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--accent);
+    transition: width 200ms var(--ease-expo);
+  }
+
+  /* Circles and friend requests. */
+  .social-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border: 1px solid var(--edge);
+    border-radius: 999px;
+    color: var(--ink-muted);
+    font-size: var(--text-micro);
+    transition:
+      border-color 160ms var(--ease-expo),
+      color 160ms var(--ease-expo);
+  }
+  .social-chip:hover {
+    color: var(--ink);
+  }
+  .social-chip-on {
+    border-color: var(--chip, var(--accent));
+    background: color-mix(in srgb, var(--chip, var(--accent)) 14%, transparent);
+    color: var(--ink);
+  }
+  .social-circle-dot {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 50%;
+  }
+  .social-request {
+    border: 1px solid var(--edge);
+    background: color-mix(in srgb, var(--raised) 60%, transparent);
+  }
+  .social-request-in {
+    border-color: color-mix(in srgb, var(--accent) 50%, var(--edge));
+  }
 }
 
 @layer utilities {

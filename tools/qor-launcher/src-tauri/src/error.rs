@@ -88,6 +88,11 @@ pub enum QorError {
     #[error("{message}")]
     Social { code: String, message: String },
 
+    /// Translation on this PC could not be prepared (ADR-092): Mozilla's catalogue or a file could not be reached, or a
+    /// file did not match what Mozilla publishes. The sentence is for the person.
+    #[error("{0}")]
+    Translation(String),
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -119,6 +124,7 @@ impl QorError {
             Self::Declined => "declined",
             Self::Hello(_) => "hello",
             Self::Social { .. } => "social",
+            Self::Translation(_) => "translation",
             Self::Internal(_) => "internal",
         }
     }

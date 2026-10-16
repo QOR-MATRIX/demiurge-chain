@@ -321,6 +321,24 @@ surface. Entering asks for nothing already known: with no QOR ID the name is cho
 Rooms, direct conversations, replies, reactions, edits, deletes, @mentions with completion, typing, presence, profiles
 with a banner and an accent (refused when it would not read on the theme), and a showcase chosen from the account's own assets. Evidence: the host's socket tests and its log check (`social::tests`), and `scripts/check-social-view.mjs`.
 
+**World, friends and translation (ADR-092).** World is pinned first and opens with Social; Chats and Friends are tabs,
+with requests, adding by QOR ID, friends online first, and circles that open a group chat. Each author shows their level
+and username. World and public rooms are shown in the reader's language, **translated on this PC**:
+`src-tauri/src/translate.rs` reads Mozilla's Remote Settings (`translations-models-v2`, `translations-wasm-v2`), plans the
+files a pair needs (two through English), downloads each once with `translate://progress`, checks its SHA-256 packed and
+unpacked (unpacking capped at the published size), keeps it by hash under the local data folder's `translations/`, and
+serves only files it checked this run (`translate_file`, raw bytes). The engine is pinned (`ENGINE_SHA256`) to the build of
+Firefox's loader kept in `public/translate/bergamot-translator.js` (v0.6.0, MPL-2.0, its licence beside it); the worker
+there (`public/translate/worker.js`, MPL-2.0, after Firefox's) runs it, which is why the CSP allows `'wasm-unsafe-eval'`.
+`translate_detect` tells a message's language on the sender's PC with `whatlang`. Evidence: `translate::tests` (a stand-in
+for Mozilla), `scripts/check-social-view.mjs` (the worker in its stand-in mode), and by hand, the real engine with
+Mozilla's real files:
+
+```bash
+QOR_TRANSLATE_DIR=<folder> cargo test --lib real_mozilla -- --ignored   # in src-tauri: downloads about 30 MB
+node scripts/check-translate-engine.mjs <folder>                        # after npm run build
+```
+
 ## Release gates (development dashboard)
 
 The Gates surface shows Alpha, Beta and Public Release progress, computed by
@@ -381,7 +399,7 @@ npm install
 npm run app:dev        # dev, with hot reload
 npm run app:build      # release bundle (msi, nsis, deb, appimage, dmg)
 npm run icons          # regenerate the icon set from scripts/make_icons.py
-npm run check          # design, accessibility, gates view, Projects view, Inventory view, Market view, the Gate's restore and Hello, QFX contrast, readability (needs npm run build first)
+npm run check          # design, accessibility, gates view, Projects view, Inventory view, Market view, QQ view, Social view, the Gate's restore and Hello, QFX contrast, readability (needs npm run build first)
 ```
 
 Rust tests. Build Qontrol's helper first, or its tests that commit skip:
