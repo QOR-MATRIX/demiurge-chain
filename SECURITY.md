@@ -29,8 +29,16 @@ serious today:
 - **Social can read the messages it holds** (ADR-091 decision 4, the owner's choice for release 1). Bodies are sealed
   at rest with the service's own keys and travel only over TLS, so a copy of its database alone reads nothing; but
   the service, and whoever runs it, can open them, which is what lets reports and moderation work. End-to-end
-  encrypted direct messages are release 2 (L8.8), designed in a record of their own first. Social is not deployed
-  (15 October 2026).
+  encrypted direct messages are release 2 (L8.8), designed in a record of their own first. Social has been live on
+  the devnet stack since 16 October 2026, for the owner's own use until the content policy is decided (L8.7). World,
+  once merged (ADR-092), puts everyone who opens Social in one room, kept in full, so its moderators and reports matter
+  more than in any other room.
+- **The launcher downloads its translation engine and models from Mozilla** (ADR-092 decision 3). Every file is checked
+  against the SHA-256 Mozilla publishes, packed and unpacked, unpacking is capped at the published size, and the engine
+  is pinned by its hash; but the list of records is trusted as Mozilla serves it over TLS (Firefox also checks a
+  signature over the collection; the launcher does not). The engine runs in a worker in the webview, whose CSP now allows
+  `'wasm-unsafe-eval'`: compiling WebAssembly, and nothing else (string `eval` stays forbidden). No message text is sent
+  anywhere to be translated.
 - **The wallet extension** (`apps/wallet-extension`) derives keys non-standardly. Keys created there
   cannot be recovered by any other wallet (D-011).
 - **Nine credential-shaped values from the private archive's history are covered by no rotation record.**

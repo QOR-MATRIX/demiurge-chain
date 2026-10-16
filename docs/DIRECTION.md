@@ -735,10 +735,11 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 4. [ ] Mesh seeding.
 5. [ ] Studio inside the launcher.
 
-#### L8: Social (ADR-091; depends on nothing in M8)
+#### L8: Social (ADR-091, ADR-092; depends on nothing in M8)
 
 Rooms, direct messages, presence and profiles per QOR ID, in a service of its own (`services/social/`) with the
-launcher as its first client. Design: [`blueprints/social.md`](blueprints/social.md). L8.1 to L8.7 are release 1.
+launcher as its first client; World, friends and circles, and translation on the reader's PC (ADR-092). Design:
+[`blueprints/social.md`](blueprints/social.md). L8.1 to L8.7 and L8.11 to L8.14 are release 1.
 
 1. [x] QOR ID for Social: token introspection for registered services (`POST /oauth/introspect`); an account on an
    automatic `key_…` name chooses its username once; another person's public profile by username. Each flow joins the
@@ -751,12 +752,15 @@ launcher as its first client. Design: [`blueprints/social.md`](blueprints/social
    Postgres, the log check and bound SQL from the first commit. Done 2026-10-15: `services/social/`, merged with pull
    request #31, its CI job green on `main` at `76ffbf4`; 29 tests, each rule failing against a planted fault first. Not
    deployed: that is L8.6.
-3. [ ] Profiles per QOR ID: a display line, a bio, an accent, a banner from the QFX backdrops, a showcase of DRC-369
+3. [x] Profiles per QOR ID: a display line, a bio, an accent, a banner from the QFX backdrops, a showcase of DRC-369
    assets the account holds, and a card opened from any message; username, avatar and level as QOR ID returns them.
-4. [ ] Presence: online and away, typing, a status line, and what someone is playing when a product says so.
-5. [ ] The launcher's Social surface, its first client: the socket held by the Rust host, events to the interface; rooms,
+   Done 2026-10-16 with L8.5.
+4. [x] Presence: online and away, typing, a status line, and what someone is playing when a product says so. Done
+   2026-10-16 with L8.5.
+5. [x] The launcher's Social surface, its first client: the socket held by the Rust host, events to the interface; rooms,
    conversations, composer, profiles and notifications, in the launcher's themes and QFX; the username claim on entry,
-   and the existing QOR ID claim for a person without one.
+   and the existing QOR ID claim for a person without one. Done 2026-10-16: merged as #33 and #34, and the owner's first
+   conversation, in a launcher built from #34 against the deployed Social, answered "Successful. Looking great so far".
 6. [x] Deployed beside QOR ID on Railway (devnet stack), with CI jobs (format, lints, tests with Postgres) and a
    dependency audit. Done 2026-10-16: live at `wss://social-production-e05c.up.railway.app/v1/socket`, its database
    `Postgres-Yj3Q`, registered with QOR ID as a service; checked from outside (`/ready` 200, and a hello with a token that
@@ -767,6 +771,18 @@ launcher as its first client. Design: [`blueprints/social.md`](blueprints/social
 8. [ ] Release 2: end-to-end encrypted direct messages keyed from the vault, designed in a record of its own first.
 9. [ ] A web client on the same service, and ARQADE's chat moved onto Social.
 10. [ ] Voice, feeds, and search across rooms.
+11. [ ] World (ADR-092 decision 1): one room everyone is in from their first hello, opened when Social is, kept in full;
+    its moderators named in `SOCIAL_WORLD_MODERATORS`, who delete and mute for ten minutes to a week; its own sending
+    pace; World making nobody a contact. Built 2026-10-16 on branch `session/social-world`, not merged.
+12. [ ] Friends and circles (ADR-092 decision 2): requests by username, answered by the one asked; friends see each
+    other's presence; a block ends a friendship; circles, private to their owner, open a private room in one step. Built
+    2026-10-16 on branch `session/social-world`, not merged.
+13. [ ] Translation on the reader's PC (ADR-092 decision 3): World and public rooms in the reader's language by
+    Mozilla's Bergamot engine and models, downloaded once and checked against Mozilla's hashes; each message carrying the
+    language it was written in; the original one click away. Built 2026-10-16 on branch `session/social-world`, not
+    merged; the real engine translated Mozilla's real Spanish model on this PC.
+14. [ ] Each author's avatar, level and username in chat (ADR-092 decision 4). Built 2026-10-16 on branch
+    `session/social-world`, not merged.
 
 ### The product tracks
 

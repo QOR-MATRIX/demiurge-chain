@@ -774,6 +774,12 @@ type = "tightening"
 change = "The Social view check (tools/qor-launcher/scripts/check-social-view.mjs) joins npm run check, so CI's launcher job runs eleven checks, not ten ([ci].quality_gates updated). No criterion, kind or threshold changes."
 reason = "Tightening: a check added, none removed or relaxed. It drives the launcher's Social surface (ADR-091, L8.5) in a real browser against a stand-in host, from connecting and the one-time name claim to sending, receiving, profiles and refusals; HANDOFF.md section 4 item 76 records the faults it was seen to catch."
 
+[[change_log]]
+date = "2026-10-16"
+type = "tightening"
+change = "The social gate counts ADR-092 (World, friends and circles, translation on the reader's PC, accepted by the owner on 2026-10-16) in social.decisions, L8.11 to L8.14 in social.roadmap, and four more required tests in social.tests: World's rules, its moderators, friends and circles. services/social/.cargo/config.toml runs its tests four at a time (RUST_TEST_THREADS), which is what CI's four-core runners already did."
+reason = "Tightening: units and required tests added, none removed or relaxed. Each new test was seen to fail against planted faults first (twelve in Social, nine in the launcher's translation module; HANDOFF.md section 4 item 78). The thread count changes no test and no threshold: every sqlx test shares a parent pool of 20 connections, each test up to 5, so a twenty-core PC running twenty at once timed some out (PoolTimedOut) while CI's four never could."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1831,14 +1837,15 @@ Rooms, direct messages, presence and profiles per QOR ID, in a service of its ow
   [[gates.criteria]]
   id = "social.decisions"
   kind = "adr"
-  adrs = ["ADR-091"]
+  adrs = ["ADR-091", "ADR-092"]
 
-  # Release 1. L8.8 to L8.10 (end-to-end encrypted DMs, the web client, voice
-  # and feeds) are later releases and are not counted here.
+  # Release 1, with World, friends, translation and levels in chat (ADR-092).
+  # L8.8 to L8.10 (end-to-end encrypted DMs, the web client, voice and feeds)
+  # are later releases and are not counted here.
   [[gates.criteria]]
   id = "social.roadmap"
   kind = "roadmap"
-  items = ["L8.1", "L8.2", "L8.3", "L8.4", "L8.5", "L8.6", "L8.7"]
+  items = ["L8.1", "L8.2", "L8.3", "L8.4", "L8.5", "L8.6", "L8.7", "L8.11", "L8.12", "L8.13", "L8.14"]
 
   # The rules docs/blueprints/social.md section 4 says are tested, not hoped for.
   # Each failed against a planted fault first (HANDOFF.md section 4 item 75).
@@ -1854,6 +1861,10 @@ Rooms, direct messages, presence and profiles per QOR ID, in a service of its ow
     "nothing_secret_reaches_a_log_at_any_level",
     "every_query_in_the_source_is_a_literal_with_bound_parameters",
     "no_migration_file_holds_a_carriage_return",
+    "world_is_everyones_and_a_newcomer_starts_at_its_newest_message",
+    "worlds_moderators_delete_and_mute_and_nobody_else_does",
+    "friends_ask_and_answer_and_friends_see_each_others_presence",
+    "circles_are_their_owners_alone_and_open_a_private_room",
   ]
 
   # QOR ID's side of Social (L8.1), in QOR ID's own suite. Each failed against a

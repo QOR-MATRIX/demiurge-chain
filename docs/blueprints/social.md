@@ -2,12 +2,16 @@
 
 **What it is:** rooms, direct messages, presence and profiles per QOR ID, in a service of its own, with the QOR
 Launcher as its first client. **Decided by** [ADR-091](../decisions/ADR-091-social.md) (accepted by the owner,
-15 October 2026). **Roadmap:** L7.3, whose steps are L8 in [`DIRECTION.md`](../DIRECTION.md). This document is the
+15 October 2026) and [ADR-092](../decisions/ADR-092-world-friends-and-translation.md) (World, friends and circles,
+translation on the reader's PC; 16 October 2026). **Roadmap:** L7.3, whose steps are L8 in [`DIRECTION.md`](../DIRECTION.md). This document is the
 design; what exists is in [`SYSTEMS.md`](../SYSTEMS.md), and what is done is ticked in `DIRECTION.md`, nowhere else.
 
 The owner's brief, 15 October 2026: an engaging, full-featured social network and next-generation chat, with complete
 personalised profiles per QOR ID username and customisation never seen in a chat, premium in look and feel, and
-seamless onboarding on the QOR ID username a person chose, or, without one, choosing it there.
+seamless onboarding on the QOR ID username a person chose, or, without one, choosing it there. And on 16 October 2026,
+after the first conversation: circles and friendship; a world chat everyone on the launcher is entered into on opening
+Social; real-time translation, so each person reads the chat in their own language, with the language it was written in
+shown; avatars in chat with each person's level and username.
 
 ## 1. Shape
 
@@ -46,20 +50,27 @@ A frame is one JSON object of at most 64 KiB. The first frame from the client is
 
 Methods are typed intents, never raw writes: `rooms.list | create | join | leave | invite | update | members`,
 `messages.history | send | edit | delete | react | read`, `dm.open`, `profile.get | update`, `presence.set`,
-`typing`, `block | unblock`, `report`. Events mirror them: `message.created | edited | deleted | reaction`,
-`room.updated | member.joined | member.left`, `presence`, `typing`, `profile.updated`, `read`. A `nonce` on send makes a
-retry after a dropped connection idempotent. Unknown methods and versions are refused with a code, never ignored.
+`typing`, `block | unblock`, `report`; and since ADR-092 `friends.list | request | accept | decline | cancel | remove`,
+`circles.list | create | update | delete | add | remove | open` and `world.mute | unmute`. Events mirror them:
+`message.created | edited | deleted | reaction`, `room.updated | member.joined | member.left`, `presence`, `typing`,
+`profile.updated`, `read`, `friend.requested | accepted | declined | removed` and `world.muted`. A `nonce` on send makes
+a retry after a dropped connection idempotent; a `lang` on send or edit says what language the words are in. The
+welcome carries `world`: World's id, and until when the reader is muted there. Unknown methods and versions are refused
+with a code, never ignored.
 
 ## 3. Data (Postgres, Social's own database)
 
 | Table | Holds |
 | --- | --- |
-| `profiles` | `sub` (key), display line, bio, accent, banner (a QFX preset and its parameters), showcase (DRC-369 asset ids, checked against the chain when shown), status line, updated |
-| `rooms` | id, kind (`public`, `private`, `direct`), name, topic, ambience (a QFX preset), owner, created |
+| `profiles` | `sub` (key), display line, bio, accent, banner (a QFX preset and its parameters), showcase (DRC-369 asset ids, checked against the chain when shown), status line, language, updated |
+| `rooms` | id, kind (`public`, `private`, `direct`, `world`; one `world`), name, topic, ambience (a QFX preset), owner, created |
 | `members` | room, `sub`, role (`owner`, `moderator`, `member`), joined, last read sequence, muted |
-| `messages` | room, sequence (per room, gapless), id, author, **sealed body** and its key version, reply-to, edited, deleted, created |
+| `messages` | room, sequence (per room, gapless), id, author, **sealed body** and its key version, reply-to, language, edited, deleted, created |
 | `reactions` | message, `sub`, emoji (one row each) |
 | `invites`, `blocks`, `reports` | who invited whom; who blocks whom; a message, its reporter, a reason, and its resolution |
+| `mutes` | a room (World), a person, until when, and the moderator who muted them |
+| `friend_requests`, `friendships` | who asked whom; each pair of friends once, the lower id first |
+| `circles`, `circle_members` | a person's own named, coloured groups, and the friends in each |
 
 - **Sealed at rest:** a body is encrypted with XChaCha20-Poly1305 under the service's message key of the current
   version, with the room and sequence as associated data, so a sealed body cannot be moved to another message. Keys
@@ -80,6 +91,14 @@ retry after a dropped connection idempotent. Unknown methods and versions are re
 - Nothing secret reaches a log: tokens, the client secret, message bodies and keys are never logged at any level; a
   runtime check drives every flow at TRACE and fails on any of them (AGENTS.md §9's rule, adopted from the first commit).
 - A blocked person's messages, typing and presence do not reach the person who blocked them.
+- World (ADR-092): everyone is in it from their first hello and nobody leaves, renames, invites to it or is removed from
+  it; a newcomer starts at its newest message; it makes nobody a contact, so presence and typing do not cross it; its
+  moderators come from configuration, never from a name its holder did not choose, and only they delete others' words
+  and mute; a muted person reads but does not post there; it has a sending pace of its own.
+- Friendship is asked and answered, never assumed; a block ends it and refuses a new one either way; friends see each
+  other's presence; a circle is seen and changed only by its owner, holds only their friends, and loses a friend when
+  the friendship ends.
+- A message's language is kept only in a language tag's shape.
 
 ## 5. Profiles: what makes them a person's own
 
@@ -112,7 +131,47 @@ Entering Social never asks for anything already known.
 3. **A QOR ID with a chosen name:** Social opens on the person's rooms, with a starter profile already made from
    their QOR ID (avatar, level, an accent from their theme), which they can shape at any time.
 
-## 7. Not in release 1
+## 7. World
+
+One room, made by the migration that adds its kind, with everyone in it (ADR-092 decision 1). The launcher pins it above
+every other conversation and opens it when Social opens. A message there reaches whoever is connected, less those who
+block its author; a member list there is who is here and showing, up to two hundred. World is kept in full (the owner's
+choice). Its moderators are QOR ID usernames in `SOCIAL_WORLD_MODERATORS`: they delete any message and mute a person for
+ten minutes, an hour, a day or a week. Typing is not shown in World. Its unread messages do not count on the launcher's
+rail; a mention there does.
+
+## 8. Friends and circles
+
+Friendship is mutual (ADR-092 decision 2): a request by username, accepted or declined by the one asked, taken back by
+the one who asked, ended by either; two people who ask each other are friends at once. Friends see each other's presence
+and what they are playing. The launcher shows friends beside conversations, online first, with the requests waiting and
+an add-by-name field. A circle is one person's group of their friends, with a name and a colour from the profile accent
+palette, seen by nobody else; choosing it shows its friends, and "Group chat" opens a private room named after it with
+its friends invited.
+
+## 9. Translation on each reader's PC
+
+World and public rooms are shown in the reader's language (ADR-092 decision 3); direct messages and private rooms are
+not translated.
+
+- **What a message carries:** `lang`, the language its sender's launcher found it to be in (`whatlang`, on the sender's
+  PC), or the sender's own language when the words are too few to tell. A person's language is in their profile, set
+  from the PC's language on first arrival and changed in the profile editor.
+- **What the reader sees:** each message in another language translated, marked "Translated from Spanish", with "Show
+  original" beside it; one in the reader's language unmarked; one in a language Mozilla has no model for shown as
+  written, saying so. A switch in the room's header shows everything as written instead.
+- **How:** the launcher's host reads Mozilla's public Remote Settings collections (`translations-models-v2`,
+  `translations-wasm-v2`), plans the files a pair of languages needs (between two languages neither of which is
+  English, two models through English), downloads each once, checks it against Mozilla's SHA-256 packed and unpacked
+  with unpacking capped at the published size, and keeps it by hash with the launcher's local data. The engine is pinned
+  by its hash to the build of Firefox's loader kept in `tools/qor-launcher/public/translate/`. The interface hands the
+  bytes to a worker there, which translates on the reader's CPU. The reader is told what is being downloaded and how
+  large, once per language pair. Translations are held in memory only.
+- **Checked:** the host's catalogue, download and verification rules against a stand-in for Mozilla; the screen against a
+  stand-in host with the worker in its stand-in mode (`check-social-view.mjs`); and, by hand, the real engine with
+  Mozilla's real files (`check-translate-engine.mjs`).
+
+## 10. Not in release 1
 
 End-to-end encrypted direct messages (release 2, its own record first), voice, feeds, search across rooms, a web
 client, ARQADE's chat moved onto Social, push notifications when the launcher is closed, and several instances of the
