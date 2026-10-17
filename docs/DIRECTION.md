@@ -814,22 +814,33 @@ are release 1.
 A peer-to-peer network inside every launcher, on iroh, holding published work and each person's private backup;
 seeders paid in CGT from the uploader's hosting escrow, for proven work only, with no CGT created. Design:
 [`blueprints/mesh.md`](blueprints/mesh.md); proofs proposed in [`architecture/MESH_PROOFS.md`](architecture/MESH_PROOFS.md).
-No item sets a price, rate, pool or burn share.
+No item sets a price, rate, pool or burn share. **Order (ADR-096 decision 5):** L10.3 and L10.4, the chain's half, before
+L10.2, because finding who holds a root reads the escrow's assignments on chain.
 
 1. [ ] The network, and one's own published work seeded: an iroh node in the launcher's host, seeding opt-in with disk
    and upload limits, the temporary content store's roots served and fetched verified. No CGT moves. Built 2026-10-17 on
    branch `session/mesh`, not merged: `src-tauri/src/mesh/` and the Mesh page, between two launchers on one PC; not yet
    between two PCs over the internet.
 2. [ ] Seeding others' published work: finding who holds a root, fetching and verifying it, holding it within the
-   person's limits, and the Mesh page showing what is seeded and served.
-3. [ ] The proofs: storage challenges and serving receipts, to the scheme the owner accepts (U-6). Depends on the
-   owner's review of `MESH_PROOFS.md`.
+   person's limits, and the Mesh page showing what is seeded and served. **Built 2026-10-17 on branch `session/mesh`, not
+   merged:** a root is found through the chain (an escrow's seeders, then its uploader, each dialed by the node it bound)
+   and fetched verified, from the Mesh page by its fingerprint; while seeding with the Mesh grant (ADR-097) the launcher
+   takes on copies escrows still ask for, within the disk limit. Shown between three launchers on one PC against a
+   development chain; not yet between PCs over the internet, and not on the devnet, which lacks the pallet.
+3. [ ] The proofs: storage challenges and serving receipts, as ADR-096 accepts them (U-6). QOR ID attesting receivers on
+   chain is a later step of its own. **Both halves built 2026-10-17 on branch `session/mesh`, not merged:**
+   `pallet-mesh` checks answers with `mesh-proof` and pays receipts; the launcher answers each period's challenge with a
+   proof read from its store a piece at a time, signs receipts for what it downloads, and claims those it is sent, all
+   under the Mesh grant (ADR-097). Seen paid for both on a development chain, whose period is a minute.
 4. [ ] The hosting escrow on the devnet: deposits, the uploader's prices, assignments, payment for proven work, unspent
-   escrow returned; the Mesh page shows what was paid. Depends on L10.3 and on the owner approving the pallet's name.
+   escrow returned; the Mesh page shows what was paid. In `pallet-mesh` (ADR-096). Depends on L10.3. **Built 2026-10-17
+   on branch `session/mesh`, not merged, at `spec_version` 9:** the pallet, and in the launcher an escrow opened for
+   one's own work at one's own prices after a dialog, and the Mesh page showing what was paid. **Not on the devnet**: the
+   runtime upgrade is the owner's to sign. Closing an escrow from the launcher is not built.
 5. [ ] Private backup: encrypted on the PC with keys from the vault, erasure-coded across seeders, repaired, and
    restored from the recovery phrase on a new PC. Depends on L10.4.
 6. [ ] Demiurge's own relays, in place of n0's public ones.
-7. [ ] The takedown list seeders refuse. Depends on the owner deciding who may add to it.
+7. [ ] The takedown list seeders refuse, kept by the root origin (ADR-096).
 
 ### The product tracks
 

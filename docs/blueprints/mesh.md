@@ -21,7 +21,7 @@ mechanic.
  ┌──────────────────────────────────────────────┐                     ┌───────────────────────────────┐
  │ Mesh page (React): on or off, disk and       │                     │ DRC-369: each work's root     │
  │ bandwidth limits, what is seeded, what was   │                     │ hosting escrow (pallet-mesh,  │
- │ served, what was paid; backup and restore    │                     │ name awaiting approval):      │
+ │ served, what was paid; backup and restore    │                     │ ADR-096):                     │
  ├──────────────────────────────────────────────┤   QUIC (iroh)       │ deposits, prices, copies,     │
  │ Rust host `mesh`: iroh endpoint (node key),  │◄═══════════════════►│ assignments, challenges,      │
  │ iroh-blobs store (BLAKE3, 16 KiB groups),    │   other launchers   │ receipts, payouts             │
@@ -35,8 +35,10 @@ mechanic.
 - **Two keys.** The launcher's **node key** (iroh, made on that PC) connects and serves. The person's **account**
   (the vault) receives payment and signs receipts. The account signs a **binding** naming its node once.
 - **Two ways of being found.** iroh dials a node by its public key through home routers, with relays as fallback (n0's
-  public relays until Demiurge runs its own). Who holds a root is announced on a gossip topic per root until the
-  escrow's on-chain assignments say it (L10.4).
+  public relays until Demiurge runs its own). Who holds a root is read from the chain: the escrow's assignments, then its
+  uploader, each dialed by the node it bound (ADR-097). A file no escrow pays for is shared by ticket.
+- **One approval for the Mesh's own work.** Proofs, claims, assignments and receipts are signed under the Mesh grant,
+  asked once when seeding is turned on; none can send the person's CGT. Opening an escrow keeps its dialog (ADR-097).
 
 ## 2. Seeding (the launcher's Mesh page)
 
@@ -89,8 +91,8 @@ theirs, shows the offers others have made once there are any, and tests use valu
 
 1. The network and one's own published work seeded, with no CGT moving (replacing the temporary content store).
 2. Seeding others' published work: discovery, limits, fetch and verify.
-3. The proofs, as the owner accepts them.
-4. The escrow on the devnet, under the pallet name the owner approves; the Mesh page shows what was paid.
+3. The proofs (ADR-096), answered and signed by the launcher under the Mesh grant (ADR-097).
+4. The escrow on the devnet, in `pallet-mesh` (ADR-096); the Mesh page shows what was paid.
 5. Private backup: encryption, erasure coding, repair, restore.
 6. Demiurge's own relays.
 7. The takedown list.

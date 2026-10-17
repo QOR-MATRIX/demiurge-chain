@@ -1,7 +1,9 @@
 # Proving seeders' work: a design proposal (U-6)
 
-**Status:** A proposal for the owner's review, written 17 October 2026. **Nothing here is decided, and no seeder is paid
-until the owner accepts it** ([ADR-095](../decisions/ADR-095-the-mesh-on-iroh-paid-from-hosting-escrow.md) decision 5).
+**Status:** **Decided.** Written 17 October 2026 as a proposal under
+[ADR-095](../decisions/ADR-095-the-mesh-on-iroh-paid-from-hosting-escrow.md) decision 5, and accepted by the owner the same
+day as [ADR-096](../decisions/ADR-096-mesh-proofs-the-pallet-and-the-takedown-list.md), with its proposed parameters. Of
+§3's receipt rules the chain enforces what it can see; QOR ID membership waits on an attestation (ADR-096 decision 2).
 It answers U-6 in [`../economics/OPEN_QUESTIONS.md`](../economics/OPEN_QUESTIONS.md): what a seeder proves, to whom, and
 how often. It sets **no number that is an economic value**: prices are the uploader's (ADR-095 decision 4); the
 intervals and sizes below are engineering parameters, each marked **proposed**, and the owner may change any of them.

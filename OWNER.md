@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 17 October 2026 (evening). One page, rewritten every session.
+For Andrew, 17 October 2026 (late evening). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -8,40 +8,38 @@ A blockchain that pays makers when their work is used, and a desktop launcher to
 The currency, **CGT**, is for spending, not holding. Seven products are planned on one
 sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurge-chain`.
 
-## Live today (checked this afternoon, from outside)
+## Live today (checked tonight, from outside)
 
 - **Devnet** — *the test chain on servers* — at `wss://rpc.qorsync.dev`, runtime version 8.
 - **QOR ID** — *the one sign-in* — and **Social** — *the chat service* — on Railway.
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`.
 - **Launcher 0.1.9**, unsigned, with Social and the Library: its installer is on your Desktop.
 
-## New tonight: the Mesh, on branch `session/mesh` (not merged)
+## New tonight: the Mesh pays for its work, on branch `session/mesh` (not merged)
 
-- **Decided as you chose (ADR-095):** a network inside every launcher, built on **iroh**
-  — *a peer-to-peer library* — holding published work and, later, your **private backup**,
-  encrypted on your PC. Seeding is **off until you turn it on**, with your own disk and
-  upload limits. Seeders are paid in CGT from the **hosting escrow** — *CGT the uploader sets
-  aside* — of whoever put the work there, only for work they prove. No CGT is created.
-- **Built (step 1 of 7):** the Mesh page and the network itself. With seeding on, your
-  published work is served; files are fetched by **ticket** — *a link naming file and PC* —
-  and every byte is checked against its fingerprint. Proven between two launchers on one
-  PC; not yet between two PCs. **No CGT moves yet.**
+- **Built (steps 1 to 4 of 7):** an uploader opens an **escrow** — *CGT set aside for
+  seeders* — at their own prices. Seeders take the file on, prove each hour that they still
+  hold it, and are paid for that and for what they serve, from **receipts** — *a downloader's
+  signed "I got this"*. Files can now be found by fingerprint alone.
+- **One question, once:** turning seeding on asks whether the Mesh may sign its own work
+  for your account. It can never send your CGT (ADR-097, my engineering choice).
+- **Seen working** on a test chain on this PC, paid to the exact Spark. **Not on the devnet
+  yet**, and not yet between two PCs.
 
 ## What only you can do
 
-1. **Review `docs/architecture/MESH_PROOFS.md`** — *how seeders prove their work* — before
-   anyone is paid; and **approve a name** for the chain module that pays them (I propose
-   `pallet-mesh`); and **say who may add to the takedown list**.
-2. **Crediting godmode with 100,000,000 CGT** still needs your choice of the three options
-   I gave, and godmode's chain address.
-3. **Drive X: is nearly full** (it hit 0 bytes today while Steam was downloading). Free some
-   room, or builds fail.
+1. **Say when to merge `session/mesh`**, then **sign the devnet's upgrade to runtime 9** with
+   your sudo key — *the devnet's admin key* — so the Mesh can pay there. I rehearse it on a
+   local chain first.
+2. **Crediting godmode with 100,000,000 CGT:** the recommended way is a transfer from the
+   faucet, which you sign. I still need godmode's chain address.
+3. **Drive X: has 99 GB free** (90% full), better than this morning. Builds fail near zero.
 4. **Look at the Library** in 0.1.9; **test World, translation, friends and levels**.
 5. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
 6. **Keep the `godmode` account safe**; move or delete `social-secrets.txt` on your Desktop.
 7. **Update QQ Studio** and publish again; the last two L1.4 checks; CI for QQ; the
    welcome-grant payer; an email; replace the key pasted on 5 October.
-8. **Housekeeping:** `archive-bZLIQp/`; the old `QOR-MATRIX/arqade` repository.
+8. **Housekeeping:** `archive-bZLIQp/` (one zip); the old `QOR-MATRIX/arqade` repository.
 
 ## Cost per month
 

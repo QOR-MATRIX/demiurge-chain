@@ -13,7 +13,7 @@ reaches `main` by pull request. `origin` is the private archive, not the current
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 item 84 (17 October 2026): the Mesh decided (ADR-095) and L10.1 built on branch `session/mesh`, not merged: a node in the launcher on iroh, seeding opt-in with the person's limits, own published work served, files fetched verified; no CGT moves yet.** Before it: §4 item 83 (17 October 2026): launcher 0.1.9 built from `main`, with Social and the Library, its installer on the owner's Desktop.** Before it: §4 item 82 (17 October 2026): #37 merged, the Library and QOR Media in `main`, CI green on it with its images from `mirror.gcr.io`; Qt PDF was installed all along, so PDF (L9.5) can start.** Before it: §4 item 81 (16 and 17 October 2026): the Library and QOR Media, release 1's first four items (L9.1 to L9.4), built on branch `session/library`. Before it: §4 item 80 (17 October 2026): #35 merged and live on Railway, World, friends, translation and levels with it; the owner tests later; next, the Library.** Before it: §4 item 79 (16 October 2026): room levels, Elite accounts and godmode (ADR-093), added to #35. Before it: §4 item 78 (16 October 2026): the owner's first conversation on Social, and World, friends and circles, and translation on the reader's PC built (ADR-092), not merged. Before it: §4 item 77 (16 October 2026): Social deployed on Railway beside QOR ID, checked from outside, and the launcher pointed at it. Before it: §4 item 76 (15 October 2026): #31 merged, QOR ID's side of Social live, and the launcher's Social surface built and merged as #33 (16 October 2026). Before it: §4 item 75 (15 October 2026): Social decided (ADR-091), QOR ID ready for it, and the Social service built and tested, now in `main`. Before it: §4 item 74 (15 October 2026): the owner's first publish from QQ Studio was refused by the node before any
+**Newest: §4 item 86 (17 October 2026): the launcher's half of the Mesh's paid work (L10.2 to L10.4), on branch `session/mesh`, not merged: ADR-097's Mesh grant, one host dialog after which the Mesh signs its own proofs, claims, assignments and receipts and nothing a node describes differently; a seeder seen paid for holding and for serving on a development chain whose period is a minute. Not on the devnet, which lacks the pallet.** Before it: §4 item 85 (17 October 2026): the owner's "Go with best and most recommended path forward": ADR-096 accepts the Mesh's proofs, names `pallet-mesh` and gives the takedown list to root; `pallet-mesh` and `mesh-proof` built at `spec_version` 9 on branch `session/mesh`, not merged, not on the devnet.** Before it: §4 item 84 (17 October 2026): the Mesh decided (ADR-095) and L10.1 built on branch `session/mesh`, not merged: a node in the launcher on iroh, seeding opt-in with the person's limits, own published work served, files fetched verified; no CGT moves yet.** Before it: §4 item 83 (17 October 2026): launcher 0.1.9 built from `main`, with Social and the Library, its installer on the owner's Desktop.** Before it: §4 item 82 (17 October 2026): #37 merged, the Library and QOR Media in `main`, CI green on it with its images from `mirror.gcr.io`; Qt PDF was installed all along, so PDF (L9.5) can start.** Before it: §4 item 81 (16 and 17 October 2026): the Library and QOR Media, release 1's first four items (L9.1 to L9.4), built on branch `session/library`. Before it: §4 item 80 (17 October 2026): #35 merged and live on Railway, World, friends, translation and levels with it; the owner tests later; next, the Library.** Before it: §4 item 79 (16 October 2026): room levels, Elite accounts and godmode (ADR-093), added to #35. Before it: §4 item 78 (16 October 2026): the owner's first conversation on Social, and World, friends and circles, and translation on the reader's PC built (ADR-092), not merged. Before it: §4 item 77 (16 October 2026): Social deployed on Railway beside QOR ID, checked from outside, and the launcher pointed at it. Before it: §4 item 76 (15 October 2026): #31 merged, QOR ID's side of Social live, and the launcher's Social surface built and merged as #33 (16 October 2026). Before it: §4 item 75 (15 October 2026): Social decided (ADR-091), QOR ID ready for it, and the Social service built and tested, now in `main`. Before it: §4 item 74 (15 October 2026): the owner's first publish from QQ Studio was refused by the node before any
 block; an account that cannot pay is now told so before anyone is asked, naming the account and the chain, and the
 whole reason reaches the Studio and the launcher's log.** Before it: item 73 (10 October 2026): P3.4 built. QQ Studio
 publishes a project as its Cartridge through the launcher that started it (ADR-088, the owner's: a Cartridge holds the
@@ -2630,6 +2630,77 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     cleaned up. **`check-accessibility.mjs` flaked** under that load, a different backdrop's frame count each time (two
     failures in four runs), and passed twice running after. **Not done:** two PCs over the internet; L10.2 to L10.7; the owner's
     review of MESH_PROOFS.md, the pallet's name, and who keeps the takedown list.
+
+85. **17 October 2026: ADR-096, and the chain's half of the Mesh (`pallet-mesh`, `mesh-proof`), on branch `session/mesh`,
+    not merged.** Asked to review MESH_PROOFS.md, approve the pallet's name and say who keeps the takedown list, the owner
+    answered: "Go with best and most recommended path forward." Recorded as **ADR-096**, each decision the option
+    recommended: MESH_PROOFS.md accepted with its period (600 blocks), window (100) and missed-period limit (3); of the
+    receipt rules, what the chain can see enforced and QOR ID membership waiting on an attestation; the module named
+    `pallet-mesh`; the takedown list kept by the root origin; the chain's half built before discovery (L10.2), because
+    finding who holds a root reads the escrow's assignments. U-6 is answered. The pending question of crediting godmode
+    with 100,000,000 CGT is not a protocol decision and was not taken as one: the recommended path is a transfer from the
+    faucet, which the owner signs, and godmode's chain address is still wanted. **Checked first:** the chain keeps the
+    last 256 block hashes (frame-system 48's `SolochainDefaultConfig`; ADR-096 first said 2,400, corrected before it was
+    committed), so the window closes well inside them; `blake3` 1.8.7, already in the chain's lockfile, has the `hazmat`
+    functions a proof of one group needs, without `std`. **`chain/primitives/mesh-proof`** (`no_std`, built for
+    `wasm32v1-none`): `prove` and `verify`, a 16 KiB group shown against its BLAKE3 root by the chaining values beside
+    its path, split exactly as BLAKE3 splits; four tests over ten sizes, and the finding that the proof binds the group to
+    the root but not to the size, so the size must be the chain's, never the seeder's (it is: the escrow's). The launcher
+    will depend on it by path, so both sides run the same code. **`chain/pallets/mesh`**: escrows in a keyless account per
+    escrow (`dmg/mesh`); `bind_node`, `open_escrow`, `top_up`, `close_escrow`, `take_assignment`, `leave_assignment`,
+    `end_lapsed`, `answer_challenge`, `submit_receipts` (cumulative, so never paid twice; capped per receiver and per
+    escrow; never the seeder or the uploader as receiver; signed over a context and the genesis hash), `set_takedown`,
+    `forget_served`; the one ratio by `multiply_by_rational_with_rounding`, pinned at `u128::MAX`; the `MeshApi` runtime
+    API (`challenge`, `receipt_message`, `period`). Sixteen tests with real BLAKE3 proofs and Sr25519 signatures; fourteen
+    planted faults (twelve in the pallet, two in the proof crate) each caught. **The runtime:** `Mesh` at index 12,
+    `spec_version` 9, ADR-096's values in `runtime/src/mesh.rs`; four tests in `runtime/tests/mesh.rs`; the ARQ Wallet's
+    test that pinned spec version 8 now pins 9 and is renamed, on purpose. **The suite:** `cargo test --workspace` with the
+    runtime's wasm built, 174 passed (150 before); clippy's three findings (a doubled bound, a complex type, a constant
+    assertion) fixed. **The gates:** `mesh.decisions` counts ADR-096, `mesh.chain-tests` requires fifteen tests, and
+    `beta.value-pallet-coverage` names `pallet-mesh` (logged). `cargo-llvm-cov` is not installed here, so its coverage is
+    first measured by CI. PROTOCOL.md section 13 and `chain/README.md` describe it. **Not done:** the launcher answering
+    challenges, signing receipts and taking assignments (L10.2 to L10.4's launcher half); the runtime upgrade to
+    `spec_version` 9 on the devnet, which the owner signs with the sudo key after a rehearsal on a local chain.
+
+86. **17 October 2026: the launcher's half of the Mesh's paid work (L10.2 to L10.4), and ADR-097, on branch
+    `session/mesh`, not merged.** The owner said "Proceed". Item 85's suite was run first: 174 passed with the runtime
+    built. **The decision (ADR-097, under the owner's delegation for engineering choices):** a seeder answers a challenge
+    every period while nobody may be at the PC, so the vault gains a second standing approval beside ADR-016's arrival
+    grant: the **Mesh grant**, asked once in a host dialog when seeding is turned on, for the active account, ended by
+    turning seeding off. Under it the launcher signs `bind_node`, `take_assignment`, `leave_assignment`,
+    `answer_challenge` and `submit_receipts`, and receipts, with no dialog; none can send the person's CGT (the chain
+    charges no fees, OPEN-4; a ceiling is required before it does). Opening an escrow keeps its dialog. **The node is
+    trusted for none of it:** each granted call is encoded by the launcher (pallet 12, call indices compiled in) and
+    nothing is signed unless the node's metadata encodes the call it names back to the same bytes; a receipt's bytes are
+    built from the genesis hash, never asked of the node. **The chain:** the pallet's period and answer window move to
+    storage that defaults to ADR-096's values; only the `--dev` genesis sets 10 and 5 blocks (a minute), refused at
+    genesis if they cannot work; the devnet gains the pallet by an upgrade with no genesis, so it keeps 600 and 100.
+    `mesh-proof` gains `siblings` and `Subtree`, the same proof made a piece at a time, for a file too large to hold.
+    **The launcher:** `src-tauri/src/chain/mesh.rs` (reads of escrows, assignments, nodes and the takedown list;
+    `MeshApi` through `call_raw`; the granted calls; `mesh_open_escrow` with its dialog) and `src-tauri/src/mesh/paid.rs`
+    (a worker every three seconds while seeding with the grant: bind, answer, claim, and every tenth round take on one
+    copy an escrow still asks for, fetched and verified first; a minute's pause after a failed round; finding a root
+    through the chain, its seeders first, then its uploader, each dialed by its bound node; receipts sent to the seeder
+    over iroh's `demiurge/mesh-receipt/1` and checked there before they are kept). No grant is asked for where the chain
+    has no Mesh, so on the devnet nothing is asked and seeding runs unpaid. **The page:** what the Mesh signs for, held for
+    escrows, receipts waiting, what was paid; fetch by fingerprint; "Pay seeders to hold it" on one's own files, a form
+    that suggests no price and sends exact Sparks. **Evidence:** a release node built with the new genesis; the live
+    test `mesh::paid::tests::live` (ignored by default) run three times against it, passing each time in about four
+    minutes: an uploader's escrow opened in its dialog, a seeder taking it on, answering the next period's challenge
+    and paid exactly the storage price, a receiver finding the file by fingerprint alone and the seeder paid exactly
+    1.171875 CGT for 300 KiB at 4 CGT a MiB; the seeder refusing a forged receipt, one for another seeder and one for a
+    file it does not hold; a declined grant recording nothing; the local receipt bytes equal to the chain's; every level
+    of the log captured and no recovery phrase in it. Three planted faults were each caught (the receipt's signature
+    unchecked, by the live test; a proof missing its top sibling; a receipt message without the genesis hash).
+    **Suites:** the chain's `cargo test --workspace` with the runtime built, 177 passed (174 before); the launcher's
+    `cargo test --locked`, 292 passed, 14 ignored; `npm run check`, all thirteen checks (the Mesh page's 38, up from 23);
+    fmt and clippy `-D warnings` clean on both. **Gates (tightening, logged):** `mesh.decisions` counts ADR-097,
+    `mesh.chain-tests` requires 18, `mesh.tests` 13. Documents: PROTOCOL.md section 13, `chain/README.md`,
+    DIRECTION.md L10.2 to L10.4, the Mesh blueprint (its stale "name awaiting approval" and gossip discovery), both ADR
+    indexes, SYSTEMS, OWNER. **Checked from outside:** QOR ID, Social (at its Railway domain; `social.qorsync.dev`
+    answers 525 and no document names it), ARQADE, and the devnet at `spec_version` 8. **Not done:** two PCs over the
+    internet; closing an escrow from the launcher; refusing to serve a listed root already held (L10.7); the runtime
+    upgrade to 9 on the devnet, which the owner signs; `archive-bZLIQp/`, which holds one zip, `gk_3.1.77_windows_amd64.zip`, left untouched.
 
 ## 5. Traps, so nobody re-learns them
 

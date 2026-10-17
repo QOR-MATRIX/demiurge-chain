@@ -4,7 +4,8 @@
 that exists. The whole document was re-checked against the runtime and node source on **6 October 2026**, at
 `spec_version` 8 (`chain/` last changed on 4 October 2026): the transaction extensions, block limits, validator-set
 minimum, genesis specifications, pallet indices, call filter, deposits, bounds, calls, events and runtime APIs.
-Measurements on running nodes keep the dates they were made. Where the direction intends something the code does not
+Section 13, the Mesh's hosting escrow, was added on **17 October 2026** at `spec_version` 9, which is in the tree and
+not yet on the devnet. Measurements on running nodes keep the dates they were made. Where the direction intends something the code does not
 yet do, it says so under "Not yet". Decisions behind these rules are in [`../DECISIONS.md`](../DECISIONS.md).
 
 This describes the **Substrate L1** built on the Polkadot SDK (ADR-013). It is the chain: it produces and
@@ -324,7 +325,54 @@ and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369
 - **The account bytes** of the wallet for `(1, 2)` are `6d6f646c646d672f617271770100000002000000000000000000000000000000`,
   pinned by a pallet test and by the SDK's own, so the two cannot disagree.
 
-## 13. Not yet
+## 13. The Mesh's hosting escrow (`pallet-mesh`, ADR-095, ADR-096, ADR-097)
+
+**In the tree at `spec_version` 9 since 17 October 2026, not yet on the devnet**, which runs `spec_version` 8 until the
+owner sets the new runtime with the sudo key. Mounted as `Mesh` at index 12. The runtime's settings are in
+`chain/runtime/src/mesh.rs`.
+
+- **An escrow** is opened by `open_escrow` with a BLAKE3 root, the file's size (at least one byte), the copies wanted
+  (one to `MaxCopies`, 16), a storage price per answered challenge, a serving price per MiB, a cap on bytes paid per
+  period, and a deposit of at least the existential deposit. The prices are the uploader's; the runtime sets none. The
+  deposit goes to `PalletId(*b"dmg/mesh")`'s sub-account of the escrow's number, truncated, which no key signs for.
+  `top_up` adds to it, by anyone. `close_escrow`, by the uploader, returns everything the account holds and ends its
+  assignments. A root on the takedown list cannot be escrowed.
+- **A seeder** binds its launcher's Mesh node (`bind_node`, a 32-byte iroh key), then `take_assignment` while the
+  escrow has copies to fill; the uploader cannot. `leave_assignment` gives it up; `end_lapsed`, by anyone, ends one
+  unanswered for more than `MaxMissed` (3) periods.
+- **A period** is `PeriodLength` blocks: `Period` (600) unless the chain's genesis set another, and only the development
+  chain's does (10 blocks, with an answer window of 5, so a launcher's test reaches a challenge in a minute; ADR-097
+  decision 8). The pallet refuses at genesis a period that cannot hold its window, and nothing changes either value
+  after. Its **seed block** is the second block of the period, and its challenges may be answered in the
+  `AnswerWindowLength` blocks after it (`AnswerWindow`, 100, unless genesis set another). For each assignment the chain names one 16 KiB group: the first
+  eight bytes of `blake2_256((hash of the seed block, escrow, seeder))`, little-endian, modulo the file's number of
+  groups. `answer_challenge` sends the group and its proof (the BLAKE3 chaining values beside its path, leaf to root,
+  at most 64), checked against the root by `mesh_proof::verify` (`chain/primitives/mesh-proof`). An assignment taken in
+  a period is first challenged in the next; each period is answered once. An answer pays the storage price.
+- **A receipt** names the escrow, the period, the seeder, the receiver and the bytes received from that seeder in that
+  period so far. The receiver signs `("demiurge/mesh-receipt/v1", genesis hash, receipt)` in SCALE with its account's
+  key. `submit_receipts`, by the seeder it names (at most `MaxReceipts`, 64, a call), pays each receipt's new bytes, for
+  this period or the last: never more than the file's size to one receiver in a period across seeders, never more than
+  the escrow's cap in a period across receivers, and nothing when the receiver is the seeder or the uploader. The cost
+  is the serving price times the bytes over 1,048,576, by `multiply_by_rational_with_rounding`, rounded down. Records of a
+  period are removed by `forget_served`, by anyone, once no receipt can name it.
+- **The takedown list** is kept by the root origin (`set_takedown`): a listed root's escrows pay nothing more and can
+  still be closed.
+- **Every payment** leaves the escrow's existential deposit in place; one the escrow cannot cover is refused and moves
+  nothing. Nothing in the pallet creates CGT.
+- **`MeshApi`**: `challenge(escrow, seeder)`, the period and group to answer now, if any; `receipt_message(receipt)`,
+  the bytes to sign; `period()`.
+- **The launcher's side** (ADR-097): under the Mesh grant, which the person gives once in a host dialog, it signs
+  `bind_node`, `take_assignment`, `leave_assignment`, `answer_challenge` and `submit_receipts` with no dialog. It
+  encodes each of those calls itself, from the pallet's index (12) and the call's (0, 4, 5, 7, 8), and signs nothing if
+  the node's metadata does not encode the call it names back to the same bytes. It builds a receipt's message itself
+  from the genesis hash, never asking the node. A receiver sends a receipt to the seeder it fetched from over iroh,
+  protocol `demiurge/mesh-receipt/1`: one stream carrying the SCALE `(Receipt, [u8; 64])`, an Sr25519 signature,
+  answered by one byte, 1 when the seeder kept it and 0 when it refused it. Opening an escrow keeps its dialog.
+- **Not enforced on chain** (ADR-096 decision 2): that a receiver has a QOR ID. **Randomness:** a validator could bias the
+  seed block's hash; acceptable while the validators are the owner's (MESH_PROOFS.md section 2).
+
+## 14. Not yet
 
 Each of these is a roadmap item, not an omission from this description.
 
