@@ -22,7 +22,6 @@ import { QQView } from './qq/editor/QQView';
 import { ArqadeView } from './views/ArqadeView';
 import { ChainView } from './views/ChainView';
 import { GatesView } from './views/GatesView';
-import { Horizon } from './views/Horizon';
 import { Inventory } from './views/Inventory';
 import { Market } from './views/Market';
 import { Projects } from './views/Projects';
@@ -32,6 +31,7 @@ import { SettingsView } from './views/SettingsView';
 import { VaultView } from './views/VaultView';
 import { LibraryView } from './library/LibraryView';
 import { SocialView } from './social/SocialView';
+import { MeshView } from './mesh/MeshView';
 import { useSocialLink } from './social/link';
 
 /** Spoken name for each surface, used as the main landmark's label. */
@@ -146,7 +146,7 @@ export function App() {
                     {surface === 'settings' && <SettingsView />}
                     {surface === 'social' && <SocialView />}
                     {surface === 'library' && <LibraryView />}
-                    {surface === 'mesh' && <Horizon surface={surface} />}
+                    {surface === 'mesh' && <MeshView />}
                   </motion.div>
                 </AnimatePresence>
               </main>

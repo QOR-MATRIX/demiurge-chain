@@ -93,6 +93,11 @@ pub enum QorError {
     #[error("{0}")]
     Translation(String),
 
+    /// The Mesh could not do what was asked (ADR-095): seeding is off, a limit would be passed, or a peer did not have
+    /// or did not prove what it was asked for. The sentence is for the person.
+    #[error("{0}")]
+    Mesh(String),
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -125,6 +130,7 @@ impl QorError {
             Self::Hello(_) => "hello",
             Self::Social { .. } => "social",
             Self::Translation(_) => "translation",
+            Self::Mesh(_) => "mesh",
             Self::Internal(_) => "internal",
         }
     }

@@ -25,6 +25,7 @@ pub mod identity;
 pub mod library;
 pub mod listings;
 pub mod media;
+pub mod mesh;
 pub mod partners;
 pub mod pay;
 pub mod qontrol;
@@ -256,6 +257,8 @@ pub struct AppState {
     pub library_watch: std::sync::OnceLock<library::watch::Watch>,
     /// QOR Media, docked inside the launcher when a file is opened from the Library (ADR-094).
     pub media: media::Media,
+    /// The Mesh (ADR-095): this launcher's node, seeding only when the person turned it on.
+    pub mesh: Arc<mesh::Mesh>,
     /// Release-gate progress for the development dashboard (roadmap L2.2).
     pub dashboard: Arc<gates::Dashboard>,
     /// Open briefly after an unlock, for the QOR ID sign-in (ADR-016).
@@ -278,6 +281,7 @@ impl AppState {
             library: library::Library::open(&cache_dir.join("library"))?,
             library_watch: std::sync::OnceLock::new(),
             media: media::Media::default(),
+            mesh: mesh::Mesh::new(&data_dir, mesh::Net::Public),
             dashboard: Arc::new(gates::Dashboard::new()?),
             arrival: ArrivalGrant::default(),
             data_dir,
@@ -1635,6 +1639,16 @@ pub fn run() {
                 });
             }
 
+            // The Mesh seeds again at start if the person left seeding on (ADR-095). Off, nothing is started.
+            {
+                let mesh = Arc::clone(&app.state::<AppState>().mesh);
+                tauri::async_runtime::spawn(async move {
+                    if let Err(e) = mesh.resume().await {
+                        tracing::warn!("the Mesh did not start: {e}");
+                    }
+                });
+            }
+
             // `qor://pay` (ADR-076). The installer registers the scheme; registering again here covers a launcher run
             // without installing, and points the scheme at this copy.
             {
@@ -1752,6 +1766,11 @@ pub fn run() {
             media::media_place,
             media::media_hide,
             media::media_theme,
+            mesh::commands::mesh_status,
+            mesh::commands::mesh_held,
+            mesh::commands::mesh_configure,
+            mesh::commands::mesh_ticket,
+            mesh::commands::mesh_fetch,
             qor_set_auth_endpoint,
             arqade_open,
             gates_report,

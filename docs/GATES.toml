@@ -804,6 +804,18 @@ type = "tightening"
 change = "The library gate gains library.tests, thirteen required tests in suite launcher (the index, and QOR Media's queue, reports, theme and whereabouts on the launcher's side), and library.view, a tests criterion on a new suite library_view (scripts/check-library-view.mjs). That check grows from 22 to 27 checks: a game controller takes the first tile, moves along a shelf and down with the D-pad and the left stick, repeats a held direction, and opens once with A however long it is held. only_colours_written_rrggbb_make_a_theme gains two colours that are seven characters and not hexadecimal."
 reason = "Tightening: criteria, a suite, checks and test cases added, none removed or relaxed; the change log of 2026-10-16 said a tests criterion would come when the Library had a suite. Four planted controller faults were each caught by the view check, and the theme test was seen to miss a planted fault (a colour's digits not checked) before its two new cases and to catch it after (HANDOFF.md section 4 item 81)."
 
+[[change_log]]
+date = "2026-10-17"
+type = "tightening"
+change = "A mesh gate is appended after the library gate: mesh.decisions counts ADR-095 (accepted by the owner on 2026-10-17) and mesh.roadmap counts L10.1 to L10.7, the Mesh's steps in DIRECTION.md. A tests criterion is added when the Mesh has a suite."
+reason = "Tightening: a new gate with units, none relaxed. L10 is new in DIRECTION.md the same day; counting it at once keeps the gate-coverage check from reporting it as uncounted."
+
+[[change_log]]
+date = "2026-10-17"
+type = "tightening"
+change = "The mesh gate gains mesh.tests, eight required tests in suite launcher (src-tauri/src/mesh), and mesh.view, a tests criterion on a new suite mesh_view (scripts/check-mesh-view.mjs, 23 checks). That check joins npm run check, so CI's launcher job runs thirteen checks, not twelve ([ci].quality_gates updated)."
+reason = "Tightening: criteria, a suite and a check added, none removed or relaxed. Eight planted faults in the Mesh's rules were each caught by the host tests (one only after its test was sharpened to see that no peer is reached), and four planted faults in the page by the view check (HANDOFF.md section 4 item 84)."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -849,7 +861,7 @@ quality_gates = [
   "chain/: two validators agree, finalise and catch up. A job of its own, because it needs a release build with the sudo feature: cargo build -p demiurge-node --release --features sudo --locked, then node scripts/check-two-validators.mjs. It fails the run; criterion alpha.multi-validator reads it. Since 2026-09-21 it runs NIGHTLY (03:00 UTC) and on workflow_dispatch, not on every push",
   "services/qor-auth: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test -- --include-ignored, against a migrated Postgres 16 and a Redis 7.4",
   "services/social: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test, against a Postgres 16 (a database per test) and a real WebSocket on a loopback port; its log, SQL and migration checks run with the tests",
-  "tools/qor-launcher: npm ci, frontend build and npm run check, twelve checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the Library view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
+  "tools/qor-launcher: npm ci, frontend build and npm run check, thirteen checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the Library view, the Mesh view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
   "cargo audit of services/qor-auth, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside the compiled graph (services/qor-auth/.cargo/audit.toml)",
   "cargo audit of services/social, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside Social's compiled graph (services/social/.cargo/audit.toml)",
   "cargo audit of tools/qor-launcher/src-tauri, ignoring only RUSTSEC-2026-0344 while CI confirms ruzstd is outside the compiled graph and still in the lockfile (tools/qor-launcher/src-tauri/.cargo/audit.toml, ADR-089)",
@@ -949,6 +961,11 @@ needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH fo
 [suites.library_view]
 dir = "tools/qor-launcher"  # The Library (ADR-094). Since 2026-10-16.
 command = "node scripts/check-library-view.mjs"
+needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places)"
+
+[suites.mesh_view]
+dir = "tools/qor-launcher"  # The Mesh (ADR-095). Since 2026-10-17.
+command = "node scripts/check-mesh-view.mjs"
 needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places)"
 
 [suites.gnosis]
@@ -1960,4 +1977,46 @@ Everything a person has in one SteamOS-like view in the launcher, searched insta
   id = "library.view"
   kind = "tests"
   suite = "library_view"
+  require = []
+
+[[gates]]
+id = "mesh"
+name = "Mesh"
+means = """
+A peer-to-peer network inside every launcher holding published work and each person's encrypted backup, with seeders paid in CGT from the uploader's hosting escrow for proven work, and no CGT created (ADR-095, L10)."""
+
+  [[gates.criteria]]
+  id = "mesh.decisions"
+  kind = "adr"
+  adrs = ["ADR-095"]
+
+  # All of L10. L10.3 waits on the owner's review of MESH_PROOFS.md (U-6), L10.4
+  # on the pallet's name, L10.7 on who keeps the takedown list.
+  [[gates.criteria]]
+  id = "mesh.roadmap"
+  kind = "roadmap"
+  items = ["L10.1", "L10.2", "L10.3", "L10.4", "L10.5", "L10.6", "L10.7"]
+
+  # The node on the launcher's side (src-tauri/src/mesh/tests.rs): two launchers on
+  # this PC, each rule seen to fail against a planted fault first.
+  [[gates.criteria]]
+  id = "mesh.tests"
+  kind = "tests"
+  suite = "launcher"
+  require = [
+    "seeding_is_off_until_the_person_turns_it_on_with_both_limits",
+    "own_published_work_is_seeded_and_another_launcher_fetches_it_verified",
+    "a_seeder_whose_bytes_changed_is_refused_and_nothing_unverified_is_kept",
+    "what_would_pass_the_disk_limit_is_refused_before_it_is_fetched",
+    "own_work_beyond_the_disk_limit_is_not_taken_in",
+    "turning_seeding_off_stops_serving",
+    "serving_keeps_to_the_upload_limit",
+    "a_file_filed_under_a_root_it_does_not_hash_to_is_not_seeded",
+  ]
+
+  # The page, in a real browser against a stand-in host.
+  [[gates.criteria]]
+  id = "mesh.view"
+  kind = "tests"
+  suite = "mesh_view"
   require = []

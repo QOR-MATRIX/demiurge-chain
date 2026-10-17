@@ -364,6 +364,24 @@ node scripts/check-library-view.mjs                                     # after 
 cargo test --lib media::tests::qor_media -- --ignored                   # in src-tauri, with QOR Media deployed
 ```
 
+### The Mesh (ADR-095, roadmap L10)
+
+A peer-to-peer node in the host (`src-tauri/src/mesh/`), on iroh, holding files by their BLAKE3 root (ADR-047's
+fingerprint) and streaming them to other launchers verified against it in 16 KiB groups. **Seeding is off until the
+person turns it on**, with the two limits they give on the Mesh page: disk for the Mesh's store
+(`<data>/mesh/store`) and upload in bytes a second, kept by a token bucket on every 16 KiB served. On, it takes in the
+temporary content store's blobs (one's own published work), each checked against the root it is filed under and
+referenced where it lies, at start and once a minute. A file is fetched by a **ticket** (the file's root and the PC that
+has it); its size is proven before any of it is taken, so nothing passes the disk limit, and a peer whose bytes do not
+match the root is refused. The node's key is made on this PC (`<data>/mesh/node.key`), is never the vault's, and can move
+no CGT. Peers are reached through n0's public relays until Demiurge runs its own (L10.6). No CGT moves yet: the proofs
+(L10.3) and the hosting escrow (L10.4) come first.
+
+```bash
+cargo test --lib mesh::                 # in src-tauri: two launchers on this PC, over the loopback address
+node scripts/check-mesh-view.mjs        # after npm run build: 23 checks
+```
+
 ## Release gates (development dashboard)
 
 The Gates surface shows Alpha, Beta and Public Release progress, computed by
@@ -424,7 +442,7 @@ npm install
 npm run app:dev        # dev, with hot reload
 npm run app:build      # release bundle (msi, nsis, deb, appimage, dmg)
 npm run icons          # regenerate the icon set from scripts/make_icons.py
-npm run check          # design, accessibility, gates view, Projects view, Inventory view, Market view, QQ view, Social view, Library view, the Gate's restore and Hello, QFX contrast, readability (needs npm run build first)
+npm run check          # design, accessibility, gates view, Projects view, Inventory view, Market view, QQ view, Social view, Library view, Mesh view, the Gate's restore and Hello, QFX contrast, readability (needs npm run build first)
 ```
 
 Rust tests. Build Qontrol's helper first, or its tests that commit skip:
