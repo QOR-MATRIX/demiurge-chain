@@ -2,8 +2,8 @@
  * The Library (ADR-094; docs/blueprints/library.md section 3): everything a person has, in a SteamOS-like view.
  *
  * A hero for what was last opened, shelves of large tiles by kind, a folders view, and search one key away (`/`). Arrow
- * keys move a focus ring from tile to tile and shelf to shelf, Enter opens, Escape goes back; a game controller's
- * D-pad arrives as the same keys. Files open in QOR Media, docked inside the launcher.
+ * keys move a focus ring from tile to tile and shelf to shelf, Enter opens, Escape goes back; a game controller does the
+ * same with its D-pad or left stick, A and B (`followController`). Files open in QOR Media, docked inside the launcher.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
@@ -70,6 +70,7 @@ export function LibraryView() {
 
   // QOR Media docks over the whole Library while it shows, and is hidden when the person goes elsewhere.
   useEffect(() => (root.current ? dockOver(root.current) : undefined), []);
+  useEffect(() => (root.current ? followController(root.current) : undefined), []);
 
   const readFolders = useCallback(
     () =>
@@ -221,7 +222,7 @@ export function LibraryView() {
 
 /* ─────────────────────────────── focus ─────────────────────────────────── */
 
-/** Arrow keys move between tiles in a row, and between rows at the nearest tile, as a controller's D-pad does. */
+/** Arrow keys move between tiles in a row, and between rows at the nearest tile (a controller's D-pad arrives here too). */
 function moveFocus(e: KeyboardEvent<HTMLDivElement>) {
   const here = document.activeElement as HTMLElement | null;
   if (!here?.dataset.tile) return;
@@ -249,6 +250,75 @@ function moveFocus(e: KeyboardEvent<HTMLDivElement>) {
     next.focus();
     next.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }
+}
+
+/** What a controller in the standard layout means here: D-pad or left stick as the arrow keys, A as Enter, B as Escape. */
+const PAD: { key: string; on: (p: Gamepad) => boolean; repeats: boolean }[] = [
+  { key: 'ArrowUp', on: (p) => !!p.buttons[12]?.pressed || (p.axes[1] ?? 0) < -0.5, repeats: true },
+  { key: 'ArrowDown', on: (p) => !!p.buttons[13]?.pressed || (p.axes[1] ?? 0) > 0.5, repeats: true },
+  { key: 'ArrowLeft', on: (p) => !!p.buttons[14]?.pressed || (p.axes[0] ?? 0) < -0.5, repeats: true },
+  { key: 'ArrowRight', on: (p) => !!p.buttons[15]?.pressed || (p.axes[0] ?? 0) > 0.5, repeats: true },
+  { key: 'Enter', on: (p) => !!p.buttons[0]?.pressed, repeats: false },
+  { key: 'Escape', on: (p) => !!p.buttons[1]?.pressed, repeats: false },
+];
+
+/**
+ * A game controller drives the Library as the keyboard does. WebView2 turns no controller input into keys, so the
+ * Gamepad API is read each frame while a controller is connected: a direction moves the focus ring (the first tile, if
+ * none has it yet) and repeats while held; A opens the focused tile; B goes back. Nothing is read while the launcher's
+ * window is not the one in use, so a press meant for QOR Media, docked over the Library, does nothing here.
+ */
+function followController(root: HTMLElement): () => void {
+  let frame = 0;
+  const next = new Map<string, number>();
+  const press = (key: string) => {
+    const here = document.activeElement as HTMLElement | null;
+    const onTile = !!here?.dataset.tile && root.contains(here);
+    if (key === 'Enter') {
+      if (onTile) here!.click();
+      return;
+    }
+    if (!onTile && key !== 'Escape') {
+      const first = root.querySelector<HTMLElement>('[data-tile]');
+      first?.focus();
+      first?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      return;
+    }
+    (onTile ? here! : root).dispatchEvent(new globalThis.KeyboardEvent('keydown', { key, bubbles: true }));
+  };
+  const poll = (now: number) => {
+    const pad = [...(navigator.getGamepads?.() ?? [])].find((p): p is Gamepad => !!p?.connected);
+    if (!pad) {
+      frame = 0;
+      next.clear();
+      return;
+    }
+    for (const { key, on, repeats } of PAD) {
+      if (!on(pad) || !document.hasFocus()) {
+        next.delete(key);
+        continue;
+      }
+      const due = next.get(key);
+      if (due === undefined) {
+        press(key);
+        next.set(key, repeats ? now + 380 : Infinity);
+      } else if (now >= due) {
+        press(key);
+        next.set(key, now + 110);
+      }
+    }
+    frame = requestAnimationFrame(poll);
+  };
+  const start = () => {
+    if (!frame) frame = requestAnimationFrame(poll);
+  };
+  window.addEventListener('gamepadconnected', start);
+  start();
+  return () => {
+    window.removeEventListener('gamepadconnected', start);
+    cancelAnimationFrame(frame);
+    frame = 0;
+  };
 }
 
 /* ─────────────────────────────── tiles ─────────────────────────────────── */

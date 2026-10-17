@@ -12,6 +12,7 @@
 //   - `/` searches from anywhere, results come as the person types, and Escape clears them;
 //   - a kind's tab shows that kind; Games says plainly what waits;
 //   - arrow keys move the focus ring along a shelf and between shelves; Enter opens, through `library_open`;
+//   - a game controller does the same: a direction takes the first tile, then moves and repeats while held, A opens;
 //   - QOR Media is told where to sit in physical pixels, and to hide when the person leaves the Library;
 //   - Folders: one is taken out, a suggested one added;
 //   - when the host says the index changed, the shelves are read again.
@@ -267,6 +268,42 @@ try {
   await evaluate(`document.activeElement.click()`);
   check('opening a tile asks the host to open exactly that file', await eventually(`window.__CALLS__.some((c) => c.cmd === 'library_open')`)
     && (await calls('library_open'))[0].path.endsWith('.mkv') || (await calls('library_open'))[0]?.path.endsWith('.mp4'));
+
+  // --- a game controller, in the standard layout -------------------------------------------
+  // The page reads controllers through the Gamepad API; here a stand-in controller is what it reads.
+  await evaluate(`(() => {
+    const buttons = Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 }));
+    window.__PAD__ = { id: 'fixture pad', index: 0, connected: true, mapping: 'standard', timestamp: 0, axes: [0, 0, 0, 0], buttons };
+    navigator.getGamepads = () => [window.__PAD__, null, null, null];
+    window.dispatchEvent(new Event('gamepadconnected'));
+    document.activeElement?.blur();
+  })()`);
+  const pad = (button, down) => evaluate(`window.__PAD__.buttons[${button}].pressed = ${down}`);
+  const tap = async (button) => { await pad(button, true); await sleep(80); await pad(button, false); await sleep(80); };
+  const opensBefore = (await calls('library_open')).length;
+  await tap(15);
+  check("a controller's first press takes the first tile", await eventually(`document.activeElement === document.querySelector('[data-library] [data-tile]')`));
+  await tap(15);
+  check('the D-pad moves along a shelf', await eventually(`document.activeElement === document.querySelectorAll('[data-library] [data-row]')[0].querySelectorAll('[data-tile]')[1]`), await focused());
+  await evaluate(`window.__PAD__.axes[1] = 1`);
+  await sleep(80);
+  await evaluate(`window.__PAD__.axes[1] = 0`);
+  check('the left stick moves to the shelf below', await eventually(`document.activeElement?.closest('[data-row]') === document.querySelectorAll('[data-library] [data-row]')[1]`), await focused());
+  await evaluate(`document.querySelector('[data-shelf="Recently added"] [data-tile]').focus()`);
+  // Held for 650 ms: once at once, again at 380 ms, then every 110 ms (490, 600): three steps along.
+  await pad(15, true);
+  await sleep(650);
+  await pad(15, false);
+  const along = await evaluate(`[...document.activeElement.closest('[data-row]').querySelectorAll('[data-tile]')].indexOf(document.activeElement)`);
+  check('held, a direction repeats, quickly after the first pause', along >= 3, String(along));
+  // A held as long opens once: opening does not repeat.
+  await pad(0, true);
+  await sleep(650);
+  await pad(0, false);
+  await sleep(300);
+  const opened = (await calls('library_open')).length - opensBefore;
+  check('A opens the focused tile, once, however long it is held', opened === 1, String(opened));
+  await evaluate(`window.__PAD__.connected = false; navigator.getGamepads = () => [null, null, null, null]`);
 
   // --- search ---------------------------------------------------------------------------
   await key('/');
