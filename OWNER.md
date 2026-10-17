@@ -14,7 +14,7 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
   tonight**, which you signed: the Mesh is live there, so paid seeding can be tested.
 - **QOR ID** — *the one sign-in* — and **Social** — *the chat service* — on Railway.
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`.
-- **Launcher 0.1.10 for testers**, published as a **GitHub Release** — *a public download on
+- **Launcher 0.1.10 for testers** (you installed it tonight; it works), published as a **GitHub Release** — *a public download on
   the repository* — with QOR Media inside. Its download page with install steps and the
   test checklist: `claude.ai/artifact/Uw2NRswDw9quvSBxQFbBLv` (private until you share it).
 
@@ -29,14 +29,12 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 1. **Share the download page** with your testers (its Share menu), and **send each tester test
    CGT** from the faucet when they send you their address.
-2. **Install 0.1.10 yourself first**: nobody has installed it yet. Windows warns because it
-   is unsigned; choose More info, then Run anyway.
-3. **Merge pull request #41** — *the notes for this release* — once its checks pass.
-4. **Crediting godmode with 100,000,000 CGT:** a faucet transfer you sign; I need its address.
-5. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
-6. **Keep the `godmode` account safe**; move or delete `social-secrets.txt` on your Desktop.
-7. **Housekeeping:** `archive-bZLIQp/` (one zip); the old `QOR-MATRIX/arqade` repository.
-8. **Still open from before:** update QQ Studio and publish again; the last two L1.4 checks; CI for
+2. **Merge pull request #41** — *the notes for this release* — once its checks pass.
+3. **Crediting godmode with 100,000,000 CGT:** a faucet transfer you sign; I need its address.
+4. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
+5. **Keep the `godmode` account safe**; move or delete `social-secrets.txt` on your Desktop.
+6. **Housekeeping:** `archive-bZLIQp/` (one zip); the old `QOR-MATRIX/arqade` repository.
+7. **Still open from before:** update QQ Studio and publish again; the last two L1.4 checks; CI for
    QQ; the welcome-grant payer; an email; replace the key pasted on 5 October.
 
 ## Cost per month

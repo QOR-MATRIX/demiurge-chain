@@ -2740,7 +2740,10 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     `318643587f6fe625346f4d4cd4a2ac31037d0a2e88225a06999915c84e037cfc`, the rehearsed file; `Sudo::Key` unchanged
     (`5HN6PZA4…Zadn`); `Mesh` with 11 calls, `PeriodLength` 600 and `AnswerWindowLength` 100 (ADR-096's, as rehearsed),
     `MeshApi_period` answering 338; finality advancing (#203,323 → #203,329 in 36 s); readiness 200. **Trap:** on the
-    Sudo page, pick `setCode(code)` in the second dropdown; the field must read `code`, not `remark`.
+    Sudo page, pick `setCode(code)` in the second dropdown; the field must read `code`, not `remark`. **Then the owner
+    installed 0.1.10** from the release over 0.1.9 on their PC, and confirmed it working without error: the version 0.1.10,
+    and a file from the Library playing inside the launcher in the QOR Media the installer carries. Not yet: an install
+    on a PC that never had the launcher or the Visual C++ runtime.
 
 ## 5. Traps, so nobody re-learns them
 
