@@ -18,7 +18,7 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **Launcher 0.1.8**, unsigned — *Windows warns on install*. Social is in `main`, not yet
   in an installer.
 
-## Built tonight, waiting for your merge (ADR-092)
+## Built tonight, waiting for your merge: pull request #35 (ADR-092, ADR-093)
 
 - **World** — *one room for everyone* — opens when Social does. Kept in full, as you
   chose. Moderators you name delete messages and mute for 10 minutes to a week.
@@ -30,12 +30,20 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
   once. Tested for real tonight: Spanish became "Hi everyone, how are you today? I love
   this game." in a fifth of a second.
 - **Chat shows** each person's avatar, level and username.
+- **Room levels** — *who may do what* — Owner, Admin, Mod, VIP, Member, each acting only
+  below itself, with a badge beside the name. **Elite** — *staff in every room* — is given
+  only by **godmode**, your account, which stands above every room's owner. Neither
+  reads a private room or a direct message it isn't in.
+- **On Railway:** `godmode` is set as World's moderator and as godmode; Social reads both
+  once #35 is merged.
 
 ## What only you can do
 
-1. **Review and merge the pull request** for the above. Railway updates Social from `main`.
-2. **Say who moderates World** (your QOR ID username?), and I'll set it on Railway.
-3. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
+1. **Merge pull request #35.** Its QOR ID check failed only because Amazon's image store
+   refused a download; re-run it first if you like ("Re-run failed jobs"). Railway then
+   updates Social from `main`.
+2. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
+3. **Keep the `godmode` account safe:** whoever signs in as it holds every room.
 4. **Then your look at World:** I'll start a test launcher built from `main`.
 5. **Your Desktop file** `social-secrets.txt` is still there: move it to where you keep
    credentials, or delete it. Its message key can't be recovered if lost.

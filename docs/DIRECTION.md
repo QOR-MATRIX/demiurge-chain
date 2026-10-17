@@ -735,11 +735,11 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 4. [ ] Mesh seeding.
 5. [ ] Studio inside the launcher.
 
-#### L8: Social (ADR-091, ADR-092; depends on nothing in M8)
+#### L8: Social (ADR-091, ADR-092, ADR-093; depends on nothing in M8)
 
 Rooms, direct messages, presence and profiles per QOR ID, in a service of its own (`services/social/`) with the
 launcher as its first client; World, friends and circles, and translation on the reader's PC (ADR-092). Design:
-[`blueprints/social.md`](blueprints/social.md). L8.1 to L8.7 and L8.11 to L8.14 are release 1.
+[`blueprints/social.md`](blueprints/social.md). L8.1 to L8.7 and L8.11 to L8.15 are release 1.
 
 1. [x] QOR ID for Social: token introspection for registered services (`POST /oauth/introspect`); an account on an
    automatic `key_…` name chooses its username once; another person's public profile by username. Each flow joins the
@@ -783,6 +783,10 @@ launcher as its first client; World, friends and circles, and translation on the
     merged; the real engine translated Mozilla's real Spanish model on this PC.
 14. [ ] Each author's avatar, level and username in chat (ADR-092 decision 4). Built 2026-10-16 on branch
     `session/social-world`, not merged.
+15. [ ] Room levels and standing (ADR-093): Owner, Admin, Mod, VIP and Member, each acting only below itself; Elite
+    accounts, staff in every room they are in, made only by godmode; godmode above every Owner; badges beside names;
+    mutes in any room but a direct one. Built 2026-10-16 on branch `session/social-world`, not merged; `SOCIAL_GODMODE`
+    set to `godmode` on Railway, read when that branch deploys.
 
 ### The product tracks
 

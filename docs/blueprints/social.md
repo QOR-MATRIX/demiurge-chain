@@ -3,7 +3,8 @@
 **What it is:** rooms, direct messages, presence and profiles per QOR ID, in a service of its own, with the QOR
 Launcher as its first client. **Decided by** [ADR-091](../decisions/ADR-091-social.md) (accepted by the owner,
 15 October 2026) and [ADR-092](../decisions/ADR-092-world-friends-and-translation.md) (World, friends and circles,
-translation on the reader's PC; 16 October 2026). **Roadmap:** L7.3, whose steps are L8 in [`DIRECTION.md`](../DIRECTION.md). This document is the
+translation on the reader's PC; 16 October 2026) and [ADR-093](../decisions/ADR-093-room-levels-elite-and-godmode.md)
+(room levels, Elite accounts and godmode; 16 October 2026). **Roadmap:** L7.3, whose steps are L8 in [`DIRECTION.md`](../DIRECTION.md). This document is the
 design; what exists is in [`SYSTEMS.md`](../SYSTEMS.md), and what is done is ticked in `DIRECTION.md`, nowhere else.
 
 The owner's brief, 15 October 2026: an engaging, full-featured social network and next-generation chat, with complete
@@ -51,9 +52,12 @@ A frame is one JSON object of at most 64 KiB. The first frame from the client is
 Methods are typed intents, never raw writes: `rooms.list | create | join | leave | invite | update | members`,
 `messages.history | send | edit | delete | react | read`, `dm.open`, `profile.get | update`, `presence.set`,
 `typing`, `block | unblock`, `report`; and since ADR-092 `friends.list | request | accept | decline | cancel | remove`,
-`circles.list | create | update | delete | add | remove | open` and `world.mute | unmute`. Events mirror them:
+`circles.list | create | update | delete | add | remove | open` and `world.mute | unmute`; and since ADR-093
+`rooms.mute | unmute` and `elite.grant | revoke | list`. Events mirror them:
 `message.created | edited | deleted | reaction`, `room.updated | member.joined | member.left`, `presence`, `typing`,
-`profile.updated`, `read`, `friend.requested | accepted | declined | removed` and `world.muted`. A `nonce` on send makes
+`profile.updated`, `read`, `friend.requested | accepted | declined | removed`, `world.muted` and `room.muted`. A
+profile carries its account's `status` (godmode, Elite or none); a history page carries the `levels` its authors hold
+there, a new message its author's `level`, and a room summary `muted_until`. A `nonce` on send makes
 a retry after a dropped connection idempotent; a `lang` on send or edit says what language the words are in. The
 welcome carries `world`: World's id, and until when the reader is muted there. Unknown methods and versions are refused
 with a code, never ignored.
@@ -64,7 +68,8 @@ with a code, never ignored.
 | --- | --- |
 | `profiles` | `sub` (key), display line, bio, accent, banner (a QFX preset and its parameters), showcase (DRC-369 asset ids, checked against the chain when shown), status line, language, updated |
 | `rooms` | id, kind (`public`, `private`, `direct`, `world`; one `world`), name, topic, ambience (a QFX preset), owner, created |
-| `members` | room, `sub`, role (`owner`, `moderator`, `member`), joined, last read sequence, muted |
+| `members` | room, `sub`, level (`owner`, `admin`, `moderator`, `vip`, `member`), joined, last read sequence |
+| `elites` | an Elite account, who granted it, and when (only godmode does) |
 | `messages` | room, sequence (per room, gapless), id, author, **sealed body** and its key version, reply-to, language, edited, deleted, created |
 | `reactions` | message, `sub`, emoji (one row each) |
 | `invites`, `blocks`, `reports` | who invited whom; who blocks whom; a message, its reporter, a reason, and its resolution |
@@ -99,6 +104,11 @@ with a code, never ignored.
   other's presence; a circle is seen and changed only by its owner, holds only their friends, and loses a friend when
   the friendship ends.
 - A message's language is kept only in a language tag's shape.
+- Levels (ADR-093): each level acts only on those below it and gives only levels below its own; only the Owner, or
+  godmode, hands a room on, and the Owner who does becomes an Admin; an Elite account acts as an Admin in every room it
+  is in, never above its Owner; godmode stands above every Owner and alone makes accounts Elite; nobody acts on
+  godmode; no level or standing reads a room it is not in; a level appointed in World outlasts the configured
+  moderators' hello.
 
 ## 5. Profiles: what makes them a person's own
 
@@ -171,7 +181,17 @@ not translated.
   stand-in host with the worker in its stand-in mode (`check-social-view.mjs`); and, by hand, the real engine with
   Mozilla's real files (`check-translate-engine.mjs`).
 
-## 10. Not in release 1
+## 10. Levels and standing
+
+Every room has five levels (ADR-093): **Owner** (everything; hands the room on), **Admin** (settings; sets levels below
+it), **Mod** (deletes, mutes and removes those below it; invites to a private room), **VIP** (a badge; free of World's
+pace) and **Member**. Two standings sit across rooms: **Elite**, an Admin in every room it is in, made and unmade only by
+godmode; and **godmode**, the account `SOCIAL_GODMODE` names, above every Owner. The launcher shows the badges beside
+names on messages and in member lists, offers each person only the levels and tools Social would allow them (a level
+menu, Mute, Remove in the member list; Delete and Mute on a message), and offers godmode Make Elite and Remove Elite on
+a person's card.
+
+## 11. Not in release 1
 
 End-to-end encrypted direct messages (release 2, its own record first), voice, feeds, search across rooms, a web
 client, ARQADE's chat moved onto Social, push notifications when the launcher is closed, and several instances of the
