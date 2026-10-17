@@ -32,6 +32,7 @@ polkadot-sdk = { workspace = true, features = [
   "pallet-utility",
 ] }
 pallet-arq-wallet = { workspace = true }
+pallet-mesh = { workspace = true }
 pallet-drc369 = { workspace = true }
 pallet-drc369-royalties = { workspace = true }
 pallet-validator-set = { workspace = true }
@@ -44,6 +45,7 @@ default = ["std"]
 std = [
   "codec/std",
   "pallet-arq-wallet/std",
+  "pallet-mesh/std",
   "pallet-drc369/std",
   "pallet-drc369-royalties/std",
   "pallet-validator-set/std",
@@ -63,6 +65,7 @@ sudo = []
 
 runtime-benchmarks = [
   "pallet-arq-wallet/runtime-benchmarks",
+  "pallet-mesh/runtime-benchmarks",
   "pallet-drc369/runtime-benchmarks",
   "pallet-drc369-royalties/runtime-benchmarks",
   "pallet-validator-set/runtime-benchmarks",
@@ -70,6 +73,7 @@ runtime-benchmarks = [
 ]
 try-runtime = [
   "pallet-arq-wallet/try-runtime",
+  "pallet-mesh/try-runtime",
   "pallet-drc369/try-runtime",
   "pallet-drc369-royalties/try-runtime",
   "pallet-validator-set/try-runtime",
