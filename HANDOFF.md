@@ -2568,7 +2568,8 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     FFmpeg's libraries). **The whole path:** `media::tests::qor_media_started_by_the_launcher_plays_and_reports_to_the_library`
     (opt-in, `--ignored`) starts the deployed QOR Media through the product host, opens a generated tone, and sees its
     length and where it stopped reach a Library: passed in 3.5 s. **Launcher:** 277 host tests pass (13 ignored), twelve
-    browser checks. **Gates:** `library.tests` (thirteen launcher tests) and `library.view` (the view check, as suite
+    browser checks. **CI:** Social's job could not pull Postgres from Amazon ECR Public five times running on this pull
+    request, so CI's service images now come from `mirror.gcr.io` (§5). **Gates:** `library.tests` (thirteen launcher tests) and `library.view` (the view check, as suite
     `library_view`), a tightening logged in `GATES.toml`. **Not done:** the owner's first look in a running launcher (nobody has opened a file from the Library
     on screen yet); PDF (L9.5), which needs Qt PDF added to the owner's Qt with the Qt Maintenance Tool; video thumbnails
     on tiles; a controller inside QOR Media (Qt 6 has no gamepad module); the pull request.
@@ -2606,11 +2607,13 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   passed. That line alone is the browser starting slowly, not a failed check.
 
 **CI's database images**
-- The QOR ID and Social jobs pull `postgres` and `redis` from Amazon ECR Public anonymously. On 15 October 2026 it
-  refused twice in one evening (`toomanyrequests: Data limit exceeded`, `Docker pull failed`), failing a job before any
-  step of the change ran (#30, #32); re-running the failed job passed both. A job that fails at "UNKNOWN STEP" with a
-  Docker pull error is this, not the change. A lasting fix (an authenticated pull, or the images from another registry)
-  needs a credential, so it is the owner's to choose.
+- The QOR ID and Social jobs pulled `postgres` and `redis` from Amazon ECR Public anonymously. It refused twice on 15
+  October 2026 (#30, #32), on #35, and five times on #37's run 39005954469 on 17 October (`toomanyrequests: Data limit
+  exceeded`), failing a job at "Initialize containers" before any step of the change ran; re-runs passed only some of
+  the time. **Since #37 the images come from `mirror.gcr.io/library/`**, Google's mirror of Docker Hub's library, which
+  needs no credential; both tags had the same digests there as on ECR. A job that fails at "Initialize containers" with
+  a Docker pull error is a registry, not the change; if this mirror refuses too, the next step is an authenticated pull,
+  which needs a credential and so is the owner's to choose.
 
 **Launcher checks**
 - `npm run check` runs eleven checks (the Social view since 15 October 2026): design, accessibility, the gates view, the Projects view, the Inventory
@@ -2629,7 +2632,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
 - **Docker Hub limits anonymous pulls, and GitHub's shared runners pull anonymously.** Run 37991419843 (#74, on
   pull request #19, 9 October 2026) failed before any step: QOR ID's job could not pull `postgres:16-alpine`
   ("toomanyrequests"); a re-run of the failed job passed. Pull request #20 moves the two CI service images to the same
-  official images on `public.ecr.aws/docker/library/`. The Dockerfiles (`services/qor-auth`, `chain`) still start from
+  official images on `public.ecr.aws/docker/library/` (and #37 to `mirror.gcr.io/library/`, below). The Dockerfiles (`services/qor-auth`, `chain`) still start from
   Docker Hub images: Railway builds QOR ID's with its own pulls, and `devnet-image.yml`, started by hand, could meet the
   same limit.
 - **Qt Quick 3D has a type called `Material`, and the import that comes later wins.** Imported after

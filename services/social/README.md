@@ -59,7 +59,7 @@ cargo fmt --all -- --check && cargo clippy --all-targets --locked -- -D warnings
 
 The tests need a Postgres whose user can create databases (`#[sqlx::test]` makes one per test). On this PC:
 `docker run -d --rm --name social-dev-pg -e POSTGRES_USER=ci -e POSTGRES_PASSWORD=ci -p 127.0.0.1:55432:5432
-public.ecr.aws/docker/library/postgres:16-alpine`. They drive a real WebSocket on a loopback port; QOR ID is stood in
+mirror.gcr.io/library/postgres:16-alpine` (the image CI uses). They drive a real WebSocket on a loopback port; QOR ID is stood in
 for, except in the log check, which runs the real QOR ID client against a stand-in QOR ID over HTTP. They run four at a
 time (`.cargo/config.toml`): sqlx gives all of a run's tests one parent pool of 20 connections, and more at once wait on
 one another until some time out.
