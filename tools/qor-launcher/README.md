@@ -6,7 +6,8 @@ library, community, peer-to-peer distribution and the node itself.
 
 **Status:** Version 0.1.10 (unsigned, no update channel; 17 October 2026: the Mesh's
 paid work, and QOR Media inside the Windows installer; 0.1.9 brought avatars, rings,
-Social and the Library). Gate, Nexus, Vault, Inventory, Projects, Chain, Gates
+Social and the Library). Testers download it from the GitHub Release
+[`launcher-v0.1.10`](https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.10). Gate, Nexus, Vault, Inventory, Projects, Chain, Gates
 and Settings are built and running, and so is the first slice of Market (L7.2):
 every listing the chain holds, read through the connected node, with no search
 and no indexer behind it. So are payments asked by websites (`qor://pay`), the
