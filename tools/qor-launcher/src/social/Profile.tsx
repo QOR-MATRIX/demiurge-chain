@@ -13,6 +13,7 @@ import { selectActiveAccount, useQor } from '../state/store';
 import { PROFILE_ACCENTS } from '../styles/themes';
 import { Banner, BACKDROPS } from './Banner';
 import { FriendButton } from './Friends';
+import { Badges } from './Levels';
 import { languageName, translateHost } from './translate';
 import {
   host,
@@ -104,6 +105,21 @@ export function ProfileCard({ sub, onEdit }: { sub: string; onEdit: () => void }
     }
   };
 
+  // Only godmode makes an account Elite, or takes it away (ADR-093); Social refuses anyone else.
+  const toggleElite = async () => {
+    setBusy(true);
+    try {
+      const elite = profile.status === 'elite';
+      const r = await host.request<{ profile: Profile }>(elite ? 'elite.revoke' : 'elite.grant', elite ? { sub } : { qor_id: profile.qor_id });
+      useSocial.getState().remember({ [sub]: r.profile });
+      notify('ok', elite ? `${profile.qor_id} is no longer Elite.` : `${profile.qor_id} is Elite now: staff in every room they are in.`);
+    } catch (e) {
+      notify('bad', refusalOf(e).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const toggleBlock = async () => {
     setBusy(true);
     try {
@@ -125,7 +141,10 @@ export function ProfileCard({ sub, onEdit }: { sub: string; onEdit: () => void }
       </div>
       <div className="px-5 pb-5 pt-3" style={accentStyle(profile)}>
         <h2 className="social-accent text-title font-semibold">{shownName(profile)}</h2>
-        <p className="numeric text-caption text-ink-muted">@{profile.qor_id}</p>
+        <p className="flex flex-wrap items-center gap-1.5 text-caption text-ink-muted">
+          <span className="numeric">@{profile.qor_id}</span>
+          <Badges standing={profile.status} />
+        </p>
         <p className="mt-2 flex items-center gap-2 text-caption text-ink-body">
           <PresenceDot presence={presence} />
           {presenceText(presence)}
@@ -168,6 +187,11 @@ export function ProfileCard({ sub, onEdit }: { sub: string; onEdit: () => void }
                 <MessageCircle size={13} /> Message
               </button>
               {!blocked && <FriendButton profile={profile} />}
+              {me?.status === 'godmode' && profile.status !== 'godmode' && (
+                <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => void toggleElite()} data-elite-toggle>
+                  {profile.status === 'elite' ? 'Remove Elite' : 'Make Elite'}
+                </button>
+              )}
               <button type="button" className="btn btn-ghost btn-danger" disabled={busy} onClick={() => void toggleBlock()}>
                 <Ban size={13} /> {blocked ? 'Unblock' : 'Block'}
               </button>

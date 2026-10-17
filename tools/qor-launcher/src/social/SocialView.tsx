@@ -40,6 +40,7 @@ import { identity } from '../lib/ipc';
 import { useQor } from '../state/store';
 import { Banner, BACKDROPS } from './Banner';
 import { FriendsPanel } from './Friends';
+import { Badges, givable, LEVEL_NAMES, LEVELS, myRank, standingRank, type Level } from './Levels';
 import {
   host,
   MENTION,
@@ -575,7 +576,10 @@ function Conversation({
   const title = roomTitle(room, profiles);
   const other = room.kind === 'direct' && room.other ? profiles[room.other] : null;
   const isWorld = room.kind === 'world';
-  const canModerate = room.role !== 'member' && room.kind !== 'direct' && !isWorld;
+  const rank = myRank(me, room);
+  // Settings are an Admin's and above; inviting to a private room a Mod's and above (ADR-093).
+  const canModerate = rank >= 4 && room.kind !== 'direct' && !isWorld;
+  const canInvite = room.kind === 'public' || (room.kind === 'private' && rank >= 3);
 
   const older = async () => {
     const el = scroller.current;
@@ -618,7 +622,7 @@ function Conversation({
           {translatable(room) && <TranslateSwitch />}
           {room.kind !== 'direct' && (
             <>
-              {room.kind === 'public' || canModerate ? (
+              {canInvite ? (
                 <button type="button" className="btn btn-ghost px-2" title="Invite someone" aria-label="Invite someone" onClick={() => onDialog('invite')}>
                   <UserPlus size={15} />
                 </button>
@@ -774,8 +778,12 @@ function MessageItem({
   const [picking, setPicking] = useState(false);
   const [muting, setMuting] = useState(false);
   const mine = me?.sub === m.author;
-  const canDelete = mine || (room.role !== 'member' && room.kind !== 'direct');
-  const canMute = room.kind === 'world' && room.role !== 'member' && !mine;
+  const authorLevel = useSocial((s) => s.levels[room.id]?.[m.author]);
+  // Each level acts only on those below it (ADR-093); Social decides, this only offers what it would allow.
+  const mineRank = myRank(me, room);
+  const below = mineRank >= 3 && mineRank > standingRank(author?.status, authorLevel);
+  const canDelete = mine || (room.kind !== 'direct' && below);
+  const canMute = room.kind !== 'direct' && !mine && below;
   const reader = readerLanguage(me);
   const on = useTranslation((s) => s.on);
   const translating = on && wanted(m, room, reader);
@@ -819,6 +827,7 @@ function MessageItem({
               {shownName(author)}
             </button>
             {author && (author.display.trim() ? <span className="numeric truncate text-micro text-ink-muted">@{author.qor_id}</span> : null)}
+            <Badges standing={author?.status} level={authorLevel} />
             {author && (
               <span className="social-level numeric" title={`Level ${author.level}`} aria-label={`Level ${author.level}`}>
                 Lv {author.level}
@@ -896,7 +905,7 @@ function MessageItem({
             </button>
           )}
           {canMute && (
-            <button type="button" className="p-1.5 text-ink-muted hover:text-bad" title="Mute in World" aria-label="Mute in World" onClick={() => setMuting((x) => !x)}>
+            <button type="button" className="p-1.5 text-ink-muted hover:text-bad" title="Mute" aria-label="Mute" onClick={() => setMuting((x) => !x)}>
               <VolumeX size={14} />
             </button>
           )}
@@ -914,7 +923,7 @@ function MessageItem({
         </div>
       )}
       {muting && (
-        <div className="absolute right-3 top-7 z-10 flex items-center gap-1 border border-edge bg-raised p-1 shadow-lg" role="menu" aria-label="Mute in World">
+        <div className="absolute right-3 top-7 z-10 flex items-center gap-1 border border-edge bg-raised p-1 shadow-lg" role="menu" aria-label="Mute">
           <span className="eyebrow px-1.5">Mute {shownName(author)} for</span>
           {(
             [
@@ -931,7 +940,7 @@ function MessageItem({
               className="px-2 py-1 text-ui text-ink-body hover:bg-base hover:text-ink"
               onClick={() => {
                 setMuting(false);
-                void act('world.mute', { sub: m.author, minutes }, `${shownName(author)} is muted in World for ${label}.`);
+                void act('rooms.mute', { room: room.id, sub: m.author, minutes }, `${shownName(author)} is muted here for ${label}.`);
               }}
             >
               {label}
@@ -1058,7 +1067,7 @@ function Composer({
 }) {
   const profiles = useSocial((s) => s.profiles);
   const me = useSocial((s) => s.me);
-  const mutedUntil = useSocial((s) => (room.kind === 'world' ? s.mutedUntil : null));
+  const mutedUntil = useSocial((s) => s.rooms[room.id]?.muted_until ?? (room.kind === 'world' ? s.mutedUntil : null));
   const notify = useQor((s) => s.notify);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -1146,7 +1155,7 @@ function Composer({
       <div className="flex-none px-6 pb-5" data-muted>
         <p className="flex items-center gap-2 border border-edge bg-well px-3 py-3 text-ui text-ink-muted" role="status">
           <VolumeX size={14} className="text-bad" />
-          A moderator muted you in World until {new Date(mutedUntil!).toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', weekday: 'short' })}. You can
+          A moderator muted you {room.kind === 'world' ? 'in World' : 'here'} until {new Date(mutedUntil!).toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', weekday: 'short' })}. You can
           still read, and talk anywhere else.
         </p>
       </div>
@@ -1254,6 +1263,7 @@ function Members({ room }: { room: string }) {
   const manage = async (method: string, params: Record<string, unknown>) => {
     try {
       await host.request(method, { room, ...params });
+      if (method === 'rooms.role') useSocial.getState().putLevel(room, params.sub as string, params.role as Level);
       await read();
     } catch (e) {
       notify('bad', refusalOf(e).message);
@@ -1261,6 +1271,7 @@ function Members({ room }: { room: string }) {
   };
 
   if (!members) return <p className="p-5 text-caption text-ink-muted">Reading who is here…</p>;
+  const mine = myRank(me, summary);
   const order = { online: 0, away: 1, offline: 2 } as const;
   const sorted = [...members].sort((a, b) => order[presence[a.sub]?.state ?? 'offline'] - order[presence[b.sub]?.state ?? 'offline']);
   return (
@@ -1273,26 +1284,41 @@ function Members({ room }: { room: string }) {
             <li key={m.sub} className="group flex items-center gap-2.5" style={accentStyle(p)}>
               <button type="button" className="flex min-w-0 flex-1 items-center gap-2.5 py-1 text-left" onClick={() => useSocial.getState().showCard(m.sub)}>
                 <span className="relative">
-                  <Avatar name={p?.qor_id} src={p?.avatar_url ?? null} size={28} />
+                  <Avatar name={p?.qor_id} src={p?.avatar_url ?? null} size={28} level={p?.level ?? null} />
                   <PresenceDot presence={presence[m.sub]} className="absolute -bottom-0.5 -right-0.5 ring-2 ring-void" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="social-accent block truncate text-ui">{shownName(p)}</span>
-                  {m.role !== 'member' && <span className="eyebrow text-accent">{m.role}</span>}
+                  <span className="flex flex-wrap gap-1">
+                    <Badges standing={p?.status} level={m.role} />
+                  </span>
                 </span>
               </button>
-              {summary?.role === 'owner' && m.sub !== me?.sub && (
-                <span className="hidden gap-1 group-hover:flex">
-                  <button
-                    type="button"
-                    className="text-micro text-ink-muted hover:text-ink"
-                    onClick={() => void manage('rooms.role', { sub: m.sub, role: m.role === 'moderator' ? 'member' : 'moderator' })}
-                  >
-                    {m.role === 'moderator' ? 'Unmod' : 'Mod'}
+              {summary && m.sub !== me?.sub && mine >= 3 && mine > standingRank(p?.status, m.role) && (
+                <span className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  {givable(mine, summary.role, summary).length > 0 && (
+                    <select
+                      className="social-level-select"
+                      aria-label={`${shownName(p)}'s level`}
+                      value={m.role}
+                      data-level-select={m.sub}
+                      onChange={(e) => void manage('rooms.role', { sub: m.sub, role: e.target.value as Level })}
+                    >
+                      {LEVELS.filter((l) => l === m.role || givable(mine, summary.role, summary).includes(l)).map((l) => (
+                        <option key={l} value={l}>
+                          {LEVEL_NAMES[l]}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <button type="button" className="text-micro text-ink-muted hover:text-bad" onClick={() => void manage('rooms.mute', { sub: m.sub, minutes: 60 })}>
+                    Mute 1 h
                   </button>
-                  <button type="button" className="text-micro text-ink-muted hover:text-bad" onClick={() => void manage('rooms.remove', { sub: m.sub })}>
-                    Remove
-                  </button>
+                  {summary.kind !== 'world' && (
+                    <button type="button" className="text-micro text-ink-muted hover:text-bad" onClick={() => void manage('rooms.remove', { sub: m.sub })}>
+                      Remove
+                    </button>
+                  )}
                 </span>
               )}
             </li>

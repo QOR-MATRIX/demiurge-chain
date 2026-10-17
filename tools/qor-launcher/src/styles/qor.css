@@ -973,6 +973,54 @@
     transition: width 200ms var(--ease-expo);
   }
 
+  /* ADR-093: the badges beside a name, from godmode down to VIP. Theme tokens only, so each reads in every theme. */
+  .social-badge {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 3px;
+    padding: 0 5px;
+    border: 1px solid var(--edge);
+    border-radius: 3px;
+    color: var(--ink-body);
+    font-size: var(--text-micro);
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: 0.02em;
+  }
+  .social-badge-godmode {
+    border-color: var(--accent-bright);
+    background: linear-gradient(120deg, var(--accent-bright), var(--accent));
+    color: var(--void);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-bright) 45%, transparent);
+  }
+  .social-badge-elite {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: var(--accent-bright);
+  }
+  .social-badge-owner {
+    border-color: var(--accent-bright);
+    color: var(--ink);
+  }
+  .social-badge-admin {
+    border-color: var(--accent);
+    color: var(--ink);
+  }
+  .social-badge-mod {
+    color: var(--ink);
+  }
+  .social-badge-vip {
+    color: var(--accent-bright);
+  }
+  .social-level-select {
+    padding: 1px 4px;
+    border: 1px solid var(--edge);
+    background: var(--well);
+    color: var(--ink);
+    font-size: var(--text-micro);
+  }
+
   /* Circles and friend requests. */
   .social-chip {
     display: inline-flex;

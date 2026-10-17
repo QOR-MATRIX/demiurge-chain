@@ -46,6 +46,8 @@ export interface Profile {
   status_line: string;
   /** The language they read in, and write in when their words are too few to tell (ADR-092). */
   language: string | null;
+  /** The account's standing: godmode, Elite, or none (ADR-093). */
+  status?: 'godmode' | 'elite' | null;
   seen_at: string;
   presence?: Presence;
 }
@@ -60,11 +62,13 @@ export interface Room {
 }
 
 export interface RoomSummary extends Room {
-  role: 'owner' | 'moderator' | 'member';
+  role: 'owner' | 'admin' | 'moderator' | 'vip' | 'member';
   unread: number;
   last_seq: number;
   members: number;
   other: string | null;
+  /** Until when the reader may not post here (ADR-093). */
+  muted_until?: string | null;
 }
 
 export interface Reaction {
@@ -96,7 +100,7 @@ export interface Invite {
 
 export interface Member {
   sub: string;
-  role: 'owner' | 'moderator' | 'member';
+  role: RoomSummary['role'];
   joined_at: string;
 }
 
@@ -203,6 +207,8 @@ interface SocialState {
   incoming: FriendRequest[];
   outgoing: FriendRequest[];
   circles: Circle[];
+  /** Per room, the levels above member its people hold, for the badges beside their names (ADR-093). */
+  levels: Record<string, Record<string, RoomSummary['role']>>;
 
   setStatus: (s: Status) => void;
   welcome: (w: Welcome) => void;
@@ -214,6 +220,7 @@ interface SocialState {
   putRoom: (room: Room, role: RoomSummary['role']) => void;
   dropRoom: (room: string) => void;
   putMessage: (m: Message) => void;
+  putLevel: (room: string, sub: string, level: RoomSummary['role']) => void;
   loadFriends: () => Promise<void>;
   putCircle: (c: Circle) => void;
 }
@@ -240,6 +247,7 @@ export const useSocial = create<SocialState>((set, get) => ({
   incoming: [],
   outgoing: [],
   circles: [],
+  levels: {},
 
   setStatus: (status) => set({ status }),
 
@@ -272,6 +280,7 @@ export const useSocial = create<SocialState>((set, get) => ({
       case 'message.created': {
         const m = data.message as Message;
         get().putMessage(m);
+        if (typeof data.level === 'string') get().putLevel(m.room, m.author, data.level as RoomSummary['role']);
         const mine = m.author === s.me?.sub;
         const room = s.rooms[m.room];
         if (room) {
@@ -342,6 +351,7 @@ export const useSocial = create<SocialState>((set, get) => ({
         break;
       }
       case 'member.role': {
+        get().putLevel(data.room as string, data.sub as string, data.role as RoomSummary['role']);
         const room = s.rooms[data.room as string];
         if (room && data.sub === s.me?.sub)
           set({ rooms: { ...s.rooms, [room.id]: { ...room, role: data.role as RoomSummary['role'] } } });
@@ -394,8 +404,15 @@ export const useSocial = create<SocialState>((set, get) => ({
         break;
       }
       case 'world.muted':
-        set({ mutedUntil: (data.until as string | null) ?? null });
+      case 'room.muted': {
+        const until = (data.until as string | null) ?? null;
+        const room = s.rooms[data.room as string];
+        set({
+          ...(event === 'world.muted' ? { mutedUntil: until } : {}),
+          ...(room ? { rooms: { ...s.rooms, [room.id]: { ...room, muted_until: until } } } : {}),
+        });
         break;
+      }
     }
   },
 
@@ -414,12 +431,17 @@ export const useSocial = create<SocialState>((set, get) => ({
   load: async (room, older = false) => {
     const thread = get().threads[room];
     const before = older ? thread?.messages[0]?.seq : undefined;
-    const page = await host.request<{ messages: Message[]; profiles: Record<string, Profile> }>('messages.history', {
+    const page = await host.request<{
+      messages: Message[];
+      profiles: Record<string, Profile>;
+      levels?: Record<string, RoomSummary['role']>;
+    }>('messages.history', {
       room,
       ...(before ? { before } : {}),
       limit: 50,
     });
     get().remember(page.profiles);
+    if (page.levels) set((s) => ({ levels: { ...s.levels, [room]: { ...s.levels[room], ...page.levels } } }));
     set((s) => {
       const held = older ? (s.threads[room]?.messages ?? []) : [];
       const byId = new Map([...held, ...page.messages].map((m) => [m.id, m]));
@@ -456,6 +478,14 @@ export const useSocial = create<SocialState>((set, get) => ({
       if (!thread) return {};
       const others = thread.messages.filter((x) => x.id !== m.id);
       return { threads: { ...s.threads, [m.room]: { ...thread, messages: sorted([...others, m]) } } };
+    }),
+
+  putLevel: (room, sub, level) =>
+    set((s) => {
+      const held = { ...s.levels[room] };
+      if (level === 'member') delete held[sub];
+      else held[sub] = level;
+      return { levels: { ...s.levels, [room]: held } };
     }),
 
   loadFriends: async () => {

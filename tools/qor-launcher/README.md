@@ -330,7 +330,9 @@ unpacked (unpacking capped at the published size), keeps it by hash under the lo
 serves only files it checked this run (`translate_file`, raw bytes). The engine is pinned (`ENGINE_SHA256`) to the build of
 Firefox's loader kept in `public/translate/bergamot-translator.js` (v0.6.0, MPL-2.0, its licence beside it); the worker
 there (`public/translate/worker.js`, MPL-2.0, after Firefox's) runs it, which is why the CSP allows `'wasm-unsafe-eval'`.
-`translate_detect` tells a message's language on the sender's PC with `whatlang`. Evidence: `translate::tests` (a stand-in
+`translate_detect` tells a message's language on the sender's PC with `whatlang`. **Levels (ADR-093)** live in
+`src/social/Levels.tsx`: the badges (godmode, Elite, Owner, Admin, Mod, VIP) beside names, and what a reader's standing
+lets them give or do, which is all the screen offers; Social decides each one. Evidence: `translate::tests` (a stand-in
 for Mozilla), `scripts/check-social-view.mjs` (the worker in its stand-in mode), and by hand, the real engine with
 Mozilla's real files:
 

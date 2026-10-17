@@ -22,7 +22,9 @@
 //     leaves World's chatter out; a moderator mutes; a muted reader is told; what is sent carries its language;
 //   - each author with their level and username beside their name;
 //   - friends: who is asking, accepting, adding by name, friends online first, a circle choosing its friends, and the
-//     friend state on a card.
+//     friend state on a card;
+//   - levels (ADR-093): godmode and Elite badges and a room level beside names, the level menu offering only what the
+//     reader's standing allows, a mute in any room, and godmode alone offered Remove Elite.
 //
 // No dependencies beyond Node 22+ and an installed Edge or Chrome. Set BROWSER_PATH for another Chromium browser.
 //
@@ -77,8 +79,8 @@ const profile = (sub, qor_id, extra = {}) => ({
   status_line: '', seen_at: T, ...extra,
 });
 const PROFILES = {
-  [ME]: profile(ME, 'fixture', { display: 'Fixture Person', language: 'en' }),
-  [BOB]: profile(BOB, 'bob', { display: 'Bob of the Lattice', bio: 'Builds worlds in fixtures.', banner: { preset: 'lattice', hue: 180, intensity: 0.7 }, status_line: 'testing things' }),
+  [ME]: profile(ME, 'fixture', { display: 'Fixture Person', language: 'en', status: 'godmode' }),
+  [BOB]: profile(BOB, 'bob', { status: 'elite', display: 'Bob of the Lattice', bio: 'Builds worlds in fixtures.', banner: { preset: 'lattice', hue: 180, intensity: 0.7 }, status_line: 'testing things' }),
   [CAROL]: profile(CAROL, 'carol', { display: 'Carol' }),
 };
 const room = (id, kind, name, extra = {}) => ({
@@ -218,7 +220,11 @@ try {
       if (s.refuse && s.refuse.method === method) return Promise.reject({ kind: 'social', code: s.refuse.code, message: s.refuse.message });
       switch (method) {
         case 'messages.history':
-          return Promise.resolve({ messages: params.room === ${JSON.stringify(LOUNGE)} ? s.history : params.room === ${JSON.stringify(WORLD)} ? s.world : [], profiles: s.profiles });
+          return Promise.resolve({ messages: params.room === ${JSON.stringify(LOUNGE)} ? s.history : params.room === ${JSON.stringify(WORLD)} ? s.world : [], profiles: s.profiles,
+            levels: params.room === ${JSON.stringify(LOUNGE)} ? { [${JSON.stringify(CAROL)}]: 'admin', [${JSON.stringify(BOB)}]: 'owner' } : {} });
+        case 'rooms.role': return Promise.resolve({});
+        case 'rooms.mute': return Promise.resolve({ until: '2099-01-01T00:00:00Z' });
+        case 'elite.revoke': return Promise.resolve({ profile: { ...s.profiles[${JSON.stringify(BOB)}], status: null } });
         case 'friends.list':
           return Promise.resolve({ friends: [${JSON.stringify(BOB)}], incoming: [{ sub: ${JSON.stringify(CAROL)}, created_at: ${JSON.stringify(T)} }], outgoing: [], profiles: s.profiles });
         case 'circles.list':
@@ -231,7 +237,7 @@ try {
         case 'rooms.members':
           return Promise.resolve({ members: [{ sub: ${JSON.stringify(ME)}, role: 'member', joined_at: ${JSON.stringify(T)} },
             { sub: ${JSON.stringify(BOB)}, role: 'owner', joined_at: ${JSON.stringify(T)} },
-            { sub: ${JSON.stringify(CAROL)}, role: 'member', joined_at: ${JSON.stringify(T)} }], profiles: s.profiles });
+            { sub: ${JSON.stringify(CAROL)}, role: 'admin', joined_at: ${JSON.stringify(T)} }], profiles: s.profiles });
         case 'messages.send':
           return Promise.resolve({ message: { id: '30000000-0000-4000-8000-00000000000' + (window.__CALLS__.length % 10), room: params.room, seq: 5, author: ${JSON.stringify(ME)},
             body: params.body, reply_to: null, reactions: [], edited_at: null, deleted: false, created_at: ${JSON.stringify(T)}, lang: params.lang ?? null } });
@@ -366,10 +372,11 @@ try {
     await evaluate(`(() => { const bob = document.querySelectorAll('[data-message]')[1]; return bob.querySelector('.social-level')?.textContent === 'Lv 4' && bob.textContent.includes('@bob') && bob.textContent.includes('Bob of the Lattice'); })()`));
 
   // A moderator mutes from a message.
-  await evaluate(`document.querySelectorAll('[data-message]')[0].querySelector('button[aria-label="Mute in World"]').click()`);
-  await until(`Boolean(document.querySelector('[role="menu"][aria-label="Mute in World"]'))`, 'the mute menu');
-  await clickText('[role="menu"][aria-label="Mute in World"] button', '1 hour');
-  check('a World moderator mutes someone for one of four lengths', await eventually(`window.__CALLS__.some((c) => c.args?.method === 'world.mute' && c.args.params.sub === ${JSON.stringify(CAROL)} && c.args.params.minutes === 60)`));
+  await evaluate(`document.querySelectorAll('[data-message]')[0].querySelector('button[aria-label="Mute"]').click()`);
+  await until(`Boolean(document.querySelector('[role="menu"][aria-label="Mute"]'))`, 'the mute menu');
+  await clickText('[role="menu"][aria-label="Mute"] button', '1 hour');
+  check('a moderator mutes someone below them for one of four lengths, in the room it happened in', await eventually(`window.__CALLS__.some((c) => c.args?.method === 'rooms.mute' && c.args.params.room === ${JSON.stringify(WORLD)} && c.args.params.sub === ${JSON.stringify(CAROL)} && c.args.params.minutes === 60)`));
+  check('an Elite account wears its badge beside its name', await evaluate(`Boolean(document.querySelectorAll('[data-message]')[1].querySelector('[data-badge="elite"]'))`));
 
   // What is sent carries the language it is in.
   const box0 = 'textarea[aria-label^="Message"]';
@@ -394,6 +401,8 @@ try {
   const drawn = await evaluate(`[...document.querySelectorAll('[data-message]')].map((m) => m.textContent)`);
   check('messages are drawn in order, with the authors\' display lines', drawn[0].includes('Bob of the Lattice') && drawn[0].includes('Welcome to the lounge') && drawn[3].includes('Lovely ambience'), JSON.stringify(drawn));
   check('a deleted message keeps its place and none of its words', drawn[1].includes('This message was deleted.'));
+  check('a room level shows beside its holder\'s name: an Admin, and an Owner who is also Elite shows both',
+    await eventually(`Boolean(document.querySelectorAll('[data-message]')[3].querySelector('[data-badge="admin"]') && document.querySelectorAll('[data-message]')[0].querySelector('[data-badge="owner"]') && document.querySelectorAll('[data-message]')[0].querySelector('[data-badge="elite"]'))`));
   check('an @mention of the reader is marked as theirs', await evaluate(`[...document.querySelectorAll('.social-mention-me')].some((n) => n.textContent === '@fixture')`));
   check('a reaction shows its emoji and how many', await evaluate(`[...document.querySelectorAll('[data-message] button[aria-pressed]')].some((b) => b.textContent.includes('🔥') && b.textContent.includes('2'))`));
   check('reading the room clears its count', await eventually(`!/2$/.test(document.querySelector('[data-room-row="${LOUNGE}"]').textContent.trim())`));
@@ -413,6 +422,15 @@ try {
     JSON.stringify(sent));
   check('the sent message is drawn', await eventually(`[...document.querySelectorAll('[data-message]')].some((m) => m.textContent.includes('the lounge looks great'))`));
   check('and the box is cleared', await eventually(`document.querySelector(${JSON.stringify(box)}).value === ''`));
+
+  // --- levels in the members panel (ADR-093) ----------------------------------
+  await click('button[aria-label="Members"]');
+  await until(`Boolean(document.querySelector('[data-level-select="${CAROL}"]'))`, 'the level menu');
+  check('the level menu offers godmode every level, the room itself included',
+    (await evaluate(`[...document.querySelector('[data-level-select="${CAROL}"]').options].map((o) => o.value).join()`)) === 'owner,admin,moderator,vip,member');
+  await evaluate(`(() => { const el = document.querySelector('[data-level-select="${CAROL}"]'); const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set; set.call(el, 'moderator'); el.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  check('choosing a level asks Social for exactly that', await eventually(`window.__CALLS__.some((c) => c.args?.method === 'rooms.role' && c.args.params.room === ${JSON.stringify(LOUNGE)} && c.args.params.sub === ${JSON.stringify(CAROL)} && c.args.params.role === 'moderator')`));
+  await click('button[aria-label="Members"]');
 
   // --- what arrives ----------------------------------------------------------
   await emit('social://event', { event: 'message.created', data: { message: { id: '40000000-0000-4000-8000-000000000001', room: QUIET, seq: 2, author: CAROL, body: 'psst', reply_to: null, reactions: [], edited_at: null, deleted: false, created_at: T } } });
@@ -457,6 +475,10 @@ try {
     card.includes('Bob of the Lattice') && card.includes('@bob') && card.includes('playing Flux Four') && card.includes('testing things') && card.includes('Builds worlds in fixtures.'), card);
   check('the card carries their banner', await evaluate(`Boolean(document.querySelector('[data-profile-card] .social-banner-lattice'))`));
   check('and says the two are friends', await evaluate(`Boolean(document.querySelector('[data-profile-card] [data-friend-state="friends"]'))`));
+  check('godmode is offered Remove Elite on an Elite account\'s card', (await text('[data-profile-card] [data-elite-toggle]')) === 'Remove Elite');
+  await click('[data-profile-card] [data-elite-toggle]');
+  check('which asks Social to take Elite away from that account', await eventually(`window.__CALLS__.some((c) => c.args?.method === 'elite.revoke' && c.args.params.sub === ${JSON.stringify(BOB)})`));
+  check('and the card loses the badge when Social says so', await eventually(`!document.querySelector('[data-profile-card] [data-badge="elite"]') && document.querySelector('[data-profile-card] [data-elite-toggle]')?.textContent === 'Make Elite'`));
 
   await click('button[aria-label="Your profile"]');
   await until(`(document.querySelector('[data-profile-card]')?.textContent ?? '').includes('Fixture Person')`, 'my own card');
