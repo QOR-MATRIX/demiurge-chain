@@ -5,8 +5,8 @@ chain, and their own videos, music, pictures and documents), searched instantly 
 Media**, a native Qt 6 player, viewer and editor docked inside the launcher. **Decided by**
 [ADR-094](../decisions/ADR-094-the-library-and-qor-media.md) (accepted by the owner, 16 October 2026). **Roadmap:** L9 in
 [`DIRECTION.md`](../DIRECTION.md); buying and installing owned work stays L7.1 and P5 ([`market.md`](market.md)). This
-document is the design; what exists is in [`SYSTEMS.md`](../SYSTEMS.md). **Built so far** (branch `session/library`,
-not merged): the index, the view with keyboard and controller, and QOR Media's player, viewer and editor
+document is the design; what exists is in [`SYSTEMS.md`](../SYSTEMS.md). **Built so far** (in `main` since #37, 17 October
+2026): the index, the view with keyboard and controller, and QOR Media's player, viewer and editor
 (`tools/qor-media/`, [its README](../../tools/qor-media/README.md)), L9.1 to L9.4.
 
 The owner's brief, 16 October 2026: a SteamOS-style in-launcher view; a premium media player for all video and image

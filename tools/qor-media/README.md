@@ -10,7 +10,7 @@ over the Library, so it moves, resizes and minimises with the launcher.
 | Video and sound | `qml/Player.qml` | Qt Multimedia on its FFmpeg backend: every container and codec FFmpeg reads. Resumes where it stopped; scrubbing with the time under the pointer; ±10 s; speed; volume; audio and subtitle tracks; full screen |
 | Pictures | `qml/Viewer.qml` | Every format Qt's image plugins read (JPEG, PNG, GIF, WebP, TIFF, SVG, BMP, ICO, TGA), turned as the camera wrote it; zoom about the pointer, drag, 1:1 on a double click, the folder's others next and previous, turn, slideshow |
 | Text, Markdown and code | `qml/Editor.qml` | Read and saved as written (UTF-8 or UTF-16, byte-order mark and CRLF kept, `src/textfile.cpp`), coloured in the launcher's theme; line numbers for code; Markdown preview beside the words; find; asks before unsaved words are lost |
-| PDF, Office documents, anything else | `qml/Elsewhere.qml` | Says so, and opens it in the program Windows chooses. PDF arrives with L9.5 (Qt PDF, which the owner's Qt installation does not have yet), Office documents with L9.7 |
+| PDF, Office documents, anything else | `qml/Elsewhere.qml` | Says so, and opens it in the program Windows chooses. PDF arrives with L9.5 (Qt PDF, which the owner's Qt has), Office documents with L9.7 |
 
 Keys: Space or K play and pause; arrows seek 5 s (player) or move between pictures (viewer); J and L 10 s; Up and Down
 the volume; M mutes; F full screen; [ and ] speed; C subtitles; A audio track; R turns a picture; S a slideshow; Ctrl+S
