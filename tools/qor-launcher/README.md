@@ -4,8 +4,8 @@ The sovereign gateway to the Demiurge ecosystem. One desktop application through
 which every chain and engine system is reached: QOR ID, the CGT Vault, the game
 library, community, peer-to-peer distribution and the node itself.
 
-**Status:** Version 0.1.8 (unsigned, no update channel; avatars and rings on
-`main` need a new build). Gate, Nexus, Vault, Inventory, Projects, Chain, Gates
+**Status:** Version 0.1.9 (unsigned, no update channel; built 17 October 2026
+with avatars, rings, Social and the Library). Gate, Nexus, Vault, Inventory, Projects, Chain, Gates
 and Settings are built and running, and so is the first slice of Market (L7.2):
 every listing the chain holds, read through the connected node, with no search
 and no indexer behind it. So are payments asked by websites (`qor://pay`), the
@@ -295,8 +295,7 @@ The account's avatar, with its level on a ring that glows from level 1 (ADR-080)
 Nexus header, where clicking it opens the host's own file picker (`qor_choose_avatar`; the webview never reads files).
 QOR ID cleans and keeps the image; the launcher keeps a copy in its data directory (`avatar.bin`, `qor_avatar`) so it
 shows offline. With no picture, or none yet, an avatar is the name's first letter on a colour the name always gets.
-A GIF holds its first frame under reduce motion. Avatars and rings are on `main` after 0.1.8, so they reach people
-with the next build.
+A GIF holds its first frame under reduce motion. Avatars and rings reach people from 0.1.9.
 
 ### Level and XP (ADR-078)
 
