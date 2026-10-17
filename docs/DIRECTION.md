@@ -728,7 +728,8 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 
 #### L7: Platform surfaces (depends on M8)
 
-1. [ ] Library: install, delta patch and launch.
+1. [ ] Library: install, delta patch and launch. Its local half, a person's own files and QOR Media, is L9 (ADR-094),
+   which needs nothing in M8; owned work joins it here.
 2. [ ] Market.
 3. [ ] Social (named Agora until 2026-09-28, by the owner). **Brought forward of M8 by ADR-091** (15 October 2026),
    since nothing it needs is in M8; its steps are L8, and it is ticked when L8.1 to L8.7 are.
@@ -787,6 +788,22 @@ launcher as its first client; World, friends and circles, and translation on the
     accounts, staff in every room they are in, made only by godmode; godmode above every Owner; badges beside names;
     mutes in any room but a direct one. Built 2026-10-16 on branch `session/social-world`, not merged; `SOCIAL_GODMODE`
     set to `godmode` on Railway, read when that branch deploys.
+
+#### L9: The Library and QOR Media (ADR-094; depends on nothing in M8)
+
+Everything a person has in one SteamOS-like view inside the launcher, searched instantly, and opened in QOR Media, a
+Qt 6 player, viewer and editor docked inside it. Design: [`blueprints/library.md`](blueprints/library.md). L9.1 to L9.5
+are release 1.
+
+1. [ ] The index: folders chosen (Videos, Music, Pictures and Documents offered), scanned and watched, with metadata and
+   full-text search, on this PC only.
+2. [ ] The Library view: a hero, shelves, folders and search, with keyboard and controller navigation.
+3. [ ] QOR Media docked in the launcher: the player for every format FFmpeg reads, and the image viewer.
+4. [ ] The editor: plain text, Markdown and code.
+5. [ ] PDF: viewed, annotated, highlighted, filled, signed, pages reordered, rotated and deleted (Qt PDF and PDFium).
+6. [ ] Owned games and work in the Library (L7.1; depends on entitlements, M8).
+7. [ ] Release 2: Office documents viewed and edited through LibreOffice's engine, its own record first.
+8. [ ] Pictures beyond Qt's plugins: HEIC, AVIF, JPEG XL and camera RAW.
 
 ### The product tracks
 

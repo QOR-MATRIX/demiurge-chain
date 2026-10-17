@@ -22,6 +22,7 @@ pub mod error;
 pub mod gates;
 pub mod host;
 pub mod identity;
+pub mod library;
 pub mod listings;
 pub mod partners;
 pub mod pay;
@@ -248,6 +249,10 @@ pub struct AppState {
     pub social: Arc<social::Social>,
     /// Translation on this PC (ADR-092): Mozilla's catalogue, and the engine and models kept by hash.
     pub translate: Arc<translate::Translator>,
+    /// The Library's index of the person's own folders (ADR-094), and the watcher that follows them, started once the
+    /// window exists to be told.
+    pub library: Arc<library::Library>,
+    pub library_watch: std::sync::OnceLock<library::watch::Watch>,
     /// Release-gate progress for the development dashboard (roadmap L2.2).
     pub dashboard: Arc<gates::Dashboard>,
     /// Open briefly after an unlock, for the QOR ID sign-in (ADR-016).
@@ -267,6 +272,8 @@ impl AppState {
             identity: Arc::new(IdentityClient::new(settings.auth_url)?),
             social: Arc::new(social::Social::new(settings.social_url)),
             translate: Arc::new(translate::Translator::new(cache_dir.join("translations"))?),
+            library: library::Library::open(&cache_dir.join("library"))?,
+            library_watch: std::sync::OnceLock::new(),
             dashboard: Arc::new(gates::Dashboard::new()?),
             arrival: ArrivalGrant::default(),
             data_dir,
@@ -1601,6 +1608,29 @@ pub fn run() {
                 .map_err(|e| format!("cannot locate the local data directory: {e}"))?;
             app.manage(AppState::new(data_dir, cache_dir).map_err(|e| e.to_string())?);
 
+            // The Library follows its folders while the launcher runs, and looks again at start for what changed while
+            // it was closed (ADR-094).
+            {
+                let state = app.state::<AppState>();
+                let told = app.handle().clone();
+                match library::watch::Watch::start(
+                    Arc::clone(&state.library),
+                    Arc::new(move || library::commands::changed(&told)),
+                ) {
+                    Ok(watch) => {
+                        let _ = state.library_watch.set(watch);
+                    }
+                    Err(e) => tracing::warn!("the Library will not follow its folders: {e}"),
+                }
+                let library = Arc::clone(&state.library);
+                let told = app.handle().clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    if library.scan_all().is_ok() {
+                        library::commands::changed(&told);
+                    }
+                });
+            }
+
             // `qor://pay` (ADR-076). The installer registers the scheme; registering again here covers a launcher run
             // without installing, and points the scheme at this copy.
             {
@@ -1704,6 +1734,16 @@ pub fn run() {
             translate_prepare,
             translate_file,
             translate_detect,
+            library::commands::library_folders,
+            library::commands::library_add_folder,
+            library::commands::library_remove_folder,
+            library::commands::library_scan,
+            library::commands::library_search,
+            library::commands::library_shelf,
+            library::commands::library_counts,
+            library::commands::library_thumbnail,
+            library::commands::library_reveal,
+            library::commands::library_opened,
             qor_set_auth_endpoint,
             arqade_open,
             gates_report,

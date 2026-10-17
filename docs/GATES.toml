@@ -786,6 +786,12 @@ type = "tightening"
 change = "The social gate counts ADR-093 (room levels, Elite accounts and godmode, accepted by the owner on 2026-10-16) in social.decisions, L8.15 in social.roadmap, and three more required tests in social.tests: the ladder, godmode and Elite, and World's appointed levels surviving a hello."
 reason = "Tightening: units and required tests added, none removed or relaxed. Each new test was seen to fail against planted faults first: thirteen in Social's level rules, and two in the launcher's badges and level menu (HANDOFF.md section 4 item 79)."
 
+[[change_log]]
+date = "2026-10-16"
+type = "tightening"
+change = "A library gate is appended after Social's: library.decisions counts ADR-094 and library.roadmap counts L9.1 to L9.5, the Library's release 1 (the owner's direction of 2026-10-16). L9.6 to L9.8 (owned work, Office documents, more picture formats) are later and left uncounted on purpose. A tests criterion is added when the Library has a suite."
+reason = "Tightening: a new gate with units, none relaxed. L9 is new in DIRECTION.md the same day; counting it at once keeps the gate-coverage check from reporting it as uncounted."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1888,3 +1894,21 @@ Rooms, direct messages, presence and profiles per QOR ID, in a service of its ow
     "a_public_profile_shows_a_name_avatar_and_level_and_nothing_else",
     "nothing_secret_reaches_a_log_at_any_level",
   ]
+
+[[gates]]
+id = "library"
+name = "Library"
+means = """
+Everything a person has in one SteamOS-like view in the launcher, searched instantly and opened in QOR Media, a Qt 6 player, viewer and editor docked inside it (ADR-094, L9)."""
+
+  [[gates.criteria]]
+  id = "library.decisions"
+  kind = "adr"
+  adrs = ["ADR-094"]
+
+  # Release 1. L9.6 (owned work, which waits on entitlements), L9.7 (Office
+  # documents, release 2) and L9.8 (more picture formats) are not counted here.
+  [[gates.criteria]]
+  id = "library.roadmap"
+  kind = "roadmap"
+  items = ["L9.1", "L9.2", "L9.3", "L9.4", "L9.5"]
