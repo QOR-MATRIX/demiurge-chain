@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 16 October 2026 (evening). One page, rewritten every session.
+For Andrew, 16 October 2026 (late evening). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -18,7 +18,7 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **Launcher 0.1.8**, unsigned — *Windows warns on install*. Social is in `main`, not yet
   in an installer.
 
-## Built tonight, waiting for your merge: pull request #35 (ADR-092, ADR-093)
+## Live since tonight: pull request #35 (ADR-092, ADR-093), for you to test
 
 - **World** — *one room for everyone* — opens when Social does. Kept in full, as you
   chose. Moderators you name delete messages and mute for 10 minutes to a week.
@@ -34,30 +34,27 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
   below itself, with a badge beside the name. **Elite** — *staff in every room* — is given
   only by **godmode**, your account, which stands above every room's owner. Neither
   reads a private room or a direct message it isn't in.
-- **On Railway:** `godmode` is set as World's moderator and as godmode; Social reads both
-  once #35 is merged.
+- **On Railway:** `godmode` is World's moderator and godmode. Social upgraded itself
+  when you merged, and a launcher built from it connected. Your own test is to come.
 
 ## What only you can do
 
-1. **Merge pull request #35.** Its QOR ID check failed only because Amazon's image store
-   refused a download; re-run it first if you like ("Re-run failed jobs"). Railway then
-   updates Social from `main`.
+1. **Test World, translation, friends and levels** when you're ready; I'll tick them done.
 2. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
 3. **Keep the `godmode` account safe:** whoever signs in as it holds every room.
-4. **Then your look at World:** I'll start a test launcher built from `main`.
-5. **Your Desktop file** `social-secrets.txt` is still there: move it to where you keep
+4. **Your Desktop file** `social-secrets.txt` is still there: move it to where you keep
    credentials, or delete it. Its message key can't be recovered if lost.
-6. **Update QQ Studio**, then publish again: with it closed, run
+5. **Update QQ Studio**, then publish again: with it closed, run
    `pwsh products/qq/build.ps1 -Deploy`; then **Publish**, and send me its message.
-7. **The last two L1.4 checks** — *the launcher's approval dialogs*: change the QOR ID address
+6. **The last two L1.4 checks** — *the launcher's approval dialogs*: change the QOR ID address
    (decline once, approve once); sign in after QOR ID was unreachable at start-up.
-8. **CI for QQ:** your Qt account in GitHub's secrets, or a *self-hosted runner* — *your PC
+7. **CI for QQ:** your Qt account in GitHub's secrets, or a *self-hosted runner* — *your PC
    running GitHub's checks*.
-9. **Name the welcome-grant payer**; **add an email** at `id.qorsync.dev/account`; **replace
+8. **Name the welcome-grant payer**; **add an email** at `id.qorsync.dev/account`; **replace
    the key** pasted into a chat on 5 October.
-10. **Housekeeping:** the GitKraken download (`archive-bZLIQp/`, still here); the old
-    `QOR-MATRIX/arqade` repository (still there); from earlier notes, not re-checked: the
-    Resend bounce webhook, Cloudflare's `ci` record and tunnel, nine old credentials.
+9. **Housekeeping:** the GitKraken download (`archive-bZLIQp/`, still here); the old
+   `QOR-MATRIX/arqade` repository (still there); from earlier notes, not re-checked: the
+   Resend bounce webhook, Cloudflare's `ci` record and tunnel, nine old credentials.
 
 ## Cost per month
 
