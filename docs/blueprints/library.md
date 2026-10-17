@@ -5,7 +5,9 @@ chain, and their own videos, music, pictures and documents), searched instantly 
 Media**, a native Qt 6 player, viewer and editor docked inside the launcher. **Decided by**
 [ADR-094](../decisions/ADR-094-the-library-and-qor-media.md) (accepted by the owner, 16 October 2026). **Roadmap:** L9 in
 [`DIRECTION.md`](../DIRECTION.md); buying and installing owned work stays L7.1 and P5 ([`market.md`](market.md)). This
-document is the design; what exists is in [`SYSTEMS.md`](../SYSTEMS.md).
+document is the design; what exists is in [`SYSTEMS.md`](../SYSTEMS.md). **Built so far** (branch `session/library`,
+not merged): the index, the view with keyboard and controller, and QOR Media's player, viewer and editor
+(`tools/qor-media/`, [its README](../../tools/qor-media/README.md)), L9.1 to L9.4.
 
 The owner's brief, 16 October 2026: a SteamOS-style in-launcher view; a premium media player for all video and image
 codecs and formats; files openable from the Library; local folders browsed with ease, their content searchable and
@@ -20,7 +22,7 @@ from now on.
  │ Library view (React): hero, shelves, folders, │   channel + token  │ a borderless window, a child of the   │
  │ search, keyboard and controller navigation    │◄──────────────────►│ launcher's, placed over its content   │
  ├───────────────────────────────────────────────┤  media.next /      │ area: Player (Qt Multimedia, FFmpeg), │
- │ Rust host: `library` — folders, scan, watch,  │  media.report      │ Viewer (images), Editor (text, PDF)   │
+ │ Rust host: `library` — folders, scan, watch,  │  (reports ride on) │ Viewer (images), Editor (text, PDF)   │
  │ index (SQLite FTS5), thumbnails, metadata     │                    └──────────────────────────────────────┘
  └───────────────────────────────────────────────┘
 ```
@@ -28,8 +30,9 @@ from now on.
 - **The view is the launcher's own screen**, so the rail, themes and QFX stay around it.
 - **QOR Media is started on demand** under the product host (ADR-046): a private channel and a one-time token, ended
   with the launcher. It keeps one request waiting, `media.next`, which the launcher answers with its next command (open
-  a file, sit at a rectangle, show, hide); it tells the launcher what happened with `media.report` (closed, saved, a
-  file's duration and size learned). The protocol is unchanged: these are two methods the launcher announces.
+  a file, sit at a rectangle, hide, wear the launcher's colours) or with nothing after 25 seconds. What QOR Media has to
+  say (a file's length and size learned, where playback stopped, that it closed) rides on its next `media.next`, so it
+  arrives within one wait. The protocol is unchanged: `media.next` is the one method the launcher announces.
 - **Docked:** on Windows QOR Media's window is a child of the launcher's, so it moves, resizes, minimises and stacks
   with it; the launcher sends its content rectangle in physical pixels whenever it changes.
 
@@ -42,7 +45,7 @@ from now on.
 | Watch | Follows changes as they happen, and rescans a folder at start |
 | Metadata | Read as files are first seen: a picture's size and photo details (when taken, camera); music tags (title, artist, album, duration); a text document's first words; video duration and size as QOR Media reports them |
 | Search | SQLite's full-text index (FTS5) over names, folders, tags and text, ranked; results as the person types |
-| Thumbnails | Pictures scaled in the host; video frames grabbed by QOR Media; kept in the launcher's local cache |
+| Thumbnails | Pictures scaled in the host and kept in the launcher's local cache; video frames from QOR Media are not built yet |
 
 Nothing in the index leaves the PC, and it holds paths, never file contents beyond a document's first words.
 

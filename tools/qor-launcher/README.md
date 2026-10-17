@@ -11,7 +11,8 @@ every listing the chain holds, read through the connected node, with no search
 and no indexer behind it. So are payments asked by websites (`qor://pay`), the
 level bubble and XP bar, and the avatar with its ring (below). By default it
 connects to Demiurge Devnet at `wss://rpc.qorsync.dev` and QOR ID at
-`https://id.qorsync.dev`. Library, Social and Mesh are placeholder pages that
+`https://id.qorsync.dev`. Social is real (below). The Library holds the person's own
+files and opens them in QOR Media (below); its games shelf and Mesh are placeholder pages that
 state their own blockers rather than showing mock content. Of the L1 roadmap
 items, L1.1, L1.2, L1.3, L1.5, L1.6 and L1.7 are ticked; **L1.4 is implemented but
 unticked**: the `qor://pay` approval dialog was used for real on 5 and 6 October 2026,
@@ -339,6 +340,29 @@ Mozilla's real files:
 ```bash
 QOR_TRANSLATE_DIR=<folder> cargo test --lib real_mozilla -- --ignored   # in src-tauri: downloads about 30 MB
 node scripts/check-translate-engine.mjs <folder>                        # after npm run build
+```
+
+### The Library and QOR Media (ADR-094, roadmap L9)
+
+Everything a person has in one SteamOS-like view. The host's `src-tauri/src/library/` keeps an index of the folders the
+person chose (Videos, Music, Pictures and Documents are offered), in SQLite with full-text search in the launcher's data
+folder: each file's kind, size and dates, a picture's size and camera, music tags, a text document's first words, and a
+thumbnail for pictures. Folders are scanned at start and watched while the launcher runs. Nothing in it leaves the PC.
+`src/library/LibraryView.tsx` draws a hero with Resume, shelves by kind, tabs, Folders and search (`/`); the arrow keys
+move a focus ring, and a game controller does the same through the Gamepad API (D-pad or left stick, A opens, B goes
+back), since WebView2 turns controller input into no keys.
+
+A file opens in **QOR Media** (`tools/qor-media/`, a Qt 6 program with [its own README](../qor-media/README.md)) when it
+is deployed at `%LOCALAPPDATA%\qor-media\qor-media.exe` or `QOR_MEDIA` names it; otherwise in the program Windows
+chooses. `src-tauri/src/media.rs` starts it under the product host (above) and answers its one method, `media.next`,
+with the next command: open a file, sit at the Library's rectangle in physical pixels (`media_place`), hide when the
+person leaves the Library (`media_hide`), or wear the launcher's colours (`media_theme`, `#rrggbb` tokens only). QOR
+Media's window becomes a child of the launcher's. Its reports (where playback stopped, a file's length and size) ride
+on its next `media.next` and update the Continue shelf.
+
+```bash
+node scripts/check-library-view.mjs                                     # after npm run build: 27 checks
+cargo test --lib media::tests::qor_media -- --ignored                   # in src-tauri, with QOR Media deployed
 ```
 
 ## Release gates (development dashboard)

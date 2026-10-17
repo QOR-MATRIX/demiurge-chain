@@ -28,8 +28,8 @@ in Cloudflare like QOR ID's) is the owner's choice and not set.
 | `SOCIAL_CLIENT_ID` | `social` |
 | `SOCIAL_CLIENT_SECRET` | **Secret.** Generated on the owner's machine; only its SHA-256 is registered with QOR ID |
 | `SOCIAL_MESSAGE_KEYS` | **Secret.** `1:<base64 of 32 random bytes>`. Losing it loses every message sealed under it |
-| `SOCIAL_WORLD_MODERATORS` | World's moderators, QOR ID usernames separated by commas (ADR-092): `godmode` (set 16 October 2026, read once #35 deploys) |
-| `SOCIAL_GODMODE` | The account above every room and the only one that makes Elite accounts (ADR-093): `godmode` (set 16 October 2026, read once #35 deploys) |
+| `SOCIAL_WORLD_MODERATORS` | World's moderators, QOR ID usernames separated by commas (ADR-092): `godmode` (in effect since #35's deploy, 17 October 2026) |
+| `SOCIAL_GODMODE` | The account above every room and the only one that makes Elite accounts (ADR-093): `godmode` (in effect since #35's deploy, 17 October 2026) |
 | `PORT` | `8090` |
 | `RUST_LOG` | `social=info` |
 
@@ -84,3 +84,8 @@ are made, Social is for the owner's own use on the devnet stack. One part is dec
   Social held a different secret, which the owner had generated separately and also pasted into a chat. It was replaced
   in `social` with the registered one, so the secret seen in the chat was never registered with QOR ID and authenticates
   nothing. The live check then answered `unauthorized`.
+
+- **17 October 2026, World, friends, translation and levels (#35).** Railway deployed `main` at `9a3895f` at 02:14 UTC;
+  migrations 002 and 003 ran before Social listened; the two variables set beforehand without a redeploy
+  (`SOCIAL_WORLD_MODERATORS`, `SOCIAL_GODMODE`, both `godmode`) took effect with it. `/ready` 200 and a dead-token hello
+  `unauthorized` from outside; a launcher built from `main` connected at 02:15:57.

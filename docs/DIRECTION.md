@@ -774,20 +774,19 @@ launcher as its first client; World, friends and circles, and translation on the
 10. [ ] Voice, feeds, and search across rooms.
 11. [ ] World (ADR-092 decision 1): one room everyone is in from their first hello, opened when Social is, kept in full;
     its moderators named in `SOCIAL_WORLD_MODERATORS`, who delete and mute for ten minutes to a week; its own sending
-    pace; World making nobody a contact. Built 2026-10-16 on branch `session/social-world`, not merged.
+    pace; World making nobody a contact. Merged as #35 (`9a3895f`) and live since 17 October 2026, 02:14 UTC; the owner's first look is to come.
 12. [ ] Friends and circles (ADR-092 decision 2): requests by username, answered by the one asked; friends see each
-    other's presence; a block ends a friendship; circles, private to their owner, open a private room in one step. Built
-    2026-10-16 on branch `session/social-world`, not merged.
+    other's presence; a block ends a friendship; circles, private to their owner, open a private room in one step.
+    Merged as #35 (`9a3895f`) and live since 17 October 2026, 02:14 UTC; the owner's first look is to come.
 13. [ ] Translation on the reader's PC (ADR-092 decision 3): World and public rooms in the reader's language by
     Mozilla's Bergamot engine and models, downloaded once and checked against Mozilla's hashes; each message carrying the
-    language it was written in; the original one click away. Built 2026-10-16 on branch `session/social-world`, not
-    merged; the real engine translated Mozilla's real Spanish model on this PC.
-14. [ ] Each author's avatar, level and username in chat (ADR-092 decision 4). Built 2026-10-16 on branch
-    `session/social-world`, not merged.
+    language it was written in; the original one click away. The real engine translated Mozilla's real Spanish model on
+    the owner's PC. Merged as #35 (`9a3895f`) and live since 17 October 2026, 02:14 UTC; the owner's first look is to come.
+14. [ ] Each author's avatar, level and username in chat (ADR-092 decision 4). Merged as #35 (`9a3895f`) and live since 17 October 2026, 02:14 UTC; the owner's first look is to come.
 15. [ ] Room levels and standing (ADR-093): Owner, Admin, Mod, VIP and Member, each acting only below itself; Elite
     accounts, staff in every room they are in, made only by godmode; godmode above every Owner; badges beside names;
-    mutes in any room but a direct one. Built 2026-10-16 on branch `session/social-world`, not merged; `SOCIAL_GODMODE`
-    set to `godmode` on Railway, read when that branch deploys.
+    mutes in any room but a direct one. `SOCIAL_GODMODE` and `SOCIAL_WORLD_MODERATORS` are `godmode`, in effect since
+    that deploy. Merged as #35 (`9a3895f`) and live since 17 October 2026, 02:14 UTC; the owner's first look is to come.
 
 #### L9: The Library and QOR Media (ADR-094; depends on nothing in M8)
 
@@ -796,11 +795,15 @@ Qt 6 player, viewer and editor docked inside it. Design: [`blueprints/library.md
 are release 1.
 
 1. [ ] The index: folders chosen (Videos, Music, Pictures and Documents offered), scanned and watched, with metadata and
-   full-text search, on this PC only.
-2. [ ] The Library view: a hero, shelves, folders and search, with keyboard and controller navigation.
-3. [ ] QOR Media docked in the launcher: the player for every format FFmpeg reads, and the image viewer.
-4. [ ] The editor: plain text, Markdown and code.
+   full-text search, on this PC only. Built 2026-10-16 on branch `session/library`, not merged.
+2. [ ] The Library view: a hero, shelves, folders and search, with keyboard and controller navigation. Built 2026-10-16
+   and 17 on branch `session/library`, not merged; the controller through the Gamepad API.
+3. [ ] QOR Media docked in the launcher: the player for every format FFmpeg reads, and the image viewer. Built 2026-10-17
+   on branch `session/library` (`tools/qor-media/`), not merged; started through the launcher's product host by its own
+   test, not yet opened from the Library on screen.
+4. [ ] The editor: plain text, Markdown and code. Built 2026-10-17 on branch `session/library`, not merged.
 5. [ ] PDF: viewed, annotated, highlighted, filled, signed, pages reordered, rotated and deleted (Qt PDF and PDFium).
+   Waits on Qt PDF, which the owner's Qt installation does not have: added with the Qt Maintenance Tool.
 6. [ ] Owned games and work in the Library (L7.1; depends on entitlements, M8).
 7. [ ] Release 2: Office documents viewed and edited through LibreOffice's engine, its own record first.
 8. [ ] Pictures beyond Qt's plugins: HEIC, AVIF, JPEG XL and camera RAW.
