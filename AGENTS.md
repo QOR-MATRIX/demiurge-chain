@@ -40,7 +40,7 @@ is not current.
 
 ## 4. Scope
 
-Active: `chain/`, `services/qor-auth/`, `services/social/` (ADR-091, since 15 October 2026), `tools/qor-launcher/` and `products/arqade/` (ADR-069, since 4 October 2026). Everything under `apps/`, `cli/`,
+Active: `chain/`, `services/qor-auth/`, `services/social/` (ADR-091, since 15 October 2026), `tools/qor-launcher/`, `tools/qor-media/` (ADR-094, since 16 October 2026) and `products/arqade/` (ADR-069, since 4 October 2026). Everything under `apps/`, `cli/`,
 `sdk/`, `packages/` and `client/` is frozen (D-011, amended by ADR-011): do not extend it or treat it as
 working unless the owner brings it back into scope. `aeons/`, `archons/` and `syzygies/` are dead.
 

@@ -786,6 +786,24 @@ type = "tightening"
 change = "The social gate counts ADR-093 (room levels, Elite accounts and godmode, accepted by the owner on 2026-10-16) in social.decisions, L8.15 in social.roadmap, and three more required tests in social.tests: the ladder, godmode and Elite, and World's appointed levels surviving a hello."
 reason = "Tightening: units and required tests added, none removed or relaxed. Each new test was seen to fail against planted faults first: thirteen in Social's level rules, and two in the launcher's badges and level menu (HANDOFF.md section 4 item 79)."
 
+[[change_log]]
+date = "2026-10-16"
+type = "tightening"
+change = "A library gate is appended after Social's: library.decisions counts ADR-094 and library.roadmap counts L9.1 to L9.5, the Library's release 1 (the owner's direction of 2026-10-16). L9.6 to L9.8 (owned work, Office documents, more picture formats) are later and left uncounted on purpose. A tests criterion is added when the Library has a suite."
+reason = "Tightening: a new gate with units, none relaxed. L9 is new in DIRECTION.md the same day; counting it at once keeps the gate-coverage check from reporting it as uncounted."
+
+[[change_log]]
+date = "2026-10-16"
+type = "tightening"
+change = "The Library view check (tools/qor-launcher/scripts/check-library-view.mjs) joins npm run check, so CI's launcher job runs twelve checks, not eleven ([ci].quality_gates updated). No criterion, kind or threshold changes."
+reason = "Tightening: a check added, none removed or relaxed. It drives the Library (ADR-094, L9.1 and L9.2) in a real browser against a stand-in host: first run, the hero and shelves, thumbnails, search, tabs, arrow keys, opening a file, docking QOR Media in physical pixels and hiding it, folders; two planted faults were each caught (QOR Media placed in CSS pixels, ArrowDown going nowhere)."
+
+[[change_log]]
+date = "2026-10-17"
+type = "tightening"
+change = "The library gate gains library.tests, thirteen required tests in suite launcher (the index, and QOR Media's queue, reports, theme and whereabouts on the launcher's side), and library.view, a tests criterion on a new suite library_view (scripts/check-library-view.mjs). That check grows from 22 to 27 checks: a game controller takes the first tile, moves along a shelf and down with the D-pad and the left stick, repeats a held direction, and opens once with A however long it is held. only_colours_written_rrggbb_make_a_theme gains two colours that are seven characters and not hexadecimal."
+reason = "Tightening: criteria, a suite, checks and test cases added, none removed or relaxed; the change log of 2026-10-16 said a tests criterion would come when the Library had a suite. Four planted controller faults were each caught by the view check, and the theme test was seen to miss a planted fault (a colour's digits not checked) before its two new cases and to catch it after (HANDOFF.md section 4 item 81)."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -831,7 +849,7 @@ quality_gates = [
   "chain/: two validators agree, finalise and catch up. A job of its own, because it needs a release build with the sudo feature: cargo build -p demiurge-node --release --features sudo --locked, then node scripts/check-two-validators.mjs. It fails the run; criterion alpha.multi-validator reads it. Since 2026-09-21 it runs NIGHTLY (03:00 UTC) and on workflow_dispatch, not on every push",
   "services/qor-auth: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test -- --include-ignored, against a migrated Postgres 16 and a Redis 7.4",
   "services/social: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test, against a Postgres 16 (a database per test) and a real WebSocket on a loopback port; its log, SQL and migration checks run with the tests",
-  "tools/qor-launcher: npm ci, frontend build and npm run check, eleven checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
+  "tools/qor-launcher: npm ci, frontend build and npm run check, twelve checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the Library view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
   "cargo audit of services/qor-auth, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside the compiled graph (services/qor-auth/.cargo/audit.toml)",
   "cargo audit of services/social, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside Social's compiled graph (services/social/.cargo/audit.toml)",
   "cargo audit of tools/qor-launcher/src-tauri, ignoring only RUSTSEC-2026-0344 while CI confirms ruzstd is outside the compiled graph and still in the lockfile (tools/qor-launcher/src-tauri/.cargo/audit.toml, ADR-089)",
@@ -927,6 +945,11 @@ needs = "npm ci first (Node 24). No network and no devnet: the devnet reader is 
 dir = "tools/qor-launcher"  # QQ, the QOR Engine (ADR-082). Since 2026-10-08.
 command = "node scripts/check-qq-view.mjs"
 needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places). WebGL2 comes from Chrome's software renderer, so no GPU is needed"
+
+[suites.library_view]
+dir = "tools/qor-launcher"  # The Library (ADR-094). Since 2026-10-16.
+command = "node scripts/check-library-view.mjs"
+needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places)"
 
 [suites.gnosis]
 dir = ""  # products/gnosis does not exist
@@ -1888,3 +1911,53 @@ Rooms, direct messages, presence and profiles per QOR ID, in a service of its ow
     "a_public_profile_shows_a_name_avatar_and_level_and_nothing_else",
     "nothing_secret_reaches_a_log_at_any_level",
   ]
+
+[[gates]]
+id = "library"
+name = "Library"
+means = """
+Everything a person has in one SteamOS-like view in the launcher, searched instantly and opened in QOR Media, a Qt 6 player, viewer and editor docked inside it (ADR-094, L9)."""
+
+  [[gates.criteria]]
+  id = "library.decisions"
+  kind = "adr"
+  adrs = ["ADR-094"]
+
+  # Release 1. L9.6 (owned work, which waits on entitlements), L9.7 (Office
+  # documents, release 2) and L9.8 (more picture formats) are not counted here.
+  [[gates.criteria]]
+  id = "library.roadmap"
+  kind = "roadmap"
+  items = ["L9.1", "L9.2", "L9.3", "L9.4", "L9.5"]
+
+  # The index, and QOR Media's queue and reports on the launcher's side
+  # (src-tauri/src/library/tests.rs, src-tauri/src/media/tests.rs). The test
+  # that starts the real QOR Media is opt-in (it needs the owner's Qt build) and
+  # is not required here. QOR Media's own Qt Test suites run on the owner's PC
+  # (tools/qor-media/build.ps1), as QQ's do, since CI has no licensed Qt.
+  [[gates.criteria]]
+  id = "library.tests"
+  kind = "tests"
+  suite = "launcher"
+  require = [
+    "a_scan_shelves_each_file_by_kind_with_what_can_be_read_of_it",
+    "search_finds_names_tags_and_words_as_they_are_typed",
+    "a_rescan_takes_in_what_changed_came_and_went",
+    "folders_are_chosen_once_without_overlap_and_taking_one_out_touches_no_file",
+    "a_thumbnail_is_made_once_and_only_for_a_picture_the_library_holds",
+    "what_was_opened_is_remembered_with_where_it_stopped",
+    "a_file_that_arrives_in_a_watched_folder_is_found_without_a_scan",
+    "every_extension_is_shelved_once",
+    "media_next_answers_a_command_at_once_and_nothing_after_the_wait",
+    "a_newer_place_replaces_an_older_one_and_order_is_kept",
+    "reports_record_where_playback_stopped_and_what_was_learned",
+    "only_colours_written_rrggbb_make_a_theme",
+    "qor_media_is_found_where_qor_media_points_or_where_it_is_deployed",
+  ]
+
+  # The view, in a real browser against a stand-in host.
+  [[gates.criteria]]
+  id = "library.view"
+  kind = "tests"
+  suite = "library_view"
+  require = []

@@ -30,6 +30,7 @@ import { QfxCanvas } from './qfx/Canvas';
 import { Nexus } from './views/Nexus';
 import { SettingsView } from './views/SettingsView';
 import { VaultView } from './views/VaultView';
+import { LibraryView } from './library/LibraryView';
 import { SocialView } from './social/SocialView';
 import { useSocialLink } from './social/link';
 
@@ -144,7 +145,8 @@ export function App() {
                     {surface === 'gates' && <GatesView />}
                     {surface === 'settings' && <SettingsView />}
                     {surface === 'social' && <SocialView />}
-                    {(surface === 'library' || surface === 'mesh') && <Horizon surface={surface} />}
+                    {surface === 'library' && <LibraryView />}
+                    {surface === 'mesh' && <Horizon surface={surface} />}
                   </motion.div>
                 </AnimatePresence>
               </main>

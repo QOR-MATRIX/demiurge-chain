@@ -110,6 +110,11 @@ impl From<QorError> for Refusal {
 /// What answers a product's requests: the methods it offers (announced as capabilities) and how each is done.
 pub trait Handler: Send + Sync + 'static {
     fn capabilities(&self) -> &'static [&'static str];
+    /// A method asked so often its answers are logged at debug, not info: QOR Media's `media.next`, which repeats every
+    /// [`crate::media::WAIT`]. A refusal is still logged at info.
+    fn quiet(&self, _method: &str) -> bool {
+        false
+    }
     fn handle(
         &self,
         method: &str,

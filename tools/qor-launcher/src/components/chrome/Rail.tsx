@@ -54,7 +54,7 @@ const ITEMS: Item[] = [
   { id: 'projects', label: 'Projects', icon: FolderGit2, hint: 'Version your work, on this machine' },
   { id: 'qq', label: 'QQ', icon: Shapes, hint: 'The QOR Engine: build and play a game here' },
   { id: 'arqade', label: 'ARQADE', icon: Gamepad2, hint: 'Games and collectibles on the Demiurge devnet' },
-  { id: 'library', label: 'Library', icon: Library, hint: 'Games and applications' },
+  { id: 'library', label: 'Library', icon: Library, hint: 'Your games, videos, music, pictures and documents' },
   { id: 'social', label: 'Social', icon: MessagesSquare, hint: 'Rooms, messages, presence and profiles' },
   { id: 'mesh', label: 'Mesh', icon: Share2, hint: 'Peer-to-peer distribution' },
   { id: 'chain', label: 'Chain', icon: Radio, hint: 'Node, network and validators' },

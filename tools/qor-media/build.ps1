@@ -1,0 +1,73 @@
+<#
+.SYNOPSIS
+    Build QOR Media (tools/qor-media) with the owner's Qt, MSVC 2022 and Ninja, and run its tests.
+
+.DESCRIPTION
+    Configures once, builds, then runs every Qt Test suite and prints its results. Exits non-zero if the build or any
+    test fails. The build directory defaults to %LOCALAPPDATA%\qor-media-build, off the repository's drive.
+
+        pwsh tools/qor-media/build.ps1                 # build and test
+        pwsh tools/qor-media/build.ps1 -Run file.mkv   # build, then open a file in QOR Media
+        pwsh tools/qor-media/build.ps1 -Deploy         # build, test, then make the self-contained copy the launcher opens
+
+.NOTES
+    The playback tests open real windows and play sound, so they need a desktop session (not a service account). The
+    launcher finds the deployed copy at %LOCALAPPDATA%\qor-media\qor-media.exe, or wherever QOR_MEDIA points.
+#>
+param(
+    [string] $Qt = 'C:\Qt\6.12.0\msvc2022_64',
+    [string] $Build = (Join-Path $env:LOCALAPPDATA 'qor-media-build'),
+    [string] $Config = 'Release',
+    [string] $Run,
+    [switch] $Deploy,
+    [string] $DeployTo = (Join-Path $env:LOCALAPPDATA 'qor-media')
+)
+
+$ErrorActionPreference = 'Stop'
+$source = $PSScriptRoot
+$tools = Join-Path (Split-Path (Split-Path $Qt -Parent) -Parent) 'Tools'
+$cmake = Join-Path $tools 'CMake_64\bin\cmake.exe'
+$ninja = Join-Path $tools 'Ninja\ninja.exe'
+$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+$vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+$vcvars = Join-Path $vs 'VC\Auxiliary\Build\vcvars64.bat'
+foreach ($needed in $cmake, $ninja, $vcvars) {
+    if (-not (Test-Path $needed)) { throw "Not found: $needed" }
+}
+
+$configure = "`"$cmake`" -S `"$source`" -B `"$Build`" -G Ninja -DCMAKE_MAKE_PROGRAM=`"$ninja`" -DCMAKE_PREFIX_PATH=`"$Qt`" -DCMAKE_BUILD_TYPE=$Config"
+$compile = "`"$cmake`" --build `"$Build`""
+cmd /c "call `"$vcvars`" >nul 2>nul && $configure && $compile"
+if ($LASTEXITCODE -ne 0) { throw "The build failed ($LASTEXITCODE)." }
+
+$env:PATH = (Join-Path $Qt 'bin') + ';' + $env:PATH
+
+if ($Run) {
+    & (Join-Path $Build 'qor-media.exe') $Run
+    exit $LASTEXITCODE
+}
+
+$failed = 0
+foreach ($test in Get-ChildItem $Build -Filter 'tst_*.exe') {
+    $log = Join-Path $Build ($test.BaseName + '.txt')
+    & $test.FullName -o "$log,txt" | Out-Null
+    $code = $LASTEXITCODE
+    Get-Content $log | Where-Object { $_ -match '^(PASS|FAIL|SKIP|QWARN|Totals)|failure location' }
+    if ($code -ne 0) { $failed += 1 }
+}
+if ($failed) { throw "$failed test suite(s) failed." }
+Write-Host 'All QOR Media tests passed.'
+
+# A QOR Media that runs on its own: the executable with the Qt libraries, plugins (Qt Multimedia's FFmpeg backend
+# among them) and QML modules it uses beside it. The launcher's Library opens files in it from here.
+if ($Deploy) {
+    if (Test-Path $DeployTo) { Remove-Item $DeployTo -Recurse -Force }
+    New-Item -ItemType Directory -Force $DeployTo | Out-Null
+    Copy-Item (Join-Path $Build 'qor-media.exe') $DeployTo
+    $windeployqt = Join-Path $Qt 'bin\windeployqt.exe'
+    # Inside the compiler's environment, so the Microsoft C++ runtime comes along for a machine without Visual Studio.
+    $deployArgs = "--release --no-translations --compiler-runtime --qmldir ""$(Join-Path $source 'qml')"" ""$(Join-Path $DeployTo 'qor-media.exe')"""
+    cmd /c "call `"$vcvars`" >nul 2>nul && `"$windeployqt`" $deployArgs" | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "windeployqt failed ($LASTEXITCODE)." }
+    Write-Host "QOR Media deployed to $DeployTo"
+}
