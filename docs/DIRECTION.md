@@ -795,15 +795,15 @@ Qt 6 player, viewer and editor docked inside it. Design: [`blueprints/library.md
 are release 1.
 
 1. [ ] The index: folders chosen (Videos, Music, Pictures and Documents offered), scanned and watched, with metadata and
-   full-text search, on this PC only. Built 2026-10-16 on branch `session/library`, not merged.
-2. [ ] The Library view: a hero, shelves, folders and search, with keyboard and controller navigation. Built 2026-10-16
-   and 17 on branch `session/library`, not merged; the controller through the Gamepad API.
-3. [ ] QOR Media docked in the launcher: the player for every format FFmpeg reads, and the image viewer. Built 2026-10-17
-   on branch `session/library` (`tools/qor-media/`), not merged; started through the launcher's product host by its own
-   test, not yet opened from the Library on screen.
-4. [ ] The editor: plain text, Markdown and code. Built 2026-10-17 on branch `session/library`, not merged.
+   full-text search, on this PC only. Merged as #37 (`95e554e`) on 17 October 2026, 12:59 UTC; the owner's first look is to come.
+2. [ ] The Library view: a hero, shelves, folders and search, with keyboard and controller navigation. The controller
+   through the Gamepad API. Merged as #37 (`95e554e`) on 17 October 2026, 12:59 UTC; the owner's first look is to come.
+3. [ ] QOR Media docked in the launcher: the player for every format FFmpeg reads, and the image viewer. In
+   `tools/qor-media/`; started through the launcher's product host by its own test, not yet opened from the Library on
+   screen. Merged as #37 (`95e554e`) on 17 October 2026, 12:59 UTC; the owner's first look is to come.
+4. [ ] The editor: plain text, Markdown and code. Merged as #37 (`95e554e`) on 17 October 2026, 12:59 UTC; the owner's first look is to come.
 5. [ ] PDF: viewed, annotated, highlighted, filled, signed, pages reordered, rotated and deleted (Qt PDF and PDFium).
-   Waits on Qt PDF, which the owner's Qt installation does not have: added with the Qt Maintenance Tool.
+   Can start: the owner's Qt 6.12 has Qt PDF (`Qt6Pdf`, `Qt6PdfQuick`, the `QtQuick.Pdf` module) since 27 September 2026.
 6. [ ] Owned games and work in the Library (L7.1; depends on entitlements, M8).
 7. [ ] Release 2: Office documents viewed and edited through LibreOffice's engine, its own record first.
 8. [ ] Pictures beyond Qt's plugins: HEIC, AVIF, JPEG XL and camera RAW.
