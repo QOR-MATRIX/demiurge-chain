@@ -120,9 +120,69 @@ pub fn emoji(input: &str) -> SocialResult<String> {
     Ok(e)
 }
 
+/// A language, as a tag: a two- or three-letter language, then optionally a four-letter script (`zh-Hans`) and a
+/// two-letter region (`pt-BR`), in their usual case. Only its shape is checked; whether there is a model for it is the
+/// reader's launcher's business (ADR-092 decision 3).
+pub fn language(input: &str) -> SocialResult<String> {
+    let refused = || SocialError::bad("a language is a tag like en, pt-BR or zh-Hans");
+    let mut parts = input.trim().split('-');
+    let primary = parts.next().unwrap_or_default().to_ascii_lowercase();
+    if !(2..=3).contains(&primary.len()) || !primary.chars().all(|c| c.is_ascii_lowercase()) {
+        return Err(refused());
+    }
+    let mut tag = primary;
+    let mut script = false;
+    let mut region = false;
+    for part in parts {
+        if !script && !region && part.len() == 4 && part.chars().all(|c| c.is_ascii_alphabetic()) {
+            let mut chars = part.chars();
+            let first = chars.next().unwrap_or_default().to_ascii_uppercase();
+            tag.push('-');
+            tag.push(first);
+            tag.extend(chars.map(|c| c.to_ascii_lowercase()));
+            script = true;
+        } else if !region && part.len() == 2 && part.chars().all(|c| c.is_ascii_alphabetic()) {
+            tag.push('-');
+            tag.push_str(&part.to_ascii_uppercase());
+            region = true;
+        } else {
+            return Err(refused());
+        }
+    }
+    Ok(tag)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_language_is_a_tag_in_its_usual_case() {
+        for (given, kept) in [
+            ("en", "en"),
+            (" FR ", "fr"),
+            ("pt-br", "pt-BR"),
+            ("zh-hans", "zh-Hans"),
+            ("zh-Hant-TW", "zh-Hant-TW"),
+            ("fil", "fil"),
+        ] {
+            assert_eq!(language(given).unwrap(), kept, "{given}");
+        }
+        for bad in [
+            "",
+            "e",
+            "english",
+            "en-",
+            "en-GB-x",
+            "en-Latn-Latn",
+            "12",
+            "en_GB",
+            "pt-BR-Latn",
+            "<b>",
+        ] {
+            assert!(language(bad).is_err(), "{bad:?}");
+        }
+    }
 
     #[test]
     fn a_message_is_cleaned_before_it_is_kept() {

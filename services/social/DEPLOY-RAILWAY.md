@@ -28,6 +28,8 @@ in Cloudflare like QOR ID's) is the owner's choice and not set.
 | `SOCIAL_CLIENT_ID` | `social` |
 | `SOCIAL_CLIENT_SECRET` | **Secret.** Generated on the owner's machine; only its SHA-256 is registered with QOR ID |
 | `SOCIAL_MESSAGE_KEYS` | **Secret.** `1:<base64 of 32 random bytes>`. Losing it loses every message sealed under it |
+| `SOCIAL_WORLD_MODERATORS` | World's moderators, QOR ID usernames separated by commas (ADR-092): `godmode` (set 16 October 2026, read once #35 deploys) |
+| `SOCIAL_GODMODE` | The account above every room and the only one that makes Elite accounts (ADR-093): `godmode` (set 16 October 2026, read once #35 deploys) |
 | `PORT` | `8090` |
 | `RUST_LOG` | `social=info` |
 
@@ -70,7 +72,8 @@ The launcher's `social_url` defaults to this deployment (`src-tauri/src/social.r
 ## Before anyone else uses it (L8.7)
 
 How long messages are kept, and the content policy reports are judged against, are the owner's decisions; until both
-are made, Social is for the owner's own use on the devnet stack.
+are made, Social is for the owner's own use on the devnet stack. One part is decided: World keeps everything said in it
+(ADR-092, 16 October 2026).
 
 ## History
 

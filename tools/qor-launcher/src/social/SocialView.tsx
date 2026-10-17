@@ -1,9 +1,10 @@
 /**
- * Social, the launcher's surface (ADR-091; docs/blueprints/social.md; roadmap L8.5).
+ * Social, the launcher's surface (ADR-091, ADR-092; docs/blueprints/social.md; roadmap L8.5).
  *
- * Three columns: the conversations a person is in, the one open, and whoever or whatever they are looking at. Entering
- * never asks for anything already known: no QOR ID, and the name is chosen first; a QOR ID on a name QOR ID made, and a
- * name is chosen once; otherwise the rooms are there.
+ * Three columns: the conversations a person is in (or their friends), the one open, and whoever or whatever they are
+ * looking at. Entering never asks for anything already known: no QOR ID, and the name is chosen first; a QOR ID on a name
+ * QOR ID made, and a name is chosen once; otherwise World is open, everyone is there, and what they say arrives in the
+ * reader's language.
  */
 
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -14,6 +15,7 @@ import {
   Flag,
   Globe2,
   Hash,
+  Languages,
   Loader2,
   Lock,
   LogIn,
@@ -28,6 +30,7 @@ import {
   Trash2,
   UserPlus,
   Users,
+  VolumeX,
   WifiOff,
   X,
 } from 'lucide-react';
@@ -36,9 +39,12 @@ import { Avatar } from '../components/chrome/Avatar';
 import { identity } from '../lib/ipc';
 import { useQor } from '../state/store';
 import { Banner, BACKDROPS } from './Banner';
+import { FriendsPanel } from './Friends';
+import { Badges, givable, LEVEL_NAMES, LEVELS, myRank, standingRank, type Level } from './Levels';
 import {
   host,
   MENTION,
+  readerLanguage,
   refusalOf,
   roomTitle,
   shownName,
@@ -51,6 +57,7 @@ import {
   type RoomSummary,
 } from './model';
 import { accentStyle, PresenceDot, ProfileCard, ProfileEditor } from './Profile';
+import { keyOf, languageName, request as requestTranslation, translatable, translateHost, useTranslation, wanted } from './translate';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '🔥', '🎉', '👀'];
 const NAME = /^[A-Za-z0-9_]{3,20}$/;
@@ -219,8 +226,14 @@ type Dialog = 'new-room' | 'discover' | 'new-dm' | 'invite' | 'room-settings' | 
 function Social() {
   const active = useSocial((s) => s.active);
   const card = useSocial((s) => s.card);
+  const world = useSocial((s) => s.world);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [panel, setPanel] = useState<'members' | null>(null);
+
+  // Opening Social with nothing chosen opens World: everyone is entered into it (ADR-092 decision 1).
+  useEffect(() => {
+    if (!active && world) useSocial.getState().open(world);
+  }, [active, world]);
 
   return (
     <div className="flex h-full min-h-0" data-social>
@@ -293,12 +306,15 @@ function RoomList({ onDialog }: { onDialog: (d: Dialog) => void }) {
   const mentions = useSocial((s) => s.mentions);
   const open = useSocial((s) => s.open);
   const showCard = useSocial((s) => s.showCard);
+  const asking = useSocial((s) => s.incoming.length);
   const [filter, setFilter] = useState('');
+  const [tab, setTab] = useState<'chats' | 'friends'>('chats');
 
   const all = Object.values(rooms).filter((r) => roomTitle(r, profiles).toLowerCase().includes(filter.toLowerCase()));
   const byActivity = (a: RoomSummary, b: RoomSummary) => b.last_seq - a.last_seq || a.created_at.localeCompare(b.created_at);
+  const world = Object.values(rooms).find((r) => r.kind === 'world');
   const direct = all.filter((r) => r.kind === 'direct').sort(byActivity);
-  const groups = all.filter((r) => r.kind !== 'direct').sort(byActivity);
+  const groups = all.filter((r) => r.kind !== 'direct' && r.kind !== 'world').sort(byActivity);
 
   return (
     <nav className="flex w-72 flex-none flex-col" aria-label="Conversations">
@@ -317,6 +333,24 @@ function RoomList({ onDialog }: { onDialog: (d: Dialog) => void }) {
         <PresenceDot presence={me ? presence[me.sub] : undefined} />
       </button>
 
+      <div className="social-tabs mx-3 mt-3" role="tablist" aria-label="Conversations or friends">
+        {(['chats', 'friends'] as const).map((t) => (
+          <button key={t} type="button" role="tab" aria-selected={tab === t} className={tab === t ? 'social-tab social-tab-on' : 'social-tab'} onClick={() => setTab(t)}>
+            {t === 'chats' ? <MessagesSquare size={13} /> : <Users size={13} />}
+            {t === 'chats' ? 'Chats' : 'Friends'}
+            {t === 'friends' && asking > 0 && (
+              <span className="numeric social-tab-count" aria-label={`${asking} asking to be friends`}>
+                {asking}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'friends' ? (
+        <FriendsPanel />
+      ) : (
+      <>
       <div className="flex gap-1 px-3 pt-3">
         <label className="relative min-w-0 flex-1">
           <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-faint" />
@@ -334,6 +368,7 @@ function RoomList({ onDialog }: { onDialog: (d: Dialog) => void }) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4 pt-2">
+        {world && <WorldRow room={world} active={active === world.id} mentions={mentions[world.id] ?? 0} onOpen={() => open(world.id)} />}
         {invites.length > 0 && (
           <Section title="Invitations">
             {invites.map((i) => (
@@ -379,7 +414,39 @@ function RoomList({ onDialog }: { onDialog: (d: Dialog) => void }) {
           ))}
         </Section>
       </div>
+      </>
+      )}
     </nav>
+  );
+}
+
+/** World, pinned above everything: one room everyone is in (ADR-092 decision 1). */
+function WorldRow({ room, active, mentions, onOpen }: { room: RoomSummary; active: boolean; mentions: number; onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-current={active ? 'true' : undefined}
+      data-room-row={room.id}
+      data-world-row
+      className={`social-world-row mb-2 flex w-full items-center gap-3 overflow-hidden px-3 py-2.5 text-left ${active ? 'social-world-row-on' : ''}`}
+    >
+      <Banner backdrop={{ preset: 'aurora', hue: 200, intensity: 0.55 }} className="absolute inset-0 opacity-60" />
+      <span className="social-world-globe relative">
+        <Globe2 size={16} />
+      </span>
+      <span className="relative min-w-0 flex-1">
+        <span className="block text-ui font-semibold text-ink">World</span>
+        <span className="block truncate text-micro text-ink-body">Everyone on QOR, in every language</span>
+      </span>
+      {mentions > 0 && (
+        <span className="numeric relative flex items-center gap-0.5 bg-accent-bright px-1.5 text-micro font-semibold text-void" aria-label={`${mentions} mentions`}>
+          <AtSign size={9} />
+          {mentions}
+        </span>
+      )}
+      {room.unread > 0 && mentions === 0 && <span className="social-world-pulse relative" aria-label="New messages" />}
+    </button>
   );
 }
 
@@ -508,7 +575,11 @@ function Conversation({
   if (!room) return null;
   const title = roomTitle(room, profiles);
   const other = room.kind === 'direct' && room.other ? profiles[room.other] : null;
-  const canModerate = room.role !== 'member' && room.kind !== 'direct';
+  const isWorld = room.kind === 'world';
+  const rank = myRank(me, room);
+  // Settings are an Admin's and above; inviting to a private room a Mod's and above (ADR-093).
+  const canModerate = rank >= 4 && room.kind !== 'direct' && !isWorld;
+  const canInvite = room.kind === 'public' || (room.kind === 'private' && rank >= 3);
 
   const older = async () => {
     const el = scroller.current;
@@ -522,9 +593,16 @@ function Conversation({
   return (
     <>
       <header className="relative flex-none overflow-hidden border-b border-edge">
-        <Banner backdrop={room.kind === 'direct' ? other?.banner : room.ambience} className="absolute inset-0 opacity-70" />
+        <Banner
+          backdrop={room.kind === 'direct' ? other?.banner : isWorld ? { preset: 'aurora', hue: 200, intensity: 0.7 } : room.ambience}
+          className="absolute inset-0 opacity-70"
+        />
         <div className="relative flex items-center gap-3 px-6 py-4">
-          {room.kind === 'direct' ? (
+          {isWorld ? (
+            <span className="social-world-globe social-world-globe-lg">
+              <Globe2 size={18} />
+            </span>
+          ) : room.kind === 'direct' ? (
             <button type="button" onClick={() => other && useSocial.getState().showCard(other.sub)} aria-label={`${title}'s profile`}>
               <Avatar name={other?.qor_id} src={other?.avatar_url ?? null} size={34} level={other?.level ?? null} />
             </button>
@@ -541,13 +619,14 @@ function Conversation({
               {room.kind === 'direct' ? `@${other?.qor_id ?? ''}${other?.status_line ? ` · ${other.status_line}` : ''}` : room.topic || `${room.members} in this room`}
             </p>
           </div>
+          {translatable(room) && <TranslateSwitch />}
           {room.kind !== 'direct' && (
             <>
-              {(room.kind === 'public' || canModerate) && (
+              {canInvite ? (
                 <button type="button" className="btn btn-ghost px-2" title="Invite someone" aria-label="Invite someone" onClick={() => onDialog('invite')}>
                   <UserPlus size={15} />
                 </button>
-              )}
+              ) : null}
               {canModerate && (
                 <button type="button" className="btn btn-ghost px-2" title="Room settings" aria-label="Room settings" onClick={() => onDialog('room-settings')}>
                   <Settings2 size={15} />
@@ -556,8 +635,8 @@ function Conversation({
               <button
                 type="button"
                 className={`btn btn-ghost px-2 ${panel === 'members' ? 'text-accent' : ''}`}
-                title="Members"
-                aria-label="Members"
+                title={isWorld ? 'Who is here' : 'Members'}
+                aria-label={isWorld ? 'Who is here' : 'Members'}
                 aria-pressed={panel === 'members'}
                 onClick={() => {
                   useSocial.getState().showCard(null);
@@ -570,6 +649,7 @@ function Conversation({
           )}
         </div>
       </header>
+      {translatable(room) && <TranslationBar />}
 
       <div
         ref={scroller}
@@ -595,7 +675,11 @@ function Conversation({
             )}
             {thread.messages.length === 0 && (
               <p className="mt-10 text-center text-ui text-ink-muted">
-                {room.kind === 'direct' ? `This is the start of your conversation with ${title}.` : `This is the start of ${title}. Say hello.`}
+                {room.kind === 'direct'
+                  ? `This is the start of your conversation with ${title}.`
+                  : isWorld
+                    ? 'This is the start of World. Say hello to everyone, in any language.'
+                    : `This is the start of ${title}. Say hello.`}
               </p>
             )}
             {thread.messages.map((m, i) => {
@@ -692,8 +776,25 @@ function MessageItem({
   const replyAuthor = useSocial((s) => (replyTo ? s.profiles[replyTo.author] : undefined));
   const notify = useQor((s) => s.notify);
   const [picking, setPicking] = useState(false);
+  const [muting, setMuting] = useState(false);
   const mine = me?.sub === m.author;
-  const canDelete = mine || (room.role !== 'member' && room.kind !== 'direct');
+  const authorLevel = useSocial((s) => s.levels[room.id]?.[m.author]);
+  // Each level acts only on those below it (ADR-093); Social decides, this only offers what it would allow.
+  const mineRank = myRank(me, room);
+  const below = mineRank >= 3 && mineRank > standingRank(author?.status, authorLevel);
+  const canDelete = mine || (room.kind !== 'direct' && below);
+  const canMute = room.kind !== 'direct' && !mine && below;
+  const reader = readerLanguage(me);
+  const on = useTranslation((s) => s.on);
+  const translating = on && wanted(m, room, reader);
+  const key = translating && reader ? keyOf(m, reader) : '';
+  const translated = useTranslation((s) => (key ? s.done[key] : undefined));
+  const failed = useTranslation((s) => (key ? !!s.failed[key] : false));
+  const original = useTranslation((s) => !!s.original[m.id]);
+  useEffect(() => {
+    if (translating && reader) requestTranslation(m, reader);
+  }, [translating, reader, m]);
+  const showTranslated = translating && translated !== undefined && !original;
   const time = new Date(m.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
   const act = async (method: string, params: Record<string, unknown>, ok?: string) => {
@@ -721,10 +822,17 @@ function MessageItem({
       </div>
       <div className="min-w-0 flex-1">
         {!grouped && (
-          <p className="flex items-baseline gap-2">
-            <button type="button" className="social-accent text-ui font-semibold hover:underline" onClick={() => useSocial.getState().showCard(m.author)}>
+          <p className="flex min-w-0 items-baseline gap-2">
+            <button type="button" className="social-accent truncate text-ui font-semibold hover:underline" onClick={() => useSocial.getState().showCard(m.author)}>
               {shownName(author)}
             </button>
+            {author && (author.display.trim() ? <span className="numeric truncate text-micro text-ink-muted">@{author.qor_id}</span> : null)}
+            <Badges standing={author?.status} level={authorLevel} />
+            {author && (
+              <span className="social-level numeric" title={`Level ${author.level}`} aria-label={`Level ${author.level}`}>
+                Lv {author.level}
+              </span>
+            )}
             <span className="numeric text-micro text-ink-faint">{time}</span>
           </p>
         )}
@@ -735,10 +843,27 @@ function MessageItem({
             <span className="truncate">{replyTo.body ?? 'a deleted message'}</span>
           </p>
         )}
-        <div className={`social-rail pl-3 text-body ${m.deleted ? 'italic text-ink-faint' : 'text-ink-body'} selectable`}>
-          {m.deleted ? 'This message was deleted.' : <Words body={m.body ?? ''} me={me?.qor_id} />}
+        <div className={`social-rail pl-3 text-body ${m.deleted ? 'italic text-ink-faint' : 'text-ink-body'} selectable`} lang={showTranslated ? (reader ?? undefined) : (m.lang ?? undefined)}>
+          {m.deleted ? 'This message was deleted.' : <Words body={showTranslated ? translated! : (m.body ?? '')} me={me?.qor_id} />}
           {m.edited_at && !m.deleted && <span className="ml-1.5 text-micro text-ink-faint">(edited)</span>}
         </div>
+        {translating && (
+          <p className="social-translated mt-0.5 pl-3" data-translated={showTranslated ? 'yes' : 'no'}>
+            <Languages size={11} aria-hidden="true" />
+            {translated === undefined && !failed ? (
+              <span className="social-translating">Translating from {languageName(m.lang, reader)}…</span>
+            ) : failed ? (
+              <span>Written in {languageName(m.lang, reader)}; it could not be translated here.</span>
+            ) : (
+              <>
+                <span>{original ? `Written in ${languageName(m.lang, reader)}` : `Translated from ${languageName(m.lang, reader)}`}</span>
+                <button type="button" className="social-translated-toggle" onClick={() => useTranslation.getState().toggleOriginal(m.id)}>
+                  {original ? 'Show translation' : 'Show original'}
+                </button>
+              </>
+            )}
+          </p>
+        )}
         {m.reactions.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1 pl-3">
             {m.reactions.map((r) => {
@@ -779,6 +904,11 @@ function MessageItem({
               <Trash2 size={14} />
             </button>
           )}
+          {canMute && (
+            <button type="button" className="p-1.5 text-ink-muted hover:text-bad" title="Mute" aria-label="Mute" onClick={() => setMuting((x) => !x)}>
+              <VolumeX size={14} />
+            </button>
+          )}
           {!mine && (
             <button
               type="button"
@@ -790,6 +920,32 @@ function MessageItem({
               <Flag size={14} />
             </button>
           )}
+        </div>
+      )}
+      {muting && (
+        <div className="absolute right-3 top-7 z-10 flex items-center gap-1 border border-edge bg-raised p-1 shadow-lg" role="menu" aria-label="Mute">
+          <span className="eyebrow px-1.5">Mute {shownName(author)} for</span>
+          {(
+            [
+              [10, '10 min'],
+              [60, '1 hour'],
+              [1440, '1 day'],
+              [10080, '1 week'],
+            ] as const
+          ).map(([minutes, label]) => (
+            <button
+              key={minutes}
+              type="button"
+              role="menuitem"
+              className="px-2 py-1 text-ui text-ink-body hover:bg-base hover:text-ink"
+              onClick={() => {
+                setMuting(false);
+                void act('rooms.mute', { room: room.id, sub: m.author, minutes }, `${shownName(author)} is muted here for ${label}.`);
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       )}
       {picking && (
@@ -810,6 +966,62 @@ function MessageItem({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Translation on or off for the reader, and the language they read in (ADR-092 decision 3). */
+function TranslateSwitch() {
+  const on = useTranslation((s) => s.on);
+  const me = useSocial((s) => s.me);
+  const reader = readerLanguage(me);
+  return (
+    <button
+      type="button"
+      className={`social-translate-switch ${on ? 'social-translate-switch-on' : ''}`}
+      aria-pressed={on}
+      title={on ? `Shown in ${languageName(reader, reader)}. Click to show messages as written.` : 'Click to show messages in your language'}
+      onClick={() => useTranslation.getState().setOn(!on)}
+      data-translate-switch
+    >
+      <Languages size={13} />
+      <span className="truncate">{on ? languageName(reader, reader) : 'As written'}</span>
+    </button>
+  );
+}
+
+/** What the reader's PC is fetching to translate, and anything that went wrong. */
+function TranslationBar() {
+  const downloading = useTranslation((s) => s.downloading);
+  const problem = useTranslation((s) => s.problem);
+  const me = useSocial((s) => s.me);
+  const reader = readerLanguage(me);
+  if (!downloading && !problem) return null;
+  if (downloading) {
+    const mb = (n: number) => (n / 1_000_000).toFixed(n < 10_000_000 ? 1 : 0);
+    const share = downloading.total ? Math.round((downloading.done / downloading.total) * 100) : 0;
+    return (
+      <div className="social-translate-bar" role="status" aria-live="polite" data-translate-download>
+        <Loader2 size={12} className="animate-spin" />
+        <span className="min-w-0 flex-1 truncate">
+          Setting up {languageName(downloading.from, reader)} → {languageName(downloading.to, reader)} on this PC, once ·{' '}
+          <span className="numeric">
+            {mb(downloading.done)} of {mb(downloading.total)} MB
+          </span>
+        </span>
+        <span className="social-translate-meter" aria-hidden="true">
+          <span style={{ width: `${share}%` }} />
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className="social-translate-bar social-translate-bar-bad" role="alert">
+      <Languages size={12} />
+      <span className="min-w-0 flex-1 truncate">{problem}</span>
+      <button type="button" aria-label="Dismiss" className="text-ink-muted hover:text-ink" onClick={() => useTranslation.setState({ problem: null })}>
+        <X size={12} />
+      </button>
     </div>
   );
 }
@@ -854,10 +1066,13 @@ function Composer({
   onDone: () => void;
 }) {
   const profiles = useSocial((s) => s.profiles);
+  const me = useSocial((s) => s.me);
+  const mutedUntil = useSocial((s) => s.rooms[room.id]?.muted_until ?? (room.kind === 'world' ? s.mutedUntil : null));
   const notify = useQor((s) => s.notify);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [members, setMembers] = useState<string[]>([]);
+  const muted = !!mutedUntil && new Date(mutedUntil).getTime() > Date.now();
   const [suggest, setSuggest] = useState(0);
   const area = useRef<HTMLTextAreaElement>(null);
   const lastTyping = useRef(0);
@@ -898,8 +1113,11 @@ function Composer({
     if (!body || busy) return;
     setBusy(true);
     try {
+      // The language it is written in, told on this PC; the writer's own when the words are too few (ADR-092).
+      const told = await translateHost.detect(body).catch(() => null);
+      const lang = told ?? me?.language ?? null;
       if (editing) {
-        const r = await host.request<{ message: Message }>('messages.edit', { message: editing.id, body });
+        const r = await host.request<{ message: Message }>('messages.edit', { message: editing.id, body, ...(lang ? { lang } : {}) });
         useSocial.getState().putMessage(r.message);
       } else {
         const nonce = crypto.randomUUID();
@@ -908,6 +1126,7 @@ function Composer({
           body,
           ...(reply ? { reply_to: reply.id } : {}),
           nonce,
+          ...(lang ? { lang } : {}),
         });
         useSocial.getState().putMessage(r.message);
       }
@@ -931,6 +1150,16 @@ function Composer({
   };
 
   const left = 4000 - text.length;
+  if (muted)
+    return (
+      <div className="flex-none px-6 pb-5" data-muted>
+        <p className="flex items-center gap-2 border border-edge bg-well px-3 py-3 text-ui text-ink-muted" role="status">
+          <VolumeX size={14} className="text-bad" />
+          A moderator muted you {room.kind === 'world' ? 'in World' : 'here'} until {new Date(mutedUntil!).toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', weekday: 'short' })}. You can
+          still read, and talk anywhere else.
+        </p>
+      </div>
+    );
   return (
     <div className="flex-none px-6 pb-5">
       {(reply || editing) && (
@@ -971,7 +1200,9 @@ function Composer({
           ref={area}
           rows={1}
           className="max-h-40 min-h-[1.5rem] flex-1 resize-none bg-transparent text-body text-ink outline-none placeholder:text-ink-faint selectable"
-          placeholder={`Message ${room.kind === 'direct' ? title : `#${title}`}`}
+          placeholder={
+            room.kind === 'world' ? 'Say something to everyone, in any language' : `Message ${room.kind === 'direct' ? title : `#${title}`}`
+          }
           aria-label={`Message ${title}`}
           value={text}
           maxLength={4000}
@@ -1032,6 +1263,7 @@ function Members({ room }: { room: string }) {
   const manage = async (method: string, params: Record<string, unknown>) => {
     try {
       await host.request(method, { room, ...params });
+      if (method === 'rooms.role') useSocial.getState().putLevel(room, params.sub as string, params.role as Level);
       await read();
     } catch (e) {
       notify('bad', refusalOf(e).message);
@@ -1039,11 +1271,12 @@ function Members({ room }: { room: string }) {
   };
 
   if (!members) return <p className="p-5 text-caption text-ink-muted">Reading who is here…</p>;
+  const mine = myRank(me, summary);
   const order = { online: 0, away: 1, offline: 2 } as const;
   const sorted = [...members].sort((a, b) => order[presence[a.sub]?.state ?? 'offline'] - order[presence[b.sub]?.state ?? 'offline']);
   return (
     <section className="px-4 pb-5" aria-label="Members">
-      <p className="eyebrow mb-2">{members.length} in this room</p>
+      <p className="eyebrow mb-2">{summary?.kind === 'world' ? `Here now · ${members.length}` : `${members.length} in this room`}</p>
       <ul className="flex flex-col gap-1">
         {sorted.map((m) => {
           const p = profiles[m.sub];
@@ -1051,26 +1284,41 @@ function Members({ room }: { room: string }) {
             <li key={m.sub} className="group flex items-center gap-2.5" style={accentStyle(p)}>
               <button type="button" className="flex min-w-0 flex-1 items-center gap-2.5 py-1 text-left" onClick={() => useSocial.getState().showCard(m.sub)}>
                 <span className="relative">
-                  <Avatar name={p?.qor_id} src={p?.avatar_url ?? null} size={28} />
+                  <Avatar name={p?.qor_id} src={p?.avatar_url ?? null} size={28} level={p?.level ?? null} />
                   <PresenceDot presence={presence[m.sub]} className="absolute -bottom-0.5 -right-0.5 ring-2 ring-void" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="social-accent block truncate text-ui">{shownName(p)}</span>
-                  {m.role !== 'member' && <span className="eyebrow text-accent">{m.role}</span>}
+                  <span className="flex flex-wrap gap-1">
+                    <Badges standing={p?.status} level={m.role} />
+                  </span>
                 </span>
               </button>
-              {summary?.role === 'owner' && m.sub !== me?.sub && (
-                <span className="hidden gap-1 group-hover:flex">
-                  <button
-                    type="button"
-                    className="text-micro text-ink-muted hover:text-ink"
-                    onClick={() => void manage('rooms.role', { sub: m.sub, role: m.role === 'moderator' ? 'member' : 'moderator' })}
-                  >
-                    {m.role === 'moderator' ? 'Unmod' : 'Mod'}
+              {summary && m.sub !== me?.sub && mine >= 3 && mine > standingRank(p?.status, m.role) && (
+                <span className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  {givable(mine, summary.role, summary).length > 0 && (
+                    <select
+                      className="social-level-select"
+                      aria-label={`${shownName(p)}'s level`}
+                      value={m.role}
+                      data-level-select={m.sub}
+                      onChange={(e) => void manage('rooms.role', { sub: m.sub, role: e.target.value as Level })}
+                    >
+                      {LEVELS.filter((l) => l === m.role || givable(mine, summary.role, summary).includes(l)).map((l) => (
+                        <option key={l} value={l}>
+                          {LEVEL_NAMES[l]}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <button type="button" className="text-micro text-ink-muted hover:text-bad" onClick={() => void manage('rooms.mute', { sub: m.sub, minutes: 60 })}>
+                    Mute 1 h
                   </button>
-                  <button type="button" className="text-micro text-ink-muted hover:text-bad" onClick={() => void manage('rooms.remove', { sub: m.sub })}>
-                    Remove
-                  </button>
+                  {summary.kind !== 'world' && (
+                    <button type="button" className="text-micro text-ink-muted hover:text-bad" onClick={() => void manage('rooms.remove', { sub: m.sub })}>
+                      Remove
+                    </button>
+                  )}
                 </span>
               )}
             </li>

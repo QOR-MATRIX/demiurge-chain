@@ -102,6 +102,11 @@ impl Hub {
         }
     }
 
+    /// Everyone with a socket open now, whatever they show: what World's messages reach.
+    pub async fn connected(&self) -> Vec<Uuid> {
+        self.connections.read().await.keys().copied().collect()
+    }
+
     pub async fn set(&self, sub: Uuid, state: &str, playing: Option<String>) {
         self.chosen.write().await.insert(
             sub,

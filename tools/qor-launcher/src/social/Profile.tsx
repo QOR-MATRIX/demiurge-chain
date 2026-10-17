@@ -5,13 +5,16 @@
  */
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { Ban, Check, Loader2, MessageCircle, Pencil, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { Ban, Check, Languages, Loader2, MessageCircle, Pencil, ShieldCheck, Sparkles, X } from 'lucide-react';
 
 import { Avatar } from '../components/chrome/Avatar';
 import { assets, explain, type OwnedAsset } from '../lib/ipc';
 import { selectActiveAccount, useQor } from '../state/store';
 import { PROFILE_ACCENTS } from '../styles/themes';
 import { Banner, BACKDROPS } from './Banner';
+import { FriendButton } from './Friends';
+import { Badges } from './Levels';
+import { languageName, translateHost } from './translate';
 import {
   host,
   refusalOf,
@@ -102,6 +105,21 @@ export function ProfileCard({ sub, onEdit }: { sub: string; onEdit: () => void }
     }
   };
 
+  // Only godmode makes an account Elite, or takes it away (ADR-093); Social refuses anyone else.
+  const toggleElite = async () => {
+    setBusy(true);
+    try {
+      const elite = profile.status === 'elite';
+      const r = await host.request<{ profile: Profile }>(elite ? 'elite.revoke' : 'elite.grant', elite ? { sub } : { qor_id: profile.qor_id });
+      useSocial.getState().remember({ [sub]: r.profile });
+      notify('ok', elite ? `${profile.qor_id} is no longer Elite.` : `${profile.qor_id} is Elite now: staff in every room they are in.`);
+    } catch (e) {
+      notify('bad', refusalOf(e).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const toggleBlock = async () => {
     setBusy(true);
     try {
@@ -123,12 +141,20 @@ export function ProfileCard({ sub, onEdit }: { sub: string; onEdit: () => void }
       </div>
       <div className="px-5 pb-5 pt-3" style={accentStyle(profile)}>
         <h2 className="social-accent text-title font-semibold">{shownName(profile)}</h2>
-        <p className="numeric text-caption text-ink-muted">@{profile.qor_id}</p>
+        <p className="flex flex-wrap items-center gap-1.5 text-caption text-ink-muted">
+          <span className="numeric">@{profile.qor_id}</span>
+          <Badges standing={profile.status} />
+        </p>
         <p className="mt-2 flex items-center gap-2 text-caption text-ink-body">
           <PresenceDot presence={presence} />
           {presenceText(presence)}
         </p>
         {profile.status_line && <p className="mt-1 text-caption italic text-ink-body">“{profile.status_line}”</p>}
+        {profile.language && (
+          <p className="mt-2 flex items-center gap-1.5 text-caption text-ink-muted">
+            <Languages size={12} aria-hidden="true" /> Speaks {languageName(profile.language, me?.language)}
+          </p>
+        )}
         {profile.bio && <p className="mt-4 whitespace-pre-line text-ui text-ink-body selectable">{profile.bio}</p>}
 
         {profile.showcase.length > 0 && (
@@ -160,6 +186,12 @@ export function ProfileCard({ sub, onEdit }: { sub: string; onEdit: () => void }
               <button type="button" className="btn btn-primary" disabled={busy || blocked} onClick={() => void message()}>
                 <MessageCircle size={13} /> Message
               </button>
+              {!blocked && <FriendButton profile={profile} />}
+              {me?.status === 'godmode' && profile.status !== 'godmode' && (
+                <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => void toggleElite()} data-elite-toggle>
+                  {profile.status === 'elite' ? 'Remove Elite' : 'Make Elite'}
+                </button>
+              )}
               <button type="button" className="btn btn-ghost btn-danger" disabled={busy} onClick={() => void toggleBlock()}>
                 <Ban size={13} /> {blocked ? 'Unblock' : 'Block'}
               </button>
@@ -182,9 +214,18 @@ export function ProfileEditor({ onClose }: { onClose: () => void }) {
   const [accent, setAccent] = useState<string | null>(me?.accent ?? null);
   const [banner, setBanner] = useState<Backdrop>(me?.banner ?? {});
   const [showcase, setShowcase] = useState<string[]>(me?.showcase ?? []);
+  const [language, setLanguage] = useState<string | null>(me?.language ?? null);
+  const [languages, setLanguages] = useState<string[]>([]);
   const [owned, setOwned] = useState<OwnedAsset[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+
+  useEffect(() => {
+    translateHost
+      .languages()
+      .then((l) => setLanguages(l.languages))
+      .catch(() => setLanguages([]));
+  }, []);
 
   useEffect(() => {
     if (!account) return;
@@ -212,6 +253,7 @@ export function ProfileEditor({ onClose }: { onClose: () => void }) {
         accent,
         banner,
         showcase,
+        ...(language ? { language } : {}),
       });
       useSocial.setState((s) => ({ me: r.profile, profiles: { ...s.profiles, [r.profile.sub]: r.profile } }));
       notify('ok', 'Your profile is saved; everyone who shares a room with you sees it now.');
@@ -252,6 +294,25 @@ export function ProfileEditor({ onClose }: { onClose: () => void }) {
             <span className="eyebrow mb-2 block">Bio</span>
             <textarea className="field min-h-[5.5rem] resize-y" maxLength={600} value={bio} onChange={(e) => setBio(e.target.value)} />
             <span className="numeric mt-1 block text-right text-micro text-ink-faint">{bio.length} / 600</span>
+          </label>
+
+          <label className="mb-5 block">
+            <span className="eyebrow mb-2 block">Your language</span>
+            <select className="field" value={language ?? ''} onChange={(e) => setLanguage(e.target.value || null)}>
+              {!language && <option value="">Choose…</option>}
+              {[...new Set([...(language ? [language] : []), ...languages])]
+                .map((tag) => ({ tag, name: languageName(tag, language) }))
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map(({ tag, name }) => (
+                  <option key={tag} value={tag}>
+                    {name}
+                  </option>
+                ))}
+            </select>
+            <span className="mt-1 block text-micro text-ink-faint">
+              World and public rooms are shown to you in it, translated on this PC; what you write is marked with it when it is too
+              short to tell.
+            </span>
           </label>
 
           <fieldset className="mb-5">

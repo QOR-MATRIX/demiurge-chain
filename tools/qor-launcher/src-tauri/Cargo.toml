@@ -127,6 +127,9 @@ keyring     = { version = "3", features = ["windows-native", "apple-native", "sy
 qor-host-proof = { path = "../host-proof" }
 tracing     = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+zstd = { version = "0.14.3", default-features = false }
+whatlang = "0.18.0"
+sys-locale = "0.3.2"
 
 # Windows Hello, read only to move a vault sealed under it (ADR-055) to the
 # keychain once (ADR-056).

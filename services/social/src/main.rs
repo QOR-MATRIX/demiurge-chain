@@ -6,6 +6,9 @@
 //! - `SOCIAL_CLIENT_ID` (`social` unless set) and `SOCIAL_CLIENT_SECRET`: Social's own credential with QOR ID, registered
 //!   there as a service (`"introspect": true`). Only its SHA-256 is registered with QOR ID.
 //! - `SOCIAL_MESSAGE_KEYS`: the keys message bodies are sealed with, `1:<base64 of 32 bytes>,2:…` (`seal.rs`).
+//! - `SOCIAL_WORLD_MODERATORS`: World's moderators, as QOR ID usernames separated by commas; none unless set (ADR-092).
+//! - `SOCIAL_GODMODE`: the QOR ID username that stands above every room and alone makes accounts Elite; none unless set
+//!   (ADR-093).
 //! - `PORT`: 8090 unless set.
 //!
 //! None of these values is logged.
@@ -101,7 +104,14 @@ async fn main() -> anyhow::Result<()> {
         required("SOCIAL_CLIENT_SECRET")?,
     )?;
     let state = Arc::new(AppState {
-        store: store::Store::new(db, sealer),
+        store: store::Store::new(db, sealer)
+            .with_world_moderators(
+                std::env::var("SOCIAL_WORLD_MODERATORS")
+                    .unwrap_or_default()
+                    .split(',')
+                    .map(str::to_string),
+            )
+            .with_godmode(&std::env::var("SOCIAL_GODMODE").unwrap_or_default()),
         identity: Arc::new(qor_id),
         hub: hub::Hub::default(),
     });

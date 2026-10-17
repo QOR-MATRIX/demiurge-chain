@@ -96,6 +96,8 @@ struct Send {
     body: String,
     reply_to: Option<Uuid>,
     nonce: Option<String>,
+    /// The language the words are in, as the sender's launcher found it (ADR-092 decision 3).
+    lang: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -103,6 +105,7 @@ struct Send {
 struct Edit {
     message: Uuid,
     body: String,
+    lang: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -152,6 +155,50 @@ struct Report {
     reason: String,
     #[serde(default)]
     note: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Mute {
+    sub: Uuid,
+    minutes: i32,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RoomMute {
+    room: Uuid,
+    sub: Uuid,
+    minutes: i32,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct NewCircle {
+    name: String,
+    color: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChangeCircle {
+    circle: Uuid,
+    name: Option<String>,
+    #[serde(default, deserialize_with = "store::present")]
+    color: Option<Option<String>>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct InCircle {
+    circle: Uuid,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CircleAndPerson {
+    circle: Uuid,
+    sub: Uuid,
 }
 
 /// Who is asking.
@@ -207,6 +254,19 @@ pub async fn announce_presence(state: &AppState, sub: Uuid) -> SocialResult<()> 
     Ok(())
 }
 
+/// Who hears what `author` does in `room`: its members, less those who block the author. World is everyone, so what
+/// happens there reaches whoever is connected, less those who block the author (ADR-092 decision 1).
+async fn hearers(state: &AppState, room: Uuid, author: Uuid) -> SocialResult<Vec<Uuid>> {
+    if room == state.store.world().await? {
+        let blockers = state.store.blockers_of(author).await?;
+        let mut to = state.hub.connected().await;
+        to.retain(|s| !blockers.contains(s));
+        Ok(to)
+    } else {
+        state.store.recipients(room, author).await
+    }
+}
+
 async fn to_room(
     state: &AppState,
     room: Uuid,
@@ -214,8 +274,36 @@ async fn to_room(
     name: &str,
     data: Value,
 ) -> SocialResult<()> {
-    let to = state.store.recipients(room, author).await?;
+    let to = hearers(state, room, author).await?;
     state.hub.send(&to, &event(name, data)).await;
+    Ok(())
+}
+
+/// Tell two people about something between them, on all their sockets.
+async fn to_both(state: &AppState, a: Uuid, b: Uuid, name: &str, data: Value) {
+    state.hub.send(&[a, b], &event(name, data)).await;
+}
+
+/// After a friendship ends, each stops seeing the other's presence, unless another room still joins them.
+async fn part(state: &AppState, a: Uuid, b: Uuid) -> SocialResult<()> {
+    if state.store.contacts(a).await?.contains(&b) {
+        return Ok(());
+    }
+    let offline = json!({ "state": "offline", "playing": null });
+    state
+        .hub
+        .send(
+            &[a],
+            &event("presence", json!({ "sub": b, "presence": offline })),
+        )
+        .await;
+    state
+        .hub
+        .send(
+            &[b],
+            &event("presence", json!({ "sub": a, "presence": offline })),
+        )
+        .await;
     Ok(())
 }
 
@@ -302,7 +390,20 @@ pub async fn handle(
         }
         "rooms.members" => {
             let p: InRoom = params(raw)?;
-            let members = store.members(me, p.room).await?;
+            let members = if p.room == store.world().await? {
+                // World is everyone: it lists who is here and shows it, up to two hundred.
+                store.membership(me, p.room).await?;
+                let mut here = Vec::new();
+                for sub in state.hub.connected().await {
+                    if state.hub.presence(sub).await.state != "offline" {
+                        here.push(sub);
+                    }
+                }
+                here.truncate(200);
+                store.members_among(p.room, &here).await?
+            } else {
+                store.members(me, p.room).await?
+            };
             let profiles = profiles_of(state, members.iter().map(|m| m.sub)).await?;
             Ok(json!({ "members": members, "profiles": profiles }))
         }
@@ -366,8 +467,16 @@ pub async fn handle(
             let messages = store
                 .history(me, p.room, p.before, p.limit.unwrap_or(50))
                 .await?;
-            let profiles = profiles_of(state, messages.iter().map(|m| m.author)).await?;
-            Ok(json!({ "messages": messages, "profiles": profiles }))
+            let authors: Vec<Uuid> = messages.iter().map(|m| m.author).collect();
+            let profiles = profiles_of(state, authors.iter().copied()).await?;
+            // The levels above member its authors hold here, for the badges beside their names (ADR-093).
+            let levels: serde_json::Map<String, Value> = store
+                .levels_of(p.room, &authors)
+                .await?
+                .into_iter()
+                .map(|(sub, role)| (sub.to_string(), json!(role)))
+                .collect();
+            Ok(json!({ "messages": messages, "profiles": profiles, "levels": levels }))
         }
         "messages.send" => {
             caller.named()?;
@@ -375,16 +484,30 @@ pub async fn handle(
             // Malformed words cost nothing, and are refused for what they are.
             crate::text::message(&p.body)?;
             store.spend(me, &store::SEND).await?;
+            // World's pace is for members; a VIP or above talks freely (ADR-093).
+            if p.room == store.world().await?
+                && store.rank_in(p.room, me).await? < store::rank("vip")
+            {
+                store.spend(me, &store::WORLD_SEND).await?;
+            }
             let (message, created) = store
-                .send(me, p.room, &p.body, p.reply_to, p.nonce.as_deref())
+                .send(
+                    me,
+                    p.room,
+                    &p.body,
+                    p.reply_to,
+                    p.nonce.as_deref(),
+                    p.lang.as_deref(),
+                )
                 .await?;
             if created {
+                let level = store.membership(me, p.room).await?.1;
                 to_room(
                     state,
                     p.room,
                     me,
                     "message.created",
-                    json!({ "message": message }),
+                    json!({ "message": message, "level": level }),
                 )
                 .await?;
                 let mentioned = store.mentioned(p.room, me, &p.body).await?;
@@ -399,7 +522,9 @@ pub async fn handle(
             let p: Edit = params(raw)?;
             crate::text::message(&p.body)?;
             store.spend(me, &store::SEND).await?;
-            let message = store.edit(me, p.message, &p.body).await?;
+            let message = store
+                .edit(me, p.message, &p.body, p.lang.as_deref())
+                .await?;
             to_room(
                 state,
                 message.room,
@@ -452,6 +577,10 @@ pub async fn handle(
         "typing" => {
             let p: InRoom = params(raw)?;
             store.membership(me, p.room).await?;
+            if p.room == store.world().await? {
+                // Everyone typing in a room of everyone is noise, not news.
+                return Ok(json!({}));
+            }
             let to: Vec<Uuid> = store
                 .recipients(p.room, me)
                 .await?
@@ -532,6 +661,268 @@ pub async fn handle(
             let p: Report = params(raw)?;
             store.spend(me, &store::REPORT).await?;
             store.report(me, p.message, &p.reason, &p.note).await?;
+            Ok(json!({}))
+        }
+        "friends.list" => {
+            let _: Nothing = params(raw)?;
+            let friends = store.friends(me).await?;
+            let everyone = friends
+                .friends
+                .iter()
+                .copied()
+                .chain(friends.incoming.iter().map(|r| r.sub))
+                .chain(friends.outgoing.iter().map(|r| r.sub));
+            let profiles = profiles_of(state, everyone).await?;
+            Ok(json!({
+                "friends": friends.friends,
+                "incoming": friends.incoming,
+                "outgoing": friends.outgoing,
+                "profiles": profiles,
+            }))
+        }
+        "friends.request" => {
+            caller.named()?;
+            let p: Named = params(raw)?;
+            store.spend(me, &store::FRIEND).await?;
+            let other = store.profile_by_name(&p.qor_id).await?.sub;
+            let friends = store.request_friend(me, other).await?;
+            let profiles = profiles_of(state, [me, other]).await?;
+            if friends {
+                // They had asked first: friends at once.
+                to_both(
+                    state,
+                    me,
+                    other,
+                    "friend.accepted",
+                    json!({ "between": [me, other], "profiles": profiles }),
+                )
+                .await;
+                announce_presence(state, me).await?;
+                announce_presence(state, other).await?;
+            } else {
+                to_both(
+                    state,
+                    me,
+                    other,
+                    "friend.requested",
+                    json!({ "from": me, "to": other, "profiles": profiles }),
+                )
+                .await;
+            }
+            Ok(json!({ "friends": friends, "sub": other }))
+        }
+        "friends.accept" => {
+            let p: Someone = params(raw)?;
+            store.accept_friend(me, p.sub).await?;
+            let profiles = profiles_of(state, [me, p.sub]).await?;
+            to_both(
+                state,
+                me,
+                p.sub,
+                "friend.accepted",
+                json!({ "between": [me, p.sub], "profiles": profiles }),
+            )
+            .await;
+            announce_presence(state, me).await?;
+            announce_presence(state, p.sub).await?;
+            Ok(json!({}))
+        }
+        "friends.decline" | "friends.cancel" => {
+            let p: Someone = params(raw)?;
+            let (from, to) = if method == "friends.decline" {
+                (p.sub, me)
+            } else {
+                (me, p.sub)
+            };
+            store.drop_request(from, to).await?;
+            to_both(
+                state,
+                from,
+                to,
+                "friend.declined",
+                json!({ "from": from, "to": to }),
+            )
+            .await;
+            Ok(json!({}))
+        }
+        "friends.remove" => {
+            let p: Someone = params(raw)?;
+            if !store.end_friendship(me, p.sub).await? {
+                return Err(SocialError::not_found("you are not friends"));
+            }
+            to_both(
+                state,
+                me,
+                p.sub,
+                "friend.removed",
+                json!({ "between": [me, p.sub] }),
+            )
+            .await;
+            part(state, me, p.sub).await?;
+            Ok(json!({}))
+        }
+        "circles.list" => {
+            let _: Nothing = params(raw)?;
+            Ok(json!({ "circles": store.circles(me).await? }))
+        }
+        "circles.create" => {
+            caller.named()?;
+            let p: NewCircle = params(raw)?;
+            store.spend(me, &store::CIRCLE).await?;
+            let circle = store.create_circle(me, &p.name, p.color.as_deref()).await?;
+            Ok(json!({ "circle": circle }))
+        }
+        "circles.update" => {
+            let p: ChangeCircle = params(raw)?;
+            store.spend(me, &store::CIRCLE).await?;
+            let color = p.color.as_ref().map(|c| c.as_deref());
+            let circle = store
+                .change_circle(me, p.circle, p.name.as_deref(), color)
+                .await?;
+            Ok(json!({ "circle": circle }))
+        }
+        "circles.delete" => {
+            let p: InCircle = params(raw)?;
+            store.delete_circle(me, p.circle).await?;
+            Ok(json!({}))
+        }
+        "circles.add" | "circles.remove" => {
+            let p: CircleAndPerson = params(raw)?;
+            store.spend(me, &store::CIRCLE).await?;
+            let circle = if method == "circles.add" {
+                store.circle_add(me, p.circle, p.sub).await?
+            } else {
+                store.circle_remove(me, p.circle, p.sub).await?
+            };
+            Ok(json!({ "circle": circle }))
+        }
+        "circles.open" => {
+            caller.named()?;
+            let p: InCircle = params(raw)?;
+            let circle = store.circle(me, p.circle).await?;
+            if circle.members.is_empty() {
+                return Err(SocialError::bad("add friends to the circle first"));
+            }
+            store.spend(me, &store::CREATE_ROOM).await?;
+            let room = store.create_room(me, "private", &circle.name, "").await?;
+            state
+                .hub
+                .send(
+                    &[me],
+                    &event("room.joined", json!({ "room": room, "role": "owner" })),
+                )
+                .await;
+            for sub in &circle.members {
+                // Someone either of them has blocked since is passed over; the others are asked.
+                if store.invite(me, room.id, *sub).await.is_ok() {
+                    state
+                        .hub
+                        .send(
+                            &[*sub],
+                            &event(
+                                "invite",
+                                json!({ "room": room.id, "name": room.name, "inviter": me }),
+                            ),
+                        )
+                        .await;
+                }
+            }
+            Ok(json!({ "room": room }))
+        }
+        "world.mute" => {
+            let p: Mute = params(raw)?;
+            let world = store.world().await?;
+            let until = store.mute(me, world, p.sub, p.minutes).await?;
+            state
+                .hub
+                .send(
+                    &[p.sub],
+                    &event("world.muted", json!({ "room": world, "until": until })),
+                )
+                .await;
+            Ok(json!({ "until": until }))
+        }
+        "rooms.mute" => {
+            let p: RoomMute = params(raw)?;
+            let until = store.mute(me, p.room, p.sub, p.minutes).await?;
+            let name = if p.room == store.world().await? {
+                "world.muted"
+            } else {
+                "room.muted"
+            };
+            state
+                .hub
+                .send(
+                    &[p.sub],
+                    &event(name, json!({ "room": p.room, "until": until })),
+                )
+                .await;
+            Ok(json!({ "until": until }))
+        }
+        "rooms.unmute" => {
+            let p: RoomAndPerson = params(raw)?;
+            store.unmute(me, p.room, p.sub).await?;
+            let name = if p.room == store.world().await? {
+                "world.muted"
+            } else {
+                "room.muted"
+            };
+            state
+                .hub
+                .send(
+                    &[p.sub],
+                    &event(name, json!({ "room": p.room, "until": null })),
+                )
+                .await;
+            Ok(json!({}))
+        }
+        "elite.grant" | "elite.revoke" => {
+            let target = if method == "elite.grant" {
+                let p: Named = params(raw)?;
+                let sub = store.profile_by_name(&p.qor_id).await?.sub;
+                store.grant_elite(me, sub).await?;
+                sub
+            } else {
+                let p: Someone = params(raw)?;
+                store.revoke_elite(me, p.sub).await?;
+                p.sub
+            };
+            // Their standing shows wherever their profile does: tell them, their contacts and godmode.
+            let profile = profiles_of(state, [target]).await?[target.to_string()].clone();
+            let mut to = store.contacts(target).await?;
+            to.extend([target, me]);
+            state
+                .hub
+                .send(
+                    &to,
+                    &event("profile.updated", json!({ "profile": profile })),
+                )
+                .await;
+            Ok(json!({ "profile": profile }))
+        }
+        "elite.list" => {
+            let _: Nothing = params(raw)?;
+            if !store.standing(me).await?.0 {
+                return Err(SocialError::forbidden(
+                    "only godmode keeps the list of Elite accounts",
+                ));
+            }
+            let elites = store.elites().await?;
+            Ok(
+                json!({ "elites": elites, "profiles": profiles_of(state, elites.iter().copied()).await? }),
+            )
+        }
+        "world.unmute" => {
+            let p: Someone = params(raw)?;
+            let world = store.world().await?;
+            store.unmute(me, world, p.sub).await?;
+            state
+                .hub
+                .send(
+                    &[p.sub],
+                    &event("world.muted", json!({ "room": world, "until": null })),
+                )
+                .await;
             Ok(json!({}))
         }
         other => Err(SocialError::bad(format!(
