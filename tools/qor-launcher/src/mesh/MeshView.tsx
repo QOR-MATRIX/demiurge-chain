@@ -10,7 +10,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Coins, Copy, Download, Loader2, Share2 } from 'lucide-react';
+import { Coins, Copy, Download, Fingerprint, Loader2, Share2 } from 'lucide-react';
 
 import { useQor } from '../state/store';
 import { Panel, Stat, ViewHeader } from '../views/parts';
@@ -72,6 +72,15 @@ export function MeshView() {
     try {
       await navigator.clipboard.writeText(await mesh.ticket(root));
       notify('ok', 'Ticket copied. Whoever has it can fetch this file from this PC while it seeds.');
+    } catch (e) {
+      notify('bad', explain(e));
+    }
+  };
+
+  const copyRoot = async (root: string) => {
+    try {
+      await navigator.clipboard.writeText(root);
+      notify('ok', 'Fingerprint copied. Anyone can fetch this file by it once an escrow pays seeders to hold it.');
     } catch (e) {
       notify('bad', explain(e));
     }
@@ -221,6 +230,9 @@ export function MeshView() {
                       <Coins size={14} />
                     </button>
                   )}
+                  <button type="button" className="btn btn-ghost px-2" title="Copy this file's fingerprint" aria-label="Copy this file's fingerprint" onClick={() => void copyRoot(h.root)} data-mesh-copy-root>
+                    <Fingerprint size={14} />
+                  </button>
                   {seeding && (
                     <button type="button" className="btn btn-ghost px-2" title="Copy a ticket for this file" aria-label="Copy a ticket for this file" onClick={() => void copyTicket(h.root)} data-mesh-ticket>
                       <Copy size={14} />

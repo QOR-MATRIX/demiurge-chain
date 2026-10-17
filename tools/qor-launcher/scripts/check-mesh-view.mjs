@@ -272,6 +272,8 @@ try {
   check('a ticket is asked for by the file\'s root', await eventually(`window.__CALLS__.some((c) => c.cmd === 'mesh_ticket')`)
     && (await calls('mesh_ticket'))[0].root === OWN);
   check('and put on the clipboard', await eventually(`window.__CLIP__[0] === '${TICKET}'`));
+  await click(`[data-mesh-item="${OWN}"] [data-mesh-copy-root]`);
+  check("a file's whole fingerprint can be copied, to fetch it by", await eventually(`window.__CLIP__[1] === '${OWN}'`));
 
   // --- fetching ----------------------------------------------------------------------------------
   check('fetching waits for a ticket', await evaluate(`document.querySelector('[data-mesh-fetch]').disabled`));

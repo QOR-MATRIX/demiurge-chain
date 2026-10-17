@@ -825,7 +825,7 @@ reason = "Tightening: criteria, tests and a pallet under the coverage threshold 
 [[change_log]]
 date = "2026-10-17"
 type = "tightening"
-change = "mesh.decisions counts ADR-097 (accepted 2026-10-17 under the owner's delegation for engineering choices). mesh.chain-tests gains three required tests (the period and window settable at genesis only to values that work, only the development chain shortening them, and a proof made a piece at a time), eighteen in all. mesh.tests gains five (a proof read from the store is the chain's, only the Mesh signs under its grant, no grant asked for where the chain has no Mesh, and the granted calls' and receipts' bytes), thirteen in all. The view check mesh_view grows from 23 checks to 38."
+change = "mesh.decisions counts ADR-097 (accepted 2026-10-17 under the owner's delegation for engineering choices). mesh.chain-tests gains three required tests (the period and window settable at genesis only to values that work, only the development chain shortening them, and a proof made a piece at a time), eighteen in all. mesh.tests gains five (a proof read from the store is the chain's, only the Mesh signs under its grant, no grant asked for where the chain has no Mesh, and the granted calls' and receipts' bytes), thirteen in all. The view check mesh_view grows from 23 checks to 39, the last that a file's whole fingerprint can be copied."
 reason = "Tightening: an ADR, tests and checks added, none removed or relaxed. Three planted faults in the launcher's paid work were each caught (a receipt kept without its signature checked, by the live test; a proof missing its top sibling; a receipt message without the genesis hash) (HANDOFF.md section 4 item 86)."
 
 [[change_log]]
