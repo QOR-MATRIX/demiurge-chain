@@ -35,8 +35,8 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 ## What only you can do
 
-1. **Merge #36** — *the notes saying #35 is live* — **then the Library's pull request**,
-   once I open it; I'll settle any overlap between them.
+1. **Merge #37** — *the Library's pull request* — when you're happy with it. #36 is
+   merged, and #37 is brought up to date with it; its checks pass.
 2. **Add Qt PDF:** open the *Qt Maintenance Tool*, choose Add or remove components,
    tick Qt 6.12.0 → Additional Libraries → Qt PDF, and apply.
 3. **Look at the Library** in a launcher built from the branch, when you're ready.
