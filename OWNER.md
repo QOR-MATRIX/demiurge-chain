@@ -15,8 +15,8 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **Social** — *the chat service* — on Railway, with World, friends and circles,
   translation on each PC, and room levels with Elite and godmode. Your test is to come.
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`.
-- **Launcher 0.1.8**, unsigned — *Windows warns on install*. Social and the Library are in
-  `main`, not yet in an installer.
+- **Launcher 0.1.9**, unsigned — *Windows warns on install* — built today with Social,
+  the Library and avatars; the installer is on your Desktop.
 
 ## Merged today: the Library (#37)
 
