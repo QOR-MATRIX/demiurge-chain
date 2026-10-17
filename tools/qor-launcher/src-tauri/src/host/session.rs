@@ -176,7 +176,11 @@ where
             Ok(result) => {
                 // Answered requests too, by method only: a publish that left no line either way could not be told apart
                 // from one never sent (15 October 2026). Neither params nor the answer are logged.
-                tracing::info!(product = product.id, %method, "a product's request was answered");
+                if handler.quiet(&method) {
+                    tracing::debug!(product = product.id, %method, "a product's request was answered");
+                } else {
+                    tracing::info!(product = product.id, %method, "a product's request was answered");
+                }
                 ToProduct::Result { id, result }
             }
             Err(refusal) => {

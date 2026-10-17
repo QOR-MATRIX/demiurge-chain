@@ -401,7 +401,7 @@ npm install
 npm run app:dev        # dev, with hot reload
 npm run app:build      # release bundle (msi, nsis, deb, appimage, dmg)
 npm run icons          # regenerate the icon set from scripts/make_icons.py
-npm run check          # design, accessibility, gates view, Projects view, Inventory view, Market view, QQ view, Social view, the Gate's restore and Hello, QFX contrast, readability (needs npm run build first)
+npm run check          # design, accessibility, gates view, Projects view, Inventory view, Market view, QQ view, Social view, Library view, the Gate's restore and Hello, QFX contrast, readability (needs npm run build first)
 ```
 
 Rust tests. Build Qontrol's helper first, or its tests that commit skip:

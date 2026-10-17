@@ -158,6 +158,26 @@ pub fn library_reveal(
         .map_err(|e| QorError::Io(e.to_string()))
 }
 
+/// Open a file the Library holds: in QOR Media, docked inside the launcher, when it is here; otherwise in the program
+/// the system opens that kind of file with, so a file always opens.
+#[tauri::command]
+pub async fn library_open(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<(), QorError> {
+    state.library.item(&path)?;
+    state.library.opened(&path, None)?;
+    changed(&app);
+    if crate::media::open(&app, &path).await? {
+        return Ok(());
+    }
+    use tauri_plugin_opener::OpenerExt as _;
+    app.opener()
+        .open_path(&path, None::<&str>)
+        .map_err(|e| QorError::Io(e.to_string()))
+}
+
 /// Note that a file was opened from the Library, and where playback stopped.
 #[tauri::command]
 pub fn library_opened(

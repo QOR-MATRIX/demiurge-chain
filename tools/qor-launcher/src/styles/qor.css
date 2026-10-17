@@ -1021,6 +1021,266 @@
     font-size: var(--text-micro);
   }
 
+  /* ADR-094: the Library, SteamOS-like: big tiles, a bold focus ring, shelves that scroll sideways. */
+  .library-mark {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    flex: none;
+    border-radius: 10px;
+    color: var(--void);
+    background: conic-gradient(from 210deg, var(--accent-bright), var(--accent), var(--accent-dim), var(--accent-bright));
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .library-mark-lg {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+  }
+  .library-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--edge);
+    border-radius: 999px;
+    background: var(--well);
+  }
+  .library-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    color: var(--ink-muted);
+    font-size: var(--text-ui);
+    transition:
+      background 160ms var(--ease-expo),
+      color 160ms var(--ease-expo);
+  }
+  .library-tab:hover {
+    color: var(--ink);
+  }
+  .library-tab-on {
+    background: var(--raised);
+    color: var(--ink);
+    box-shadow: inset 0 -2px 0 var(--accent);
+  }
+  .library-tab-count {
+    color: var(--ink-faint);
+    font-size: var(--text-micro);
+  }
+  .library-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(22rem, 32vw);
+    padding: 7px 12px;
+    border: 1px solid var(--edge);
+    border-radius: 999px;
+    background: var(--well);
+    color: var(--ink-muted);
+  }
+  .library-search:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  .library-search input {
+    min-width: 0;
+    flex: 1;
+    background: transparent;
+    color: var(--ink);
+    font-size: var(--text-ui);
+    outline: none;
+  }
+  .library-kbd {
+    padding: 0 6px;
+    border: 1px solid var(--edge);
+    border-radius: 4px;
+    color: var(--ink-faint);
+    font-size: var(--text-micro);
+  }
+
+  .library-hero {
+    position: relative;
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    margin: 6px 0 30px;
+    padding: 22px;
+    overflow: hidden;
+    border: 1px solid var(--edge);
+    border-radius: 18px;
+    background: linear-gradient(110deg, color-mix(in srgb, var(--accent) 16%, var(--surface)), var(--surface) 60%);
+  }
+  .library-hero > .library-art {
+    width: min(40%, 26rem);
+    aspect-ratio: 16 / 9;
+    flex: none;
+    border-radius: 12px;
+  }
+  .library-hero-title {
+    font-size: var(--text-display);
+    line-height: 1.05;
+    color: var(--ink);
+  }
+  .library-hero-play {
+    padding: 11px 26px;
+  }
+
+  .library-shelf {
+    margin-bottom: 26px;
+  }
+  .library-row {
+    display: flex;
+    gap: 14px;
+    padding: 6px 4px 12px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+  }
+  .library-grid-row {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 14px;
+    padding: 6px 4px;
+  }
+  .library-tile {
+    position: relative;
+    display: flex;
+    width: 13.5rem;
+    flex: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0;
+    scroll-snap-align: start;
+    border-radius: 12px;
+    text-align: left;
+    transition: transform 180ms var(--ease-expo);
+  }
+  .library-grid-row .library-tile {
+    width: auto;
+  }
+  .library-tile-wide {
+    width: 19rem;
+  }
+  .library-tile:hover,
+  .library-tile:focus-visible {
+    transform: translateY(-3px) scale(1.03);
+    outline: none;
+  }
+  .library-tile:focus-visible .library-art {
+    box-shadow:
+      0 0 0 3px var(--accent-bright),
+      0 0 22px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  .library-art {
+    display: grid;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid var(--edge);
+    border-radius: 12px;
+    color: var(--ink-muted);
+    background: var(--raised);
+    transition: box-shadow 180ms var(--ease-expo);
+  }
+  .library-tile-wide .library-art {
+    aspect-ratio: 16 / 9;
+  }
+  .library-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .library-art-video {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, var(--raised)), var(--well));
+    color: var(--accent-bright);
+  }
+  .library-art-audio {
+    background: radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--accent-bright) 26%, var(--raised)), var(--well));
+    color: var(--accent-bright);
+  }
+  .library-art-document {
+    background: linear-gradient(160deg, var(--surface), var(--well));
+    color: var(--ink-body);
+  }
+  .library-progress {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: calc(100% - 4.4rem);
+    height: 3px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--void) 60%, transparent);
+  }
+  .library-progress > span {
+    display: block;
+    height: 100%;
+    background: var(--accent-bright);
+  }
+  .library-tile-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 4px;
+  }
+  .library-tile-title {
+    overflow: hidden;
+    color: var(--ink);
+    font-size: var(--text-ui);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .library-tile-fact {
+    overflow: hidden;
+    color: var(--ink-muted);
+    font-size: var(--text-micro);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .library-welcome,
+  .library-panel {
+    display: flex;
+    max-width: 40rem;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    margin: 5vh auto 0;
+    padding: 32px;
+    border: 1px solid var(--edge);
+    border-radius: 18px;
+    background: var(--surface);
+    text-align: center;
+  }
+  .library-choices {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .library-choice,
+  .library-folder {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--edge);
+    border-radius: 10px;
+    background: var(--well);
+    color: var(--ink-body);
+    font-size: var(--text-ui);
+    text-align: left;
+  }
+  .library-folder-suggested {
+    border-style: dashed;
+    background: transparent;
+  }
+
   /* Circles and friend requests. */
   .social-chip {
     display: inline-flex;

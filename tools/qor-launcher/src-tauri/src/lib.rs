@@ -24,6 +24,7 @@ pub mod host;
 pub mod identity;
 pub mod library;
 pub mod listings;
+pub mod media;
 pub mod partners;
 pub mod pay;
 pub mod qontrol;
@@ -253,6 +254,8 @@ pub struct AppState {
     /// window exists to be told.
     pub library: Arc<library::Library>,
     pub library_watch: std::sync::OnceLock<library::watch::Watch>,
+    /// QOR Media, docked inside the launcher when a file is opened from the Library (ADR-094).
+    pub media: media::Media,
     /// Release-gate progress for the development dashboard (roadmap L2.2).
     pub dashboard: Arc<gates::Dashboard>,
     /// Open briefly after an unlock, for the QOR ID sign-in (ADR-016).
@@ -274,6 +277,7 @@ impl AppState {
             translate: Arc::new(translate::Translator::new(cache_dir.join("translations"))?),
             library: library::Library::open(&cache_dir.join("library"))?,
             library_watch: std::sync::OnceLock::new(),
+            media: media::Media::default(),
             dashboard: Arc::new(gates::Dashboard::new()?),
             arrival: ArrivalGrant::default(),
             data_dir,
@@ -1744,6 +1748,9 @@ pub fn run() {
             library::commands::library_thumbnail,
             library::commands::library_reveal,
             library::commands::library_opened,
+            library::commands::library_open,
+            media::media_place,
+            media::media_hide,
             qor_set_auth_endpoint,
             arqade_open,
             gates_report,
