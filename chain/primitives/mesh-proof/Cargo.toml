@@ -1,0 +1,20 @@
+[package]
+name = "mesh-proof"
+description = "Proving and checking that a 16 KiB group of a file belongs to its BLAKE3 root: the Mesh's storage challenge (ADR-095, ADR-096), shared by the chain and the launcher."
+authors = ["Demiurge"]
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/QOR-MATRIX/demiurge-chain"
+version = "0.1.0"
+
+# No workspace inheritance: the launcher, outside this workspace, depends on this crate by path.
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[dependencies]
+blake3 = { version = "1.8", default-features = false }
+
+[features]
+default = ["std"]
+std = ["blake3/std"]

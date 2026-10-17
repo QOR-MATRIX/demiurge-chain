@@ -59,6 +59,10 @@ polkadot-sdk = { workspace = true, default-features = false, features = [
   "sp-timestamp",
 ] }
 
+[dev-dependencies]
+# For `timing_holds`: the development spec's shorter Mesh period must be one the pallet accepts.
+pallet-mesh = { workspace = true, features = ["std"] }
+
 [features]
 default = []
 

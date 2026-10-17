@@ -183,26 +183,52 @@ fn only_colours_written_rrggbb_make_a_theme() {
 }
 
 #[test]
-fn qor_media_is_found_where_qor_media_points_or_where_it_is_deployed() {
-    let dir = Dir::new();
-    assert_eq!(find(None, Some(dir.0.clone())), None);
-    let deployed = dir.0.join("qor-media").join(if cfg!(windows) {
+fn qor_media_is_found_where_qor_media_points_where_it_is_installed_or_where_it_is_deployed() {
+    let (dir, install) = (Dir::new(), Dir::new());
+    let program = if cfg!(windows) {
         "qor-media.exe"
     } else {
         "qor-media"
-    });
-    std::fs::create_dir_all(deployed.parent().unwrap()).unwrap();
-    std::fs::write(&deployed, b"").unwrap();
-    assert_eq!(find(None, Some(dir.0.clone())), Some(deployed.clone()));
+    };
+    let place = |root: &Dir| {
+        let path = root.0.join("qor-media").join(program);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, b"").unwrap();
+        path
+    };
+    let both = || find(None, Some(install.0.clone()), Some(dir.0.clone()));
+    assert_eq!(both(), None);
+    let deployed = place(&dir);
+    assert_eq!(
+        both(),
+        Some(deployed.clone()),
+        "a developer's deployed copy"
+    );
+    // An installed launcher opens the copy it was installed with, even beside a developer's.
+    let installed = place(&install);
+    assert_eq!(
+        both(),
+        Some(installed.clone()),
+        "the copy the installer put beside the launcher"
+    );
+    assert_eq!(find(None, None, Some(dir.0.clone())), Some(deployed));
     let named = dir.0.join("elsewhere.exe");
     assert_eq!(
-        find(Some(named.clone().into()), Some(dir.0.clone())),
+        find(
+            Some(named.clone().into()),
+            Some(install.0.clone()),
+            Some(dir.0.clone())
+        ),
         None,
         "a name that points at nothing is not swapped for another copy"
     );
     std::fs::write(&named, b"").unwrap();
     assert_eq!(
-        find(Some(named.clone().into()), Some(dir.0.clone())),
+        find(
+            Some(named.clone().into()),
+            Some(install.0.clone()),
+            Some(dir.0.clone())
+        ),
         Some(named)
     );
 }
@@ -257,6 +283,7 @@ fn qor_media_started_by_the_launcher_plays_and_reports_to_the_library() {
 async fn played_and_reported() {
     let program = find(
         std::env::var_os("QOR_MEDIA"),
+        None,
         std::env::var_os("LOCALAPPDATA").map(PathBuf::from),
     )
     .expect("QOR Media is deployed");

@@ -77,6 +77,10 @@ Foreclosed by: less firmly than the others. Burn shares are the kind of paramete
 could adjust later, once governance can execute. The first public testnet should still carry the
 intended values so that the balance mechanism is observed rather than assumed.
 
+Depends on it, without deciding any of it: the Mesh grant signs the Mesh's own transactions with no
+dialog, which costs the person nothing while there are no fees. Before a runtime with fees ships, the
+grant gains a most-per-period the person sets (ADR-097 decision 4).
+
 ---
 
 ## Unaddressed by the direction
@@ -120,6 +124,10 @@ ADR-029 (a sponsor pays the existential deposit, and the user holds it). Nothing
 The Mesh pays seeders for storage and bandwidth verified against on-chain fingerprints. What a seeder
 proves, to whom, and how often (proof of storage, proof of retrieval, challenge-response, client
 receipts) is undefined. Without it, the largest demand sink pays for unverifiable claims.
+
+**Answered** by ADR-096 (17 October 2026), which accepts [`../architecture/MESH_PROOFS.md`](../architecture/MESH_PROOFS.md):
+storage challenges answered against the root on chain, and serving receipts signed by the person who received the bytes.
+What it does not settle: unbiased randomness before other validators run, and QOR ID attesting accounts on chain.
 
 ### U-7: staking for distribution
 

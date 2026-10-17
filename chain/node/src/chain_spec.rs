@@ -51,7 +51,7 @@ pub fn development_chain_spec() -> Result<ChainSpec, String> {
     .with_id(DEV_CHAIN_ID)
     .with_chain_type(ChainType::Development)
     .with_properties(properties())
-    .with_genesis_config_patch(genesis(
+    .with_genesis_config_patch(with_short_mesh_periods(genesis(
         // The account identifies the validator (ADR-018); Aura authors with an
         // Sr25519 key and GRANDPA votes with an Ed25519 one.
         vec![(
@@ -61,8 +61,24 @@ pub fn development_chain_spec() -> Result<ChainSpec, String> {
         )],
         development_endowed_accounts(),
         Sr25519Keyring::Alice.to_account_id(),
-    ))
+    )))
     .build())
+}
+
+/// A development chain's Mesh period, in blocks: a minute, so a launcher's test
+/// reaches a storage challenge in minutes rather than the hour ADR-096 sets.
+/// **Development only.** The local testnet and the devnet keep ADR-096's
+/// values, and the devnet gains the pallet by an upgrade with no genesis at all.
+pub const DEV_MESH_PERIOD: u32 = 10;
+/// A development chain's answer window, in blocks: half its period.
+pub const DEV_MESH_ANSWER_WINDOW: u32 = 5;
+
+fn with_short_mesh_periods(mut patch: serde_json::Value) -> serde_json::Value {
+    patch["mesh"] = serde_json::json!({
+        "period": DEV_MESH_PERIOD,
+        "answerWindow": DEV_MESH_ANSWER_WINDOW,
+    });
+    patch
 }
 
 /// A two-validator local test chain: Alice and Bob.
@@ -391,6 +407,40 @@ mod tests {
     /// The name, id and type the owner approved on 3 October 2026. `system_chain`
     /// answers with the name, and `Live` keeps `dev-fund.mjs` from treating it as
     /// a development chain.
+    /// Only a development chain shortens the Mesh's period (ADR-096 keeps an
+    /// hour everywhere else), and its genesis must build: the pallet refuses a
+    /// period that cannot hold its window.
+    #[test]
+    fn only_the_development_chain_shortens_the_mesh_period() {
+        let dev = development_chain_spec().unwrap();
+        assert_eq!(
+            patch_of(&dev)["mesh"],
+            serde_json::json!({ "period": DEV_MESH_PERIOD, "answerWindow": DEV_MESH_ANSWER_WINDOW })
+        );
+        let storage = {
+            use sp_runtime::BuildStorage;
+            dev.build_storage().expect("the development genesis builds")
+        };
+        let stored = |item: &[u8]| {
+            let key = [
+                sp_io::hashing::twox_128(b"Mesh"),
+                sp_io::hashing::twox_128(item),
+            ]
+            .concat();
+            let raw = storage.top.get(&key).expect("written at genesis");
+            u32::from_le_bytes(raw[..].try_into().expect("a u32"))
+        };
+        assert_eq!(stored(b"PeriodLength"), DEV_MESH_PERIOD);
+        assert_eq!(stored(b"AnswerWindowLength"), DEV_MESH_ANSWER_WINDOW);
+        assert!(pallet_mesh::timing_holds(
+            DEV_MESH_PERIOD,
+            DEV_MESH_ANSWER_WINDOW
+        ));
+
+        assert!(patch_of(&local_chain_spec().unwrap()).get("mesh").is_none());
+        assert!(patch_of(&test_devnet()).get("mesh").is_none());
+    }
+
     #[test]
     fn the_devnet_says_which_chain_it_is() {
         let spec = test_devnet();

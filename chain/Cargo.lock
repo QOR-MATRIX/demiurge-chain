@@ -4220,6 +4220,7 @@ dependencies = [
  "demiurge-runtime",
  "futures",
  "jsonrpsee",
+ "pallet-mesh",
  "polkadot-sdk",
  "serde_json",
 ]
@@ -4231,6 +4232,7 @@ dependencies = [
  "pallet-arq-wallet",
  "pallet-drc369",
  "pallet-drc369-royalties",
+ "pallet-mesh",
  "pallet-validator-set",
  "parity-scale-codec",
  "polkadot-sdk",
@@ -8105,6 +8107,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "mesh-proof"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9877,6 +9886,17 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
+]
+
+[[package]]
+name = "pallet-mesh"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "mesh-proof",
+ "parity-scale-codec",
+ "polkadot-sdk",
+ "scale-info",
 ]
 
 [[package]]

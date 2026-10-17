@@ -9,7 +9,7 @@
 
 [workspace]
 resolver = "2"
-members = ["node", "pallets/arq-wallet", "pallets/drc369", "pallets/drc369-royalties", "pallets/validator-set", "runtime"]
+members = ["node", "pallets/arq-wallet", "pallets/drc369", "pallets/drc369-royalties", "pallets/mesh", "pallets/validator-set", "primitives/mesh-proof", "runtime"]
 
 [workspace.package]
 authors = ["Demiurge"]
@@ -33,6 +33,8 @@ pallet-arq-wallet = { path = "pallets/arq-wallet", default-features = false }
 pallet-drc369 = { path = "pallets/drc369", default-features = false }
 pallet-drc369-royalties = { path = "pallets/drc369-royalties", default-features = false }
 pallet-validator-set = { path = "pallets/validator-set", default-features = false }
+pallet-mesh = { path = "pallets/mesh", default-features = false }
+mesh-proof = { path = "primitives/mesh-proof", default-features = false }
 
 [profile.release]
 panic = "unwind"

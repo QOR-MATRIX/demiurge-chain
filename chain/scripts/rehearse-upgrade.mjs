@@ -7,7 +7,8 @@
 //   2. leaves state behind that the upgrade must keep: a transfer and a DRC-369 mint;
 //   3. upgrades exactly as the owner will, sudo.sudoUncheckedWeight(system.setCode(wasm));
 //   4. checks the new spec_version, that Sudo survived with the same key, that the
-//      transfer and the asset are still there, and that the new pallet works.
+//      transfer and the asset are still there, and that the new pallets work (the
+//      ARQ Wallet from 7, its rounds from 8, the Mesh from 9 with the devnet's period).
 //
 // It signs only with the well-known development keys, and refuses any node whose
 // chain type is not Development. It never touches the devnet.
@@ -105,6 +106,32 @@ if (api.tx.arqWallet.openRound) {
   check(settled.some(({ event }) => event.section === 'arqWallet' && event.method === 'RoundSettled'), 'the round settled');
   check((await api.query.arqWallet.held([collection, item])).toBigInt() === 0n, 'nothing is held after settlement');
   check((await api.query.system.account(charlie.address)).data.free.toBigInt() === charlieBefore + 20n * CGT, 'the winner received exactly 15 CGT more');
+}
+
+// The Mesh (spec_version 9 onwards, ADR-096, ADR-097): a chain that gains it by an upgrade has no genesis for it, so
+// its period and window are ADR-096's, never the development chain's; then a node is bound, an escrow opened and its
+// deposit held where no key signs, and the takedown list kept by root.
+if (api.tx.mesh) {
+  check(typeof api.call.meshApi?.period === 'function' && (await api.call.meshApi.period()).toNumber() >= 0, 'MeshApi answers');
+  check((await api.query.mesh.periodLength()).toNumber() === 600, 'the Mesh period is 600 blocks, as on the devnet');
+  check((await api.query.mesh.answerWindowLength()).toNumber() === 100, 'the answer window is 100 blocks');
+  const node = '0x' + '55'.repeat(32);
+  await send(api, api.tx.mesh.bindNode(node), bob);
+  check((await api.query.mesh.nodes(bob.address)).toHex() === node, "Bob's Mesh node is bound");
+  const root = '0x' + '66'.repeat(32);
+  const opened = await send(api, api.tx.mesh.openEscrow(root, 300 * 1024, 1, CGT, 4n * CGT, 300 * 1024, 200n * CGT), charlie);
+  const escrowOpened = opened.find(({ event }) => event.section === 'mesh' && event.method === 'EscrowOpened');
+  check(!!escrowOpened, 'an escrow opened');
+  const escrow = escrowOpened.event.data[0].toNumber();
+  check((await api.query.mesh.escrows(escrow)).isSome, 'and the chain holds it');
+  await send(api, api.tx.mesh.takeAssignment(escrow), bob);
+  check((await api.query.mesh.assignments(escrow, bob.address)).isSome, 'Bob took the copy');
+  await send(api, api.tx.sudo.sudo(api.tx.mesh.setTakedown('0x' + '77'.repeat(32), true)), alice);
+  check((await api.query.mesh.takedowns('0x' + '77'.repeat(32))).isSome, 'root keeps the takedown list');
+  const charlieHolding = (await api.query.system.account(charlie.address)).data.free.toBigInt();
+  await send(api, api.tx.mesh.closeEscrow(escrow), charlie);
+  check((await api.query.mesh.escrows(escrow)).isNone, 'the uploader closed the escrow');
+  check((await api.query.system.account(charlie.address)).data.free.toBigInt() === charlieHolding + 200n * CGT, 'and all 200 CGT came back');
 }
 
 await api.disconnect();

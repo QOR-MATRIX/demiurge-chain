@@ -67,6 +67,7 @@ use sp_version::RuntimeVersion;
 
 pub mod assets;
 pub mod denomination;
+pub mod mesh;
 
 pub use denomination::{DECIMALS, EXISTENTIAL_DEPOSIT, SS58_PREFIX, TOKEN_NAME, TOKEN_SYMBOL};
 
@@ -173,7 +174,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // before a paid round (ADR-070 decision 8). New calls and storage only; no
     // stored value's encoding changed, so no migration and the same
     // `transaction_version`.
-    spec_version: 8,
+    spec_version: 9,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -399,6 +400,9 @@ construct_runtime!(
         // One keyless payout account per published game, governed by whoever
         // holds its Cartridge (ADR-070).
         ArqWallet: pallet_arq_wallet = 11,
+        // The Mesh's hosting escrow: seeders paid for proven storage and serving, and nothing created (ADR-095,
+        // ADR-096).
+        Mesh: pallet_mesh = 12,
 
         // Development and test networks only (ADR-037).
         #[cfg(feature = "sudo")]
@@ -524,6 +528,22 @@ impl_runtime_apis! {
             buyer: Option<AccountId>,
         ) -> Option<pallet_drc369_royalties::SalePreview<AccountId>> {
             Drc369Royalties::sale_preview(collection, item, price, buyer)
+        }
+    }
+
+    impl pallet_mesh::runtime_api::MeshApi<Block, AccountId> for Runtime {
+        fn challenge(escrow: pallet_mesh::EscrowId, seeder: AccountId) -> Option<(u32, u64)> {
+            let e = pallet_mesh::Escrows::<Runtime>::get(escrow)?;
+            if !pallet_mesh::Assignments::<Runtime>::contains_key(escrow, &seeder) {
+                return None;
+            }
+            pallet_mesh::Pallet::<Runtime>::challenge(escrow, &seeder, &e)
+        }
+        fn receipt_message(receipt: pallet_mesh::Receipt<AccountId>) -> alloc::vec::Vec<u8> {
+            pallet_mesh::Pallet::<Runtime>::receipt_message(&receipt)
+        }
+        fn period() -> u32 {
+            pallet_mesh::Pallet::<Runtime>::period_now()
         }
     }
 

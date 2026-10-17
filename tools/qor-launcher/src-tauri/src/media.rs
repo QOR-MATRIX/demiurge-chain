@@ -6,8 +6,9 @@
 //! [`WAIT`] so it asks again; what it has to tell the launcher (where playback stopped, a file's length and size) rides on
 //! its next `media.next`. The protocol is unchanged: `media.next` is a method the launcher announces.
 //!
-//! It is found where `QOR_MEDIA` points, or where `tools/qor-media/build.ps1 -Deploy` puts it, under the local app data
-//! folder. When it is not there, a file opens in the program the system chooses (`library_open`).
+//! It is found where `QOR_MEDIA` points, or in the launcher's own install folder, where the installer puts it (since
+//! 0.1.10), or where `tools/qor-media/build.ps1 -Deploy` puts it, under the local app data folder. When it is in none of
+//! them, a file opens in the program the system chooses (`library_open`).
 
 use std::collections::VecDeque;
 use std::path::PathBuf;
@@ -197,19 +198,28 @@ impl Handler for MediaHandler {
     }
 }
 
-/// Where QOR Media is: the file `QOR_MEDIA` names, if it exists, or `qor-media\qor-media.exe` under the local app data
-/// folder, where its build script deploys it.
-pub fn find(named: Option<std::ffi::OsString>, local_app_data: Option<PathBuf>) -> Option<PathBuf> {
+/// Where QOR Media is: the file `QOR_MEDIA` names, if it exists; else `qor-media\qor-media.exe` in `installed`, the
+/// launcher's resource folder, where the installer puts it; else the same under the local app data folder, where its
+/// build script deploys it.
+pub fn find(
+    named: Option<std::ffi::OsString>,
+    installed: Option<PathBuf>,
+    local_app_data: Option<PathBuf>,
+) -> Option<PathBuf> {
     if let Some(named) = named {
         let named = PathBuf::from(named);
         return named.is_file().then_some(named);
     }
-    let deployed = local_app_data?.join("qor-media").join(if cfg!(windows) {
+    let program = if cfg!(windows) {
         "qor-media.exe"
     } else {
         "qor-media"
-    });
-    deployed.is_file().then_some(deployed)
+    };
+    [installed, local_app_data]
+        .into_iter()
+        .flatten()
+        .map(|dir| dir.join("qor-media").join(program))
+        .find(|path| path.is_file())
 }
 
 /// QOR Media while the launcher runs: its queue, whether it is running, and the rectangle it sits in.
@@ -251,6 +261,7 @@ pub async fn open(app: &tauri::AppHandle, path: &str) -> QorResult<bool> {
     let state = app.state::<crate::AppState>();
     let Some(program) = find(
         std::env::var_os("QOR_MEDIA"),
+        app.path().resource_dir().ok(),
         std::env::var_os("LOCALAPPDATA").map(PathBuf::from),
     ) else {
         return Ok(false);

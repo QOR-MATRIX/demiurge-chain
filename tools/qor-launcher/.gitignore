@@ -5,3 +5,4 @@ src-tauri/gen/
 scripts/.flake/
 src-tauri/binaries/
 src-tauri/licenses/
+src-tauri/media-bundle/
