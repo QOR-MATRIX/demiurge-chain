@@ -166,6 +166,14 @@ struct Mute {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+struct RoomMute {
+    room: Uuid,
+    sub: Uuid,
+    minutes: i32,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct NewCircle {
     name: String,
     color: Option<String>,
@@ -459,8 +467,16 @@ pub async fn handle(
             let messages = store
                 .history(me, p.room, p.before, p.limit.unwrap_or(50))
                 .await?;
-            let profiles = profiles_of(state, messages.iter().map(|m| m.author)).await?;
-            Ok(json!({ "messages": messages, "profiles": profiles }))
+            let authors: Vec<Uuid> = messages.iter().map(|m| m.author).collect();
+            let profiles = profiles_of(state, authors.iter().copied()).await?;
+            // The levels above member its authors hold here, for the badges beside their names (ADR-093).
+            let levels: serde_json::Map<String, Value> = store
+                .levels_of(p.room, &authors)
+                .await?
+                .into_iter()
+                .map(|(sub, role)| (sub.to_string(), json!(role)))
+                .collect();
+            Ok(json!({ "messages": messages, "profiles": profiles, "levels": levels }))
         }
         "messages.send" => {
             caller.named()?;
@@ -468,7 +484,10 @@ pub async fn handle(
             // Malformed words cost nothing, and are refused for what they are.
             crate::text::message(&p.body)?;
             store.spend(me, &store::SEND).await?;
-            if p.room == store.world().await? {
+            // World's pace is for members; a VIP or above talks freely (ADR-093).
+            if p.room == store.world().await?
+                && store.rank_in(p.room, me).await? < store::rank("vip")
+            {
                 store.spend(me, &store::WORLD_SEND).await?;
             }
             let (message, created) = store
@@ -482,12 +501,13 @@ pub async fn handle(
                 )
                 .await?;
             if created {
+                let level = store.membership(me, p.room).await?.1;
                 to_room(
                     state,
                     p.room,
                     me,
                     "message.created",
-                    json!({ "message": message }),
+                    json!({ "message": message, "level": level }),
                 )
                 .await?;
                 let mentioned = store.mentioned(p.room, me, &p.body).await?;
@@ -821,6 +841,76 @@ pub async fn handle(
                 )
                 .await;
             Ok(json!({ "until": until }))
+        }
+        "rooms.mute" => {
+            let p: RoomMute = params(raw)?;
+            let until = store.mute(me, p.room, p.sub, p.minutes).await?;
+            let name = if p.room == store.world().await? {
+                "world.muted"
+            } else {
+                "room.muted"
+            };
+            state
+                .hub
+                .send(
+                    &[p.sub],
+                    &event(name, json!({ "room": p.room, "until": until })),
+                )
+                .await;
+            Ok(json!({ "until": until }))
+        }
+        "rooms.unmute" => {
+            let p: RoomAndPerson = params(raw)?;
+            store.unmute(me, p.room, p.sub).await?;
+            let name = if p.room == store.world().await? {
+                "world.muted"
+            } else {
+                "room.muted"
+            };
+            state
+                .hub
+                .send(
+                    &[p.sub],
+                    &event(name, json!({ "room": p.room, "until": null })),
+                )
+                .await;
+            Ok(json!({}))
+        }
+        "elite.grant" | "elite.revoke" => {
+            let target = if method == "elite.grant" {
+                let p: Named = params(raw)?;
+                let sub = store.profile_by_name(&p.qor_id).await?.sub;
+                store.grant_elite(me, sub).await?;
+                sub
+            } else {
+                let p: Someone = params(raw)?;
+                store.revoke_elite(me, p.sub).await?;
+                p.sub
+            };
+            // Their standing shows wherever their profile does: tell them, their contacts and godmode.
+            let profile = profiles_of(state, [target]).await?[target.to_string()].clone();
+            let mut to = store.contacts(target).await?;
+            to.extend([target, me]);
+            state
+                .hub
+                .send(
+                    &to,
+                    &event("profile.updated", json!({ "profile": profile })),
+                )
+                .await;
+            Ok(json!({ "profile": profile }))
+        }
+        "elite.list" => {
+            let _: Nothing = params(raw)?;
+            if !store.standing(me).await?.0 {
+                return Err(SocialError::forbidden(
+                    "only godmode keeps the list of Elite accounts",
+                ));
+            }
+            let elites = store.elites().await?;
+            Ok(
+                json!({ "elites": elites, "profiles": profiles_of(state, elites.iter().copied()).await? }),
+            )
         }
         "world.unmute" => {
             let p: Someone = params(raw)?;

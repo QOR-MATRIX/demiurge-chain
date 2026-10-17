@@ -21,6 +21,9 @@ circles, and the language of every message (ADR-092). The design is
   contact; its moderators come from `SOCIAL_WORLD_MODERATORS` and delete and mute (`world.mute`); its own sending pace.
 - **Friends and circles**: requests answered by the one asked, friends seeing each other's presence, a block ending
   both; circles private to their owner, opening a private room with `circles.open`.
+- **Levels** (migration 003, ADR-093): Owner, Admin, Mod, VIP and Member, each acting only below itself; Elite
+  accounts (`elites`), an Admin in every room they are in, granted only by godmode (`SOCIAL_GODMODE`), who stands above
+  every Owner; mutes in any room but a direct one.
 - **Languages**: a message keeps the `lang` its sender's launcher found, and a profile the `language` its person
   reads; Social checks only their shape. Translation itself happens on each reader's PC, never here.
 - **Nothing secret reaches a log**: `may_log` in `src/main.rs` holds the WebSocket library to info and above, since it
@@ -36,7 +39,8 @@ circles, and the language of every message (ADR-092). The design is
 | `SOCIAL_QOR_ID_URL` | QOR ID's origin; `https://id.qorsync.dev` unless set |
 | `SOCIAL_CLIENT_ID`, `SOCIAL_CLIENT_SECRET` | Social's credential with QOR ID, registered there as a service (`"introspect": true`, a `secret_sha256`, no redirect URI; `services/qor-auth/DEPLOY-RAILWAY.md`) |
 | `SOCIAL_MESSAGE_KEYS` | `1:<base64 of 32 random bytes>`; add `2:…` to rotate, keeping 1 to read what it sealed |
-| `SOCIAL_WORLD_MODERATORS` | World's moderators, QOR ID usernames separated by commas; none unless set. Read at each hello, so a change applies when the person next connects |
+| `SOCIAL_WORLD_MODERATORS` | World's moderators, QOR ID usernames separated by commas; none unless set. Each is at least a Mod in World at every hello; a level appointed since is kept |
+| `SOCIAL_GODMODE` | The QOR ID username that stands above every room's Owner and alone makes accounts Elite (ADR-093); none unless set |
 | `PORT` | 8090 unless set |
 | `RUST_LOG` | `social=info` unless set; the WebSocket library never logs below info whatever it says |
 

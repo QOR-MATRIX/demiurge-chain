@@ -29,7 +29,9 @@ pub struct Harness {
 pub async fn start(db: PgPool) -> Harness {
     let fake = Arc::new(Fake::default());
     let state = Arc::new(AppState {
-        store: Store::new(db.clone(), Sealer::random()).with_world_moderators(["Warden".into()]),
+        store: Store::new(db.clone(), Sealer::random())
+            .with_world_moderators(["Warden".into()])
+            .with_godmode("godmode"),
         identity: fake.clone(),
         hub: Hub::default(),
     });
@@ -358,7 +360,13 @@ async fn a_room_carries_messages_replies_edits_reactions_and_deletes_to_its_memb
         json!({ "room": room_id, "sub": bob.sub, "role": "moderator" }),
     )
     .await;
-    b.ok("messages.delete", json!({ "message": id(&sent) }))
+    // A moderator acts only below their own level (ADR-093): the owner's words are the owner's to delete.
+    assert_eq!(
+        b.refused("messages.delete", json!({ "message": id(&sent) }))
+            .await,
+        "forbidden"
+    );
+    a.ok("messages.delete", json!({ "message": id(&sent) }))
         .await;
     let gone = a.event("message.deleted").await["message"].clone();
     assert_eq!(
@@ -465,7 +473,10 @@ async fn only_members_read_and_a_private_room_is_joined_by_invitation(db: PgPool
     let members = b.ok("rooms.members", json!({ "room": room })).await["members"].clone();
     assert_eq!(members[0]["sub"], bob.sub.to_string());
     assert_eq!(members[0]["role"], "owner");
-    assert_eq!(members[1]["role"], "moderator", "the old owner moderates");
+    assert_eq!(
+        members[1]["role"], "admin",
+        "the old owner is an admin (ADR-093)"
+    );
     assert_eq!(
         a.refused("rooms.remove", json!({ "room": room, "sub": bob.sub }))
             .await,
@@ -1531,4 +1542,334 @@ async fn a_message_keeps_its_language_and_a_profile_its_readers(db: PgPool) {
     );
     let (_, again) = h.connect(&ta).await;
     assert_eq!(again["me"]["language"], "ja", "it follows them");
+}
+
+// ── ADR-093: room levels, Elite accounts and godmode ───────────────────────────────────────────────────────────
+
+#[sqlx::test]
+async fn levels_climb_from_member_to_owner_and_each_acts_only_below_itself(db: PgPool) {
+    let h = start(db).await;
+    let (ta, alice) = h.person("alice");
+    let (tb, bob) = h.person("bob");
+    let (tc, carol) = h.person("carol");
+    let (td, dave) = h.person("dave");
+    let (te, erin) = h.person("erin");
+    let (mut a, _) = h.connect(&ta).await;
+    let (mut b, _) = h.connect(&tb).await;
+    let (mut c, _) = h.connect(&tc).await;
+    let (mut d, _) = h.connect(&td).await;
+    let (mut e, _) = h.connect(&te).await;
+    let room = id(&a
+        .ok(
+            "rooms.create",
+            json!({ "kind": "public", "name": "Ladder" }),
+        )
+        .await["room"]);
+    for client in [&mut b, &mut c, &mut d, &mut e] {
+        client.ok("rooms.join", json!({ "room": room })).await;
+    }
+    let set = |sub: Uuid, role: &str| json!({ "room": room, "sub": sub, "role": role });
+
+    assert_eq!(
+        a.refused("rooms.role", set(bob.sub, "captain")).await,
+        "bad_request"
+    );
+    assert_eq!(
+        d.refused("rooms.role", set(erin.sub, "vip")).await,
+        "forbidden",
+        "a member sets no levels"
+    );
+    a.ok("rooms.role", set(bob.sub, "admin")).await;
+    b.ok("rooms.role", set(carol.sub, "moderator")).await;
+    b.ok("rooms.role", set(dave.sub, "vip")).await;
+    assert_eq!(
+        b.refused("rooms.role", set(erin.sub, "admin")).await,
+        "forbidden",
+        "an admin gives only levels below their own"
+    );
+    assert_eq!(
+        b.refused("rooms.role", set(erin.sub, "owner")).await,
+        "forbidden",
+        "only the owner hands the room on"
+    );
+    assert_eq!(
+        b.refused("rooms.role", set(alice.sub, "member")).await,
+        "forbidden",
+        "nobody acts on someone at or above them"
+    );
+    assert_eq!(
+        c.refused("rooms.role", set(erin.sub, "vip")).await,
+        "forbidden",
+        "a moderator sets no levels"
+    );
+
+    // Settings are an admin's; a moderator's tools are removing, muting and deleting below them.
+    b.ok("rooms.update", json!({ "room": room, "topic": "climb" }))
+        .await;
+    assert_eq!(
+        c.refused("rooms.update", json!({ "room": room, "topic": "mine" }))
+            .await,
+        "forbidden"
+    );
+    let vip_said = id(&d
+        .ok(
+            "messages.send",
+            json!({ "room": room, "body": "vip words" }),
+        )
+        .await["message"]);
+    let admin_said = id(&b
+        .ok(
+            "messages.send",
+            json!({ "room": room, "body": "admin words" }),
+        )
+        .await["message"]);
+    c.ok("messages.delete", json!({ "message": vip_said }))
+        .await;
+    assert_eq!(
+        c.refused("messages.delete", json!({ "message": admin_said }))
+            .await,
+        "forbidden"
+    );
+    c.ok(
+        "rooms.mute",
+        json!({ "room": room, "sub": dave.sub, "minutes": 10 }),
+    )
+    .await;
+    assert_eq!(d.event("room.muted").await["room"], room);
+    assert_eq!(
+        d.refused("messages.send", json!({ "room": room, "body": "hello?" }))
+            .await,
+        "forbidden"
+    );
+    let (_again, welcome) = h.connect(&td).await;
+    let listed = welcome["rooms"]
+        .as_array()
+        .expect("rooms")
+        .iter()
+        .find(|r| r["id"] == room.as_str())
+        .expect("the room");
+    assert!(listed["muted_until"].is_string(), "the room list says so");
+    assert_eq!(
+        c.refused(
+            "rooms.mute",
+            json!({ "room": room, "sub": bob.sub, "minutes": 10 })
+        )
+        .await,
+        "forbidden"
+    );
+    assert_eq!(
+        c.refused("rooms.remove", json!({ "room": room, "sub": bob.sub }))
+            .await,
+        "forbidden"
+    );
+    c.ok("rooms.remove", json!({ "room": room, "sub": erin.sub }))
+        .await;
+
+    // Badges: history says who holds which level, and a new message carries its author's.
+    let history = a.ok("messages.history", json!({ "room": room })).await;
+    assert_eq!(history["levels"][bob.sub.to_string()], "admin");
+    assert!(
+        history["levels"].get(dave.sub.to_string()).is_none()
+            || history["levels"][dave.sub.to_string()] == "vip"
+    );
+    a.forget("message.created").await;
+    b.ok("messages.send", json!({ "room": room, "body": "badge" }))
+        .await;
+    assert_eq!(a.event("message.created").await["level"], "admin");
+
+    // The owner hands on and becomes an admin.
+    a.ok("rooms.role", set(bob.sub, "owner")).await;
+    let members = a.ok("rooms.members", json!({ "room": room })).await["members"].clone();
+    assert_eq!(members[0]["sub"], bob.sub.to_string());
+    assert_eq!(members[1]["role"], "admin");
+    let _ = (carol, erin);
+}
+
+#[sqlx::test]
+async fn godmode_stands_above_every_room_and_alone_makes_elite(db: PgPool) {
+    let h = start(db).await;
+    let (tg, god) = h.person("godmode");
+    let (ta, alice) = h.person("alice");
+    let (tb, bob) = h.person("bob");
+    let (tv, eve) = h.person("eve");
+    let (mut g, welcome) = h.connect(&tg).await;
+    assert_eq!(welcome["me"]["status"], "godmode");
+    let world = world_of(&welcome);
+    let (mut a, _) = h.connect(&ta).await;
+    let (mut b, _) = h.connect(&tb).await;
+    let (mut v, _) = h.connect(&tv).await;
+    let room = id(&a
+        .ok(
+            "rooms.create",
+            json!({ "kind": "public", "name": "Alice's" }),
+        )
+        .await["room"]);
+    for client in [&mut g, &mut b, &mut v] {
+        client.ok("rooms.join", json!({ "room": room })).await;
+    }
+    let secret = id(&a
+        .ok(
+            "rooms.create",
+            json!({ "kind": "private", "name": "Secret" }),
+        )
+        .await["room"]);
+
+    // Only godmode makes an account Elite.
+    assert_eq!(
+        a.refused("elite.grant", json!({ "qor_id": "eve" })).await,
+        "forbidden"
+    );
+    let granted = g.ok("elite.grant", json!({ "qor_id": "eve" })).await;
+    assert_eq!(granted["profile"]["status"], "elite");
+    assert_eq!(
+        v.event("profile.updated").await["profile"]["status"],
+        "elite"
+    );
+    assert_eq!(
+        v.refused("elite.grant", json!({ "qor_id": "bob" })).await,
+        "forbidden",
+        "an Elite makes no Elite"
+    );
+    assert_eq!(a.refused("elite.list", json!({})).await, "forbidden");
+    assert_eq!(
+        g.ok("elite.list", json!({})).await["elites"],
+        json!([eve.sub])
+    );
+
+    // An Elite acts as an admin in a room it is in, never on its owner; the owner outranks it.
+    v.ok(
+        "rooms.role",
+        json!({ "room": room, "sub": bob.sub, "role": "moderator" }),
+    )
+    .await;
+    v.ok(
+        "rooms.mute",
+        json!({ "room": room, "sub": bob.sub, "minutes": 10 }),
+    )
+    .await;
+    assert_eq!(
+        v.refused(
+            "rooms.role",
+            json!({ "room": room, "sub": alice.sub, "role": "member" })
+        )
+        .await,
+        "forbidden"
+    );
+    assert_eq!(
+        v.refused("rooms.remove", json!({ "room": room, "sub": alice.sub }))
+            .await,
+        "forbidden"
+    );
+    a.ok(
+        "rooms.mute",
+        json!({ "room": room, "sub": eve.sub, "minutes": 10 }),
+    )
+    .await;
+    a.ok("rooms.unmute", json!({ "room": room, "sub": eve.sub }))
+        .await;
+    // Nor does any level reach into a room it is not in.
+    assert_eq!(
+        v.refused("messages.history", json!({ "room": secret }))
+            .await,
+        "not_found"
+    );
+    assert_eq!(
+        g.refused("messages.history", json!({ "room": secret }))
+            .await,
+        "not_found",
+        "not godmode either: a private room's words are its members'"
+    );
+
+    // Nobody acts on godmode; godmode acts on anyone, and hands any room on.
+    for (method, params) in [
+        (
+            "rooms.mute",
+            json!({ "room": room, "sub": god.sub, "minutes": 10 }),
+        ),
+        ("rooms.remove", json!({ "room": room, "sub": god.sub })),
+        (
+            "rooms.role",
+            json!({ "room": room, "sub": god.sub, "role": "member" }),
+        ),
+    ] {
+        assert_eq!(a.refused(method, params).await, "forbidden", "{method}");
+    }
+    g.ok(
+        "rooms.role",
+        json!({ "room": room, "sub": bob.sub, "role": "owner" }),
+    )
+    .await;
+    let members = a.ok("rooms.members", json!({ "room": room })).await["members"].clone();
+    assert_eq!(members[0]["sub"], bob.sub.to_string());
+    assert!(
+        members
+            .as_array()
+            .expect("members")
+            .iter()
+            .any(|m| m["sub"] == alice.sub.to_string() && m["role"] == "admin"),
+        "the owner godmode replaced is an admin: {members}"
+    );
+
+    // In World, an Elite sets levels; a VIP talks without World's pace.
+    v.ok(
+        "rooms.role",
+        json!({ "room": world, "sub": alice.sub, "role": "vip" }),
+    )
+    .await;
+    for n in 0..7 {
+        a.ok(
+            "messages.send",
+            json!({ "room": world, "body": format!("vip {n}") }),
+        )
+        .await;
+    }
+    assert_eq!(
+        v.refused(
+            "rooms.role",
+            json!({ "room": world, "sub": bob.sub, "role": "owner" })
+        )
+        .await,
+        "forbidden",
+        "World has no owner"
+    );
+
+    // Taken away, Elite is gone with its powers.
+    g.ok("elite.revoke", json!({ "sub": eve.sub })).await;
+    let shown = a
+        .ok("profile.get", json!({ "subs": [eve.sub, god.sub] }))
+        .await;
+    assert_eq!(
+        shown["profiles"][eve.sub.to_string()]["status"],
+        Value::Null
+    );
+    assert_eq!(shown["profiles"][god.sub.to_string()]["status"], "godmode");
+    assert_eq!(
+        v.refused(
+            "rooms.role",
+            json!({ "room": world, "sub": alice.sub, "role": "member" })
+        )
+        .await,
+        "forbidden"
+    );
+}
+
+#[sqlx::test]
+async fn a_level_appointed_in_world_outlasts_the_configured_moderators(db: PgPool) {
+    let h = start(db).await;
+    let (tg, _) = h.person("godmode");
+    let (tw, warden) = h.person("warden");
+    let (mut g, welcome) = h.connect(&tg).await;
+    let world = world_of(&welcome);
+    let (_w, welcome) = h.connect(&tw).await;
+    assert_eq!(welcome["rooms"][0]["role"], "moderator");
+    g.ok(
+        "rooms.role",
+        json!({ "room": world, "sub": warden.sub, "role": "admin" }),
+    )
+    .await;
+    let (_again, welcome) = h.connect(&tw).await;
+    assert_eq!(
+        welcome["rooms"][0]["role"], "admin",
+        "saying hello again does not undo it"
+    );
 }

@@ -97,6 +97,32 @@ pub const CIRCLE_MEMBERS_MAX: i64 = 100;
 /// The lengths of a mute a moderator chooses from, in minutes: ten minutes, an hour, a day, a week.
 pub const MUTE_MINUTES: [i32; 4] = [10, 60, 1_440, 10_080];
 
+/// A room's levels, highest first (ADR-093). Each acts only on those below it.
+pub const LEVELS: [&str; 5] = ["owner", "admin", "moderator", "vip", "member"];
+
+/// A level's place on the ladder: member 1 up to owner 5.
+pub fn rank(level: &str) -> u8 {
+    match level {
+        "owner" => 5,
+        "admin" => 4,
+        "moderator" => 3,
+        "vip" => 2,
+        _ => 1,
+    }
+}
+
+/// An Elite account acts as an Admin in every room it is in; godmode stands above every room's Owner (ADR-093).
+pub const ELITE_RANK: u8 = 4;
+pub const GODMODE_RANK: u8 = 6;
+
+/// What someone may do in a room: the room, their level there, and where they stand once their account's standing
+/// is counted.
+pub struct Authority {
+    pub room: Room,
+    pub role: String,
+    pub rank: u8,
+}
+
 /// A room's columns with the caller's role, and with how many are in it.
 type RoomAndRole = (Uuid, String, String, String, Value, DateTime<Utc>, String);
 type RoomAndCount = (Uuid, String, String, String, Value, DateTime<Utc>, i64);
@@ -109,6 +135,8 @@ pub struct Store {
     world_moderators: Arc<Vec<String>>,
     /// World's id, read once: the migration that made it is its only maker.
     world: Arc<OnceLock<Uuid>>,
+    /// godmode's QOR ID username, lower-cased (`SOCIAL_GODMODE`); empty when none is named.
+    godmode: Arc<String>,
 }
 
 // ── views, as clients receive them ──────────────────────────────────────────────────────────────────────────────
@@ -128,6 +156,9 @@ pub struct Profile {
     /// The language they read in, and write in when their words are too few to tell (ADR-092 decision 3).
     pub language: Option<String>,
     pub seen_at: DateTime<Utc>,
+    /// The account's standing: `godmode`, `elite`, or none (ADR-093). Not a column: worked out when read.
+    #[sqlx(skip)]
+    pub status: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]
@@ -151,6 +182,8 @@ pub struct RoomSummary {
     pub members: i64,
     /// In a direct room, the other person.
     pub other: Option<Uuid>,
+    /// Until when the reader may not post here, if a moderator muted them.
+    pub muted_until: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, sqlx::FromRow)]
@@ -348,7 +381,155 @@ impl Store {
             sealer,
             world_moderators: Arc::default(),
             world: Arc::default(),
+            godmode: Arc::default(),
         }
+    }
+
+    /// Name the account that stands above every room (ADR-093), by its QOR ID username, which is fixed once chosen.
+    pub fn with_godmode(mut self, name: &str) -> Self {
+        self.godmode = Arc::new(name.trim().to_ascii_lowercase());
+        self
+    }
+
+    /// Whether `sub` is godmode, and whether it is Elite.
+    pub async fn standing(&self, sub: Uuid) -> SocialResult<(bool, bool)> {
+        let row: Option<(bool, bool)> = sqlx::query_as(
+            "SELECT $2 <> '' AND LOWER(p.qor_id) = $2, EXISTS (SELECT 1 FROM elites e WHERE e.sub = p.sub)              FROM profiles p WHERE p.sub = $1",
+        )
+        .bind(sub)
+        .bind(self.godmode.as_str())
+        .fetch_optional(&self.db)
+        .await?;
+        Ok(row.unwrap_or((false, false)))
+    }
+
+    /// Where someone holding `level` in a room stands there, their account's standing counted.
+    async fn rank_with(&self, sub: Uuid, level: &str) -> SocialResult<u8> {
+        let (godmode, elite) = self.standing(sub).await?;
+        Ok(if godmode {
+            GODMODE_RANK
+        } else if elite {
+            rank(level).max(ELITE_RANK)
+        } else {
+            rank(level)
+        })
+    }
+
+    /// The caller's authority in a room they are in.
+    pub async fn authority(&self, sub: Uuid, room: Uuid) -> SocialResult<Authority> {
+        let (room, role) = self.membership(sub, room).await?;
+        let rank = self.rank_with(sub, &role).await?;
+        Ok(Authority { room, role, rank })
+    }
+
+    /// Where someone stands in a room: as its member, or as a member would if they have left it.
+    pub async fn rank_in(&self, room: Uuid, sub: Uuid) -> SocialResult<u8> {
+        let role: Option<String> =
+            sqlx::query_scalar("SELECT role FROM members WHERE room = $1 AND sub = $2")
+                .bind(room)
+                .bind(sub)
+                .fetch_optional(&self.db)
+                .await?;
+        self.rank_with(sub, role.as_deref().unwrap_or("member"))
+            .await
+    }
+
+    /// A member's level and standing, or not found when they are not in the room.
+    async fn target(&self, room: Uuid, sub: Uuid) -> SocialResult<u8> {
+        let role: Option<String> =
+            sqlx::query_scalar("SELECT role FROM members WHERE room = $1 AND sub = $2")
+                .bind(room)
+                .bind(sub)
+                .fetch_optional(&self.db)
+                .await?;
+        let role = role.ok_or_else(|| SocialError::not_found("they are not in this room"))?;
+        self.rank_with(sub, &role).await
+    }
+
+    /// The levels above member that `subs` hold in `room`, for the badges beside their names.
+    pub async fn levels_of(&self, room: Uuid, subs: &[Uuid]) -> SocialResult<Vec<(Uuid, String)>> {
+        Ok(sqlx::query_as(
+            "SELECT sub, role FROM members WHERE room = $1 AND sub = ANY($2) AND role <> 'member'",
+        )
+        .bind(room)
+        .bind(subs)
+        .fetch_all(&self.db)
+        .await?)
+    }
+
+    /// Mark each profile with its account's standing: `godmode`, `elite`, or nothing.
+    async fn stamped(&self, mut profiles: Vec<Profile>) -> SocialResult<Vec<Profile>> {
+        let subs: Vec<Uuid> = profiles.iter().map(|p| p.sub).collect();
+        let elites: Vec<Uuid> = sqlx::query_scalar("SELECT sub FROM elites WHERE sub = ANY($1)")
+            .bind(&subs)
+            .fetch_all(&self.db)
+            .await?;
+        for p in &mut profiles {
+            p.status = if !self.godmode.is_empty() && p.qor_id.to_ascii_lowercase() == *self.godmode
+            {
+                Some("godmode".into())
+            } else if elites.contains(&p.sub) {
+                Some("elite".into())
+            } else {
+                None
+            };
+        }
+        Ok(profiles)
+    }
+
+    async fn stamped_one(&self, profile: Profile) -> SocialResult<Profile> {
+        Ok(self
+            .stamped(vec![profile])
+            .await?
+            .pop()
+            .expect("one profile in, one out"))
+    }
+
+    // ── Elite (ADR-093) ──────────────────────────────────────────────────────────────────────────────────────────
+
+    /// Make an account Elite. Only godmode does.
+    pub async fn grant_elite(&self, by: Uuid, target: Uuid) -> SocialResult<()> {
+        if !self.standing(by).await?.0 {
+            return Err(SocialError::forbidden(
+                "only godmode makes an account Elite",
+            ));
+        }
+        if target == by {
+            return Err(SocialError::bad("godmode is above Elite already"));
+        }
+        if self.profiles(&[target]).await?.is_empty() {
+            return Err(SocialError::not_found(
+                "nobody of that name has come to Social yet",
+            ));
+        }
+        sqlx::query("INSERT INTO elites (sub, granted_by) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+            .bind(target)
+            .bind(by)
+            .execute(&self.db)
+            .await?;
+        Ok(())
+    }
+
+    /// Take Elite away. Only godmode does.
+    pub async fn revoke_elite(&self, by: Uuid, target: Uuid) -> SocialResult<()> {
+        if !self.standing(by).await?.0 {
+            return Err(SocialError::forbidden(
+                "only godmode makes an account Elite",
+            ));
+        }
+        sqlx::query("DELETE FROM elites WHERE sub = $1")
+            .bind(target)
+            .execute(&self.db)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn elites(&self) -> SocialResult<Vec<Uuid>> {
+        Ok(
+            sqlx::query_scalar("SELECT sub FROM elites ORDER BY granted_at")
+                .fetch_all(&self.db)
+                .await?,
+        )
     }
 
     /// Name World's moderators by QOR ID username. A name is matched without regard to case, and only once its holder
@@ -405,7 +586,8 @@ impl Store {
     // ── profiles ────────────────────────────────────────────────────────────────────────────────────────────────
 
     /// Record a person as QOR ID describes them now, keeping what they made of their profile here, and put them in
-    /// World: a newcomer starts at its newest message, and their role there follows `SOCIAL_WORLD_MODERATORS` each time.
+    /// World: a newcomer starts at its newest message, and a name in `SOCIAL_WORLD_MODERATORS` is at least a moderator
+    /// there; a level appointed in World since is kept (ADR-093).
     pub async fn arrive(&self, person: &Person) -> SocialResult<Profile> {
         let moderates = person.username_chosen
             && self
@@ -414,13 +596,15 @@ impl Store {
         sqlx::query(
             "INSERT INTO members (room, sub, role, last_read) \
              SELECT id, $1, $2, next_seq - 1 FROM rooms WHERE kind = 'world' \
-             ON CONFLICT (room, sub) DO UPDATE SET role = EXCLUDED.role",
+             ON CONFLICT (room, sub) DO UPDATE SET role = CASE \
+               WHEN EXCLUDED.role = 'moderator' AND members.role IN ('member', 'vip') THEN 'moderator' \
+               ELSE members.role END",
         )
         .bind(person.sub)
         .bind(if moderates { "moderator" } else { "member" })
         .execute(&self.db)
         .await?;
-        Ok(sqlx::query_as(
+        let profile = sqlx::query_as(
             "INSERT INTO profiles (sub, qor_id, avatar_url, level, seen_at) VALUES ($1, $2, $3, $4, NOW()) \
              ON CONFLICT (sub) DO UPDATE SET qor_id = $2, avatar_url = $3, level = $4, seen_at = NOW() \
              RETURNING sub, qor_id, avatar_url, level, display, bio, accent, banner, showcase, status_line, language, seen_at",
@@ -430,28 +614,31 @@ impl Store {
         .bind(&person.avatar_url)
         .bind(person.level)
         .fetch_one(&self.db)
-        .await?)
+        .await?;
+        self.stamped_one(profile).await
     }
 
     pub async fn profiles(&self, subs: &[Uuid]) -> SocialResult<Vec<Profile>> {
-        Ok(sqlx::query_as(
+        let found = sqlx::query_as(
             "SELECT sub, qor_id, avatar_url, level, display, bio, accent, banner, showcase, status_line, language, seen_at \
              FROM profiles WHERE sub = ANY($1)",
         )
         .bind(subs)
         .fetch_all(&self.db)
-        .await?)
+        .await?;
+        self.stamped(found).await
     }
 
     pub async fn profile_by_name(&self, qor_id: &str) -> SocialResult<Profile> {
-        sqlx::query_as(
+        let found = sqlx::query_as(
             "SELECT sub, qor_id, avatar_url, level, display, bio, accent, banner, showcase, status_line, language, seen_at \
              FROM profiles WHERE LOWER(qor_id) = LOWER($1)",
         )
         .bind(qor_id.trim())
         .fetch_optional(&self.db)
         .await?
-        .ok_or_else(|| SocialError::not_found("nobody of that name has come to Social yet"))
+        .ok_or_else(|| SocialError::not_found("nobody of that name has come to Social yet"))?;
+        self.stamped_one(found).await
     }
 
     pub async fn change_profile(&self, sub: Uuid, change: ProfileChange) -> SocialResult<Profile> {
@@ -496,7 +683,7 @@ impl Store {
             }
             None => None,
         };
-        Ok(sqlx::query_as(
+        let changed = sqlx::query_as(
             "UPDATE profiles SET \
                display = COALESCE($2, display), bio = COALESCE($3, bio), \
                accent = CASE WHEN $4 THEN $5 ELSE accent END, \
@@ -515,7 +702,8 @@ impl Store {
         .bind(status)
         .bind(language)
         .fetch_one(&self.db)
-        .await?)
+        .await?;
+        self.stamped_one(changed).await
     }
 
     // ── rooms ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -620,6 +808,7 @@ impl Store {
             i64,
             i64,
             Option<Uuid>,
+            Option<DateTime<Utc>>,
         );
         let rows: Vec<Row> = sqlx::query_as(
             "SELECT r.id, r.kind, r.name, r.topic, r.ambience, r.created_at, m.role, \
@@ -628,7 +817,8 @@ impl Store {
                        AND x.author NOT IN (SELECT blocked FROM blocks WHERE blocker = $1)), \
                     r.next_seq - 1, \
                     (SELECT COUNT(*) FROM members c WHERE c.room = r.id), \
-                    (SELECT o.sub FROM members o WHERE o.room = r.id AND o.sub <> $1 AND r.kind = 'direct' LIMIT 1) \
+                    (SELECT o.sub FROM members o WHERE o.room = r.id AND o.sub <> $1 AND r.kind = 'direct' LIMIT 1), \
+                    (SELECT u.until FROM mutes u WHERE u.room = r.id AND u.sub = $1 AND u.until > NOW()) \
              FROM rooms r JOIN members m ON m.room = r.id WHERE m.sub = $1 \
              ORDER BY r.next_seq DESC, r.created_at DESC",
         )
@@ -650,6 +840,7 @@ impl Store {
                     last_seq,
                     members,
                     other,
+                    muted_until,
                 )| RoomSummary {
                     room: Room {
                         id,
@@ -664,6 +855,7 @@ impl Store {
                     last_seq,
                     members,
                     other,
+                    muted_until,
                 },
             )
             .collect())
@@ -755,13 +947,13 @@ impl Store {
         room: Uuid,
         change: RoomChange,
     ) -> SocialResult<Room> {
-        let (found, role) = self.membership(by, room).await?;
-        if found.kind == "world" {
+        let a = self.authority(by, room).await?;
+        if a.room.kind == "world" {
             return Err(SocialError::forbidden("World's name and topic are fixed"));
         }
-        if found.kind == "direct" || role == "member" {
+        if a.room.kind == "direct" || a.rank < rank("admin") {
             return Err(SocialError::forbidden(
-                "only a room's owner and moderators change it",
+                "only a room's owner and admins change it",
             ));
         }
         let name = change
@@ -796,7 +988,8 @@ impl Store {
         self.membership(sub, room).await?;
         Ok(sqlx::query_as(
             "SELECT sub, role, joined_at FROM members WHERE room = $1 \
-             ORDER BY CASE role WHEN 'owner' THEN 0 WHEN 'moderator' THEN 1 ELSE 2 END, joined_at",
+             ORDER BY CASE role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'moderator' THEN 2 WHEN 'vip' THEN 3 \
+               ELSE 4 END, joined_at",
         )
         .bind(room)
         .fetch_all(&self.db)
@@ -805,18 +998,18 @@ impl Store {
 
     /// Invite someone Social knows to a room the inviter moderates or owns.
     pub async fn invite(&self, by: Uuid, room: Uuid, invitee: Uuid) -> SocialResult<()> {
-        let (found, role) = self.membership(by, room).await?;
-        if found.kind == "direct" {
+        let a = self.authority(by, room).await?;
+        if a.room.kind == "direct" {
             return Err(SocialError::forbidden(
                 "a direct conversation is between two people",
             ));
         }
-        if found.kind == "world" {
+        if a.room.kind == "world" {
             return Err(SocialError::forbidden("everyone is in World already"));
         }
-        if found.kind == "private" && role == "member" {
+        if a.room.kind == "private" && a.rank < rank("moderator") {
             return Err(SocialError::forbidden(
-                "only a private room's owner and moderators invite",
+                "only a private room's owner, admins and moderators invite",
             ));
         }
         if self.profiles(&[invitee]).await?.is_empty() {
@@ -862,7 +1055,9 @@ impl Store {
         Ok(())
     }
 
-    /// Change someone's role. An owner makes moderators and members, and hands the room on (becoming a moderator).
+    /// Set someone's level (ADR-093). An Admin or above sets the level of someone below them, to a level below their
+    /// own; only the Owner, or godmode, hands the room on, and the Owner who hands it on becomes an Admin. World has no
+    /// Owner; its levels are set by Elite accounts and godmode.
     pub async fn set_role(
         &self,
         by: Uuid,
@@ -870,21 +1065,42 @@ impl Store {
         target: Uuid,
         role: &str,
     ) -> SocialResult<()> {
-        let (found, by_role) = self.membership(by, room).await?;
-        if found.kind == "world" {
+        let a = self.authority(by, room).await?;
+        if a.room.kind == "direct" {
             return Err(SocialError::forbidden(
-                "World's moderators are named in Social's configuration",
+                "a direct conversation has no levels",
             ));
         }
-        if found.kind == "direct" || by_role != "owner" {
-            return Err(SocialError::forbidden("only a room's owner changes roles"));
-        }
-        if !matches!(role, "owner" | "moderator" | "member") {
-            return Err(SocialError::bad("a role is owner, moderator or member"));
+        if !LEVELS.contains(&role) {
+            return Err(SocialError::bad(
+                "a level is owner, admin, moderator, vip or member",
+            ));
         }
         if target == by {
             return Err(SocialError::bad(
-                "hand the room to someone else to change your own role",
+                "hand the room to someone else to change your own level",
+            ));
+        }
+        if a.rank < rank("admin") {
+            return Err(SocialError::forbidden(
+                "only a room's owner and admins set levels",
+            ));
+        }
+        if self.target(room, target).await? >= a.rank {
+            return Err(SocialError::forbidden(
+                "you set the level only of someone below your own",
+            ));
+        }
+        if role == "owner" {
+            if a.room.kind == "world" {
+                return Err(SocialError::forbidden("World has no owner"));
+            }
+            if a.role != "owner" && a.rank < GODMODE_RANK {
+                return Err(SocialError::forbidden("only the room's owner hands it on"));
+            }
+        } else if rank(role) >= a.rank {
+            return Err(SocialError::forbidden(
+                "you give only a level below your own",
             ));
         }
         let mut tx = self.db.begin().await?;
@@ -899,9 +1115,10 @@ impl Store {
             return Err(SocialError::not_found("they are not in this room"));
         }
         if role == "owner" {
-            sqlx::query("UPDATE members SET role = 'moderator' WHERE room = $1 AND sub = $2")
+            // One owner: whoever held it (the giver, or the owner godmode replaced) is an Admin now.
+            sqlx::query("UPDATE members SET role = 'admin' WHERE room = $1 AND role = 'owner' AND sub <> $2")
                 .bind(room)
-                .bind(by)
+                .bind(target)
                 .execute(&mut *tx)
                 .await?;
         }
@@ -909,9 +1126,10 @@ impl Store {
         Ok(())
     }
 
-    /// Remove someone from a room: an owner removes anyone else, a moderator removes members.
+    /// Remove someone from a room: a Moderator or above removes someone below them (ADR-093).
     pub async fn remove(&self, by: Uuid, room: Uuid, target: Uuid) -> SocialResult<()> {
-        let (found, by_role) = self.membership(by, room).await?;
+        let a = self.authority(by, room).await?;
+        let found = &a.room;
         if found.kind == "direct" {
             return Err(SocialError::forbidden(
                 "a direct conversation is between two people",
@@ -922,21 +1140,8 @@ impl Store {
                 "nobody is removed from World; a moderator mutes them instead",
             ));
         }
-        let target_role: Option<String> =
-            sqlx::query_scalar("SELECT role FROM members WHERE room = $1 AND sub = $2")
-                .bind(room)
-                .bind(target)
-                .fetch_optional(&self.db)
-                .await?;
-        let target_role =
-            target_role.ok_or_else(|| SocialError::not_found("they are not in this room"))?;
-        let allowed = target != by
-            && match by_role.as_str() {
-                "owner" => true,
-                "moderator" => target_role == "member",
-                _ => false,
-            };
-        if !allowed {
+        let below = self.target(room, target).await? < a.rank;
+        if target == by || a.rank < rank("moderator") || !below {
             return Err(SocialError::forbidden("you cannot remove them"));
         }
         sqlx::query("DELETE FROM members WHERE room = $1 AND sub = $2")
@@ -1197,12 +1402,18 @@ impl Store {
         self.message_by_id(message).await
     }
 
-    /// Delete a message: its author, or the room's owner or moderators. Its words go; its place stays.
+    /// Delete a message: its author, or a Moderator or above whose level is above the author's. Its words go; its place
+    /// stays.
     pub async fn delete(&self, by: Uuid, message: Uuid) -> SocialResult<Message> {
         let found = self.message_by_id(message).await?;
-        let (_, role) = self.membership(by, found.room).await?;
-        if found.author != by && role == "member" {
-            return Err(SocialError::forbidden("you delete only your own messages"));
+        let a = self.authority(by, found.room).await?;
+        if found.author != by
+            && (a.rank < rank("moderator")
+                || self.rank_in(found.room, found.author).await? >= a.rank)
+        {
+            return Err(SocialError::forbidden(
+                "you delete only your own messages, and those of people below you",
+            ));
         }
         sqlx::query(
             "UPDATE messages SET sealed = NULL, deleted_at = COALESCE(deleted_at, NOW()) WHERE id = $1",
@@ -1698,7 +1909,7 @@ impl Store {
         .await?)
     }
 
-    /// A World moderator stops `target` posting in World for one of [`MUTE_MINUTES`]. A moderator is not muted.
+    /// A Moderator or above stops someone below them posting in a room for one of [`MUTE_MINUTES`] (ADR-092, ADR-093).
     pub async fn mute(
         &self,
         by: Uuid,
@@ -1706,25 +1917,26 @@ impl Store {
         target: Uuid,
         minutes: i32,
     ) -> SocialResult<DateTime<Utc>> {
-        let (found, role) = self.membership(by, room).await?;
-        if found.kind != "world" || role == "member" {
-            return Err(SocialError::forbidden("only World's moderators mute"));
+        let a = self.authority(by, room).await?;
+        if a.room.kind == "direct" {
+            return Err(SocialError::forbidden(
+                "a direct conversation is ended by a block, not a mute",
+            ));
+        }
+        if a.rank < rank("moderator") {
+            return Err(SocialError::forbidden(
+                "only a room's moderators and those above them mute",
+            ));
         }
         if !MUTE_MINUTES.contains(&minutes) {
             return Err(SocialError::bad(
                 "a mute lasts ten minutes, an hour, a day or a week",
             ));
         }
-        let target_role: Option<String> =
-            sqlx::query_scalar("SELECT role FROM members WHERE room = $1 AND sub = $2")
-                .bind(room)
-                .bind(target)
-                .fetch_optional(&self.db)
-                .await?;
-        match target_role.as_deref() {
-            None => return Err(SocialError::not_found("they have not come to Social yet")),
-            Some("member") if target != by => {}
-            Some(_) => return Err(SocialError::forbidden("a moderator is not muted")),
+        if target == by || self.target(room, target).await? >= a.rank {
+            return Err(SocialError::forbidden(
+                "you mute only someone below your own level",
+            ));
         }
         Ok(sqlx::query_scalar(
             "INSERT INTO mutes (room, sub, until, muted_by) VALUES ($1, $2, NOW() + make_interval(mins => $3), $4) \
@@ -1741,9 +1953,11 @@ impl Store {
     }
 
     pub async fn unmute(&self, by: Uuid, room: Uuid, target: Uuid) -> SocialResult<()> {
-        let (found, role) = self.membership(by, room).await?;
-        if found.kind != "world" || role == "member" {
-            return Err(SocialError::forbidden("only World's moderators mute"));
+        let a = self.authority(by, room).await?;
+        if a.room.kind == "direct" || a.rank < rank("moderator") {
+            return Err(SocialError::forbidden(
+                "only a room's moderators and those above them mute",
+            ));
         }
         sqlx::query("DELETE FROM mutes WHERE room = $1 AND sub = $2")
             .bind(room)
@@ -1835,7 +2049,8 @@ impl Store {
     pub async fn members_among(&self, room: Uuid, subs: &[Uuid]) -> SocialResult<Vec<Member>> {
         Ok(sqlx::query_as(
             "SELECT sub, role, joined_at FROM members WHERE room = $1 AND sub = ANY($2) \
-             ORDER BY CASE role WHEN 'owner' THEN 0 WHEN 'moderator' THEN 1 ELSE 2 END, joined_at",
+             ORDER BY CASE role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'moderator' THEN 2 WHEN 'vip' THEN 3 \
+               ELSE 4 END, joined_at",
         )
         .bind(room)
         .bind(subs)
