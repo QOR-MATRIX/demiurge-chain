@@ -26,7 +26,9 @@ peer-to-peer library: QUIC connections between devices dialled by public key, ho
 relays as fallback, and `iroh-blobs`, which streams a blob verified against its plain BLAKE3 hash in 16 KiB groups
 (`IROH_BLOCK_SIZE = BlockSize::from_chunk_log(4)`, read in its source the same day). That is ADR-047's fingerprint and
 granularity exactly: a seeder's bytes can be checked against the root the chain already holds, range by range, with no
-second hash. BitTorrent fingerprints pieces with SHA-1 or SHA-256 and would need a second identity per file; libp2p would
+second hash. iroh-blobs' own README calls the 0.10x line "not yet considered production quality" and points to 0.35 for
+production; 0.35 goes with iroh 0.35, before iroh's 1.0. The Mesh is built on the current line while it runs on the devnet,
+and the choice is checked again before anything of value depends on it. BitTorrent fingerprints pieces with SHA-1 or SHA-256 and would need a second identity per file; libp2p would
 need the verified transfer built on top.
 
 ## Decision

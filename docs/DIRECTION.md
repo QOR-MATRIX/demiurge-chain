@@ -817,7 +817,9 @@ seeders paid in CGT from the uploader's hosting escrow, for proven work only, wi
 No item sets a price, rate, pool or burn share.
 
 1. [ ] The network, and one's own published work seeded: an iroh node in the launcher's host, seeding opt-in with disk
-   and upload limits, the temporary content store's roots served and fetched verified. No CGT moves.
+   and upload limits, the temporary content store's roots served and fetched verified. No CGT moves. Built 2026-10-17 on
+   branch `session/mesh`, not merged: `src-tauri/src/mesh/` and the Mesh page, between two launchers on one PC; not yet
+   between two PCs over the internet.
 2. [ ] Seeding others' published work: finding who holds a root, fetching and verifying it, holding it within the
    person's limits, and the Mesh page showing what is seeded and served.
 3. [ ] The proofs: storage challenges and serving receipts, to the scheme the owner accepts (U-6). Depends on the
