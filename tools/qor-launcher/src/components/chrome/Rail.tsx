@@ -56,7 +56,7 @@ const ITEMS: Item[] = [
   { id: 'arqade', label: 'ARQADE', icon: Gamepad2, hint: 'Games and collectibles on the Demiurge devnet' },
   { id: 'library', label: 'Library', icon: Library, hint: 'Your games, videos, music, pictures and documents' },
   { id: 'social', label: 'Social', icon: MessagesSquare, hint: 'Rooms, messages, presence and profiles' },
-  { id: 'mesh', label: 'Mesh', icon: Share2, hint: 'Peer-to-peer distribution' },
+  { id: 'mesh', label: 'Mesh', icon: Share2, hint: 'Seed published work for others, within your limits' },
   { id: 'chain', label: 'Chain', icon: Radio, hint: 'Node, network and validators' },
   { id: 'gates', label: 'Gates', icon: ListChecks, hint: 'Release-gate progress from docs/GATES.toml' },
   { id: 'settings', label: 'Settings', icon: Settings, hint: 'Themes, endpoints, security' },
