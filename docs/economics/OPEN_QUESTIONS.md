@@ -121,6 +121,10 @@ The Mesh pays seeders for storage and bandwidth verified against on-chain finger
 proves, to whom, and how often (proof of storage, proof of retrieval, challenge-response, client
 receipts) is undefined. Without it, the largest demand sink pays for unverifiable claims.
 
+**Proposed for the owner's review** in [`../architecture/MESH_PROOFS.md`](../architecture/MESH_PROOFS.md) (17 October
+2026), under ADR-095: storage challenges answered against the root on chain, and serving receipts signed by the
+person who received the bytes. Nothing is decided until the owner reviews it.
+
 ### U-7: staking for distribution
 
 Creators stake CGT for reach in Market and Nexus. Whether staked CGT is locked and returned, spent to
