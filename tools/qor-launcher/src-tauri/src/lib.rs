@@ -1751,6 +1751,7 @@ pub fn run() {
             library::commands::library_open,
             media::media_place,
             media::media_hide,
+            media::media_theme,
             qor_set_auth_endpoint,
             arqade_open,
             gates_report,

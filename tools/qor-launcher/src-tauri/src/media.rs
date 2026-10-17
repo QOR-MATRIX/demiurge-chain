@@ -51,6 +51,27 @@ pub enum Command {
     Place { rect: Rect, parent: Option<i64> },
     /// Get out of the way: the person left the Library.
     Hide,
+    /// Wear the launcher's colours: its theme's tokens (`void`, `surface`, `accent`, `ink`, …) as `#rrggbb`.
+    Theme {
+        colors: std::collections::BTreeMap<String, String>,
+    },
+}
+
+/// A theme's tokens, kept only when each is a colour written `#rrggbb` and named in letters and dashes.
+pub fn theme(
+    colors: std::collections::BTreeMap<String, String>,
+) -> std::collections::BTreeMap<String, String> {
+    colors
+        .into_iter()
+        .filter(|(name, value)| {
+            name.len() <= 24
+                && name.chars().all(|c| c.is_ascii_lowercase() || c == '-')
+                && value.len() == 7
+                && value.starts_with('#')
+                && value[1..].chars().all(|c| c.is_ascii_hexdigit())
+        })
+        .take(32)
+        .collect()
 }
 
 /// What QOR Media reports, on its next `media.next`.
@@ -94,9 +115,12 @@ impl Queue {
 
     pub fn push(&self, command: Command) {
         let mut commands = self.commands.lock();
-        // A newer place makes an older one moot.
+        // A newer place, or theme, makes an older one moot.
         if matches!(command, Command::Place { .. }) {
             commands.retain(|c| !matches!(c, Command::Place { .. }));
+        }
+        if matches!(command, Command::Theme { .. }) {
+            commands.retain(|c| !matches!(c, Command::Theme { .. }));
         }
         commands.push_back(command);
         drop(commands);
@@ -193,6 +217,7 @@ pub struct Media {
     queue: Arc<Queue>,
     running: Arc<Mutex<bool>>,
     rect: Mutex<Option<Rect>>,
+    theme: Mutex<std::collections::BTreeMap<String, String>>,
 }
 
 impl Default for Media {
@@ -201,6 +226,7 @@ impl Default for Media {
             queue: Arc::new(Queue::new(WAIT)),
             running: Arc::new(Mutex::new(false)),
             rect: Mutex::new(None),
+            theme: Mutex::new(std::collections::BTreeMap::new()),
         }
     }
 }
@@ -266,6 +292,10 @@ pub async fn open(app: &tauri::AppHandle, path: &str) -> QorResult<bool> {
         .await
         .map_err(|e| QorError::Internal(format!("QOR Media did not start: {e}")))?;
         *media.running.lock() = true;
+        let colors = media.theme.lock().clone();
+        if !colors.is_empty() {
+            media.queue.push(Command::Theme { colors });
+        }
     }
     media.queue.push(Command::Open {
         path: item.path,
@@ -286,6 +316,20 @@ pub fn media_place(app: tauri::AppHandle, state: tauri::State<'_, crate::AppStat
             rect,
             parent: parent(&app),
         });
+    }
+}
+
+/// The launcher's colours, for QOR Media to wear: sent by the interface when the Library shows and when the theme
+/// changes.
+#[tauri::command]
+pub fn media_theme(
+    state: tauri::State<'_, crate::AppState>,
+    colors: std::collections::BTreeMap<String, String>,
+) {
+    let colors = theme(colors);
+    *state.media.theme.lock() = colors.clone();
+    if *state.media.running.lock() {
+        state.media.queue.push(Command::Theme { colors });
     }
 }
 

@@ -49,7 +49,18 @@ export const library = {
 export const media = {
   place: (rect: { x: number; y: number; w: number; h: number }) => invoke<void>('media_place', { rect }),
   hide: () => invoke<void>('media_hide'),
+  theme: (colors: Record<string, string>) => invoke<void>('media_theme', { colors }),
 };
+
+const THEME_TOKENS = ['void', 'base', 'surface', 'raised', 'well', 'edge', 'accent', 'accent-bright', 'accent-dim', 'ink', 'ink-body', 'ink-muted', 'ink-faint'];
+
+/** The launcher's theme as `#rrggbb` tokens, read from the page, for QOR Media to wear. */
+function themeTokens(): Record<string, string> {
+  const style = getComputedStyle(document.documentElement);
+  return Object.fromEntries(
+    THEME_TOKENS.map((t): [string, string] => [t, style.getPropertyValue(`--${t}`).trim().toLowerCase()]).filter(([, v]) => /^#[0-9a-f]{6}$/.test(v)),
+  );
+}
 
 /** Keep QOR Media's place in step with `el` while the Library is showing, and hide it when the Library goes. */
 export function dockOver(el: HTMLElement): () => void {
@@ -67,8 +78,13 @@ export function dockOver(el: HTMLElement): () => void {
   observer.observe(el);
   window.addEventListener('resize', send);
   send();
+  void media.theme(themeTokens()).catch(() => undefined);
+  // A theme change restyles the page's root: QOR Media follows it.
+  const themed = new MutationObserver(() => void media.theme(themeTokens()).catch(() => undefined));
+  themed.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'data-theme'] });
   return () => {
     observer.disconnect();
+    themed.disconnect();
     window.removeEventListener('resize', send);
     void media.hide().catch(() => undefined);
   };

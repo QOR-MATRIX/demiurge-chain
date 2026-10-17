@@ -165,6 +165,24 @@ async fn reports_record_where_playback_stopped_and_what_was_learned() {
 }
 
 #[test]
+fn only_colours_written_rrggbb_make_a_theme() {
+    let given: std::collections::BTreeMap<String, String> = [
+        ("void", "#06070A"),
+        ("accent-bright", "#ff8a33"),
+        ("ink", "red"),
+        ("surface", "#12151C; background: url(x)"),
+        ("Bad Name", "#000000"),
+        ("edge", "#12g45z"),
+        ("well", "#1);x:y"),
+    ]
+    .into_iter()
+    .map(|(k, v)| (k.to_string(), v.to_string()))
+    .collect();
+    let kept = theme(given);
+    assert_eq!(kept.keys().collect::<Vec<_>>(), ["accent-bright", "void"]);
+}
+
+#[test]
 fn qor_media_is_found_where_qor_media_points_or_where_it_is_deployed() {
     let dir = Dir::new();
     assert_eq!(find(None, Some(dir.0.clone())), None);
@@ -187,4 +205,140 @@ fn qor_media_is_found_where_qor_media_points_or_where_it_is_deployed() {
         find(Some(named.clone().into()), Some(dir.0.clone())),
         Some(named)
     );
+}
+
+/// One second of a 440 Hz tone: 16-bit mono PCM at 8 kHz in a WAV file.
+fn tone() -> Vec<u8> {
+    let rate = 8000u32;
+    let mut pcm = Vec::with_capacity(rate as usize * 2);
+    for i in 0..rate {
+        let sample = (8000.0
+            * (2.0 * std::f64::consts::PI * 440.0 * f64::from(i) / f64::from(rate)).sin())
+            as i16;
+        pcm.extend_from_slice(&sample.to_le_bytes());
+    }
+    let mut wav = Vec::new();
+    wav.extend_from_slice(b"RIFF");
+    wav.extend_from_slice(&(36 + pcm.len() as u32).to_le_bytes());
+    wav.extend_from_slice(b"WAVEfmt ");
+    for field in [
+        16u32.to_le_bytes().to_vec(),
+        1u16.to_le_bytes().to_vec(),
+        1u16.to_le_bytes().to_vec(),
+        rate.to_le_bytes().to_vec(),
+        (rate * 2).to_le_bytes().to_vec(),
+        2u16.to_le_bytes().to_vec(),
+        16u16.to_le_bytes().to_vec(),
+    ] {
+        wav.extend_from_slice(&field);
+    }
+    wav.extend_from_slice(b"data");
+    wav.extend_from_slice(&(pcm.len() as u32).to_le_bytes());
+    wav.extend_from_slice(&pcm);
+    wav
+}
+
+/// The real QOR Media, started through the product host as the Library starts it: it is welcomed, opens what it is
+/// sent, plays it, and its report of the file's length reaches the Library. Needs QOR Media built and deployed
+/// (`pwsh tools/qor-media/build.ps1 -Deploy`, which needs the owner's Qt), so it runs only when asked:
+/// `cargo test --lib media::tests::qor_media -- --ignored`.
+#[test]
+#[ignore = "needs QOR Media deployed by tools/qor-media/build.ps1 -Deploy"]
+fn qor_media_started_by_the_launcher_plays_and_reports_to_the_library() {
+    // Its own runtime, shut without waiting on the channel: QOR Media ends with this process, as with the launcher.
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    runtime.block_on(played_and_reported());
+    runtime.shutdown_timeout(Duration::from_secs(1));
+}
+
+async fn played_and_reported() {
+    let program = find(
+        std::env::var_os("QOR_MEDIA"),
+        std::env::var_os("LOCALAPPDATA").map(PathBuf::from),
+    )
+    .expect("QOR Media is deployed");
+    let home = Dir::new();
+    let data = Dir::new();
+    std::fs::write(home.0.join("tone.wav"), tone()).unwrap();
+    let library = Library::open(&data.0).unwrap();
+    let folder = library.add_folder(&home.0).unwrap();
+    library.scan(&folder).unwrap();
+    let path = crate::library::display_path(&home.0.join("tone.wav"));
+    let item = library.item(&path).unwrap();
+    assert_eq!(item.position, None, "it has not been played");
+
+    let queue = Arc::new(Queue::new(Duration::from_secs(2)));
+    let told = Arc::new(AtomicUsize::new(0));
+    let counter = Arc::clone(&told);
+    let handler = Arc::new(MediaHandler {
+        queue: Arc::clone(&queue),
+        library: Arc::clone(&library),
+        changed: Arc::new(move || {
+            counter.fetch_add(1, Ordering::SeqCst);
+        }),
+    });
+    let exited = Arc::new(parking_lot::Mutex::new(None));
+    let noted = Arc::clone(&exited);
+    host::launch(
+        host::Launch {
+            product: host::ProductRecord {
+                id: "qor-media",
+                name: "QOR Media",
+                path: program.clone(),
+            },
+            args: vec![],
+            cwd: program.parent().unwrap().to_path_buf(),
+        },
+        handler,
+        move |e| *noted.lock() = Some(e),
+    )
+    .await
+    .expect("QOR Media starts");
+    queue.push(Command::Open {
+        path: item.path.clone(),
+        kind: item.kind.clone(),
+        position: None,
+        rect: None,
+        parent: None,
+    });
+    let started = Instant::now();
+    while !queue.commands.lock().is_empty() {
+        assert!(
+            started.elapsed() < Duration::from_secs(30),
+            "QOR Media never asked"
+        );
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+
+    // Its report of what it learned arrives on its next media.next, and the Library's view is told.
+    let started = Instant::now();
+    while told.load(Ordering::SeqCst) == 0 {
+        if let Some(e) = exited.lock().clone() {
+            panic!("QOR Media ended: {e:?}");
+        }
+        assert!(
+            started.elapsed() < Duration::from_secs(30),
+            "QOR Media reported nothing"
+        );
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    let duration = library.item(&path).unwrap().duration.unwrap();
+    assert!(
+        (duration - 1.0).abs() < 0.1,
+        "the tone is a second long, not {duration}"
+    );
+
+    // Hidden, it says where it stopped.
+    queue.push(Command::Hide);
+    let started = Instant::now();
+    while library.item(&path).unwrap().position.is_none() {
+        assert!(
+            started.elapsed() < Duration::from_secs(10),
+            "no position was reported"
+        );
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
 }
