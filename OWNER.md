@@ -10,7 +10,8 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 ## Live today (checked tonight, from outside)
 
-- **Devnet** — *the test chain on servers* — at `wss://rpc.qorsync.dev`, runtime version 8.
+- **Devnet** — *the test chain on servers* — at `wss://rpc.qorsync.dev`, **runtime version 9 since
+  tonight**, which you signed: the Mesh is live there, so paid seeding can be tested.
 - **QOR ID** — *the one sign-in* — and **Social** — *the chat service* — on Railway.
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`.
 - **Launcher 0.1.10 for testers**, published as a **GitHub Release** — *a public download on
@@ -21,24 +22,21 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 - **The Mesh is merged** (pull request #40, every CI check green): seeders paid from an
   **escrow** — *CGT an uploader sets aside* — for proving they hold a file and for serving it.
-- **The upgrade the devnet needs is rehearsed** against the devnet's own runtime: it keeps
-  your sudo key, everything on the chain, and brings the Mesh with its one-hour period.
+- **You upgraded the devnet**, read back: the rehearsed file, your sudo key unchanged, the
+  Mesh there with its one-hour period.
 
 ## What only you can do
 
-1. **Upgrade the devnet to runtime 9**, as you did for 7 and 8: polkadot.js Apps, Developer →
-   Sudo, `system.setCode` with the weight override, file `demiurge-runtime-v9.compact.compressed.wasm`
-   from your Downloads (SHA-256 begins `318643587f6f`). Tell me when it is done; I read it back.
-2. **Share the download page** with your testers (its Share menu), and **send each tester test
+1. **Share the download page** with your testers (its Share menu), and **send each tester test
    CGT** from the faucet when they send you their address.
-3. **Install 0.1.10 yourself first**: nobody has installed it yet. Windows warns because it
+2. **Install 0.1.10 yourself first**: nobody has installed it yet. Windows warns because it
    is unsigned; choose More info, then Run anyway.
-4. **Merge pull request #41** — *the notes for this release* — once its checks pass.
-5. **Crediting godmode with 100,000,000 CGT:** a faucet transfer you sign; I need its address.
-6. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
-7. **Keep the `godmode` account safe**; move or delete `social-secrets.txt` on your Desktop.
-8. **Housekeeping:** `archive-bZLIQp/` (one zip); the old `QOR-MATRIX/arqade` repository.
-9. **Still open from before:** update QQ Studio and publish again; the last two L1.4 checks; CI for
+3. **Merge pull request #41** — *the notes for this release* — once its checks pass.
+4. **Crediting godmode with 100,000,000 CGT:** a faucet transfer you sign; I need its address.
+5. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
+6. **Keep the `godmode` account safe**; move or delete `social-secrets.txt` on your Desktop.
+7. **Housekeeping:** `archive-bZLIQp/` (one zip); the old `QOR-MATRIX/arqade` repository.
+8. **Still open from before:** update QQ Studio and publish again; the last two L1.4 checks; CI for
    QQ; the welcome-grant payer; an email; replace the key pasted on 5 October.
 
 ## Cost per month
