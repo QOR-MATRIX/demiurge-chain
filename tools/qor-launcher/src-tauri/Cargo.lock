@@ -5916,6 +5916,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "mesh-proof"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7501,7 +7508,7 @@ dependencies = [
 
 [[package]]
 name = "qor-launcher"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "argon2",
  "base64 0.22.1",
@@ -7522,6 +7529,7 @@ dependencies = [
  "kamadak-exif",
  "keyring",
  "lofty",
+ "mesh-proof",
  "n0-future",
  "notify",
  "parity-scale-codec",

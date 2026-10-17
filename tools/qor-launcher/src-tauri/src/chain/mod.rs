@@ -37,6 +37,7 @@
 pub mod assets;
 pub mod config;
 pub mod market;
+pub mod mesh;
 pub mod pay;
 pub mod sales;
 

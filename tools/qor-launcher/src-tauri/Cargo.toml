@@ -1,6 +1,6 @@
 [package]
 name         = "qor-launcher"
-version      = "0.1.9"
+version      = "0.1.10"
 description  = "QOR Launcher — the sovereign gateway to the Demiurge ecosystem"
 authors      = ["Laustrup Group"]
 edition      = "2021"
@@ -104,6 +104,9 @@ codec        = { package = "parity-scale-codec", version = "3", default-features
 # An asset is the BLAKE3-256 of its manifest (decision 1). The reference
 # implementation, by the algorithm's authors.
 blake3 = "1.8"
+# The Mesh's storage proof, the same code the chain checks it with (ADR-096): a seeder's answer is made by the crate
+# `pallet-mesh` verifies it with, so the two cannot disagree about the tree.
+mesh-proof = { path = "../../../chain/primitives/mesh-proof" }
 bip39            = "2"
 argon2           = "0.5"
 chacha20poly1305 = "0.10"

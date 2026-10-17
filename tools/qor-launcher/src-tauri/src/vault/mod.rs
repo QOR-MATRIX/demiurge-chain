@@ -134,6 +134,24 @@ impl Unlocked {
 }
 
 /// The vault. Cheap to clone by reference; guarded by a mutex.
+/// The Mesh's standing approval to sign its own work for one account (ADR-097). Made by [`Vault::grant_mesh`] once the
+/// person approves, or restored from the approval the Mesh recorded.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MeshGrant {
+    account: [u8; 32],
+}
+
+impl MeshGrant {
+    /// An approval the person gave earlier, as the Mesh's settings recorded it.
+    pub(crate) fn recorded(account: [u8; 32]) -> Self {
+        Self { account }
+    }
+
+    pub fn account(&self) -> [u8; 32] {
+        self.account
+    }
+}
+
 pub struct Vault {
     dir: PathBuf,
     keys: Arc<dyn KeyStore>,
@@ -505,12 +523,14 @@ impl Vault {
     /// Sign `message` with the account at `address`, once the person at the
     /// keyboard approves `prompt` (roadmap L1.4).
     ///
-    /// This is the only route by which key material influences the outside
-    /// world, and there is no way to sign without an approval. The caller builds
-    /// the prompt from the same values it signs, and the launcher shows it in a
-    /// host-drawn dialog the webview cannot reach. The one approval that is not a
-    /// dialog is the arrival grant: straight after the vault opens, a QOR ID
-    /// challenge for its first account is approved by it (ADR-016, ADR-056).
+    /// This and [`Vault::sign_granted`] are the only routes by which key material
+    /// influences the outside world, and there is no way to sign without an
+    /// approval given for it. The caller builds the prompt from the same values it
+    /// signs, and the launcher shows it in a host-drawn dialog the webview cannot
+    /// reach. Two approvals are not a dialog each time: the arrival grant, by which
+    /// a QOR ID challenge for the vault's first account is approved straight after
+    /// it opens (ADR-016, ADR-056), and the Mesh grant, given once in a dialog, for
+    /// the Mesh's own work (ADR-097).
     ///
     /// Nothing is asked when the vault is locked or does not hold `address`, so a
     /// prompt only ever appears for a signature that can actually be made.
@@ -529,6 +549,42 @@ impl Vault {
 
         // Checked again: the vault may have locked while the prompt was open.
         self.with_account(address, |account| hex::encode(account.sign(message)))
+    }
+
+    /// Ask the person, once, whether the Mesh may sign its own work for the account at `address` (ADR-097): proofs of
+    /// what this PC holds, claims for payment for what it served, taking and leaving the files it holds, and receipts for
+    /// what it downloads. None of it can send their CGT anywhere.
+    pub async fn grant_mesh(
+        &self,
+        confirm: &dyn Confirm,
+        address: &str,
+        chain_name: &str,
+    ) -> QorResult<MeshGrant> {
+        self.with_account(address, |_| ())?;
+        let prompt = Prompt {
+            title: "Let the Mesh be paid for what it does?".into(),
+            body: format!(
+                "While seeding is on, the Mesh signs its own work for {address} on {chain_name}, without asking each                  time: regular proof that this PC holds the files it took on, claims for payment for what it                  served, taking and leaving files within your limits, and receipts for what this PC downloads, so                  the people who served it are paid.
+
+It cannot send your CGT anywhere. Turning seeding off ends                  this."
+            ),
+            approve: "Allow".into(),
+        };
+        if !confirm.confirm(&prompt).await {
+            return Err(QorError::Declined);
+        }
+        self.with_account(address, |account| MeshGrant {
+            account: account.account_id(),
+        })
+    }
+
+    /// Sign `message` under the Mesh grant, with no dialog (ADR-097). Only the Mesh's own code calls this, with bytes it
+    /// built itself: a granted call it encoded and checked (`chain::mesh::ChainClient::mesh_submit`), or a receipt
+    /// (`chain::mesh::receipt_message`). A test keeps it that way.
+    pub(crate) fn sign_granted(&self, grant: &MeshGrant, message: &[u8]) -> QorResult<[u8; 64]> {
+        self.with_account(&derive::address_of(&grant.account), |account| {
+            account.sign(message)
+        })
     }
 
     /// Run `f` with the open account at `address`.

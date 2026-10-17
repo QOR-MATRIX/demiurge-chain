@@ -272,16 +272,22 @@ impl AppState {
         let settings = config::Settings::load(&data_dir);
         tracing::info!(rpc = %settings.rpc_url, auth = %settings.auth_url, "endpoints");
 
+        let vault = Arc::new(Vault::new(&data_dir));
+        let chain = Arc::new(ChainClient::new(settings.rpc_url)?);
+        // The Mesh is paid for its work through the vault and the chain, once the person allows it (ADR-097).
+        let mesh = mesh::Mesh::new(&data_dir, mesh::Net::Public);
+        mesh.connect(Arc::clone(&vault), Arc::clone(&chain));
+
         Ok(Self {
-            vault: Arc::new(Vault::new(&data_dir)),
-            chain: Arc::new(ChainClient::new(settings.rpc_url)?),
+            vault,
+            chain,
             identity: Arc::new(IdentityClient::new(settings.auth_url)?),
             social: Arc::new(social::Social::new(settings.social_url)),
             translate: Arc::new(translate::Translator::new(cache_dir.join("translations"))?),
             library: library::Library::open(&cache_dir.join("library"))?,
             library_watch: std::sync::OnceLock::new(),
             media: media::Media::default(),
-            mesh: mesh::Mesh::new(&data_dir, mesh::Net::Public),
+            mesh,
             dashboard: Arc::new(gates::Dashboard::new()?),
             arrival: ArrivalGrant::default(),
             data_dir,
@@ -1771,6 +1777,9 @@ pub fn run() {
             mesh::commands::mesh_configure,
             mesh::commands::mesh_ticket,
             mesh::commands::mesh_fetch,
+            mesh::commands::mesh_allow_paid,
+            mesh::commands::mesh_fetch_root,
+            mesh::commands::mesh_open_escrow,
             qor_set_auth_endpoint,
             arqade_open,
             gates_report,

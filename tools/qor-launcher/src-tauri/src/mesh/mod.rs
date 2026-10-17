@@ -12,19 +12,22 @@
 //!   at start, when seeding is turned on and once a minute while it runs, referenced where it lies rather than copied.
 //! - **A root is fetched from a peer named by a ticket**, verified, and kept within the disk limit.
 //!
-//! No CGT moves here. Finding who holds a root (L10.2), the proofs (L10.3) and the escrow (L10.4) come later.
+//! Paid work (L10.2 to L10.4, the launcher's half; ADR-096, ADR-097) is in [`paid`]: once the person gives the Mesh
+//! grant, the node is bound to their account, challenges are answered, receipts are claimed, others' published work is
+//! taken on, and a root is found by its fingerprint through the chain.
 //!
 //! The node's key is made on this PC and kept in the Mesh's folder. It is never the vault's key, and it can move no
-//! CGT; ADR-095 decision 1 ties it to the person's account by a statement the vault signs, with the escrow.
+//! CGT; ADR-095 decision 1 ties it to the person's account by a binding the account signs on chain.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use iroh::address_lookup::memory::MemoryLookup;
 use iroh::endpoint::presets;
 use iroh::protocol::Router;
-use iroh::{Endpoint, RelayMode, SecretKey};
+use iroh::{Endpoint, EndpointAddr, RelayMode, SecretKey};
 use iroh_blobs::api::blobs::{AddPathOptions, ImportMode};
 use iroh_blobs::api::proto::BlobStatus;
 use iroh_blobs::provider::events::{EventMask, EventSender, ProviderMessage, ThrottleMode};
@@ -38,6 +41,7 @@ use crate::content::TemporaryStore;
 use crate::error::{QorError, QorResult};
 
 pub mod commands;
+pub mod paid;
 #[cfg(test)]
 mod tests;
 
@@ -47,6 +51,8 @@ const DIR: &str = "mesh";
 const RESYNC: Duration = Duration::from_secs(60);
 /// The largest burst served before the upload limit applies: one second of it, or one 16 KiB group if that is more.
 const GROUP: u64 = 16 * 1024;
+/// How long a peer has to answer before a fetch gives up on it.
+const DIAL: Duration = Duration::from_secs(20);
 
 /// What the person chose. Off, with no limits, until they say otherwise.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -71,6 +77,8 @@ pub struct Status {
     pub used_bytes: u64,
     /// Bytes served to others since the launcher started.
     pub served_bytes: u64,
+    /// Paid work: what this PC holds for escrows, and what it was paid.
+    pub paid: paid::PaidStatus,
 }
 
 /// A file the Mesh holds: one's own published work, or something fetched.
@@ -114,6 +122,11 @@ pub struct Mesh {
     served: Arc<AtomicU64>,
     /// The upload limit as the throttle reads it, so a change applies to transfers already under way.
     rate: Arc<AtomicU64>,
+    /// Peers' addresses learned out of band; iroh's own lookup finds the rest by node key.
+    lookup: MemoryLookup,
+    paid: std::sync::OnceLock<paid::Paid>,
+    ledger: parking_lot::Mutex<paid::Ledger>,
+    worker: parking_lot::Mutex<Option<tokio::task::JoinHandle<()>>>,
 }
 
 impl Mesh {
@@ -126,6 +139,10 @@ impl Mesh {
             settings: parking_lot::Mutex::new(settings),
             served: Arc::new(AtomicU64::new(0)),
             node: Mutex::new(None),
+            lookup: MemoryLookup::new(),
+            paid: std::sync::OnceLock::new(),
+            ledger: parking_lot::Mutex::new(paid::Ledger::read(&dir)),
+            worker: parking_lot::Mutex::new(None),
             dir,
             net,
         })
@@ -157,6 +174,8 @@ impl Mesh {
         if settings.seeding {
             self.run(true).await?;
         } else {
+            // The Mesh grant lasts while seeding does (ADR-097 decision 1).
+            self.withdraw_grant()?;
             self.stop().await;
         }
         Ok(self.status().await)
@@ -174,7 +193,19 @@ impl Mesh {
             held,
             used_bytes,
             served_bytes: self.served.load(Ordering::Relaxed),
+            paid: self.paid_status(),
         }
+    }
+
+    /// Where this launcher's node can be reached, while it runs.
+    pub async fn addr(&self) -> Option<EndpointAddr> {
+        let node = self.node.lock().await;
+        node.as_ref().map(|n| n.router.endpoint().addr())
+    }
+
+    /// Learn where a peer can be reached, out of band: for two launchers on one PC with no relay (tests).
+    pub fn learn(&self, addr: EndpointAddr) {
+        self.lookup.add_endpoint_info(addr);
     }
 
     /// Take in what the temporary content store holds that the Mesh does not, within the disk limit. Returns how many
@@ -259,19 +290,37 @@ impl Mesh {
         if self.node.lock().await.is_none() {
             self.run(false).await?;
         }
+        self.fetch_hash_from(ticket.addr().clone(), hash)
+            .await
+            .map(|(fetched, _)| fetched)
+    }
+
+    /// Fetch `hash` from the peer at `addr`, verified, and keep it within the disk limit. Returns what arrived, and how
+    /// many of its bytes came from that peer: none when this launcher held it already.
+    pub(crate) async fn fetch_hash_from(
+        &self,
+        addr: EndpointAddr,
+        hash: Hash,
+    ) -> QorResult<(Fetched, u64)> {
+        let limit = self.settings().disk_bytes;
         let node = self.node.lock().await;
-        let node = node.as_ref().expect("a node runs after run()");
+        let node = node
+            .as_ref()
+            .ok_or_else(|| QorError::Mesh("The Mesh is not running.".into()))?;
         if let Ok(BlobStatus::Complete { size }) = node.store.blobs().status(hash).await {
-            return Ok(Fetched {
-                root: hash.to_hex().to_string(),
-                size,
-            });
+            return Ok((
+                Fetched {
+                    root: hash.to_hex().to_string(),
+                    size,
+                },
+                0,
+            ));
         }
         let connect = |e: String| QorError::Mesh(format!("The peer could not be reached: {e}"));
         let endpoint = node.router.endpoint();
-        let conn = endpoint
-            .connect(ticket.addr().clone(), iroh_blobs::ALPN)
+        let conn = tokio::time::timeout(DIAL, endpoint.connect(addr, iroh_blobs::ALPN))
             .await
+            .map_err(|_| connect("no answer".into()))?
             .map_err(|e| connect(e.to_string()))?;
         // The verified size, read with a proof before the blob is taken: a peer cannot claim a small file and send a
         // large one, and nothing is written if it would pass the limit.
@@ -285,7 +334,7 @@ impl Mesh {
                 "That file is {size} bytes, more than the Mesh's disk limit leaves room for."
             )));
         }
-        node.store.remote().fetch(conn, hash).await.map_err(|e| {
+        let stats = node.store.remote().fetch(conn, hash).await.map_err(|e| {
             QorError::Mesh(format!(
                 "The file did not arrive as its fingerprint says: {e}"
             ))
@@ -295,14 +344,18 @@ impl Mesh {
             .set(format!("fetched/{}", hash.to_hex()), hash)
             .await
             .map_err(|e| QorError::Mesh(e.to_string()))?;
-        Ok(Fetched {
-            root: hash.to_hex().to_string(),
-            size,
-        })
+        Ok((
+            Fetched {
+                root: hash.to_hex().to_string(),
+                size,
+            },
+            stats.payload_bytes_read,
+        ))
     }
 
     /// Shut the node and its store, so another may open them.
     pub async fn stop(&self) {
+        self.stop_worker();
         if let Some(node) = self.node.lock().await.take() {
             close(node).await;
         }
@@ -321,11 +374,13 @@ impl Mesh {
         let store = FsStore::load(self.dir.join("store"))
             .await
             .map_err(|e| QorError::Mesh(format!("The Mesh's store could not be opened: {e}")))?;
-        let endpoint = bind(self.net, node_key(&self.dir)?).await?;
+        let endpoint = bind(self.net, node_key(&self.dir)?, self.lookup.clone()).await?;
         let mut router = Router::builder(endpoint);
         if serving {
             let events = throttle(Arc::clone(&self.rate), Arc::clone(&self.served));
-            router = router.accept(iroh_blobs::ALPN, BlobsProtocol::new(&store, Some(events)));
+            router = router
+                .accept(iroh_blobs::ALPN, BlobsProtocol::new(&store, Some(events)))
+                .accept(paid::RECEIPT_ALPN, paid::ReceiptDesk(Arc::downgrade(self)));
         }
         let router = router.spawn();
         let resync = if serving {
@@ -349,6 +404,10 @@ impl Mesh {
             serving,
             resync,
         });
+        drop(slot);
+        if serving {
+            self.start_worker();
+        }
         Ok(())
     }
 }
@@ -361,16 +420,18 @@ async fn close(node: Node) {
     let _ = node.store.shutdown().await;
 }
 
-async fn bind(net: Net, key: SecretKey) -> QorResult<Endpoint> {
+async fn bind(net: Net, key: SecretKey, lookup: MemoryLookup) -> QorResult<Endpoint> {
     let failed = |e: String| QorError::Mesh(format!("The Mesh could not start its network: {e}"));
     match net {
         Net::Public => Endpoint::builder(presets::N0)
             .secret_key(key)
+            .address_lookup(lookup)
             .bind()
             .await
             .map_err(|e| failed(e.to_string())),
         Net::Local => Endpoint::builder(presets::Minimal)
             .secret_key(key)
+            .address_lookup(lookup)
             .relay_mode(RelayMode::Disabled)
             .bind_addr("127.0.0.1:0")
             .map_err(|e| failed(e.to_string()))?

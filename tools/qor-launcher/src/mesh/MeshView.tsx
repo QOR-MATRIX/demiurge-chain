@@ -1,18 +1,20 @@
 /**
- * The Mesh (ADR-095; docs/blueprints/mesh.md section 2; L10.1): seeding on or off with the person's own limits, what
- * this PC holds and has served, a ticket for each file to hand to someone, and fetching a file by its ticket.
+ * The Mesh (ADR-095, ADR-097; docs/blueprints/mesh.md section 2; L10.1 to L10.4): seeding on or off with the person's
+ * own limits, what this PC holds and has served, what it was paid for that, a ticket for each file to hand to someone,
+ * fetching a file by its ticket or its fingerprint, and paying seeders to hold one's own work.
  *
  * Seeding is off until the person turns it on, and turning it on needs both limits. The page says plainly what seeding
- * shows of them (their network address, to the peers they serve) and what it does not do yet: no CGT is paid until the
- * proofs (L10.3) and the hosting escrow (L10.4) exist.
+ * shows of them (their network address, to the peers they serve), and that paid work is signed by the Mesh for their
+ * account only once they allow it, in the host's own dialog, and can never send their CGT. Every price in an escrow is
+ * the person's own: the form suggests none.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Copy, Download, Loader2, Share2 } from 'lucide-react';
+import { Coins, Copy, Download, Loader2, Share2 } from 'lucide-react';
 
 import { useQor } from '../state/store';
 import { Panel, Stat, ViewHeader } from '../views/parts';
-import { bytes, DISK_CHOICES, mesh, rate, short, UPLOAD_CHOICES, type Held, type MeshStatus } from './model';
+import { bytes, DISK_CHOICES, mesh, rate, short, toSparks, UPLOAD_CHOICES, type Held, type MeshStatus } from './model';
 
 function explain(e: unknown): string {
   return e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : String(e);
@@ -27,6 +29,8 @@ export function MeshView() {
   const [busy, setBusy] = useState(false);
   const [ticket, setTicket] = useState('');
   const [fetching, setFetching] = useState(false);
+  const [root, setRoot] = useState('');
+  const [escrowFor, setEscrowFor] = useState<Held | null>(null);
 
   const read = useCallback(async () => {
     try {
@@ -87,7 +91,35 @@ export function MeshView() {
     }
   };
 
+  const fetchRoot = async () => {
+    setFetching(true);
+    try {
+      const got = await mesh.fetchRoot(root.trim());
+      notify('ok', `Found through the chain, fetched and verified: ${bytes(got.size)}.`);
+      setRoot('');
+      await read();
+    } catch (e) {
+      notify('bad', explain(e));
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  const allowPaid = async () => {
+    setBusy(true);
+    try {
+      await mesh.allowPaid();
+      notify('ok', 'The Mesh now signs its own work for your account.');
+      await read();
+    } catch (e) {
+      notify('bad', explain(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const seeding = status?.settings.seeding ?? false;
+  const paid = status?.paid;
   const changed = status && (disk !== status.settings.diskBytes || upload !== status.settings.uploadBytesPerSecond);
 
   return (
@@ -115,8 +147,9 @@ export function MeshView() {
                 <li>Seeding shows your network address to the peers you serve.</li>
                 <li>Every file is checked against its fingerprint; nothing unchecked is kept or served.</li>
                 <li>
-                  No CGT is paid yet: payment for seeding comes with the proofs and the hosting escrow, still being
-                  built. Today the Mesh holds your own published work.
+                  To be paid, the Mesh signs its own work for your account: proof that this PC holds what it took on,
+                  claims for what it served, and receipts for what it downloads. You are asked once, when you turn
+                  seeding on. It can never send your CGT, and turning seeding off ends it.
                 </li>
               </ul>
             </div>
@@ -183,6 +216,11 @@ export function MeshView() {
                   </span>
                   <span className="text-caption text-ink-muted">{h.kind === 'own' ? 'your work' : 'fetched'}</span>
                   <span className="numeric ml-auto text-caption text-ink-body">{bytes(h.size)}</span>
+                  {seeding && h.kind === 'own' && (
+                    <button type="button" className="btn btn-ghost px-2" title="Pay seeders to hold this file" aria-label="Pay seeders to hold this file" onClick={() => setEscrowFor(h)} data-mesh-escrow-open>
+                      <Coins size={14} />
+                    </button>
+                  )}
                   {seeding && (
                     <button type="button" className="btn btn-ghost px-2" title="Copy a ticket for this file" aria-label="Copy a ticket for this file" onClick={() => void copyTicket(h.root)} data-mesh-ticket>
                       <Copy size={14} />
@@ -192,6 +230,74 @@ export function MeshView() {
               ))}
             </ul>
           )}
+          {escrowFor && (
+            <EscrowForm
+              file={escrowFor}
+              onDone={async (opened) => {
+                setEscrowFor(null);
+                if (opened !== null) {
+                  notify('ok', `Escrow ${opened} is open. Seeders can take this file on.`);
+                  await read();
+                }
+              }}
+              onError={(e) => notify('bad', explain(e))}
+            />
+          )}
+        </Panel>
+
+        <Panel className="p-6">
+          <div data-mesh-paid>
+            <h2 className="heading text-title">Paid for what this PC does</h2>
+            {!paid?.account ? (
+              <div className="mt-2 grid gap-3">
+                <p className="text-ui text-ink-muted" data-mesh-paid-off>
+                  The Mesh is not signing for any account, so this PC is paid nothing for what it holds or serves.
+                </p>
+                {seeding && (
+                  <div>
+                    <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void allowPaid()} data-mesh-allow>
+                      Let the Mesh sign its work
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mt-3 grid gap-4">
+                <p className="text-caption text-ink-muted">
+                  Signing for <span className="numeric selectable text-ink-body" data-mesh-account>{short(paid.account)}</span>.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Stat label="Paid" value={paid.paidCgt} detail="for proven storage and serving" />
+                  <Stat label="Held for others" value={String(paid.holdings.length)} detail="files an escrow pays for" />
+                  <Stat label="Receipts waiting" value={String(paid.pendingReceipts)} detail="to be claimed" />
+                </div>
+                {paid.holdings.length > 0 && (
+                  <ul className="grid gap-2" data-mesh-holdings>
+                    {paid.holdings.map((h) => (
+                      <li key={h.escrow} className="flex items-center gap-3 rounded border border-edge px-3 py-2" data-mesh-holding={h.escrow}>
+                        <span className="text-caption text-ink-muted">Escrow {h.escrow}</span>
+                        <span className="numeric text-ui text-ink" title={h.root}>{short(h.root)}</span>
+                        <span className="text-caption text-ink-muted">
+                          {h.answered === null ? 'not yet proven' : `proven in period ${h.answered}`}
+                        </span>
+                        <span className="numeric ml-auto text-caption text-ink-body">{bytes(h.size)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {paid.payments.length > 0 && (
+                  <ul className="grid gap-1 text-caption" data-mesh-payments>
+                    {paid.payments.map((p) => (
+                      <li key={p.blockHash + p.kind + (p.escrow ?? '')} className="flex gap-3" data-mesh-payment>
+                        <span className="text-ink-muted">{p.kind === 'storage' ? 'Holding proven' : 'Serving'}</span>
+                        <span className="numeric ml-auto text-ink-body">{p.paidCgt}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
         </Panel>
 
         <Panel className="p-6">
@@ -210,7 +316,109 @@ export function MeshView() {
               {fetching ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Fetch
             </button>
           </div>
+          <h2 className="heading mt-6 text-title">Fetch by fingerprint</h2>
+          <p className="mt-1 text-caption text-ink-muted">
+            A file an escrow pays seeders to hold is found through the chain by its fingerprint alone. What arrives is
+            checked before it is kept.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <input
+              className="field numeric flex-1"
+              placeholder="A file's fingerprint (64 hex characters)"
+              aria-label="File fingerprint"
+              value={root}
+              onChange={(e) => setRoot(e.target.value)}
+              data-mesh-root-input
+            />
+            <button type="button" className="btn btn-primary" disabled={fetching || !/^[0-9a-f]{64}$/i.test(root.trim())} onClick={() => void fetchRoot()} data-mesh-fetch-root>
+              {fetching ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Fetch
+            </button>
+          </div>
         </Panel>
+      </div>
+    </div>
+  );
+}
+
+/** Pay seeders to hold one's own work: every number is the person's, and none is suggested. */
+function EscrowForm({
+  file,
+  onDone,
+  onError,
+}: {
+  file: Held;
+  onDone: (opened: number | null) => void | Promise<void>;
+  onError: (e: unknown) => void;
+}) {
+  const [copies, setCopies] = useState('');
+  const [storage, setStorage] = useState('');
+  const [serving, setServing] = useState('');
+  const [capMib, setCapMib] = useState('');
+  const [deposit, setDeposit] = useState('');
+  const [opening, setOpening] = useState(false);
+
+  const terms = (() => {
+    const n = Number(copies);
+    const cap = Number(capMib);
+    const [s, v, d] = [toSparks(storage), toSparks(serving), toSparks(deposit)];
+    if (!Number.isInteger(n) || n < 1 || n > 16 || !Number.isInteger(cap) || cap < 0 || s === null || v === null || d === null) return null;
+    return {
+      root: file.root,
+      size: file.size,
+      copies: n,
+      storagePriceSparks: s,
+      servingPricePerMibSparks: v,
+      servingCapPerPeriod: cap * 1024 * 1024,
+      depositSparks: d,
+    };
+  })();
+
+  const open = async () => {
+    if (!terms) return;
+    setOpening(true);
+    try {
+      await onDone(await mesh.openEscrow(terms));
+    } catch (e) {
+      onError(e);
+    } finally {
+      setOpening(false);
+    }
+  };
+
+  const field = (label: string, value: string, set: (v: string) => void, name: string, unit: string) => (
+    <label className="grid gap-1">
+      <span className="eyebrow">{label}</span>
+      <span className="flex items-center gap-2">
+        <input className="field numeric flex-1" inputMode="decimal" value={value} onChange={(e) => set(e.target.value)} data-mesh-escrow-field={name} />
+        <span className="text-caption text-ink-muted">{unit}</span>
+      </span>
+    </label>
+  );
+
+  return (
+    <div className="mt-4 grid gap-4 rounded border border-edge p-4" data-mesh-escrow>
+      <p className="text-ui text-ink-body">
+        Pay seeders to hold <span className="numeric">{short(file.root)}</span> ({bytes(file.size)}). The prices are
+        yours; the host asks you to approve the escrow before anything is sent.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {field('Copies held', copies, setCopies, 'copies', 'seeders, 1 to 16')}
+        {field('For each proof of holding', storage, setStorage, 'storage', 'CGT')}
+        {field('For each MiB served', serving, setServing, 'serving', 'CGT')}
+        {field('Serving paid for, at most', capMib, setCapMib, 'cap', 'MiB a period')}
+        {field('Put in the escrow', deposit, setDeposit, 'deposit', 'CGT')}
+      </div>
+      <p className="text-caption text-ink-muted" data-mesh-escrow-limit>
+        Two people working together can draw on the escrow by downloading from each other, up to the most you pay for
+        serving each period. What is left comes back to you when you close it.
+      </p>
+      <div className="flex gap-3">
+        <button type="button" className="btn btn-primary" disabled={!terms || opening} onClick={() => void open()} data-mesh-escrow-submit>
+          {opening && <Loader2 size={14} className="animate-spin" />} Open the escrow
+        </button>
+        <button type="button" className="btn btn-ghost" disabled={opening} onClick={() => void onDone(null)}>
+          Cancel
+        </button>
       </div>
     </div>
   );

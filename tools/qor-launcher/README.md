@@ -4,8 +4,9 @@ The sovereign gateway to the Demiurge ecosystem. One desktop application through
 which every chain and engine system is reached: QOR ID, the CGT Vault, the game
 library, community, peer-to-peer distribution and the node itself.
 
-**Status:** Version 0.1.9 (unsigned, no update channel; built 17 October 2026
-with avatars, rings, Social and the Library). Gate, Nexus, Vault, Inventory, Projects, Chain, Gates
+**Status:** Version 0.1.10 (unsigned, no update channel; 17 October 2026: the Mesh's
+paid work, and QOR Media inside the Windows installer; 0.1.9 brought avatars, rings,
+Social and the Library). Gate, Nexus, Vault, Inventory, Projects, Chain, Gates
 and Settings are built and running, and so is the first slice of Market (L7.2):
 every listing the chain holds, read through the connected node, with no search
 and no indexer behind it. So are payments asked by websites (`qor://pay`), the
@@ -351,9 +352,10 @@ thumbnail for pictures. Folders are scanned at start and watched while the launc
 move a focus ring, and a game controller does the same through the Gamepad API (D-pad or left stick, A opens, B goes
 back), since WebView2 turns controller input into no keys.
 
-A file opens in **QOR Media** (`tools/qor-media/`, a Qt 6 program with [its own README](../qor-media/README.md)) when it
-is deployed at `%LOCALAPPDATA%\qor-media\qor-media.exe` or `QOR_MEDIA` names it; otherwise in the program Windows
-chooses. `src-tauri/src/media.rs` starts it under the product host (above) and answers its one method, `media.next`,
+A file opens in **QOR Media** (`tools/qor-media/`, a Qt 6 program with [its own README](../qor-media/README.md)) where
+`QOR_MEDIA` names it, or in the launcher's install folder, where the Windows installer puts it since 0.1.10
+(`npm run app:build` stages it with `scripts/stage-qor-media.mjs`, which needs the owner's Qt), or where it is deployed at
+`%LOCALAPPDATA%\qor-media\qor-media.exe`; otherwise in the program Windows chooses. `src-tauri/src/media.rs` starts it under the product host (above) and answers its one method, `media.next`,
 with the next command: open a file, sit at the Library's rectangle in physical pixels (`media_place`), hide when the
 person leaves the Library (`media_hide`), or wear the launcher's colours (`media_theme`, `#rrggbb` tokens only). QOR
 Media's window becomes a child of the launcher's. Its reports (where playback stopped, a file's length and size) ride

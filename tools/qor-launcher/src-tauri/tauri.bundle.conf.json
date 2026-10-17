@@ -1,9 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "bundle": {
-    "externalBin": ["binaries/qontrol-git"],
+    "externalBin": [
+      "binaries/qontrol-git"
+    ],
     "resources": {
-      "licenses/libgit2-COPYING.txt": "licenses/libgit2-COPYING.txt"
+      "licenses/libgit2-COPYING.txt": "licenses/libgit2-COPYING.txt",
+      "media-bundle/qor-media/": "qor-media/"
     }
   }
 }

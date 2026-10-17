@@ -1,4 +1,5 @@
-// Does the Mesh page ask the host exactly what the person chose, and say plainly what seeding is and is not? (ADR-095, L10.1)
+// Does the Mesh page ask the host exactly what the person chose, and say plainly what seeding is and is not? (ADR-095,
+// ADR-097, L10.1 to L10.4)
 //
 // The host's tests prove the Mesh itself (src-tauri/src/mesh: two real nodes, verified transfer, the limits, refusing a
 // seeder whose bytes changed). This check covers what reaches the screen: it serves the built frontend in a real
@@ -6,7 +7,10 @@
 //
 // What it holds the page to:
 //   - seeding is off on arrival, and the page says so, says that seeding shows the person's network address to the peers
-//     they serve, and says that no CGT is paid yet;
+//     they serve, and says that to be paid the Mesh signs its own work, asked once, and can never send their CGT;
+//   - on, the account the Mesh signs for is shown; off, the page says it signs for none;
+//   - a file is fetched by its fingerprint only once one is typed, and the host's refusal is shown in its own words;
+//   - an escrow's form suggests no price, sends every amount as exact Sparks, and refuses more than 18 decimals;
 //   - seeding cannot be turned on until both limits are chosen, and is asked for with exactly the limits chosen;
 //   - on, it shows what is held, whose it is, and how much of the disk given is used;
 //   - a ticket is asked for by the file's root and put on the clipboard;
@@ -55,6 +59,9 @@ const MB = 1000 ** 2;
 const OWN = 'aa'.repeat(32);
 const GOT = 'bb'.repeat(32);
 const TICKET = 'blobfixtureticketnamingafileandthepcthathasit';
+const FOUND = 'cc'.repeat(32);
+const ACCOUNT = '5MeshFixtureAccountSignedForByTheMeshGrantXXXXXXXX';
+const MIB = 1024 * 1024;
 
 const results = [];
 const check = (name, pass, detail = '') => {
@@ -145,7 +152,11 @@ try {
   const HOST_STUB = `
     window.__CALLS__ = [];
     window.__CLIP__ = [];
-    window.__MESH__ = { settings: { seeding: false, diskBytes: 0, uploadBytesPerSecond: 0 }, held: [] };
+    window.__MESH__ = {
+      settings: { seeding: false, diskBytes: 0, uploadBytesPerSecond: 0 },
+      held: [],
+      paid: { account: null, holdings: [], pendingReceipts: 0, paidSparks: '0', paidCgt: '0.00 CGT', payments: [] },
+    };
     window.__CALLBACKS__ = {};
     window.__LISTENERS__ = {};
     let callbacks = 0;
@@ -153,7 +164,7 @@ try {
     const status = () => {
       const m = window.__MESH__;
       const used = m.held.reduce((n, h) => n + h.size, 0);
-      return { settings: m.settings, node: m.settings.seeding ? 'fixturenode' : null, held: m.held.length, usedBytes: used, servedBytes: 3 * 1024 * 1024 };
+      return { settings: m.settings, node: m.settings.seeding ? 'fixturenode' : null, held: m.held.length, usedBytes: used, servedBytes: 3 * 1024 * 1024, paid: m.paid };
     };
     window.__TAURI_INTERNALS__ = {
       invoke: (cmd, args) => {
@@ -172,8 +183,18 @@ try {
               return Promise.reject({ kind: 'mesh', message: 'Choose how much disk and upload to give the Mesh before seeding.' });
             m.settings = s;
             if (s.seeding && !m.held.some((h) => h.kind === 'own')) m.held = [{ root: '${OWN}', size: 300 * 1024, kind: 'own' }, ...m.held];
+            // The host asks for the Mesh grant in its own dialog as seeding turns on; here the person approved it.
+            m.paid = { ...m.paid, account: s.seeding ? '${ACCOUNT}' : null };
             return Promise.resolve(status());
           }
+          case 'mesh_allow_paid':
+            m.paid = { ...m.paid, account: '${ACCOUNT}' };
+            return Promise.resolve(m.paid);
+          case 'mesh_fetch_root':
+            if (args.root !== '${FOUND}') return Promise.reject({ kind: 'mesh', message: 'Nobody on the chain is paid to hold that file. Ask for a Mesh ticket instead.' });
+            m.held = [...m.held, { root: '${FOUND}', size: 1024 * 1024, kind: 'fetched' }];
+            return Promise.resolve({ root: '${FOUND}', size: 1024 * 1024 });
+          case 'mesh_open_escrow': return Promise.resolve(7);
           case 'mesh_ticket': return Promise.resolve('${TICKET}');
           case 'mesh_fetch':
             if (args.ticket !== '${TICKET}') return Promise.reject({ kind: 'mesh', message: 'That is not a Mesh ticket.' });
@@ -225,7 +246,9 @@ try {
   check('seeding is off on arrival, and the page says so', (await text('[data-mesh] h2')).includes('Seeding is off'));
   const terms = await text('[data-mesh-terms]');
   check('it says seeding shows your network address to the peers you serve', terms.includes('network address') && terms.includes('peers you serve'), terms);
-  check('it says no CGT is paid yet', terms.includes('No CGT is paid yet'), terms);
+  check('it says to be paid the Mesh signs its own work, asked once', terms.includes('signs its own work') && terms.includes('asked once'), terms);
+  check('and that it can never send their CGT', terms.includes('never send your CGT'), terms);
+  check('off, the page says the Mesh signs for no account', (await text('[data-mesh-paid]')).includes('not signing for any account'));
   check('nothing was asked of the host but to read', (await configured()).length === 0);
 
   // --- turning it on -----------------------------------------------------------------------------
@@ -241,6 +264,8 @@ try {
   check('on, the page says it is seeding', await eventually(`(document.querySelector('[data-mesh] h2')?.textContent ?? '') === 'Seeding'`));
   check('what is held is listed, as your work', await eventually(`(document.querySelector('[data-mesh-item="${OWN}"]')?.textContent ?? '').includes('your work')`));
   check('and how much of the disk given is used', (await text('[data-mesh-stats]')).includes('of 20.0 GiB'), await text('[data-mesh-stats]'));
+  check('on, the account the Mesh signs for is shown', await eventually(`Boolean(document.querySelector('[data-mesh-account]'))`)
+    && (await text('[data-mesh-account]')).startsWith(ACCOUNT.slice(0, 8)));
 
   // --- a ticket ----------------------------------------------------------------------------------
   await click(`[data-mesh-item="${OWN}"] [data-mesh-ticket]`);
@@ -259,6 +284,43 @@ try {
     && (await calls('mesh_fetch'))[1].ticket === TICKET);
   check('what was fetched joins the list, as fetched', await eventually(`(document.querySelector('[data-mesh-item="${GOT}"]')?.textContent ?? '').includes('fetched')`));
 
+  // --- by fingerprint ------------------------------------------------------------------------------
+  await type('[data-mesh-root-input]', 'abc');
+  check('fetching by fingerprint waits for a whole one', await evaluate(`document.querySelector('[data-mesh-fetch-root]').disabled`));
+  await type('[data-mesh-root-input]', 'dd'.repeat(32));
+  await click('[data-mesh-fetch-root]');
+  check('a fingerprint nobody holds is refused in the host\'s own words', await eventually(`document.body.textContent.includes('Nobody on the chain is paid to hold that file.')`));
+  await type('[data-mesh-root-input]', FOUND);
+  await click('[data-mesh-fetch-root]');
+  check('fetching asks the host with the fingerprint typed', await eventually(`window.__CALLS__.filter((c) => c.cmd === 'mesh_fetch_root').length === 2`)
+    && (await calls('mesh_fetch_root'))[1].root === FOUND);
+  check('what was found joins the list', await eventually(`Boolean(document.querySelector('[data-mesh-item="${FOUND}"]'))`));
+
+  // --- an escrow ------------------------------------------------------------------------------------
+  check('only one\'s own work is offered an escrow', await evaluate(`Boolean(document.querySelector('[data-mesh-item="${OWN}"] [data-mesh-escrow-open]')) && !document.querySelector('[data-mesh-item="${GOT}"] [data-mesh-escrow-open]')`));
+  await click(`[data-mesh-item="${OWN}"] [data-mesh-escrow-open]`);
+  await until(`Boolean(document.querySelector('[data-mesh-escrow]'))`, 'the escrow form');
+  check('the form suggests no price', await evaluate(`[...document.querySelectorAll('[data-mesh-escrow-field]')].every((f) => f.value === '')`));
+  check('and says what collusion can draw', (await text('[data-mesh-escrow-limit]')).includes('downloading from each other'));
+  check('it cannot be sent empty', await evaluate(`document.querySelector('[data-mesh-escrow-submit]').disabled`));
+  const fill = async (name, value) => type(`[data-mesh-escrow-field="${name}"]`, value);
+  await fill('copies', '2');
+  await fill('storage', '0.5');
+  await fill('serving', '1.25');
+  await fill('cap', '10');
+  await fill('deposit', '0.0000000000000000001');
+  check('more than 18 decimals is refused, not cut', await evaluate(`document.querySelector('[data-mesh-escrow-submit]').disabled`));
+  await fill('deposit', '100');
+  await until(`!document.querySelector('[data-mesh-escrow-submit]').disabled`, 'the escrow button');
+  await click('[data-mesh-escrow-submit]');
+  check('the escrow is asked for in exact Sparks, for the file chosen', await eventually(`window.__CALLS__.some((c) => c.cmd === 'mesh_open_escrow')`)
+    && JSON.stringify((await calls('mesh_open_escrow'))[0].terms) === JSON.stringify({
+      root: OWN, size: 300 * 1024, copies: 2,
+      storagePriceSparks: '500000000000000000', servingPricePerMibSparks: '1250000000000000000',
+      servingCapPerPeriod: 10 * MIB, depositSparks: '100000000000000000000',
+    }), JSON.stringify((await calls('mesh_open_escrow'))[0]));
+  check('and the form closes once it is open', await eventually(`!document.querySelector('[data-mesh-escrow]')`));
+
   // --- new limits, and off ---------------------------------------------------------------------------
   const before = (await configured()).length;
   await choose('disk', '50');
@@ -270,6 +332,7 @@ try {
   check('turning seeding off keeps the limits', await eventually(`window.__CALLS__.filter((c) => c.cmd === 'mesh_configure').length === ${before + 2}`)
     && JSON.stringify((await configured())[before + 1].settings) === JSON.stringify({ seeding: false, diskBytes: 50 * GIB, uploadBytesPerSecond: 5 * MB }));
   check('and the page says it is off', await eventually(`(document.querySelector('[data-mesh] h2')?.textContent ?? '') === 'Seeding is off'`));
+  check('and that the Mesh signs for no account', await eventually(`(document.querySelector('[data-mesh-paid]')?.textContent ?? '').includes('not signing for any account')`));
 
   // --- the words -------------------------------------------------------------------------------------
   const words = await page();
