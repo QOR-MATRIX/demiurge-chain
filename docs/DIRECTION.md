@@ -1273,7 +1273,7 @@ here sets an economic value; payouts are U-16.
 
 19. [ ] ARQADE in the launcher on Qt (ADR-102): `products/arqade/qt/`, docked under the product host, signed in with the
     launcher's QOR ID, Qt Quick and Qt Quick 3D throughout, holding no key. Its home, the games, rankings and the
-    player's Sparks. **Built, 18 October 2026, not yet merged:**
+    player's Sparks. **Built, 18 October 2026, in pull request #48 (not merged) and in the tester release launcher 0.1.14:**
     - The app has its home: a 3D astrolabe portal, the four games and two arenas as cards with 3D emblems, the player's
       Sparks, and the arenas' rankings from ARQADE's server.
     - The launcher's ARQADE screen starts the app and docks it, telling it where to sit, the launcher's colours, who is
@@ -1284,8 +1284,7 @@ here sets an economic value; payouts are U-16.
     - Tests: 32 Qt tests, 13 host tests (three seen to fail against planted faults), 17 browser checks, and an opt-in
       test that starts the real app.
 
-    **Not yet:** a person signing in through it in the running launcher, against QOR ID's deployed handoff route, and a
-    release carrying it.
+    **Not yet:** a person signing in through it in the running launcher, against QOR ID's deployed handoff route.
 20. [ ] The four solo games rebuilt in QQ (ADR-102): Rift Survivor, Void Runner, Synapse and Orbital, in 3D with
     physically based materials, bloom, particles and spatial sound, keyboard, mouse and gamepad, reduced motion
     honoured, each deterministic for a seed and its inputs.

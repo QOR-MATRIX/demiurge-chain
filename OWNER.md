@@ -12,37 +12,37 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 - **The homepage** at **qorsync.dev**. **Devnet** — *the test chain on servers* — on runtime 9.
 - **QOR ID** — *the one sign-in* — and **Social** — *the chat service* — on Railway.
-- **ARQADE** — *the gaming website* — and **launcher 0.1.12** for testers.
-- In `main` since you merged #46 and #47: **0.1.13's profiles** and **Sparks** (1 CGT = 1,000).
+- **ARQADE** — *the gaming website* — on Vercel.
+- **Launcher 0.1.14 for testers**, published tonight:
+  `github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.14`.
 
-## Built tonight, waiting for your word
+## New in 0.1.14
 
-**ARQADE inside the launcher**, stage 2 of six. It is a Qt app — *the toolkit QOR Media uses* —
-**docked** — *drawn inside the launcher's window* — over the ARQADE screen:
+- **ARQADE inside the launcher.** It is a Qt app — *the toolkit QOR Media uses* — **docked**
+  — *drawn inside the launcher's window*:
+  - a 3D gilt astrolabe that follows the mouse;
+  - the six games as cards;
+  - your Sparks;
+  - the rankings.
 
-- a 3D gilt astrolabe that follows the pointer;
-- the six games as cards, each with its own little 3D scene;
-- your Sparks;
-- the arenas' rankings.
+  It signs in through the launcher, so nothing is typed. It draws on your RTX 4060. The games
+  themselves are rebuilt next; until then each card opens today's version.
+- **Sparks:** 1 CGT = 1,000 Sparks, shown and typed.
+- **Profiles:** each QOR ID has its own wallet and PIN (from 0.1.13, never published alone).
 
-It signs in to ARQADE through the launcher, so no password is typed; tested against stand-ins,
-not yet by a person in a running launcher. It draws on your RTX 4060, not the weaker Intel chip.
-Every test passes, and the launcher started the real app.
-
-The games themselves are rebuilt next (stage 3); until then each card opens today's version.
-
-**Nothing is committed yet:** say "commit it" and I'll open a pull request.
+Signing in to ARQADE through a running launcher is the one part not yet tried by a person.
 
 ## What only you can do
 
-1. **Say "commit it"** for the ARQADE app, and "publish 0.1.13" if testers should have profiles.
-2. **Google Search Console:** add `qorsync.dev`, verify with the DNS record in Cloudflare,
+1. **Install 0.1.14 and try ARQADE:** open ARQADE from the menu while signed in.
+2. **Merge #48** — *this work and the homepage's new download link*. CI checks it first.
+3. **Google Search Console:** add `qorsync.dev`, verify with the DNS record in Cloudflare,
    submit `qorsync.dev/sitemap.xml`; Bing can import it from Google.
-3. **GitHub social preview:** repository Settings → Social preview → `site/og.png`.
-4. **Rule on one gate change** (in #46): ADR-098's check replaced by ADR-099's. A loosening?
-5. **The reward pool's numbers**, at ARQADE's stage 4: the most per run, per player per day,
+4. **GitHub social preview:** repository Settings → Social preview → `site/og.png`.
+5. **Rule on one gate change** (in #46): ADR-098's check replaced by ADR-099's. A loosening?
+6. **The reward pool's numbers**, at ARQADE's stage 4: the most per run, per player per day,
    and in total.
-6. **Still open:** godmode's 100,000,000 CGT (I need its address); Social's report rules
+7. **Still open:** godmode's 100,000,000 CGT (I need its address); Social's report rules
    (L8.7); `social-secrets.txt` on your Desktop; `archive-bZLIQp/`; QQ Studio's update; the last
    two L1.4 checks; CI for QQ; the welcome-grant payer; an email; the key pasted on 5 October.
 
