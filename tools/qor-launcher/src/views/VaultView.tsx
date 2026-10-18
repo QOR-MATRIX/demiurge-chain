@@ -11,6 +11,10 @@
  * - **Sending is a two-stage act.** You compose, then you confirm against a
  *   summary showing the exact recipient and amount. A transfer cannot be undone,
  *   so a single click should not be able to cause one.
+ * - **Whose account it is, said plainly** (0.1.12). The money belongs to an
+ *   account's key, and a QOR ID is a name bound to one key. Each account is
+ *   labelled with the QOR ID it belongs to, and when the account on screen is
+ *   not the signed-in QOR ID's own, the page says so before anything is sent.
  */
 
 import { useEffect, useState } from 'react';
@@ -22,9 +26,10 @@ import {
   Loader2,
   Plus,
   RefreshCw,
+  TriangleAlert,
 } from 'lucide-react';
 
-import { chain, explain, looksLikeAddress, shortAddress, vault, type Balance } from '../lib/ipc';
+import { chain, explain, looksLikeAddress, shortAddress, vault, type Balance, type Session } from '../lib/ipc';
 import { selectActiveAccount, selectActiveBalance, useQor } from '../state/store';
 import { ClaimGrant } from './Nexus';
 import { Field, Panel, ViewHeader } from './parts';
@@ -41,6 +46,8 @@ export function VaultView() {
   const refreshAllBalances = useQor((s) => s.refreshAllBalances);
   const refreshVault = useQor((s) => s.refreshVault);
   const notify = useQor((s) => s.notify);
+  const session = useQor((s) => s.session);
+  const owners = useQor((s) => s.owners);
 
   const [mode, setMode] = useState<Mode>('idle');
   const [refreshing, setRefreshing] = useState(false);
@@ -107,7 +114,18 @@ export function VaultView() {
                         : 'border-transparent text-ink-muted hover:bg-raised'
                     }`}
                   >
-                    <span className="text-ui font-semibold">{a.label}</span>
+                    <span className="flex w-full items-center gap-2">
+                      <span className="text-ui font-semibold">{a.label}</span>
+                      {session?.address === a.address ? (
+                        <span className="status-pill ml-auto text-ok" data-vault-owner={session.qor_id}>
+                          {session.qor_id}
+                        </span>
+                      ) : owners[a.address] ? (
+                        <span className="status-pill ml-auto text-ink-muted" data-vault-owner={owners[a.address]}>
+                          {owners[a.address]}
+                        </span>
+                      ) : null}
+                    </span>
                     <span className="numeric text-micro text-ink-faint">
                       {shortAddress(a.address, 10, 6)}
                     </span>
@@ -127,6 +145,13 @@ export function VaultView() {
             <p className="text-ink-muted">No account selected.</p>
           ) : (
             <>
+              <Whose
+                account={account.address}
+                session={session}
+                owner={owners[account.address] ?? null}
+                held={accounts.some((a) => a.address === session?.address)}
+                onSwitch={(address) => setActiveAddress(address)}
+              />
               <ClaimGrant />
               <Panel className="mb-6 p-6">
                 <p className="eyebrow mb-3">{account.label}</p>
@@ -184,6 +209,56 @@ export function VaultView() {
             </>
           )}
         </section>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * When the account on screen is not the signed-in QOR ID's own, say so, and say whose it is: sending from it spends
+ * that account's CGT. A QOR ID whose account this PC holds can switch to it in one click.
+ */
+function Whose({
+  account,
+  session,
+  owner,
+  held,
+  onSwitch,
+}: {
+  account: string;
+  session: Session | null;
+  owner: string | null;
+  held: boolean;
+  onSwitch: (address: string) => void;
+}) {
+  if (!session || session.address === account) return null;
+  const whose = owner ? `${owner}'s` : 'not linked to any QOR ID this launcher has seen';
+  return (
+    <div className="mb-6 flex items-start gap-3 border-l-2 border-warn bg-warn/5 px-4 py-3" role="note" data-vault-mismatch>
+      <TriangleAlert size={16} className="mt-0.5 flex-none text-warn" aria-hidden="true" />
+      <div className="min-w-0 flex-1 text-ui text-ink-body">
+        {session.address && held ? (
+          <>
+            <p>
+              You are signed in as <strong className="text-ink">{session.qor_id}</strong>, but this account is {whose}.
+              Sending from it spends this account&apos;s CGT, not {session.qor_id}&apos;s.
+            </p>
+            <button type="button" className="btn btn-primary mt-3" onClick={() => onSwitch(session.address!)} data-vault-switch>
+              Show {session.qor_id}&apos;s account
+            </button>
+          </>
+        ) : session.address ? (
+          <p>
+            You are signed in as <strong className="text-ink">{session.qor_id}</strong>, whose own account,{' '}
+            <span className="numeric">{shortAddress(session.address, 10, 6)}</span>, is not in this PC&apos;s wallet. The
+            account here is {whose}: sending from it spends its CGT, not {session.qor_id}&apos;s.
+          </p>
+        ) : (
+          <p>
+            You are signed in as <strong className="text-ink">{session.qor_id}</strong>, which has no account linked yet.
+            The account here is {whose}.
+          </p>
+        )}
       </div>
     </div>
   );

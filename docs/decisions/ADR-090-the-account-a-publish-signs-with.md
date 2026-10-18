@@ -1,7 +1,8 @@
 # ADR-090: The account a publish signs with
 
 **Status:** **Accepted**, 15 October 2026, by the owner, who chose the recommendation put to them ("Go with best
-recommendation"). Built the same day.
+recommendation"). Built the same day. **Amended by [ADR-098](ADR-098-each-qor-id-keeps-its-own-account.md)**
+(18 October 2026) in its "Unchanged" note only: QOR ID sign-in and `qor://pay` no longer use the first account.
 
 **Relates to:** [ADR-088](ADR-088-a-cartridge-holds-a-commit.md) (QQ Studio publishes a project as its Cartridge through
 the launcher; one game, one Cartridge), [ADR-046](ADR-046-the-launcher-is-an-app-host.md) (the launcher hosts products),

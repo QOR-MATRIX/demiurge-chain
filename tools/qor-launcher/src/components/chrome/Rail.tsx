@@ -185,6 +185,11 @@ export function Rail() {
             <span className="numeric block truncate text-micro text-ink-muted">
               {balance?.display ?? (account ? shortAddress(account.address) : standing)}
             </span>
+            {session && account && session.address !== account.address && (
+              <span className="block truncate text-micro text-warn" data-rail-mismatch>
+                Not {session.qor_id}&apos;s wallet
+              </span>
+            )}
             <XpBar progress={progress} />
           </span>
         </Surface>

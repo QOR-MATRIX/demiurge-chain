@@ -126,17 +126,27 @@ export function SettingsView() {
 }
 
 /**
- * Signing in to QOR ID when it did not happen at launch, usually because the
- * service was down (ADR-056). The vault's key signs a challenge; there is no
- * password. A key with no QOR ID yet is offered a name.
+ * Signing in to QOR ID, and choosing which of this PC's QOR IDs to be (launcher 0.1.12).
+ *
+ * The money belongs to an account's key, and a QOR ID is a name bound to one key. Each account of the vault is listed
+ * with the QOR ID this launcher has seen it signed in as, and signs in as that one; an account with none can claim a
+ * name. A new QOR ID is made on a new account of the vault, so each QOR ID on a shared PC holds its own CGT, never the
+ * first account's. There is no password: the account's key signs a challenge (ADR-056).
  */
 function SignIn() {
   const setSession = useQor((s) => s.setSession);
+  const refreshVault = useQor((s) => s.refreshVault);
   const accounts = useQor((s) => s.accounts);
+  const balances = useQor((s) => s.balances);
+  const owners = useQor((s) => s.owners);
+  const lastAddress = useQor((s) => s.lastAddress);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
-  const [needsName, setNeedsName] = useState(false);
+  // The account that turned out to have no QOR ID yet, which may claim a name.
+  const [unnamed, setUnnamed] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const [newName, setNewName] = useState('');
+  const validName = (n: string) => /^[A-Za-z0-9_-]{3,20}$/.test(n);
 
   const attempt = async (work: () => Promise<void>) => {
     setBusy(true);
@@ -150,52 +160,112 @@ function SignIn() {
     }
   };
 
-  const signIn = () =>
+  const signIn = (address: string) =>
     attempt(async () => {
-      const arrival = await identity.signIn();
+      const arrival = await identity.signIn(address);
       if (arrival.session) setSession(arrival.session);
-      else if (arrival.needs_name) setNeedsName(true);
+      else if (arrival.needs_name) setUnnamed(arrival.address ?? address);
       else setProblem(arrival.sign_in_problem ?? 'QOR ID could not be reached.');
     });
 
-  const claim = () =>
+  const claim = (address: string) =>
     attempt(async () => {
-      const address = accounts[0]?.address;
-      if (!address) throw new Error('No account is available to claim a QOR ID with.');
       setSession(await identity.registerWithKey(address, name));
+      setUnnamed(null);
     });
 
+  const create = () =>
+    attempt(async () => {
+      const arrival = await identity.newIdentity(newName);
+      await refreshVault();
+      if (arrival.session) setSession(arrival.session);
+      setNewName('');
+    });
+
+  // The account last in use first: it is the one launch signs in with.
+  const ordered = [...accounts].sort((a, b) => Number(b.address === lastAddress) - Number(a.address === lastAddress));
+
   return (
-    <div className="mb-5 space-y-3">
+    <div className="mb-5 space-y-4" data-signin>
       <p className="text-ui text-ink-muted">
-        Not signed in to QOR ID.
+        Not signed in to QOR ID. Each account in this PC&apos;s wallet signs in as its own QOR ID, and holds its own CGT.
       </p>
-      {needsName ? (
+      <ul className="grid gap-2" aria-label="Accounts to sign in with">
+        {ordered.map((a) => {
+          const owner = owners[a.address];
+          return (
+            <li key={a.address} className="rounded-qor border border-edge-soft px-4 py-3" data-signin-account={a.address}>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-ui font-semibold text-ink">{owner ?? a.label}</span>
+                  <span className="numeric block truncate text-micro text-ink-muted">
+                    {a.label} · {a.address.slice(0, 10)}…{a.address.slice(-6)} · {balances[a.address]?.display ?? '…'}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy}
+                  onClick={() => void signIn(a.address)}
+                  data-signin-as={a.address}
+                >
+                  {busy ? <Loader2 size={13} className="animate-spin" /> : <KeyRound size={13} />}
+                  {owner ? `Sign in as ${owner}` : 'Sign in with this account'}
+                </button>
+              </div>
+              {unnamed === a.address && (
+                <div className="mt-3 flex gap-2" data-signin-claim>
+                  <input
+                    className="field"
+                    placeholder="This account has no QOR ID yet: choose a name"
+                    aria-label="QOR ID name for this account"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={name}
+                    onChange={(e) => setName(e.target.value.trim())}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary flex-none"
+                    disabled={!validName(name) || busy}
+                    onClick={() => void claim(a.address)}
+                  >
+                    Claim
+                  </button>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <div className="rounded-qor border border-dashed border-edge px-4 py-3" data-signin-new>
+        <p className="mb-1 text-ui font-semibold text-ink">A new QOR ID</p>
+        <p className="mb-3 text-caption text-ink-muted">
+          Made on a new account of this wallet, so it starts with its own empty balance and never shares another QOR
+          ID&apos;s CGT.
+        </p>
         <div className="flex gap-2">
           <input
             className="field"
             placeholder="Choose a name"
-            aria-label="QOR ID name"
+            aria-label="Name for a new QOR ID"
             autoComplete="off"
             spellCheck={false}
-            value={name}
-            onChange={(e) => setName(e.target.value.trim())}
+            value={newName}
+            onChange={(e) => setNewName(e.target.value.trim())}
+            data-signin-new-name
           />
           <button
             type="button"
             className="btn btn-primary flex-none"
-            disabled={!/^[A-Za-z0-9_-]{3,20}$/.test(name) || busy}
-            onClick={() => void claim()}
+            disabled={!validName(newName) || busy}
+            onClick={() => void create()}
+            data-signin-new-create
           >
-            Claim
+            Create on a new account
           </button>
         </div>
-      ) : (
-        <button type="button" className="btn" disabled={busy} onClick={() => void signIn()}>
-          {busy ? <Loader2 size={13} className="animate-spin" /> : <KeyRound size={13} />}
-          Sign in to QOR ID
-        </button>
-      )}
+      </div>
       {problem && (
         <p role="alert" className="text-ui text-bad">
           {problem}

@@ -375,8 +375,10 @@ try {
   await noSecret('Settings, not signed in');
   check('there is no password route', !(await text()).toLowerCase().includes('password'));
   await evaluate(`window.__QOR_UP__()`);
-  await click('Sign in to QOR ID', 'main');
+  // Since 0.1.12 each account of the vault signs in as its own QOR ID; this vault's one account has none noted yet.
+  await click('Sign in with this account', 'main');
   check('signing in asks the host with the vault, once', (await calls('qor_sign_in')).length === 1);
+  check('naming the account it signs in with', typeof (await calls('qor_sign_in'))[0]?.args?.address === 'string');
   check('no password sign-in is ever sent', (await calls('qor_login')).length === 0);
   check('the QOR ID is then shown', (await text()).includes(SESSION.qor_id));
 

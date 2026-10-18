@@ -4,7 +4,8 @@ The sovereign gateway to the Demiurge ecosystem. One desktop application through
 which every chain and engine system is reached: QOR ID, the CGT Vault, the game
 library, community, peer-to-peer distribution and the node itself.
 
-**Status:** Version 0.1.11 (unsigned, no update channel; 17 October 2026: a file's menu in
+**Status:** Version 0.1.12 (unsigned, no update channel; 18 October 2026: each QOR ID on a shared
+PC keeps its own account, and the Vault says whose account is on screen. 0.1.11, 17 October 2026: a file's menu in
 the Library that publishes it to the Mesh, and a premium look throughout: a bundled display
 face, a grouped rail with a gliding marker, lit buttons and panels. 0.1.10 brought the Mesh's
 paid work and QOR Media inside the Windows installer; 0.1.9 avatars, rings, Social and the
@@ -161,8 +162,9 @@ which is the trade the owner chose.
 
 **QOR ID never blocks the launcher.** Opening the vault tries to sign in with its
 key (ADR-016's arrival grant); if the service is down the shell shows anyway, and
-Settings offers *Sign in to QOR ID* (`qor_sign_in`), and a name to claim when the
-key has none. There is no password sign-in. Every transfer, trade, mint and
+Settings lists each account of the vault to sign in with (`qor_sign_in`, which
+takes the account), and a name to claim for an account that has none. There is no
+password sign-in. Every transfer, trade, mint and
 endpoint change still asks in a host dialog, and so does *Show recovery phrase*.
 
 A first run is one button: *Begin* makes the phrase and the vault. The phrase is
@@ -188,15 +190,35 @@ a host dialog, and the old file is **set aside, never deleted**, as
 `vault.qor.set-aside-<date>` beside it.
 
 `node scripts/check-vault-gate.mjs` drives the Gate and Settings against a
-stand-in host that records every command, and passes **65 checks
-(2026-09-28)**: a keychain vault reaches the shell with no lock screen and
+stand-in host that records every command, and passes **66 checks
+(2026-10-18)**: a keychain vault reaches the shell with no lock screen and
 nothing typed; QOR ID down stops nothing and Settings signs in with the vault,
-never a password; a first run is one button sending the host the phrase alone; a
+naming the account, never a password; a first run is one button sending the host the phrase alone; a
 keychain vault that will not open says to restore from the phrase; a Hello vault
 asks once and not again after a cancel; a passphrase vault asks its passphrase
 without Hello being asked; a typed phrase goes to the host normalised and its
 account is shown before anything is restored; and Settings shows the phrase
 through the host.
+
+### Whose account is on screen (ADR-098)
+
+CGT belongs to an account's key, and a QOR ID is a name bound to one key. Since
+0.1.12 each account of the vault keeps its own QOR ID. The launcher notes which
+QOR ID each account was signed in as, and the account last in use, in
+`account-owners.json` beside the vault (`src-tauri/src/identity/owners.rs`:
+addresses and names, nothing secret, sent nowhere). Launch signs in with the
+account last in use, else the first; signing in makes the QOR ID's own account
+the one in use; `qor://pay` pays from the account in use. The Vault labels each
+account with its QOR ID, and when the account on screen is not the signed-in QOR
+ID's it says whose it is and offers the right one in one click; the rail's
+account card says so too. Settings' *A new QOR ID* (`qor_new_identity`) derives a
+new account and registers the name for it in one host dialog, so it starts with
+its own empty balance. This is not a separation between people: every account
+comes from one phrase. Two people who must not reach each other's CGT need
+separate Windows user accounts.
+
+`node scripts/check-accounts-view.mjs` holds the screens to this with a stand-in
+host and three accounts, and passes **21 checks (2026-10-18)**.
 
 ### Arriving: the name, the tutorial and the intro
 
@@ -291,7 +313,8 @@ fifteen minutes, and not already paid (`paid-requests.json` in the app data dire
 show who asks, the amount, the recipient, that there is no fee, and the balance after; approving is that dialog, not
 Windows Hello (ADR-077). `src-tauri/src/chain/pay.rs` checks the
 connected chain's genesis again and pays the transfer and a `remark_with_event` naming the request in one `batch_all`,
-from the vault's first account. Any other link, or an unknown app, is refused with a message, and nothing is signed.
+from the account in use, which after sign-in is the signed-in QOR ID's own (ADR-098; before 0.1.12, the vault's first
+account). Any other link, or an unknown app, is refused with a message, and nothing is signed.
 
 ### Avatars (ADR-079)
 

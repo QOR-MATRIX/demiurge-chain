@@ -159,7 +159,7 @@ function ClaimName({ kind, current }: { kind: 'new' | 'made'; current?: string }
         const arrival = await identity.signIn();
         if (arrival.session) return setSession(arrival.session);
         if (!arrival.needs_name) throw new Error(arrival.sign_in_problem ?? 'QOR ID could not be reached.');
-        const address = accounts[0]?.address;
+        const address = arrival.address ?? accounts[0]?.address;
         if (!address) throw new Error('No account is available to claim a name with.');
         setSession(await identity.registerWithKey(address, name));
       }
