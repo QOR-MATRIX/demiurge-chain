@@ -28,6 +28,7 @@ pub mod media;
 pub mod mesh;
 pub mod partners;
 pub mod pay;
+pub mod profiles;
 pub mod qontrol;
 pub mod qq;
 pub mod social;
@@ -73,7 +74,7 @@ pub type Answer<'a> = Pin<Box<dyn Future<Output = bool> + Send + 'a>>;
 ///
 /// The one approval that is not a dialog is [`IdentityConsent`] under an open
 /// [`ArrivalGrant`]: straight after the vault opens, it approves the QOR ID
-/// sign-in for the account launch signs in with (ADR-016, ADR-056, ADR-098).
+/// sign-in for the signed-in profile's wallet account (ADR-016, ADR-056, ADR-099).
 pub trait Confirm: Send + Sync {
     fn confirm<'a>(&'a self, prompt: &'a Prompt) -> Answer<'a>;
 }
@@ -189,9 +190,8 @@ async fn confirm_endpoint_changes(
 /// How long an unlock stands in for the sign-in dialog (ADR-016).
 const ARRIVAL_WINDOW: Duration = Duration::from_secs(5 * 60);
 
-/// Permission, opened by unlocking or creating the vault, for one account, the
-/// one last in use on this PC since ADR-098, to answer QOR ID challenges without
-/// a second approval (ADR-016).
+/// Permission, opened by unlocking or creating the vault, for its one account
+/// (ADR-099) to answer QOR ID challenges without a second approval (ADR-016).
 ///
 /// Opening the vault is the approval: since ADR-056 nothing is asked for it, so
 /// the grant rests on the person being signed in to their computer. The grant covers one account and
@@ -245,6 +245,7 @@ impl Confirm for IdentityConsent<'_> {
 
 /// Shared application state.
 pub struct AppState {
+    /// The signed-in profile's wallet (ADR-099), placed in its folder while it is signed in.
     pub vault: Arc<Vault>,
     pub chain: Arc<ChainClient>,
     pub identity: Arc<IdentityClient>,
@@ -252,47 +253,86 @@ pub struct AppState {
     pub social: Arc<social::Social>,
     /// Translation on this PC (ADR-092): Mozilla's catalogue, and the engine and models kept by hash.
     pub translate: Arc<translate::Translator>,
-    /// The Library's index of the person's own folders (ADR-094), and the watcher that follows them, started once the
-    /// window exists to be told.
-    pub library: Arc<library::Library>,
-    pub library_watch: std::sync::OnceLock<library::watch::Watch>,
     /// QOR Media, docked inside the launcher when a file is opened from the Library (ADR-094).
     pub media: media::Media,
-    /// The Mesh (ADR-095): this launcher's node, seeding only when the person turned it on.
-    pub mesh: Arc<mesh::Mesh>,
     /// Release-gate progress for the development dashboard (roadmap L2.2).
     pub dashboard: Arc<gates::Dashboard>,
     /// Open briefly after an unlock, for the QOR ID sign-in (ADR-016).
     pub arrival: ArrivalGrant,
-    /// Where the vault and settings live. Needed to persist endpoint changes.
+    /// The signed-in profile's own things (ADR-099): its folder, its Mesh and its Library. None while no profile is
+    /// signed in, and then nothing personal can be read or done.
+    pub personal: parking_lot::RwLock<Option<Arc<Personal>>>,
+    /// The launcher's data directory: the device's settings, `profiles.json`, and each profile's folder under it.
     pub data_dir: std::path::PathBuf,
+    /// The launcher's local data directory: translation models, and each profile's Library index under it.
+    pub local_dir: std::path::PathBuf,
+}
+
+/// What belongs to the signed-in profile and runs only while it is signed in (ADR-099).
+pub struct Personal {
+    pub id: String,
+    /// Its folder: wallet, avatar, trade partners, listing drafts, paid requests, published work's bytes, the Mesh.
+    pub dir: std::path::PathBuf,
+    /// The Mesh (ADR-095): its node, seeding only when the person turned it on.
+    pub mesh: Arc<mesh::Mesh>,
+    /// The Library's index of the person's own folders (ADR-094), and the watcher that follows them.
+    pub library: Arc<library::Library>,
+    pub library_watch: Option<library::watch::Watch>,
 }
 
 impl AppState {
-    fn new(data_dir: std::path::PathBuf, cache_dir: std::path::PathBuf) -> QorResult<Self> {
+    fn new(data_dir: std::path::PathBuf, local_dir: std::path::PathBuf) -> QorResult<Self> {
+        Self::build(data_dir, local_dir, vault::keychain::system())
+    }
+
+    /// The state over `data_dir` and `local_dir`, with wallet keys kept in `keys`. Tests keep them in memory.
+    fn build(
+        data_dir: std::path::PathBuf,
+        local_dir: std::path::PathBuf,
+        keys: Arc<dyn vault::keychain::KeyStore>,
+    ) -> QorResult<Self> {
         let settings = config::Settings::load(&data_dir);
         tracing::info!(rpc = %settings.rpc_url, auth = %settings.auth_url, "endpoints");
 
-        let vault = Arc::new(Vault::new(&data_dir));
-        let chain = Arc::new(ChainClient::new(settings.rpc_url)?);
-        // The Mesh is paid for its work through the vault and the chain, once the person allows it (ADR-097).
-        let mesh = mesh::Mesh::new(&data_dir, mesh::Net::Public);
-        mesh.connect(Arc::clone(&vault), Arc::clone(&chain));
+        // The one wallet from before profiles becomes the first profile (ADR-099). Its QOR ID tokens were kept under
+        // no profile's name; they are dropped, and the wallet's key signs in again.
+        if profiles::migrate(&data_dir, &local_dir)?.is_some() {
+            identity::forget_unscoped_tokens();
+        }
 
         Ok(Self {
-            vault,
-            chain,
+            vault: Arc::new(Vault::unplaced(keys)),
+            chain: Arc::new(ChainClient::new(settings.rpc_url)?),
             identity: Arc::new(IdentityClient::new(settings.auth_url)?),
             social: Arc::new(social::Social::new(settings.social_url)),
-            translate: Arc::new(translate::Translator::new(cache_dir.join("translations"))?),
-            library: library::Library::open(&cache_dir.join("library"))?,
-            library_watch: std::sync::OnceLock::new(),
+            translate: Arc::new(translate::Translator::new(local_dir.join("translations"))?),
             media: media::Media::default(),
-            mesh,
             dashboard: Arc::new(gates::Dashboard::new()?),
             arrival: ArrivalGrant::default(),
+            personal: parking_lot::RwLock::new(None),
             data_dir,
+            local_dir,
         })
+    }
+
+    /// The signed-in profile's own things, or [`QorError::NoProfile`].
+    pub fn personal(&self) -> QorResult<Arc<Personal>> {
+        self.personal.read().clone().ok_or(QorError::NoProfile)
+    }
+
+    /// The signed-in profile's folder.
+    pub fn personal_dir(&self) -> QorResult<std::path::PathBuf> {
+        Ok(self.personal()?.dir.clone())
+    }
+
+    /// The signed-in profile's Mesh.
+    pub fn mesh(&self) -> QorResult<Arc<mesh::Mesh>> {
+        Ok(Arc::clone(&self.personal()?.mesh))
+    }
+
+    /// The signed-in profile's Library.
+    pub fn library(&self) -> QorResult<Arc<library::Library>> {
+        Ok(Arc::clone(&self.personal()?.library))
     }
 
     /// Write the current endpoints to disk so they survive a restart.
@@ -306,10 +346,107 @@ impl AppState {
     }
 }
 
+/// Told when the Library's index changed, so the interface refreshes.
+type Changed = Arc<dyn Fn() + Send + Sync>;
+
+fn library_changed(app: &tauri::AppHandle) -> Changed {
+    let told = app.clone();
+    Arc::new(move || library::commands::changed(&told))
+}
+
+/// [`enter_profile`] for the running app.
+fn enter(app: &tauri::AppHandle, state: &AppState, id: &str) -> QorResult<()> {
+    enter_profile(state, id, library_changed(app))
+}
+
+/// [`leave_profile`] for the running app.
+async fn leave(app: &tauri::AppHandle, state: &AppState) {
+    leave_profile(state, &SocialEvents(app.clone())).await
+}
+
+/// Make `id` the signed-in profile (ADR-099): the wallet and QOR ID's tokens kept in its folder and under its name, and
+/// its Library and Mesh started. The wallet is opened by the caller.
+fn enter_profile(state: &AppState, id: &str, changed: Changed) -> QorResult<()> {
+    if state.personal.read().is_some() {
+        return Err(QorError::VaultOpen);
+    }
+    let dir = profiles::dir(&state.data_dir, id);
+    let local = profiles::local_dir(&state.local_dir, id);
+    std::fs::create_dir_all(&dir)?;
+    std::fs::create_dir_all(&local)?;
+    state.vault.place(Some(dir.clone()))?;
+    state.identity.set_profile(Some(id));
+
+    // The Mesh is paid for its work through the vault and the chain, once the person allows it (ADR-097).
+    let mesh = mesh::Mesh::new(&dir, mesh::Net::Public);
+    mesh.connect(Arc::clone(&state.vault), Arc::clone(&state.chain));
+    let library = library::Library::open(&local.join("library"))?;
+    // The Library follows its folders while the profile is signed in, and looks again for what changed while it was
+    // not (ADR-094).
+    let library_watch =
+        match library::watch::Watch::start(Arc::clone(&library), Arc::clone(&changed)) {
+            Ok(watch) => Some(watch),
+            Err(e) => {
+                tracing::warn!("the Library will not follow its folders: {e}");
+                None
+            }
+        };
+    {
+        let library = Arc::clone(&library);
+        tauri::async_runtime::spawn_blocking(move || {
+            if library.scan_all().is_ok() {
+                changed();
+            }
+        });
+    }
+    // The Mesh seeds again if the person left seeding on (ADR-095). Off, nothing is started.
+    {
+        let mesh = Arc::clone(&mesh);
+        tauri::async_runtime::spawn(async move {
+            if let Err(e) = mesh.resume().await {
+                tracing::warn!("the Mesh did not start: {e}");
+            }
+        });
+    }
+
+    *state.personal.write() = Some(Arc::new(Personal {
+        id: id.to_string(),
+        dir,
+        mesh,
+        library,
+        library_watch,
+    }));
+    profiles::set_signed_in(&state.data_dir, Some(id))?;
+    Ok(())
+}
+
+/// Close the signed-in profile completely (ADR-099): Social and QOR ID signed out and its tokens deleted, the Mesh
+/// stopped, the Library closed, the wallet locked and its key taken out of the keychain, so it opens again only with
+/// the profile's PIN. Nothing of it stays in memory.
+async fn leave_profile(state: &AppState, events: &dyn social::Events) {
+    state.social.disconnect(events);
+    state.identity.logout().await;
+    state.identity.set_profile(None);
+    state.arrival.close();
+    let personal = state.personal.write().take();
+    if let Some(personal) = personal {
+        personal.mesh.stop().await;
+    }
+    if let Err(e) = state.vault.forget_key() {
+        tracing::warn!(error = %e, "the wallet's key could not be taken out of the keychain");
+    }
+    let _ = state.vault.place(None);
+    if let Err(e) = profiles::set_signed_in(&state.data_dir, None) {
+        tracing::warn!(error = %e, "which profile is signed in could not be noted");
+    }
+}
+
 /// Everything the shell needs to decide what to render on startup.
 #[derive(Serialize)]
 pub struct LauncherState {
     pub version: String,
+    /// This PC's profiles, for *Who's playing?* (ADR-099).
+    pub profiles: Vec<profiles::ProfileView>,
     pub vault: VaultStatus,
     pub session: Option<Session>,
     pub chain_endpoint: String,
@@ -361,6 +498,7 @@ pub struct Balance {
 fn launcher_state(state: tauri::State<'_, AppState>) -> LauncherState {
     LauncherState {
         version: env!("CARGO_PKG_VERSION").to_string(),
+        profiles: profiles::read(&state.data_dir).views(profiles::now()),
         vault: state.vault.status(),
         session: state.identity.session(),
         chain_endpoint: state.chain.endpoint(),
@@ -400,8 +538,7 @@ fn vault_generate_phrase() -> Result<String, QorError> {
 #[derive(Serialize)]
 pub struct Arrival {
     pub accounts: Vec<AccountView>,
-    /// The account sign-in was tried with: the one asked for, else the one last in use, else the first. A name, when
-    /// one is needed, is claimed for this account.
+    /// The wallet's account, which sign-in was tried with. A name, when one is needed, is claimed for it.
     pub address: Option<String>,
     /// Signed in to QOR ID.
     pub session: Option<Session>,
@@ -414,24 +551,10 @@ pub struct Arrival {
 
 /// Carry on from the vault into QOR ID without a second approval (ADR-016).
 ///
-/// A session that is still valid is kept. Otherwise one account answers a sign-in challenge under the grant the
-/// unlock has just opened: `wanted`, if the vault holds it, else the account last in use on this PC, else the first
-/// (launcher 0.1.12: before, always the first, so two QOR IDs on one PC always opened as the first's). When the key has
-/// no QOR ID yet, the grant stays open for the name claim.
-async fn arrive(
-    app: tauri::AppHandle,
-    state: &AppState,
-    accounts: Vec<AccountView>,
-    wanted: Option<String>,
-) -> Arrival {
-    let known: Vec<String> = accounts.iter().map(|a| a.address.clone()).collect();
-    let wanted = wanted.and_then(|w| vault::canonical_address(&w).ok());
-    let owners = identity::owners::read(&state.data_dir);
-    let chosen = wanted
-        .as_ref()
-        .and_then(|w| known.iter().find(|a| *a == w))
-        .or_else(|| identity::owners::launch_account(&owners, &known))
-        .cloned();
+/// A session that is still valid is kept. Otherwise the wallet's one account (ADR-099) answers a sign-in challenge
+/// under the grant the unlock has just opened. When the key has no QOR ID yet, the grant stays open for the name claim.
+async fn arrive(app: tauri::AppHandle, state: &AppState, accounts: Vec<AccountView>) -> Arrival {
+    let chosen = accounts.first().map(|a| a.address.clone());
     let mut arrival = Arrival {
         accounts,
         address: chosen.clone(),
@@ -443,6 +566,7 @@ async fn arrive(
         arrival.sign_in_problem = Some("the vault holds no account to sign in with".into());
         return arrival;
     };
+    note_profile(state, Some(&address), None);
     if let Some(session) = arrival.session.as_ref() {
         adopt(state, session);
         return arrival;
@@ -475,19 +599,27 @@ async fn arrive(
     arrival
 }
 
-/// A QOR ID is signed in: remember which account it is bound to on this PC, and make that account the one in use when
-/// this vault holds it, so the wallet on screen is the signed-in QOR ID's own. A QOR ID bound to an account this PC
-/// does not hold leaves the account in use as it was; the interface says so.
+/// A QOR ID is signed in: its name is the profile's on *Who's playing?* (ADR-099).
 fn adopt(state: &AppState, session: &Session) {
-    let Some(address) = session.address.as_deref() else {
+    note_profile(state, None, Some(&session.qor_id));
+}
+
+/// Open the signed-in profile's wallet and note its account in `profiles.json`, so the account is known to be this
+/// profile's from the moment it opens, whether or not QOR ID is reached.
+fn unlock_profile(state: &AppState) -> QorResult<Vec<AccountView>> {
+    let accounts = state.vault.unlock(&*vault::hello::system())?;
+    note_profile(state, accounts.first().map(|a| a.address.as_str()), None);
+    Ok(accounts)
+}
+
+/// Note the signed-in profile's account or name in `profiles.json`. A note that cannot be written fails nothing.
+fn note_profile(state: &AppState, address: Option<&str>, name: Option<&str>) {
+    let Ok(personal) = state.personal() else {
         return;
     };
-    if let Err(e) = identity::owners::remember(&state.data_dir, address, &session.qor_id) {
-        tracing::warn!(error = %e, "which QOR ID an account belongs to could not be noted");
+    if let Err(e) = profiles::note(&state.data_dir, &personal.id, address, name) {
+        tracing::warn!(error = %e, "the profile could not be noted");
     }
-    // Not held by this vault: the account in use stays as it was. The Mesh grant stays with the account it was given
-    // for (ADR-097), whichever QOR ID is signed in.
-    let _ = state.vault.set_active(address);
 }
 
 /// Run vault work off the async runtime: the keychain, a last Windows Hello
@@ -500,35 +632,86 @@ async fn off_runtime<T: Send + 'static>(
         .map_err(|e| QorError::Internal(format!("vault work did not finish: {e}")))?
 }
 
-/// Create the vault, its key in the keychain, then try QOR ID (ADR-016, ADR-056).
+/// A new profile with a new wallet from `phrase`, its key in the keychain, signed in; then try QOR ID (ADR-016,
+/// ADR-056, ADR-099). Refused while another profile is signed in: it signs out first.
 #[tauri::command]
 async fn vault_create(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     phrase: String,
 ) -> Result<Arrival, QorError> {
+    vault::derive::validate_mnemonic(&phrase)?;
+    if state.personal.read().is_some() {
+        return Err(QorError::VaultOpen);
+    }
+    let profile = profiles::add(&state.data_dir, &state.local_dir)?;
+    enter(&app, &state, &profile.id)?;
     let vault = Arc::clone(&state.vault);
-    let accounts = off_runtime(move || vault.create(&phrase)).await?;
-    Ok(arrive(app, &state, accounts, None).await)
+    match off_runtime(move || vault.create(&phrase)).await {
+        Ok(accounts) => Ok(arrive(app, &state, accounts).await),
+        Err(error) => {
+            leave(&app, &state).await;
+            let _ = profiles::remove(&state.data_dir, &state.local_dir, &profile.id);
+            Err(error)
+        }
+    }
 }
 
-/// The address a recovery phrase opens, before anything is stored.
+/// The address a recovery phrase opens, before anything is stored: its first account, or the one at `index`.
 #[tauri::command]
-fn vault_preview_phrase(phrase: String) -> Result<String, QorError> {
-    Vault::preview(&phrase)
+fn vault_preview_phrase(phrase: String, index: Option<u32>) -> Result<String, QorError> {
+    Vault::preview_at(&phrase, index.unwrap_or(0))
 }
 
-/// Seal a vault from a phrase the person already holds, setting aside any vault
-/// already here once they approve it in a host dialog; then try QOR ID (ADR-016).
+/// Seal a wallet from a phrase the person already holds, for the account at `index` (the first by default); then try
+/// QOR ID (ADR-016).
+///
+/// Signed in to a profile whose wallet will not open, it replaces that wallet, setting the old one aside once the
+/// person approves in a host dialog. Signed out, it opens the profile already on this PC for that account, as a
+/// forgotten PIN is replaced, or makes a new profile (ADR-099).
 #[tauri::command]
 async fn vault_restore(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     phrase: String,
+    index: Option<u32>,
 ) -> Result<Arrival, QorError> {
+    let index = index.unwrap_or(0);
+    let address = Vault::preview_at(&phrase, index)?;
     let dialog = HostDialog(app.clone());
-    let (accounts, _aside) = state.vault.restore(&dialog, &phrase).await?;
-    Ok(arrive(app, &state, accounts, None).await)
+    let made = if state.personal.read().is_some() {
+        None
+    } else {
+        let registry = profiles::read(&state.data_dir);
+        let known = registry
+            .profiles
+            .iter()
+            .find(|p| p.address == address)
+            .map(|p| p.id.clone());
+        match known {
+            Some(id) => {
+                enter(&app, &state, &id)?;
+                // The PIN sealed the key the old wallet had; a restored wallet has a new key, so a new PIN is chosen.
+                profiles::clear_pin(&state.data_dir, &id)?;
+                None
+            }
+            None => {
+                let profile = profiles::add(&state.data_dir, &state.local_dir)?;
+                enter(&app, &state, &profile.id)?;
+                Some(profile.id)
+            }
+        }
+    };
+    match state.vault.restore_at(&dialog, &phrase, index).await {
+        Ok((accounts, _aside)) => Ok(arrive(app, &state, accounts).await),
+        Err(error) => {
+            if let Some(id) = made {
+                leave(&app, &state).await;
+                let _ = profiles::remove(&state.data_dir, &state.local_dir, &id);
+            }
+            Err(error)
+        }
+    }
 }
 
 /// Open the vault, then try QOR ID (ADR-016, ADR-056). A keychain vault opens
@@ -540,7 +723,7 @@ async fn vault_unlock(
 ) -> Result<Arrival, QorError> {
     let vault = Arc::clone(&state.vault);
     let accounts = off_runtime(move || vault.unlock(&*vault::hello::system())).await?;
-    Ok(arrive(app, &state, accounts, None).await)
+    Ok(arrive(app, &state, accounts).await)
 }
 
 /// Move a passphrase vault from before ADR-055 to the keychain, with its
@@ -553,7 +736,7 @@ async fn vault_move_to_keychain(
 ) -> Result<Arrival, QorError> {
     let vault = Arc::clone(&state.vault);
     let accounts = off_runtime(move || vault.move_to_keychain(&passphrase)).await?;
-    Ok(arrive(app, &state, accounts, None).await)
+    Ok(arrive(app, &state, accounts).await)
 }
 
 #[tauri::command]
@@ -562,20 +745,11 @@ fn vault_lock(state: tauri::State<'_, AppState>) {
     state.vault.lock();
 }
 
-#[tauri::command]
-fn vault_add_account(
-    state: tauri::State<'_, AppState>,
-    label: String,
-) -> Result<AccountView, QorError> {
-    state.vault.add_account(&label)
-}
-
-/// The account the person picked: what the rail shows, and what a product's first publish signs as (ADR-090).
+/// The account the rail shows, and what a product's first publish signs as (ADR-090): since ADR-099 the wallet's one
+/// account.
 #[tauri::command]
 fn vault_set_active(state: tauri::State<'_, AppState>, address: String) -> Result<(), QorError> {
-    state.vault.set_active(&address)?;
-    // Remembered, so the next launch signs in with the account last in use.
-    identity::owners::set_last(&state.data_dir, &address)
+    state.vault.set_active(&address)
 }
 
 /// Re-export the recovery phrase, once the person approves a host dialog.
@@ -587,61 +761,236 @@ async fn vault_export_phrase(
     state.vault.export_phrase(&HostDialog(app)).await
 }
 
-/// Sign in to QOR ID with an account of the open vault: `address` if given, else the account last in use, else the
-/// first. For when the service was unreachable at launch, and for choosing which of this PC's QOR IDs to be.
+/// Try QOR ID again with the wallet's account, as opening it does (ADR-016): for when the service was unreachable at
+/// launch.
 #[tauri::command]
 async fn qor_sign_in(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
-    address: Option<String>,
 ) -> Result<Arrival, QorError> {
     let VaultStatus::Unlocked { accounts } = state.vault.status() else {
         return Err(QorError::VaultLocked);
     };
-    Ok(arrive(app, &state, accounts, address).await)
+    Ok(arrive(app, &state, accounts).await)
 }
 
-/// A new QOR ID on a new account of this vault (launcher 0.1.12): the account is derived, then a QOR ID with `username`
-/// is created for its key, approved in one host dialog, and the account becomes the one in use. Each QOR ID on a shared
-/// PC so holds its own CGT. A name QOR ID refuses is refused before any account is made.
+// ───────────────────────────── commands: profiles (ADR-099) ─────────────────────────────
+
+/// This PC's profiles, for *Who's playing?*: names, no balances, nothing secret.
 #[tauri::command]
-async fn qor_new_identity(
+fn profiles_list(state: tauri::State<'_, AppState>) -> Vec<profiles::ProfileView> {
+    profiles::read(&state.data_dir).views(profiles::now())
+}
+
+/// Open a profile with its PIN: its wallet's key is unsealed and put back in the keychain, the profile is signed in, its
+/// wallet opens and QOR ID is tried. Refused while another profile is signed in.
+#[tauri::command]
+async fn profile_open(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
-    username: String,
+    id: String,
+    pin: String,
 ) -> Result<Arrival, QorError> {
-    if !state.identity.username_available(&username).await? {
-        return Err(QorError::Auth(format!(
-            "The name {username} is taken. Choose another."
-        )));
-    }
-    let account = state.vault.add_account(&username)?;
-    let session = state
-        .identity
-        .register_with_key(
-            &state.vault,
-            &HostDialog(app),
-            &account.address,
-            Some(&username),
-        )
-        .await?;
-    adopt(&state, &session);
-    let VaultStatus::Unlocked { accounts } = state.vault.status() else {
-        return Err(QorError::VaultLocked);
-    };
-    Ok(Arrival {
-        accounts,
-        address: Some(account.address),
-        session: Some(session),
-        needs_name: false,
-        sign_in_problem: None,
-    })
+    let accounts = open_profile(
+        &state,
+        &id,
+        pin,
+        library_changed(&app),
+        &SocialEvents(app.clone()),
+    )
+    .await?;
+    Ok(arrive(app, &state, accounts).await)
 }
 
-/// Which QOR ID each of this PC's accounts belongs to, as this launcher has seen it, and the account last in use.
+/// The core of [`profile_open`]: unseal the key with the PIN, sign the profile in and open its wallet. A profile that does
+/// not open is left as it was found, signed out.
+async fn open_profile(
+    state: &AppState,
+    id: &str,
+    pin: String,
+    changed: Changed,
+    events: &dyn social::Events,
+) -> QorResult<Vec<AccountView>> {
+    if state.personal.read().is_some() {
+        return Err(QorError::VaultOpen);
+    }
+    let root = state.data_dir.clone();
+    let opening = id.to_string();
+    let key = off_runtime(move || {
+        let key = profiles::open_with_pin(&root, &opening, &pin, profiles::now())?;
+        String::from_utf8(key.0.clone())
+            .map(zeroize::Zeroizing::new)
+            .map_err(|_| QorError::VaultCorrupt("the sealed key is not text".into()))
+    })
+    .await?;
+    enter_profile(state, id, changed)?;
+    let opened = state
+        .vault
+        .restore_key(&key)
+        .and_then(|()| unlock_profile(state));
+    if opened.is_err() {
+        leave_profile(state, events).await;
+    }
+    opened
+}
+
+/// Sign the profile out completely (ADR-099). A profile with no PIN yet chooses one now, so it can be opened again; a
+/// PIN given to a profile that has one replaces it.
 #[tauri::command]
-fn vault_owners(state: tauri::State<'_, AppState>) -> identity::owners::Owners {
-    identity::owners::read(&state.data_dir)
+async fn profile_sign_out(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    pin: Option<String>,
+) -> Result<(), QorError> {
+    sign_out_profile(&state, pin, &SocialEvents(app)).await
+}
+
+/// The core of [`profile_sign_out`].
+async fn sign_out_profile(
+    state: &AppState,
+    pin: Option<String>,
+    events: &dyn social::Events,
+) -> QorResult<()> {
+    let personal = state.personal()?;
+    let has_pin = profiles::read(&state.data_dir)
+        .find(&personal.id)
+        .is_some_and(|p| p.pin.is_some());
+    match (pin, state.vault.key_secret()) {
+        (Some(pin), Ok(key)) => seal_pin(state, &personal.id, key, pin).await?,
+        (None, Ok(_)) if !has_pin => {
+            return Err(QorError::Pin(
+                "Choose a PIN for this QOR ID first, so only you can open it again.".into(),
+            ))
+        }
+        // No key in the keychain: the wallet cannot be opened silently anyway, so there is nothing to seal.
+        _ => {}
+    }
+    leave_profile(state, events).await;
+    Ok(())
+}
+
+/// Choose a new PIN for the signed-in profile.
+#[tauri::command]
+async fn profile_set_pin(state: tauri::State<'_, AppState>, pin: String) -> Result<(), QorError> {
+    let personal = state.personal()?;
+    let key = state.vault.key_secret()?;
+    seal_pin(&state, &personal.id, key, pin).await
+}
+
+async fn seal_pin(
+    state: &AppState,
+    id: &str,
+    key: zeroize::Zeroizing<String>,
+    pin: String,
+) -> QorResult<()> {
+    profiles::validate_pin(&pin)?;
+    let root = state.data_dir.clone();
+    let id = id.to_string();
+    off_runtime(move || profiles::set_pin(&root, &id, &key, &pin)).await
+}
+
+/// Another account an older wallet's phrase has used, which can be made a profile of its own.
+#[derive(Serialize)]
+pub struct OtherAccount {
+    pub index: u32,
+    pub address: String,
+    pub balance: String,
+}
+
+/// The accounts of the signed-in wallet's phrase that have been used on the chain and are not this profile or another on
+/// this PC (ADR-099 decision 5). Only wallets from before profiles share a phrase with any other account.
+#[tauri::command]
+async fn profile_other_accounts(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<OtherAccount>, QorError> {
+    const LOOK: u32 = 8;
+    let own = state.vault.index()?;
+    let known: Vec<String> = profiles::read(&state.data_dir)
+        .profiles
+        .into_iter()
+        .map(|p| p.address)
+        .collect();
+    let mut found = Vec::new();
+    for index in (0..LOOK).filter(|i| *i != own) {
+        let address = state.vault.address_at(index)?;
+        if known.contains(&address) {
+            continue;
+        }
+        let nonce = state.chain.nonce(&address).await.unwrap_or(0);
+        let sparks = state.chain.balance(&address).await.unwrap_or(0);
+        if nonce > 0 || sparks > 0 {
+            found.push(OtherAccount {
+                index,
+                address,
+                balance: format!("{} {}", cgt::format_cgt_grouped(sparks), cgt::SYMBOL),
+            });
+        }
+    }
+    Ok(found)
+}
+
+/// Make another account of the signed-in wallet's phrase a profile of its own, and switch to it (ADR-099 decision 5).
+/// The profile signed in now signs out, with `pin` chosen if it has none.
+#[tauri::command]
+async fn profile_split(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    index: u32,
+    pin: Option<String>,
+) -> Result<Arrival, QorError> {
+    let accounts = split_profile(
+        &state,
+        index,
+        pin,
+        library_changed(&app),
+        &SocialEvents(app.clone()),
+    )
+    .await?;
+    Ok(arrive(app, &state, accounts).await)
+}
+
+/// The core of [`profile_split`].
+async fn split_profile(
+    state: &AppState,
+    index: u32,
+    pin: Option<String>,
+    changed: Changed,
+    events: &dyn social::Events,
+) -> QorResult<Vec<AccountView>> {
+    let personal = state.personal()?;
+    if index == state.vault.index()? {
+        return Err(QorError::VaultExists);
+    }
+    let address = state.vault.address_at(index)?;
+    let registry = profiles::read(&state.data_dir);
+    if registry.profiles.iter().any(|p| p.address == address) {
+        return Err(QorError::VaultExists);
+    }
+    let has_pin = registry.find(&personal.id).is_some_and(|p| p.pin.is_some());
+    if pin.is_none() && !has_pin {
+        return Err(QorError::Pin(
+            "Choose a PIN for this QOR ID first, so only you can open it again.".into(),
+        ));
+    }
+    if let Some(pin) = &pin {
+        profiles::validate_pin(pin)?;
+    }
+    let profile = profiles::add(&state.data_dir, &state.local_dir)?;
+    profiles::note(&state.data_dir, &profile.id, Some(&address), None)?;
+    if let Err(error) = state
+        .vault
+        .copy_to(&profiles::dir(&state.data_dir, &profile.id), index)
+    {
+        let _ = profiles::remove(&state.data_dir, &state.local_dir, &profile.id);
+        return Err(error);
+    }
+    if let Some(pin) = pin {
+        let key = state.vault.key_secret()?;
+        seal_pin(state, &personal.id, key, pin).await?;
+    }
+    leave_profile(state, events).await;
+    enter_profile(state, &profile.id, changed)?;
+    unlock_profile(state)
 }
 
 // ───────────────────────────── commands: chain ──────────────────────────────
@@ -774,7 +1123,7 @@ async fn qontrol_mint(
         branch: snapshot.branch.clone(),
         files: snapshot.files(),
     };
-    let store = content::TemporaryStore::in_data_dir(&state.data_dir);
+    let store = content::TemporaryStore::in_data_dir(&state.personal_dir()?);
 
     let receipt = state
         .chain
@@ -839,7 +1188,10 @@ async fn drc369_trade(
     // Remembered only now, from the address the chain accepted rather than the
     // text that was typed. A convenience that cannot be written does not fail a
     // trade that already happened.
-    if let Err(e) = partners::remember(&state.data_dir, &receipt.to, label.as_deref()) {
+    if let Err(e) = state
+        .personal_dir()
+        .and_then(|dir| partners::remember(&dir, &receipt.to, label.as_deref()))
+    {
         tracing::warn!(error = %e, "the trade partner could not be remembered");
     }
     Ok(receipt)
@@ -990,7 +1342,7 @@ async fn listing_save(
     state: tauri::State<'_, AppState>,
     draft: listings::Draft,
 ) -> Result<listings::Listing, QorError> {
-    listings::save(&state.data_dir, &draft)
+    listings::save(&state.personal_dir()?, &draft)
 }
 
 /// Every draft on this machine, most recently changed first.
@@ -998,7 +1350,7 @@ async fn listing_save(
 async fn listing_drafts(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<listings::Listing>, QorError> {
-    Ok(listings::list(&state.data_dir))
+    Ok(listings::list(&state.personal_dir()?))
 }
 
 /// Throw a draft away.
@@ -1008,7 +1360,7 @@ async fn listing_discard(
     collection: u32,
     item: u32,
 ) -> Result<(), QorError> {
-    listings::discard(&state.data_dir, collection, item)
+    listings::discard(&state.personal_dir()?, collection, item)
 }
 
 /// Who this machine has traded with, most recent first. Local, and never sent
@@ -1017,7 +1369,7 @@ async fn listing_discard(
 async fn trade_partners(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<partners::Partner>, QorError> {
-    Ok(partners::list(&state.data_dir))
+    Ok(partners::list(&state.personal_dir()?))
 }
 
 /// A candidate endpoint and whether it answered.
@@ -1223,16 +1575,16 @@ async fn qor_restore(state: tauri::State<'_, AppState>) -> Result<Session, QorEr
 /// The largest file offered for upload; QOR ID refuses more and cleans the rest.
 const AVATAR_UPLOAD_LIMIT: u64 = 4 * 1024 * 1024;
 
-fn avatar_cache(state: &AppState) -> (std::path::PathBuf, std::path::PathBuf) {
-    (
-        state.data_dir.join("avatar.bin"),
-        state.data_dir.join("avatar.type"),
-    )
+fn avatar_cache(state: &AppState) -> QorResult<(std::path::PathBuf, std::path::PathBuf)> {
+    let dir = state.personal_dir()?;
+    Ok((dir.join("avatar.bin"), dir.join("avatar.type")))
 }
 
 /// Keep a copy of the account's avatar on this machine, so it shows offline. No avatar clears the copy.
 async fn refresh_avatar_copy(state: &AppState, session: &Session) {
-    let (bytes_path, type_path) = avatar_cache(state);
+    let Ok((bytes_path, type_path)) = avatar_cache(state) else {
+        return;
+    };
     match session.avatar_url.as_deref() {
         Some(url) => match state.identity.fetch_avatar(url).await {
             Ok((bytes, content_type)) => {
@@ -1314,7 +1666,9 @@ async fn qor_avatar(
             refresh_avatar_copy(&state, &session).await;
         }
     }
-    let (bytes_path, type_path) = avatar_cache(&state);
+    let Ok((bytes_path, type_path)) = avatar_cache(&state) else {
+        return Ok(None);
+    };
     let (Ok(bytes), Ok(content_type)) = (
         std::fs::read(bytes_path),
         std::fs::read_to_string(type_path),
@@ -1341,17 +1695,6 @@ async fn qor_tutorial_done(
     state: tauri::State<'_, AppState>,
 ) -> Result<serde_json::Value, QorError> {
     state.identity.tutorial_done().await
-}
-
-#[tauri::command]
-async fn qor_logout(
-    app: tauri::AppHandle,
-    state: tauri::State<'_, AppState>,
-) -> Result<(), QorError> {
-    // Social's socket speaks as this person; it closes with their session.
-    state.social.disconnect(&SocialEvents(app));
-    state.identity.logout().await;
-    Ok(())
 }
 
 /// Choose this account's QOR ID name, once, while it is on a name QOR ID made (ADR-091 decision 5).
@@ -1623,7 +1966,11 @@ async fn pay_link(
 ) -> QorResult<(pay::PayRequest, chain::pay::PayReceipt)> {
     let request = pay::parse(link, chrono::Utc::now().timestamp())?;
     let state = app.state::<AppState>();
-    let paid = pay::PaidRequests::in_dir(&state.data_dir);
+    let paid = pay::PaidRequests::in_dir(state.personal_dir().map_err(|_| {
+        QorError::PaymentRefused(
+            "no QOR ID is signed in. Open the QOR Launcher, choose yours, then click the link again".into(),
+        )
+    })?);
     if paid.is_paid(&request) {
         return Err(QorError::PaymentRefused(
             "this request was already paid".into(),
@@ -1636,8 +1983,8 @@ async fn pay_link(
         ));
     }
     let outcome = async {
-        // The account in use pays: since ADR-098 the signed-in QOR ID's own account when this vault holds it, so a
-        // tip from a website signed in as one QOR ID is never paid from another's account. The dialog names it.
+        // The signed-in profile's account pays, the only one open (ADR-099): a signed-out QOR ID's CGT cannot be
+        // reached from here. The dialog names it.
         let from = match state.vault.status() {
             VaultStatus::Unlocked { accounts } if accounts.is_empty() => {
                 return Err(QorError::PaymentRefused(
@@ -1705,44 +2052,28 @@ pub fn run() {
 
             tracing::info!(dir = %data_dir.display(), "QOR Launcher starting");
 
-            // Translation models are large and this machine's own, so they are kept with its local data, not roaming.
-            let cache_dir = app
+            // Translation models and each profile's Library index are large and this machine's own, so they are kept with
+            // its local data, not roaming.
+            let local_dir = app
                 .path()
                 .app_local_data_dir()
                 .map_err(|e| format!("cannot locate the local data directory: {e}"))?;
-            app.manage(AppState::new(data_dir, cache_dir).map_err(|e| e.to_string())?);
+            app.manage(AppState::new(data_dir, local_dir).map_err(|e| e.to_string())?);
 
-            // The Library follows its folders while the launcher runs, and looks again at start for what changed while
-            // it was closed (ADR-094).
+            // The profile signed in last comes back with nothing asked (ADR-056, ADR-099); its wallet is opened by the
+            // interface before its first frame. Signed out, the interface shows Who's playing?.
             {
                 let state = app.state::<AppState>();
-                let told = app.handle().clone();
-                match library::watch::Watch::start(
-                    Arc::clone(&state.library),
-                    Arc::new(move || library::commands::changed(&told)),
-                ) {
-                    Ok(watch) => {
-                        let _ = state.library_watch.set(watch);
+                let registry = profiles::read(&state.data_dir);
+                if let Some(id) = registry
+                    .signed_in
+                    .as_deref()
+                    .filter(|id| registry.find(id).is_some())
+                {
+                    if let Err(e) = enter(app.handle(), &state, id) {
+                        tracing::warn!("the profile signed in last could not be opened: {e}");
                     }
-                    Err(e) => tracing::warn!("the Library will not follow its folders: {e}"),
                 }
-                let library = Arc::clone(&state.library);
-                let told = app.handle().clone();
-                tauri::async_runtime::spawn_blocking(move || {
-                    if library.scan_all().is_ok() {
-                        library::commands::changed(&told);
-                    }
-                });
-            }
-
-            // The Mesh seeds again at start if the person left seeding on (ADR-095). Off, nothing is started.
-            {
-                let mesh = Arc::clone(&app.state::<AppState>().mesh);
-                tauri::async_runtime::spawn(async move {
-                    if let Err(e) = mesh.resume().await {
-                        tracing::warn!("the Mesh did not start: {e}");
-                    }
-                });
             }
 
             // `qor://pay` (ADR-076). The installer registers the scheme; registering again here covers a launcher run
@@ -1812,11 +2143,14 @@ pub fn run() {
             vault_unlock,
             vault_move_to_keychain,
             vault_lock,
-            vault_add_account,
             vault_set_active,
-            vault_owners,
-            qor_new_identity,
             vault_export_phrase,
+            profiles_list,
+            profile_open,
+            profile_sign_out,
+            profile_set_pin,
+            profile_other_accounts,
+            profile_split,
             chain_status,
             chain_set_endpoint,
             probe_endpoints,
@@ -1839,7 +2173,6 @@ pub fn run() {
             qor_remove_avatar,
             qor_avatar,
             qor_tutorial_done,
-            qor_logout,
             qor_claim_username,
             social_connect,
             social_disconnect,
@@ -2110,5 +2443,171 @@ mod tests {
             "an expired grant asks again"
         );
         assert_eq!(dialog.times_asked(), 4);
+    }
+
+    /// Social's reports, for a profile signing out in a test: nowhere to send them.
+    struct Quiet;
+    impl social::Events for Quiet {
+        fn status(&self, _: &social::Status) {}
+        fn welcome(&self, _: &serde_json::Value) {}
+        fn event(&self, _: &serde_json::Value) {}
+    }
+
+    fn unchanged() -> Changed {
+        Arc::new(|| {})
+    }
+
+    /// ADR-099, the whole path through the host: the wallet from before profiles becomes the first profile and opens
+    /// with nothing asked; it cannot be left without a PIN; signed out, nothing of it is open or in the keychain, and it
+    /// opens only with its PIN; another account its phrase used becomes a profile of its own, and the first profile's
+    /// key leaves the keychain as it does.
+    #[tokio::test(flavor = "multi_thread")]
+    async fn a_profile_is_left_completely_and_opens_again_only_with_its_pin() {
+        const PHRASE: &str =
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon \
+                              abandon about";
+        let base =
+            std::env::temp_dir().join(format!("qor-lifecycle-{}", uuid::Uuid::new_v4().simple()));
+        let (data, local) = (base.join("roaming"), base.join("local"));
+        std::fs::create_dir_all(&data).unwrap();
+        std::fs::create_dir_all(&local).unwrap();
+        let keys = Arc::new(vault::keychain::testing::MemoryKeychain::default());
+
+        // A launcher from before 0.1.13: one wallet in the data directory, and personal files beside it.
+        let old = Vault::with_keys(&data, keys.clone());
+        let first = old.create(PHRASE).unwrap()[0].address.clone();
+        old.lock();
+        std::fs::write(data.join("avatar.bin"), b"me").unwrap();
+        std::fs::write(data.join("account-owners.json"), b"{}").unwrap();
+
+        let state = AppState::build(data.clone(), local.clone(), keys.clone()).unwrap();
+        let id = profiles::read(&data)
+            .signed_in
+            .expect("the old wallet is the first profile");
+        assert!(
+            state.personal().is_err(),
+            "nothing personal before the profile is entered"
+        );
+        enter_profile(&state, &id, unchanged()).unwrap();
+        let opened = unlock_profile(&state).unwrap();
+        assert_eq!(opened.len(), 1);
+        assert_eq!(
+            opened[0].address, first,
+            "it opens as the account it was, with nothing asked"
+        );
+        assert_eq!(
+            std::fs::read(state.personal_dir().unwrap().join("avatar.bin")).unwrap(),
+            b"me"
+        );
+        assert!(!data.join("account-owners.json").exists());
+        assert_eq!(
+            profiles::read(&data).find(&id).unwrap().address,
+            first,
+            "its account is noted as it opens"
+        );
+
+        // Leaving needs a PIN, and a PIN must be one.
+        let refused = sign_out_profile(&state, None, &Quiet).await.unwrap_err();
+        assert_eq!(refused.kind(), "pin");
+        assert_eq!(
+            sign_out_profile(&state, Some("12".into()), &Quiet)
+                .await
+                .unwrap_err()
+                .kind(),
+            "pin"
+        );
+        assert!(
+            state.personal().is_ok(),
+            "a refused sign-out leaves the profile signed in"
+        );
+
+        sign_out_profile(&state, Some("123456".into()), &Quiet)
+            .await
+            .unwrap();
+        assert!(state.personal().is_err());
+        assert!(matches!(state.vault.status(), VaultStatus::Absent));
+        assert!(
+            keys.0.lock().is_empty(),
+            "the wallet's key left the keychain"
+        );
+        assert_eq!(profiles::read(&data).signed_in, None);
+        // The wallet itself, placed again by hand, does not open: its key is gone.
+        state.vault.place(Some(profiles::dir(&data, &id))).unwrap();
+        assert_eq!(
+            state
+                .vault
+                .unlock(&*vault::hello::system())
+                .unwrap_err()
+                .kind(),
+            "keychain"
+        );
+        state.vault.place(None).unwrap();
+
+        // A wrong PIN opens nothing; the right one opens the same wallet.
+        let wrong = open_profile(&state, &id, "654321".into(), unchanged(), &Quiet)
+            .await
+            .unwrap_err();
+        assert_eq!(wrong.kind(), "pin");
+        assert!(state.personal().is_err() && keys.0.lock().is_empty());
+        let again = open_profile(&state, &id, "123456".into(), unchanged(), &Quiet)
+            .await
+            .unwrap();
+        assert_eq!(again[0].address, first);
+        assert_eq!(
+            profiles::read(&data).signed_in.as_deref(),
+            Some(id.as_str())
+        );
+        assert_eq!(
+            open_profile(&state, &id, "123456".into(), unchanged(), &Quiet)
+                .await
+                .unwrap_err()
+                .kind(),
+            "vault_open",
+            "one profile at a time"
+        );
+
+        // The phrase's second account becomes a profile of its own; the first signs out as it does.
+        let second = Vault::preview_at(PHRASE, 1).unwrap();
+        let split = split_profile(&state, 1, None, unchanged(), &Quiet)
+            .await
+            .unwrap();
+        assert_eq!(split.len(), 1);
+        assert_eq!(split[0].address, second);
+        let registry = profiles::read(&data);
+        assert_eq!(registry.profiles.len(), 2);
+        let new_id = registry.signed_in.clone().unwrap();
+        assert_ne!(new_id, id);
+        assert_eq!(
+            keys.0.lock().len(),
+            1,
+            "only the profile signed in has its key in the keychain"
+        );
+        assert_eq!(
+            split_profile(&state, 0, Some("111111".into()), unchanged(), &Quiet)
+                .await
+                .unwrap_err()
+                .kind(),
+            "vault_exists",
+            "an account that is already a profile is not made one again"
+        );
+
+        sign_out_profile(&state, Some("222222".into()), &Quiet)
+            .await
+            .unwrap();
+        assert!(keys.0.lock().is_empty());
+        let back = open_profile(&state, &id, "123456".into(), unchanged(), &Quiet)
+            .await
+            .unwrap();
+        assert_eq!(
+            back[0].address, first,
+            "each profile opens as its own account, with its own PIN"
+        );
+        sign_out_profile(&state, None, &Quiet).await.unwrap();
+        let other = open_profile(&state, &new_id, "222222".into(), unchanged(), &Quiet)
+            .await
+            .unwrap();
+        assert_eq!(other[0].address, second);
+        sign_out_profile(&state, None, &Quiet).await.unwrap();
+        let _ = std::fs::remove_dir_all(&base);
     }
 }

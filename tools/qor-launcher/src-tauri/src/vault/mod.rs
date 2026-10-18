@@ -99,6 +99,10 @@ struct KeychainVault {
     key: String,
     /// The recovery phrase, sealed under the key.
     sealed: SealedVault,
+    /// Which account of the phrase this wallet is (ADR-099: one account per profile). 0, the first, for every wallet
+    /// made from a new phrase; another for a profile made from an account an older wallet's phrase had used.
+    #[serde(default)]
+    index: u32,
 }
 
 /// What `vault.qor` holds.
@@ -153,7 +157,8 @@ impl MeshGrant {
 }
 
 pub struct Vault {
-    dir: PathBuf,
+    /// The signed-in profile's folder (ADR-099), or none while no profile is signed in.
+    dir: parking_lot::RwLock<Option<PathBuf>>,
     keys: Arc<dyn KeyStore>,
     inner: Mutex<Option<Unlocked>>,
 }
@@ -167,18 +172,45 @@ impl Vault {
     /// A vault whose key goes in `keys`. Tests use an in-memory keychain.
     pub fn with_keys(dir: impl AsRef<Path>, keys: Arc<dyn KeyStore>) -> Self {
         Self {
-            dir: dir.as_ref().to_path_buf(),
+            dir: parking_lot::RwLock::new(Some(dir.as_ref().to_path_buf())),
             keys,
             inner: Mutex::new(None),
         }
     }
 
-    pub fn path(&self) -> PathBuf {
-        self.dir.join(VAULT_FILE)
+    /// A vault in no folder yet, for when no profile is signed in (ADR-099). Its key goes in `keys`.
+    pub fn unplaced(keys: Arc<dyn KeyStore>) -> Self {
+        Self {
+            dir: parking_lot::RwLock::new(None),
+            keys,
+            inner: Mutex::new(None),
+        }
+    }
+
+    /// Point the vault at a profile's folder, or at none. Refused while it is open.
+    pub fn place(&self, dir: Option<PathBuf>) -> QorResult<()> {
+        if self.is_open() {
+            return Err(QorError::VaultOpen);
+        }
+        *self.dir.write() = dir;
+        Ok(())
+    }
+
+    fn dir(&self) -> QorResult<PathBuf> {
+        self.dir.read().clone().ok_or(QorError::NoProfile)
+    }
+
+    /// The vault file, while a profile is signed in.
+    pub fn path(&self) -> Option<PathBuf> {
+        self.dir.read().as_ref().map(|d| d.join(VAULT_FILE))
+    }
+
+    fn file(&self) -> QorResult<PathBuf> {
+        Ok(self.dir()?.join(VAULT_FILE))
     }
 
     pub fn exists(&self) -> bool {
-        self.path().is_file()
+        self.path().is_some_and(|p| p.is_file())
     }
 
     pub fn status(&self) -> VaultStatus {
@@ -207,14 +239,20 @@ impl Vault {
     /// funds-losing act and must be an explicit delete first, never a silent
     /// consequence of running setup twice.
     pub fn create(&self, phrase: &str) -> QorResult<Vec<AccountView>> {
+        self.create_at(phrase, 0)
+    }
+
+    /// Create a vault for the account at `index` of a recovery phrase (ADR-099: a profile's wallet is one account).
+    pub fn create_at(&self, phrase: &str, index: u32) -> QorResult<Vec<AccountView>> {
         if self.exists() {
             return Err(QorError::VaultExists);
         }
+        self.dir()?;
         derive::validate_mnemonic(phrase)?;
         let phrase = phrase.trim().as_bytes();
-        let file = self.seal_to_keychain(phrase)?;
+        let file = self.seal_to_keychain(phrase, index)?;
         self.write_vault(&file)?;
-        self.open_phrase(phrase)
+        self.open_phrase(phrase, index)
     }
 
     /// The first account a recovery phrase opens, without storing anything.
@@ -222,9 +260,14 @@ impl Vault {
     /// A person restoring a vault sees this address before anything on disk
     /// changes, so they can recognise the account as theirs.
     pub fn preview(phrase: &str) -> QorResult<String> {
+        Self::preview_at(phrase, 0)
+    }
+
+    /// The account at `index` of a recovery phrase, without storing anything.
+    pub fn preview_at(phrase: &str, index: u32) -> QorResult<String> {
         derive::validate_mnemonic(phrase)?;
         let root = RootKey::from_mnemonic(phrase.trim(), "")?;
-        Ok(derive::derive_account(&root, 0)?.address())
+        Ok(derive::derive_account(&root, index)?.address())
     }
 
     /// Seal a vault from a recovery phrase the person already holds, for a new
@@ -241,12 +284,24 @@ impl Vault {
         confirm: &dyn Confirm,
         phrase: &str,
     ) -> QorResult<(Vec<AccountView>, Option<PathBuf>)> {
-        let address = Self::preview(phrase)?;
+        self.restore_at(confirm, phrase, 0).await
+    }
+
+    /// [`Self::restore`] for the account at `index` of the phrase.
+    pub async fn restore_at(
+        &self,
+        confirm: &dyn Confirm,
+        phrase: &str,
+        index: u32,
+    ) -> QorResult<(Vec<AccountView>, Option<PathBuf>)> {
+        let address = Self::preview_at(phrase, index)?;
         if self.is_open() {
             return Err(QorError::VaultOpen);
         }
         if !self.exists() {
-            return self.create(phrase).map(|accounts| (accounts, None));
+            return self
+                .create_at(phrase, index)
+                .map(|accounts| (accounts, None));
         }
 
         let aside = self.set_aside_path();
@@ -273,7 +328,7 @@ impl Vault {
         }
 
         let moved = self.set_aside(&aside)?;
-        match self.create(phrase) {
+        match self.create_at(phrase, index) {
             Ok(accounts) => Ok((accounts, Some(aside))),
             Err(error) => {
                 // Put the old vault back rather than leave the device with none.
@@ -296,7 +351,7 @@ impl Vault {
         match self.read_disk()? {
             OnDisk::Keychain(file) => {
                 let phrase = self.open_from_keychain(&file)?;
-                self.open_phrase(&phrase.0)
+                self.open_phrase(&phrase.0, file.index)
             }
             OnDisk::Hello(file) => {
                 let phrase = open_with_hello(presence, &file)?;
@@ -333,18 +388,18 @@ impl Vault {
     /// Seal `phrase` under the keychain in place of the vault on disk, which is
     /// set aside with any ADR-054 copy.
     fn move_phrase(&self, phrase: &[u8]) -> QorResult<Vec<AccountView>> {
-        let file = self.seal_to_keychain(phrase)?;
+        let file = self.seal_to_keychain(phrase, 0)?;
         let aside = self.set_aside_path();
         let moved = self.set_aside(&aside)?;
         if let Err(error) = self.write_vault(&file) {
             self.put_back(&aside, moved);
             return Err(error);
         }
-        self.open_phrase(phrase)
+        self.open_phrase(phrase, 0)
     }
 
-    /// A fresh key in the keychain, and `phrase` sealed under it.
-    fn seal_to_keychain(&self, phrase: &[u8]) -> QorResult<KeychainVault> {
+    /// A fresh key in the keychain, and `phrase` sealed under it, for the account at `index`.
+    fn seal_to_keychain(&self, phrase: &[u8], index: u32) -> QorResult<KeychainVault> {
         let mut id = [0u8; 16];
         let mut secret = [0u8; 32];
         rand::RngCore::fill_bytes(&mut rand::rngs::OsRng, &mut id);
@@ -359,6 +414,7 @@ impl Vault {
             version: KEYCHAIN_FORMAT,
             key: id,
             sealed,
+            index,
         })
     }
 
@@ -381,7 +437,7 @@ impl Vault {
     // ─────────────────────── passphrase vaults, before ADR-055 ───────────────────────
 
     fn legacy_copy_path(&self) -> PathBuf {
-        self.dir.join(hello::LEGACY_COPY_FILE)
+        self.dir().unwrap_or_default().join(hello::LEGACY_COPY_FILE)
     }
 
     /// ADR-054's copy, if there is one and it was made from the vault file on
@@ -389,7 +445,7 @@ impl Vault {
     fn legacy_copy(&self) -> Option<hello::LegacyCopy> {
         let raw = std::fs::read_to_string(self.legacy_copy_path()).ok()?;
         let copy: hello::LegacyCopy = serde_json::from_str(&raw).ok()?;
-        let binding = blake3::hash(&std::fs::read(self.path()).ok()?)
+        let binding = blake3::hash(&std::fs::read(self.path()?).ok()?)
             .to_hex()
             .to_string();
         (copy.bound_to == binding).then_some(copy)
@@ -401,10 +457,11 @@ impl Vault {
     fn set_aside_path(&self) -> PathBuf {
         let date = chrono::Local::now().format("%Y-%m-%d");
         let base = format!("{VAULT_FILE}.set-aside-{date}");
-        let mut candidate = self.dir.join(&base);
+        let dir = self.dir().unwrap_or_default();
+        let mut candidate = dir.join(&base);
         let mut n = 2;
         while candidate.exists() {
-            candidate = self.dir.join(format!("{base}-{n}"));
+            candidate = dir.join(format!("{base}-{n}"));
             n += 1;
         }
         candidate
@@ -420,22 +477,23 @@ impl Vault {
     /// Move the vault to `aside`, and its ADR-054 copy with it. Returns whether
     /// the copy moved.
     fn set_aside(&self, aside: &Path) -> QorResult<bool> {
-        std::fs::rename(self.path(), aside)?;
+        std::fs::rename(self.file()?, aside)?;
         Ok(self.legacy_copy_path().is_file()
             && std::fs::rename(self.legacy_copy_path(), Self::copy_beside(aside)).is_ok())
     }
 
     /// Undo [`Self::set_aside`] after a failure.
     fn put_back(&self, aside: &Path, copy_moved: bool) {
-        let _ = std::fs::remove_file(self.path());
-        let _ = std::fs::rename(aside, self.path());
+        let Ok(file) = self.file() else { return };
+        let _ = std::fs::remove_file(&file);
+        let _ = std::fs::rename(aside, &file);
         if copy_moved {
             let _ = std::fs::rename(Self::copy_beside(aside), self.legacy_copy_path());
         }
     }
 
-    /// Derive the first account from a decrypted phrase and hold the session.
-    fn open_phrase(&self, phrase_bytes: &[u8]) -> QorResult<Vec<AccountView>> {
+    /// Derive the wallet's account, the one at `index`, from a decrypted phrase and hold the session.
+    fn open_phrase(&self, phrase_bytes: &[u8], index: u32) -> QorResult<Vec<AccountView>> {
         let phrase = std::str::from_utf8(phrase_bytes)
             .map_err(|_| QorError::VaultCorrupt("stored phrase is not valid UTF-8".into()))?;
 
@@ -444,11 +502,11 @@ impl Vault {
         // Substrate password, so when the vault learns to store one, it is
         // passed here and nothing else changes.
         let root = RootKey::from_mnemonic(phrase, "")?;
-        let first = derive::derive_account(&root, 0)?;
+        let account = derive::derive_account(&root, index)?;
 
         let session = Unlocked {
             root,
-            accounts: vec![first],
+            accounts: vec![account],
             labels: vec!["Primary".to_string()],
             active: None,
         };
@@ -492,12 +550,14 @@ impl Vault {
         })
     }
 
-    /// Derive the next account in the chain.
+    /// Derive the next account in the chain. Tests only: since ADR-099 a profile's wallet holds one account, and tests
+    /// that need several parties take them from one phrase this way.
+    #[cfg(test)]
     pub fn add_account(&self, label: &str) -> QorResult<AccountView> {
         let mut guard = self.inner.lock();
         let session = guard.as_mut().ok_or(QorError::VaultLocked)?;
 
-        let next_index = session.accounts.len() as u32;
+        let next_index = session.accounts.last().map_or(0, |a| a.index + 1);
         let account = derive::derive_account(&session.root, next_index)?;
 
         let label = if label.trim().is_empty() {
@@ -528,7 +588,7 @@ impl Vault {
     /// approval given for it. The caller builds the prompt from the same values it
     /// signs, and the launcher shows it in a host-drawn dialog the webview cannot
     /// reach. Two approvals are not a dialog each time: the arrival grant, by which
-    /// a QOR ID challenge for the vault's first account is approved straight after
+    /// a QOR ID challenge for the wallet's account is approved straight after
     /// it opens (ADR-016, ADR-056), and the Mesh grant, given once in a dialog, for
     /// the Mesh's own work (ADR-097).
     ///
@@ -602,6 +662,72 @@ It cannot send your CGT anywhere. Turning seeding off ends                  this
         Ok(f(account))
     }
 
+    // ─────────────────────────── a profile's key (ADR-099) ───────────────────────────
+
+    /// The key that opens this wallet, from the keychain: what a profile's PIN seals when it signs out.
+    pub fn key_secret(&self) -> QorResult<zeroize::Zeroizing<String>> {
+        let OnDisk::Keychain(file) = self.read_disk()? else {
+            return Err(QorError::VaultLocked);
+        };
+        Ok(zeroize::Zeroizing::new(
+            self.keys.get(&keychain::entry_name(&file.key))?,
+        ))
+    }
+
+    /// Put the key back in the keychain, unsealed with the profile's PIN, so the wallet opens.
+    pub fn restore_key(&self, secret: &str) -> QorResult<()> {
+        let OnDisk::Keychain(file) = self.read_disk()? else {
+            return Err(QorError::VaultLocked);
+        };
+        self.keys.put(&keychain::entry_name(&file.key), secret)
+    }
+
+    /// Take the key out of the keychain, so this wallet opens only with the profile's PIN. Locks it first.
+    pub fn forget_key(&self) -> QorResult<()> {
+        self.lock();
+        let OnDisk::Keychain(file) = self.read_disk()? else {
+            return Ok(());
+        };
+        self.keys.delete(&keychain::entry_name(&file.key))
+    }
+
+    /// The address of the account at `index` of this open wallet's phrase, for offering the accounts an older wallet
+    /// used as profiles of their own.
+    pub fn address_at(&self, index: u32) -> QorResult<String> {
+        let guard = self.inner.lock();
+        let session = guard.as_ref().ok_or(QorError::VaultLocked)?;
+        Ok(derive::derive_account(&session.root, index)?.address())
+    }
+
+    /// The index of this wallet's account in its phrase.
+    pub fn index(&self) -> QorResult<u32> {
+        let guard = self.inner.lock();
+        let session = guard.as_ref().ok_or(QorError::VaultLocked)?;
+        session
+            .accounts
+            .first()
+            .map(|a| a.index)
+            .ok_or(QorError::VaultLocked)
+    }
+
+    /// Seal this wallet's phrase, for the account at `index`, as the wallet of another profile in `dir`, its own key in
+    /// the keychain. The phrase never leaves this process.
+    pub fn copy_to(&self, dir: &Path, index: u32) -> QorResult<()> {
+        if !self.is_open() {
+            return Err(QorError::VaultLocked);
+        }
+        let OnDisk::Keychain(file) = self.read_disk()? else {
+            return Err(QorError::VaultLocked);
+        };
+        let phrase = self.open_from_keychain(&file)?;
+        let other = Vault::with_keys(dir, Arc::clone(&self.keys));
+        if other.exists() {
+            return Err(QorError::VaultExists);
+        }
+        let sealed = other.seal_to_keychain(&phrase.0, index)?;
+        other.write_vault(&sealed)
+    }
+
     /// Re-export the recovery phrase, once the person approves it in `confirm`.
     pub async fn export_phrase(&self, confirm: &dyn Confirm) -> QorResult<String> {
         let OnDisk::Keychain(file) = self.read_disk()? else {
@@ -627,7 +753,7 @@ It cannot send your CGT anywhere. Turning seeding off ends                  this
         if !self.exists() {
             return Err(QorError::NoVault);
         }
-        let raw = std::fs::read_to_string(self.path())?;
+        let raw = std::fs::read_to_string(self.file()?)?;
         let corrupt =
             |e: serde_json::Error| QorError::VaultCorrupt(format!("cannot parse vault file: {e}"));
         let value: serde_json::Value = serde_json::from_str(&raw).map_err(corrupt)?;
@@ -660,14 +786,14 @@ It cannot send your CGT anywhere. Turning seeding off ends                  this
     fn write_vault(&self, file: &KeychainVault) -> QorResult<()> {
         let json = serde_json::to_vec_pretty(file)
             .map_err(|e| QorError::Internal(format!("cannot serialise vault: {e}")))?;
-        self.write_atomically(&self.path(), &json)
+        self.write_atomically(&self.file()?, &json)
     }
 
     /// Write beside `path`, fsync, then rename over it.
     fn write_atomically(&self, path: &Path, bytes: &[u8]) -> QorResult<()> {
         use std::io::Write;
 
-        std::fs::create_dir_all(&self.dir)?;
+        std::fs::create_dir_all(self.dir()?)?;
         let mut temp_name = path.file_name().unwrap_or_default().to_os_string();
         temp_name.push(".tmp");
         let temp = path.with_file_name(temp_name);
@@ -751,6 +877,73 @@ mod tests {
 
     fn asked(hello: &FakeHello) -> usize {
         *hello.asked.lock()
+    }
+
+    /// ADR-099: signing a profile out takes its wallet's key out of the keychain, after which the wallet does not open;
+    /// the key the PIN unsealed, put back, opens it again. Unplaced, there is no wallet at all.
+    #[test]
+    fn a_signed_out_wallet_opens_only_once_its_key_is_put_back() {
+        let (vault, keys, _dir) = temp_vault();
+        let hello = FakeHello::new();
+        let address = vault.create(PHRASE).unwrap()[0].address.clone();
+        let key = vault.key_secret().unwrap();
+
+        vault.forget_key().unwrap();
+        assert!(!vault.is_open(), "taking the key out locks the wallet");
+        assert!(keys.0.lock().is_empty(), "nothing left in the keychain");
+        assert_eq!(vault.unlock(&hello).unwrap_err().kind(), "keychain");
+
+        vault.restore_key(&key).unwrap();
+        assert_eq!(vault.unlock(&hello).unwrap()[0].address, address);
+        assert_eq!(asked(&hello), 0, "nothing was asked");
+
+        vault.lock();
+        vault.place(None).unwrap();
+        assert!(matches!(vault.status(), VaultStatus::Absent));
+        assert_eq!(vault.create(PHRASE).unwrap_err().kind(), "no_profile");
+        assert_eq!(
+            Vault::unplaced(keys.clone())
+                .key_secret()
+                .unwrap_err()
+                .kind(),
+            "no_vault"
+        );
+    }
+
+    /// ADR-099: a profile's wallet is one account. Another account an older wallet's phrase used becomes a profile of its
+    /// own holding that account alone, under its own key, and opens as that account every time.
+    #[test]
+    fn another_account_of_an_older_phrase_becomes_a_wallet_of_its_own() {
+        let (vault, keys, _dir) = temp_vault();
+        let hello = FakeHello::new();
+        let first = vault.create(PHRASE).unwrap();
+        assert_eq!(first.len(), 1);
+        let second = vault.address_at(1).unwrap();
+        assert_eq!(second, Vault::preview_at(PHRASE, 1).unwrap());
+        assert_ne!(second, first[0].address);
+
+        let other_dir = tempdir::Holder::new();
+        vault.copy_to(other_dir.path(), 1).unwrap();
+        assert_eq!(
+            vault.copy_to(other_dir.path(), 1).unwrap_err().kind(),
+            "vault_exists"
+        );
+        let other = Vault::with_keys(other_dir.path(), keys.clone());
+        let opened = other.unlock(&hello).unwrap();
+        assert_eq!(opened.len(), 1, "one account");
+        assert_eq!(opened[0].address, second);
+        assert_eq!(other.index().unwrap(), 1);
+        assert_ne!(
+            *other.key_secret().unwrap(),
+            *vault.key_secret().unwrap(),
+            "its own key"
+        );
+        other.lock();
+        assert_eq!(
+            other.unlock(&hello).unwrap()[0].address,
+            second,
+            "every time"
+        );
     }
 
     #[test]
@@ -871,7 +1064,7 @@ mod tests {
         let (vault, keys, _dir) = temp_vault();
         vault.create(PHRASE).unwrap();
 
-        let written = std::fs::read_to_string(vault.path()).unwrap();
+        let written = std::fs::read_to_string(vault.path().unwrap()).unwrap();
         let file: KeychainVault = serde_json::from_str(&written).unwrap();
         assert_eq!(file.unlock, "os-keychain");
         let secret = keys.get(&keychain::entry_name(&file.key)).unwrap();
@@ -1096,7 +1289,7 @@ mod tests {
         let (vault, keys, dir) = temp_vault();
         let old = vault.create(PHRASE).unwrap();
         vault.lock();
-        let before = std::fs::read(vault.path()).unwrap();
+        let before = std::fs::read(vault.path().unwrap()).unwrap();
 
         let confirm = Scripted::approving();
         let (accounts, aside) = vault.restore(&confirm, OTHER).await.unwrap();
@@ -1137,12 +1330,12 @@ mod tests {
         let (vault, _keys, dir) = temp_vault();
         vault.create(PHRASE).unwrap();
         vault.lock();
-        let before = std::fs::read(vault.path()).unwrap();
+        let before = std::fs::read(vault.path().unwrap()).unwrap();
 
         let confirm = Scripted::declining();
         let refused = vault.restore(&confirm, OTHER).await.unwrap_err();
         assert_eq!(refused.kind(), "declined");
-        assert_eq!(std::fs::read(vault.path()).unwrap(), before);
+        assert_eq!(std::fs::read(vault.path().unwrap()).unwrap(), before);
         assert!(set_aside_files(dir.path()).is_empty());
         assert!(vault.unlock(&FakeHello::new()).is_ok());
     }
@@ -1200,14 +1393,22 @@ mod tests {
             salt: hex::encode(salt),
             sealed: seal::seal(PHRASE.as_bytes(), &hex::encode(&signature)).unwrap(),
         };
-        std::fs::write(vault.path(), serde_json::to_vec_pretty(&file).unwrap()).unwrap();
+        std::fs::write(
+            vault.path().unwrap(),
+            serde_json::to_vec_pretty(&file).unwrap(),
+        )
+        .unwrap();
         *hello.asked.lock() = 0;
     }
 
     /// A vault as the launcher sealed it before ADR-055.
     fn passphrase_vault(vault: &Vault) {
         let sealed = seal::seal(PHRASE.as_bytes(), PASS).unwrap();
-        std::fs::write(vault.path(), serde_json::to_vec_pretty(&sealed).unwrap()).unwrap();
+        std::fs::write(
+            vault.path().unwrap(),
+            serde_json::to_vec_pretty(&sealed).unwrap(),
+        )
+        .unwrap();
     }
 
     /// ADR-054's copy of a passphrase vault, made with `hello`.
@@ -1217,7 +1418,7 @@ mod tests {
         let copy = serde_json::json!({
             "version": 1,
             "salt": hex::encode(salt),
-            "bound_to": blake3::hash(&std::fs::read(vault.path()).unwrap()).to_hex().to_string(),
+            "bound_to": blake3::hash(&std::fs::read(vault.path().unwrap()).unwrap()).to_hex().to_string(),
             "sealed": seal::seal(PHRASE.as_bytes(), &hex::encode(&signature)).unwrap(),
         });
         std::fs::write(vault.legacy_copy_path(), copy.to_string()).unwrap();
@@ -1230,7 +1431,7 @@ mod tests {
         let (vault, _keys, dir) = temp_vault();
         let hello = FakeHello::new();
         hello_vault(&vault, &hello);
-        let before = std::fs::read(vault.path()).unwrap();
+        let before = std::fs::read(vault.path().unwrap()).unwrap();
         assert!(matches!(
             vault.status(),
             VaultStatus::Locked {
@@ -1285,7 +1486,7 @@ mod tests {
     fn a_passphrase_vault_moves_with_its_passphrase_once() {
         let (vault, _keys, dir) = temp_vault();
         passphrase_vault(&vault);
-        let before = std::fs::read(vault.path()).unwrap();
+        let before = std::fs::read(vault.path().unwrap()).unwrap();
 
         assert_eq!(
             vault
@@ -1294,7 +1495,7 @@ mod tests {
                 .kind(),
             "bad_passphrase"
         );
-        assert_eq!(std::fs::read(vault.path()).unwrap(), before);
+        assert_eq!(std::fs::read(vault.path().unwrap()).unwrap(), before);
 
         let moved = vault.move_to_keychain(PASS).unwrap();
         assert_eq!(moved[0].address, Vault::preview(PHRASE).unwrap());

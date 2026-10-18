@@ -23,12 +23,14 @@ import {
   asQorError,
   chain,
   identity,
+  profiles,
   shell,
   vault,
   type AccountView,
   type Balance,
   type ChainStatus,
   type LauncherState,
+  type ProfileView,
   type Session,
   type TokenInfo,
   type VaultStatus,
@@ -57,13 +59,11 @@ interface State {
   token: TokenInfo | null;
 
   vaultStatus: VaultStatus;
+  /** This PC's profiles, one per QOR ID (ADR-099), for Who's playing?. */
+  profiles: ProfileView[];
   accounts: AccountView[];
   activeAddress: string | null;
   balances: Record<string, Balance>;
-  /** Which QOR ID each account belongs to, as this launcher has seen it (0.1.12). */
-  owners: Record<string, string>;
-  /** The account last in use, which launch signs in with. */
-  lastAddress: string | null;
 
   session: Session | null;
   chainStatus: ChainStatus | null;
@@ -86,7 +86,7 @@ interface State {
   refreshChain: () => Promise<void>;
   refreshBalance: (address: string) => Promise<void>;
   refreshAllBalances: () => Promise<void>;
-  refreshOwners: () => Promise<void>;
+  refreshProfiles: () => Promise<void>;
 
   setAccounts: (accounts: AccountView[]) => void;
   setActiveAddress: (address: string) => void;
@@ -94,7 +94,8 @@ interface State {
   go: (surface: Surface) => void;
   notify: (tone: 'ok' | 'bad', text: string) => void;
   clearNotice: () => void;
-  signOut: () => Promise<void>;
+  /** Sign the profile out completely (ADR-099); one with no PIN yet chooses it here. */
+  signOut: (pin?: string) => Promise<void>;
   lock: () => Promise<void>;
 }
 
@@ -113,11 +114,10 @@ export const useQor = create<State>((set, get) => ({
   token: null,
 
   vaultStatus: { state: 'absent' },
+  profiles: [],
   accounts: [],
   activeAddress: null,
   balances: {},
-  owners: {},
-  lastAddress: null,
 
   session: null,
   chainStatus: null,
@@ -176,11 +176,11 @@ export const useQor = create<State>((set, get) => ({
         version: state.version,
         token: state.token,
         vaultStatus: state.vault,
+        profiles: state.profiles ?? [],
         session: state.session,
       });
 
       if (state.vault.state === 'unlocked') {
-        await get().refreshOwners();
         get().setAccounts(state.vault.accounts);
       }
 
@@ -188,7 +188,7 @@ export const useQor = create<State>((set, get) => ({
       // routine (no tokens yet, or they expired) and must not block startup.
       if (!state.session) {
         try {
-          get().setSession(await identity.restore());
+          set({ session: await identity.restore() });
         } catch {
           /* not signed in; the Gate will handle it */
         }
@@ -245,27 +245,10 @@ export const useQor = create<State>((set, get) => ({
     await Promise.all(get().accounts.map((a) => get().refreshBalance(a.address)));
   },
 
-  async refreshOwners() {
-    try {
-      const { owners, last } = await vault.owners();
-      set({ owners, lastAddress: last });
-    } catch {
-      /* labels are a convenience: without them the accounts are shown unlabelled */
-    }
-  },
-
   setAccounts(accounts) {
-    // The account in use: the one already chosen, else the signed-in QOR ID's own, else the one last in use on this
-    // PC, else the first. Never simply the first, which made two QOR IDs on one PC show one wallet (0.1.12).
-    const has = (a: string | null | undefined): a is string => !!a && accounts.some((x) => x.address === a);
-    const { activeAddress: current, session, lastAddress } = get();
-    const activeAddress = has(current)
-      ? current
-      : has(session?.address)
-        ? session.address
-        : has(lastAddress)
-          ? lastAddress
-          : (accounts[0]?.address ?? null);
+    const current = get().activeAddress;
+    const stillPresent = accounts.some((a) => a.address === current);
+    const activeAddress = stillPresent ? current : (accounts[0]?.address ?? null);
 
     set({ accounts, activeAddress });
     if (activeAddress) tellHostActive(activeAddress);
@@ -283,12 +266,6 @@ export const useQor = create<State>((set, get) => ({
 
   setSession(session) {
     set({ session });
-    // Signed in: the wallet on screen becomes this QOR ID's own account, when this PC holds it.
-    const address = session?.address;
-    if (address && address !== get().activeAddress && get().accounts.some((a) => a.address === address)) {
-      get().setActiveAddress(address);
-    }
-    void get().refreshOwners();
   },
 
   go(surface) {
@@ -309,9 +286,28 @@ export const useQor = create<State>((set, get) => ({
     set({ notice: null });
   },
 
-  async signOut() {
-    await identity.logout();
-    set({ session: null, surface: 'nexus' });
+  async refreshProfiles() {
+    try {
+      set({ profiles: await profiles.list() });
+    } catch {
+      /* the list is shown as it was */
+    }
+  },
+
+  async signOut(pin) {
+    await profiles.signOut(pin);
+    // Nothing of the profile stays on screen: its wallet, balances and session go with it (ADR-099).
+    set({
+      session: null,
+      surface: 'nexus',
+      vaultStatus: { state: 'absent' },
+      accounts: [],
+      activeAddress: null,
+      balances: {},
+      activeNonce: null,
+      notice: null,
+    });
+    await get().refreshProfiles();
   },
 
   async lock() {

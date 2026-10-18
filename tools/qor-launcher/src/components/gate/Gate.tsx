@@ -1,11 +1,13 @@
 /**
- * The Gate: what shows before the vault is open.
+ * The Gate: what shows before a wallet is open.
  *
- * Since ADR-056 a returning person never sees it: the vault's key is in the
- * operating system's keychain and the launcher opens it before its first frame.
- * The Gate is left for four cases:
+ * Since ADR-056 a returning person never sees it: the signed-in profile's key is
+ * in the operating system's keychain and the launcher opens it before its first
+ * frame. The Gate is left for these cases:
  *
- *   no vault           →  make one, or restore one from a recovery phrase
+ *   signed out (ADR-099)  →  Who's playing?: this PC's QOR IDs, each opened with its PIN,
+ *                            a new QOR ID, or one restored from its recovery phrase
+ *   no QOR ID on this PC  →  make one, or restore one from a recovery phrase
  *   a Windows Hello vault (ADR-055)  →  Hello one last time, and it moves
  *   a passphrase vault (before ADR-055)  →  the passphrase one last time
  *   a keychain vault that would not open  →  why, and the recovery phrase
@@ -16,18 +18,44 @@
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Fingerprint, KeyRound, Loader2, RotateCw, TriangleAlert } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Fingerprint,
+  KeyRound,
+  Loader2,
+  Lock,
+  RotateCw,
+  TriangleAlert,
+  UserPlus,
+} from 'lucide-react';
 
-import { asQorError, explain, vault, type Arrival } from '../../lib/ipc';
+import {
+  asQorError,
+  explain,
+  profiles as profileCalls,
+  shortAddress,
+  validPin,
+  vault,
+  type Arrival,
+  type ProfileView,
+} from '../../lib/ipc';
+import { PinField } from '../ui/PinField';
 import { useQor } from '../../state/store';
 import { Connection } from './Connection';
 
-type Step = 'checking' | 'welcome' | 'restore' | 'unlock' | 'move';
+type Step = 'checking' | 'who' | 'pin' | 'welcome' | 'restore' | 'unlock' | 'move';
 
 export function Gate() {
   const vaultStatus = useQor((s) => s.vaultStatus);
   const refreshVault = useQor((s) => s.refreshVault);
+  const refreshProfiles = useQor((s) => s.refreshProfiles);
   const setSession = useQor((s) => s.setSession);
+  const profiles = useQor((s) => s.profiles);
+  // The QOR ID chosen on Who's playing?, whose PIN is asked.
+  const [chosen, setChosen] = useState<ProfileView | null>(null);
+  // The person asked for a new QOR ID from Who's playing?, so the list arriving does not take them back to it.
+  const [creating, setCreating] = useState(false);
 
   const [step, setStep] = useState<Step>('checking');
   const [showConnection, setShowConnection] = useState(false);
@@ -42,13 +70,13 @@ export function Gate() {
 
   const sealedWith = vaultStatus.state === 'locked' ? vaultStatus.sealed_with : null;
 
-  // Pick the step from the vault, but never pull the person out of restoring.
+  // Pick the step from the vault, but never pull the person out of restoring, a PIN or a new QOR ID.
   useEffect(() => {
-    if (step === 'restore') return;
-    if (vaultStatus.state === 'absent') setStep('welcome');
+    if (step === 'restore' || step === 'pin' || creating) return;
+    if (vaultStatus.state === 'absent') setStep(profiles.length > 0 ? 'who' : 'welcome');
     else if (sealedWith === 'passphrase') setStep('move');
     else if (vaultStatus.state === 'locked') setStep('unlock');
-  }, [vaultStatus.state, sealedWith, step]);
+  }, [vaultStatus.state, sealedWith, step, profiles.length, creating]);
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
@@ -67,6 +95,31 @@ export function Gate() {
   const arrive = async (arrival: Arrival) => {
     if (arrival.session) setSession(arrival.session);
     await refreshVault();
+    await refreshProfiles();
+  };
+
+  const choose = (profile: ProfileView) => {
+    setError(null);
+    setChosen(profile);
+    setStep('pin');
+  };
+
+  const open = (pin: string) =>
+    run(async () => {
+      if (!chosen) return;
+      try {
+        await arrive(await profileCalls.open(chosen.id, pin));
+        setChosen(null);
+      } finally {
+        await refreshProfiles();
+      }
+    });
+
+  const toWho = () => {
+    setError(null);
+    setChosen(null);
+    setCreating(false);
+    setStep(profiles.length > 0 ? 'who' : 'welcome');
   };
 
   const begin = () =>
@@ -85,7 +138,15 @@ export function Gate() {
     setError(null);
     setRestoring(null);
     setAsked(true); // back from restoring, Windows Hello is not asked again on its own
-    setStep(vaultStatus.state === 'absent' ? 'welcome' : sealedWith === 'passphrase' ? 'move' : 'unlock');
+    setStep(
+      vaultStatus.state === 'absent'
+        ? profiles.length > 0
+          ? 'who'
+          : 'welcome'
+        : sealedWith === 'passphrase'
+          ? 'move'
+          : 'unlock',
+    );
   };
 
   const checkPhrase = (typed: string) =>
@@ -134,8 +195,30 @@ export function Gate() {
             <>
               {step === 'checking' && <Centered>Opening…</Centered>}
 
+              {step === 'who' && (
+                <Who
+                  profiles={profiles}
+                  onChoose={choose}
+                  onNew={() => {
+                    setError(null);
+                    setCreating(true);
+                    setStep('welcome');
+                  }}
+                  onRestore={startRestore}
+                />
+              )}
+
+              {step === 'pin' && chosen && (
+                <PinStep busy={busy} profile={chosen} onOpen={open} onBack={toWho} />
+              )}
+
               {step === 'welcome' && (
-                <Welcome busy={busy} onBegin={begin} onRestore={startRestore} />
+                <Welcome
+                  busy={busy}
+                  onBegin={begin}
+                  onRestore={startRestore}
+                  onBack={profiles.length > 0 ? toWho : undefined}
+                />
               )}
 
               {step === 'restore' && (
@@ -197,23 +280,140 @@ export function Gate() {
 
 /* ──────────────────────────────── steps ─────────────────────────────────── */
 
+/**
+ * Who's playing? (ADR-099): this PC's QOR IDs by name, nothing else. No balance is shown until a QOR ID is opened with
+ * its PIN.
+ */
+function Who({
+  profiles,
+  onChoose,
+  onNew,
+  onRestore,
+}: {
+  profiles: ProfileView[];
+  onChoose: (profile: ProfileView) => void;
+  onNew: () => void;
+  onRestore: () => void;
+}) {
+  return (
+    <div data-gate-who>
+      <Header
+        eyebrow="Demiurge"
+        title="Who&apos;s playing?"
+        body="Each QOR ID on this PC has its own wallet. Choose yours."
+      />
+      <ul className="mb-4 grid gap-2" aria-label="QOR IDs on this PC">
+        {profiles.map((p) => (
+          <li key={p.id}>
+            <button
+              type="button"
+              className="flex w-full items-center gap-3 border border-edge bg-well px-4 py-3 text-left transition-colors hover:border-accent"
+              onClick={() => onChoose(p)}
+              data-gate-profile={p.id}
+            >
+              <Lock size={14} className="flex-none text-ink-muted" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-ui font-semibold text-ink">
+                  {p.name ?? 'QOR ID without a name'}
+                </span>
+                {!p.name && p.address && (
+                  <span className="numeric block truncate text-micro text-ink-faint">
+                    {shortAddress(p.address, 10, 6)}
+                  </span>
+                )}
+              </span>
+              <ArrowRight size={13} className="flex-none text-ink-muted" aria-hidden="true" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button type="button" className="btn w-full" onClick={onNew} data-gate-new>
+        <UserPlus size={14} />
+        New QOR ID
+      </button>
+      <button type="button" className="btn btn-ghost mt-2 w-full" onClick={onRestore}>
+        Restore from a recovery phrase
+      </button>
+    </div>
+  );
+}
+
+/** A QOR ID's PIN, which opens its wallet. A forgotten one is replaced by restoring from the recovery phrase. */
+function PinStep({
+  busy,
+  profile,
+  onOpen,
+  onBack,
+}: {
+  busy: boolean;
+  profile: ProfileView;
+  onOpen: (pin: string) => void;
+  onBack: () => void;
+}) {
+  const [pin, setPin] = useState('');
+  const ready = validPin(pin) && !busy;
+  return (
+    <div data-gate-pin>
+      <Header
+        eyebrow="Who&apos;s playing?"
+        title={profile.name ?? 'QOR ID without a name'}
+        body={
+          profile.has_pin
+            ? 'Enter this QOR ID\u2019s PIN to open its wallet. Forgotten it? Restore this QOR ID from its recovery phrase.'
+            : 'This QOR ID has no PIN on this PC. Restore it from its recovery phrase to open it.'
+        }
+      />
+      {profile.wait_seconds > 0 && (
+        <p className="mb-4 text-caption text-warn">Too many wrong PINs. Wait a little before trying again.</p>
+      )}
+      {profile.has_pin && (
+        <div className="mb-5">
+          <PinField value={pin} onChange={setPin} autoFocus onEnter={() => ready && onOpen(pin)} />
+        </div>
+      )}
+      <div className="flex gap-2">
+        <button type="button" className="btn btn-ghost" onClick={onBack}>
+          <ArrowLeft size={13} />
+          Back
+        </button>
+        {profile.has_pin && (
+          <button
+            type="button"
+            className="btn btn-primary flex-1"
+            disabled={!ready}
+            onClick={() => onOpen(pin)}
+            data-gate-open
+          >
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
+            Open
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Welcome({
   busy,
   onBegin,
   onRestore,
+  onBack,
 }: {
   busy: boolean;
   onBegin: () => void;
   onRestore: () => void;
+  onBack?: () => void;
 }) {
   return (
     <>
       <Header
         eyebrow="Demiurge"
-        title="Welcome"
-        body="The launcher makes your keys and keeps them on this computer. There is nothing to
-              type and nothing to remember. You can see your 24-word recovery phrase in Settings
-              whenever you want to write down a backup."
+        title={onBack ? 'A new QOR ID' : 'Welcome'}
+        body={
+          onBack
+            ? 'A new QOR ID gets a wallet of its own, with a new recovery phrase and an empty balance. It shares nothing with the others on this PC.'
+            : 'The launcher makes your keys and keeps them on this computer. There is nothing to type and nothing to remember. You can see your 24-word recovery phrase in Settings whenever you want to write down a backup.'
+        }
       />
 
       <button type="button" className="btn btn-primary w-full" disabled={busy} onClick={onBegin}>
@@ -223,6 +423,12 @@ function Welcome({
       <button type="button" className="btn btn-ghost mt-2 w-full" onClick={onRestore}>
         I already have a recovery phrase
       </button>
+      {onBack && (
+        <button type="button" className="btn btn-ghost mt-2 w-full" onClick={onBack} data-gate-back>
+          <ArrowLeft size={13} />
+          Back to Who&apos;s playing?
+        </button>
+      )}
     </>
   );
 }

@@ -5,6 +5,9 @@
 seal) and, with it, what remained of [ADR-054](ADR-054-unlocking-with-windows-hello.md).
 **Amends:** [ADR-016](ADR-016-sign-in-with-unlock.md). Opening the vault still opens the arrival grant for QOR ID
 challenges, but opening it no longer asks the person anything, and the launcher no longer waits for QOR ID.
+**Amended by** [ADR-099](ADR-099-each-qor-id-is-its-own-profile.md) (18 October 2026, the owner): each QOR ID on a PC is a profile with its own wallet. The profile
+signed in last still opens with nothing asked; once it signs out, its key leaves the keychain and the launcher shows
+*Who's playing?*, where a profile opens with its PIN.
 
 ## Context
 
