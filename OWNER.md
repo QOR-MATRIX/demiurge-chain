@@ -22,7 +22,7 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 You saw one balance shown under two QOR IDs on one PC. The cause: the launcher always opened on
 the wallet's **first account** — *one address inside your wallet* — whichever QOR ID was signed in,
-and paid ARQADE tips from it. In 0.1.12 (**its installer is on your Desktop**, not yet published):
+and paid ARQADE tips from it. In 0.1.12 (**its installer is on your Desktop**; the download page already offers it):
 
 - **Each account keeps its own QOR ID**, and the launcher opens on the one you used last.
 - **The Vault labels every account** with its QOR ID, and warns, with a one-click fix, when the
@@ -43,8 +43,8 @@ logins.
 
 ## What only you can do
 
-1. **Say "commit, push and publish 0.1.12"** when you want it: it goes on a branch and pull
-   request, then to testers. Or install it from your Desktop first and try two QOR IDs.
+1. **Publish 0.1.12 with the one command I gave you** (I'm not allowed to create releases). Until
+   then the download page's button answers "not found". Then merge **pull request #43**.
 2. **Share the download page** with your testers (its Share menu), and **send each tester test
    CGT** from the faucet when they send you their address.
 3. **Crediting godmode with 100,000,000 CGT:** a faucet transfer you sign; I need its address.
