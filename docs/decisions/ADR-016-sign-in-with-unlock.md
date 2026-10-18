@@ -6,6 +6,8 @@ assistant. **Amended by [ADR-055](ADR-055-the-vault-opens-with-windows-hello-alo
 owner): there is no passphrase, and the approval below is given by the Windows Hello gesture that opens the
 vault. **Amended again by [ADR-056](ADR-056-no-lock-screen.md)** the same day: the vault opens with nothing asked,
 so the grant rests on the person being signed in to their computer, and the launcher no longer waits for QOR ID.
+**Amended by [ADR-098](ADR-098-each-qor-id-keeps-its-own-account.md)** (18 October 2026): the grant covers the
+account launch signs in with, the one last in use on the PC, which is no longer always the vault's first.
 The decision stands otherwise.
 **Narrows:** roadmap item L1.4 in [`DIRECTION.md`](../DIRECTION.md), host-side confirmation before any
 signature, by one named exception. Every other part of L1.4 stands.

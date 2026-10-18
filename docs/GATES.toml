@@ -840,6 +840,12 @@ type = "tightening"
 change = "library.tests requires two more tests: a file published from the Library is one manifest entry named as the file, the same every time, with no commit; and a file is fingerprinted and stored a piece at a time, a changed one refused. The view check library_view grows from 27 checks to 40: each file's menu opens by right-click, Shift+F10 and a controller's Y, takes focus, moves with the arrow keys, gives focus back to its file, and asks the host to publish exactly that file."
 reason = "Tightening: tests and checks added, none removed or relaxed. The whole publish path, minted with no commit and taken in by the Mesh, passed against a development node as mesh::paid::tests::live::a_file_published_from_the_library_is_minted_and_seeded, ignored by default because it needs one (HANDOFF.md section 4 item 89)."
 
+[[change_log]]
+date = "2026-10-18"
+type = "tightening"
+change = "A new criterion, alpha.accounts-view, on a new suite accounts_view (scripts/check-accounts-view.mjs, 21 checks): the launcher signs in as the account last in use and shows the signed-in QOR ID's own account, labels each account with its QOR ID, says when the account on screen is not the signed-in QOR ID's and switches in one click, signs in as the QOR ID chosen by its account, claims a name only for the account that has none, and makes a new QOR ID on a new account. The check joins npm run check, so CI's launcher job runs fourteen checks, not thirteen ([ci].quality_gates updated). check-vault-gate.mjs signs in through the new per-account button and gains a check that the account is named, 65 to 66."
+reason = "Tightening: a criterion, a suite and checks added, none removed or relaxed. The owner found one wallet's balance shown under two QOR IDs on one PC (HANDOFF.md section 4 item 91). Two planted faults (the first account chosen at arrival, and a name claimed for the first account) were each caught by the new check."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -885,7 +891,7 @@ quality_gates = [
   "chain/: two validators agree, finalise and catch up. A job of its own, because it needs a release build with the sudo feature: cargo build -p demiurge-node --release --features sudo --locked, then node scripts/check-two-validators.mjs. It fails the run; criterion alpha.multi-validator reads it. Since 2026-09-21 it runs NIGHTLY (03:00 UTC) and on workflow_dispatch, not on every push",
   "services/qor-auth: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test -- --include-ignored, against a migrated Postgres 16 and a Redis 7.4",
   "services/social: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test, against a Postgres 16 (a database per test) and a real WebSocket on a loopback port; its log, SQL and migration checks run with the tests",
-  "tools/qor-launcher: npm ci, frontend build and npm run check, thirteen checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the Library view, the Mesh view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
+  "tools/qor-launcher: npm ci, frontend build and npm run check, fourteen checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the Library view, the Mesh view, the accounts view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
   "cargo audit of services/qor-auth, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside the compiled graph (services/qor-auth/.cargo/audit.toml)",
   "cargo audit of services/social, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside Social's compiled graph (services/social/.cargo/audit.toml)",
   "cargo audit of tools/qor-launcher/src-tauri, ignoring only RUSTSEC-2026-0344 while CI confirms ruzstd is outside the compiled graph and still in the lockfile (tools/qor-launcher/src-tauri/.cargo/audit.toml, ADR-089)",
@@ -990,6 +996,11 @@ needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH fo
 [suites.mesh_view]
 dir = "tools/qor-launcher"  # The Mesh (ADR-095). Since 2026-10-17.
 command = "node scripts/check-mesh-view.mjs"
+needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places)"
+
+[suites.accounts_view]
+dir = "tools/qor-launcher"  # Whose account is on screen (launcher 0.1.12). Since 2026-10-18.
+command = "node scripts/check-accounts-view.mjs"
 needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places)"
 
 [suites.gnosis]
@@ -1279,6 +1290,14 @@ nothing holds value."""
   id = "alpha.launcher-tests"
   kind = "tests"
   suite = "launcher"
+  require = []
+
+  # Each QOR ID on a shared PC keeps its own account, and the launcher says whose account is on screen before anything
+  # is sent from it (launcher 0.1.12; the owner found one wallet shown under two QOR IDs, 2026-10-18).
+  [[gates.criteria]]
+  id = "alpha.accounts-view"
+  kind = "tests"
+  suite = "accounts_view"
   require = []
 
   [[gates.criteria]]

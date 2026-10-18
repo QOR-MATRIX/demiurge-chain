@@ -73,7 +73,7 @@ pub type Answer<'a> = Pin<Box<dyn Future<Output = bool> + Send + 'a>>;
 ///
 /// The one approval that is not a dialog is [`IdentityConsent`] under an open
 /// [`ArrivalGrant`]: straight after the vault opens, it approves the QOR ID
-/// sign-in for the vault's first account (ADR-016, ADR-056).
+/// sign-in for the account launch signs in with (ADR-016, ADR-056, ADR-098).
 pub trait Confirm: Send + Sync {
     fn confirm<'a>(&'a self, prompt: &'a Prompt) -> Answer<'a>;
 }
@@ -189,8 +189,9 @@ async fn confirm_endpoint_changes(
 /// How long an unlock stands in for the sign-in dialog (ADR-016).
 const ARRIVAL_WINDOW: Duration = Duration::from_secs(5 * 60);
 
-/// Permission, opened by unlocking or creating the vault, for its first account
-/// to answer QOR ID challenges without a second approval (ADR-016).
+/// Permission, opened by unlocking or creating the vault, for one account, the
+/// one last in use on this PC since ADR-098, to answer QOR ID challenges without
+/// a second approval (ADR-016).
 ///
 /// Opening the vault is the approval: since ADR-056 nothing is asked for it, so
 /// the grant rests on the person being signed in to their computer. The grant covers one account and
@@ -399,6 +400,9 @@ fn vault_generate_phrase() -> Result<String, QorError> {
 #[derive(Serialize)]
 pub struct Arrival {
     pub accounts: Vec<AccountView>,
+    /// The account sign-in was tried with: the one asked for, else the one last in use, else the first. A name, when
+    /// one is needed, is claimed for this account.
+    pub address: Option<String>,
     /// Signed in to QOR ID.
     pub session: Option<Session>,
     /// The vault's key has no QOR ID yet, so the only thing left to ask is a name.
@@ -410,21 +414,37 @@ pub struct Arrival {
 
 /// Carry on from the vault into QOR ID without a second approval (ADR-016).
 ///
-/// A session that is still valid is kept. Otherwise the vault's first account
-/// answers a sign-in challenge under the grant the unlock has just opened.
-/// When the key has no QOR ID yet, the grant stays open for the name claim.
-async fn arrive(app: tauri::AppHandle, state: &AppState, accounts: Vec<AccountView>) -> Arrival {
+/// A session that is still valid is kept. Otherwise one account answers a sign-in challenge under the grant the
+/// unlock has just opened: `wanted`, if the vault holds it, else the account last in use on this PC, else the first
+/// (launcher 0.1.12: before, always the first, so two QOR IDs on one PC always opened as the first's). When the key has
+/// no QOR ID yet, the grant stays open for the name claim.
+async fn arrive(
+    app: tauri::AppHandle,
+    state: &AppState,
+    accounts: Vec<AccountView>,
+    wanted: Option<String>,
+) -> Arrival {
+    let known: Vec<String> = accounts.iter().map(|a| a.address.clone()).collect();
+    let wanted = wanted.and_then(|w| vault::canonical_address(&w).ok());
+    let owners = identity::owners::read(&state.data_dir);
+    let chosen = wanted
+        .as_ref()
+        .and_then(|w| known.iter().find(|a| *a == w))
+        .or_else(|| identity::owners::launch_account(&owners, &known))
+        .cloned();
     let mut arrival = Arrival {
         accounts,
+        address: chosen.clone(),
         session: state.identity.session(),
         needs_name: false,
         sign_in_problem: None,
     };
-    let Some(address) = arrival.accounts.first().map(|a| a.address.clone()) else {
+    let Some(address) = chosen else {
         arrival.sign_in_problem = Some("the vault holds no account to sign in with".into());
         return arrival;
     };
-    if arrival.session.is_some() {
+    if let Some(session) = arrival.session.as_ref() {
+        adopt(state, session);
         return arrival;
     }
 
@@ -443,6 +463,7 @@ async fn arrive(app: tauri::AppHandle, state: &AppState, accounts: Vec<AccountVi
     {
         Ok(session) => {
             state.arrival.close();
+            adopt(state, &session);
             arrival.session = Some(session);
         }
         Err(error) if identity::needs_registration(&error) => arrival.needs_name = true,
@@ -452,6 +473,21 @@ async fn arrive(app: tauri::AppHandle, state: &AppState, accounts: Vec<AccountVi
         }
     }
     arrival
+}
+
+/// A QOR ID is signed in: remember which account it is bound to on this PC, and make that account the one in use when
+/// this vault holds it, so the wallet on screen is the signed-in QOR ID's own. A QOR ID bound to an account this PC
+/// does not hold leaves the account in use as it was; the interface says so.
+fn adopt(state: &AppState, session: &Session) {
+    let Some(address) = session.address.as_deref() else {
+        return;
+    };
+    if let Err(e) = identity::owners::remember(&state.data_dir, address, &session.qor_id) {
+        tracing::warn!(error = %e, "which QOR ID an account belongs to could not be noted");
+    }
+    // Not held by this vault: the account in use stays as it was. The Mesh grant stays with the account it was given
+    // for (ADR-097), whichever QOR ID is signed in.
+    let _ = state.vault.set_active(address);
 }
 
 /// Run vault work off the async runtime: the keychain, a last Windows Hello
@@ -473,7 +509,7 @@ async fn vault_create(
 ) -> Result<Arrival, QorError> {
     let vault = Arc::clone(&state.vault);
     let accounts = off_runtime(move || vault.create(&phrase)).await?;
-    Ok(arrive(app, &state, accounts).await)
+    Ok(arrive(app, &state, accounts, None).await)
 }
 
 /// The address a recovery phrase opens, before anything is stored.
@@ -492,7 +528,7 @@ async fn vault_restore(
 ) -> Result<Arrival, QorError> {
     let dialog = HostDialog(app.clone());
     let (accounts, _aside) = state.vault.restore(&dialog, &phrase).await?;
-    Ok(arrive(app, &state, accounts).await)
+    Ok(arrive(app, &state, accounts, None).await)
 }
 
 /// Open the vault, then try QOR ID (ADR-016, ADR-056). A keychain vault opens
@@ -504,7 +540,7 @@ async fn vault_unlock(
 ) -> Result<Arrival, QorError> {
     let vault = Arc::clone(&state.vault);
     let accounts = off_runtime(move || vault.unlock(&*vault::hello::system())).await?;
-    Ok(arrive(app, &state, accounts).await)
+    Ok(arrive(app, &state, accounts, None).await)
 }
 
 /// Move a passphrase vault from before ADR-055 to the keychain, with its
@@ -517,7 +553,7 @@ async fn vault_move_to_keychain(
 ) -> Result<Arrival, QorError> {
     let vault = Arc::clone(&state.vault);
     let accounts = off_runtime(move || vault.move_to_keychain(&passphrase)).await?;
-    Ok(arrive(app, &state, accounts).await)
+    Ok(arrive(app, &state, accounts, None).await)
 }
 
 #[tauri::command]
@@ -537,7 +573,9 @@ fn vault_add_account(
 /// The account the person picked: what the rail shows, and what a product's first publish signs as (ADR-090).
 #[tauri::command]
 fn vault_set_active(state: tauri::State<'_, AppState>, address: String) -> Result<(), QorError> {
-    state.vault.set_active(&address)
+    state.vault.set_active(&address)?;
+    // Remembered, so the next launch signs in with the account last in use.
+    identity::owners::set_last(&state.data_dir, &address)
 }
 
 /// Re-export the recovery phrase, once the person approves a host dialog.
@@ -549,17 +587,61 @@ async fn vault_export_phrase(
     state.vault.export_phrase(&HostDialog(app)).await
 }
 
-/// Try QOR ID again with the open vault's first account, as opening it does
-/// (ADR-016): for when the service was unreachable at launch.
+/// Sign in to QOR ID with an account of the open vault: `address` if given, else the account last in use, else the
+/// first. For when the service was unreachable at launch, and for choosing which of this PC's QOR IDs to be.
 #[tauri::command]
 async fn qor_sign_in(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
+    address: Option<String>,
 ) -> Result<Arrival, QorError> {
     let VaultStatus::Unlocked { accounts } = state.vault.status() else {
         return Err(QorError::VaultLocked);
     };
-    Ok(arrive(app, &state, accounts).await)
+    Ok(arrive(app, &state, accounts, address).await)
+}
+
+/// A new QOR ID on a new account of this vault (launcher 0.1.12): the account is derived, then a QOR ID with `username`
+/// is created for its key, approved in one host dialog, and the account becomes the one in use. Each QOR ID on a shared
+/// PC so holds its own CGT. A name QOR ID refuses is refused before any account is made.
+#[tauri::command]
+async fn qor_new_identity(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    username: String,
+) -> Result<Arrival, QorError> {
+    if !state.identity.username_available(&username).await? {
+        return Err(QorError::Auth(format!(
+            "The name {username} is taken. Choose another."
+        )));
+    }
+    let account = state.vault.add_account(&username)?;
+    let session = state
+        .identity
+        .register_with_key(
+            &state.vault,
+            &HostDialog(app),
+            &account.address,
+            Some(&username),
+        )
+        .await?;
+    adopt(&state, &session);
+    let VaultStatus::Unlocked { accounts } = state.vault.status() else {
+        return Err(QorError::VaultLocked);
+    };
+    Ok(Arrival {
+        accounts,
+        address: Some(account.address),
+        session: Some(session),
+        needs_name: false,
+        sign_in_problem: None,
+    })
+}
+
+/// Which QOR ID each of this PC's accounts belongs to, as this launcher has seen it, and the account last in use.
+#[tauri::command]
+fn vault_owners(state: tauri::State<'_, AppState>) -> identity::owners::Owners {
+    identity::owners::read(&state.data_dir)
 }
 
 // ───────────────────────────── commands: chain ──────────────────────────────
@@ -1102,6 +1184,7 @@ async fn qor_register_with_key(
         .register_with_key(&state.vault, &consent, &address, username.as_deref())
         .await?;
     state.arrival.close();
+    adopt(&state, &session);
     Ok(session)
 }
 
@@ -1120,15 +1203,19 @@ async fn qor_link_wallet(
     state: tauri::State<'_, AppState>,
     address: String,
 ) -> Result<Session, QorError> {
-    state
+    let session = state
         .identity
         .link_wallet(&state.vault, &HostDialog(app), &address)
-        .await
+        .await?;
+    adopt(&state, &session);
+    Ok(session)
 }
 
 #[tauri::command]
 async fn qor_restore(state: tauri::State<'_, AppState>) -> Result<Session, QorError> {
-    state.identity.restore().await
+    let session = state.identity.restore().await?;
+    adopt(&state, &session);
+    Ok(session)
 }
 
 // ── The account's avatar (ADR-079) ────────────────────────────────────────────
@@ -1549,12 +1636,15 @@ async fn pay_link(
         ));
     }
     let outcome = async {
-        // The vault's first account pays: the account the launcher signs in with (ADR-016).
+        // The account in use pays: since ADR-098 the signed-in QOR ID's own account when this vault holds it, so a
+        // tip from a website signed in as one QOR ID is never paid from another's account. The dialog names it.
         let from = match state.vault.status() {
-            VaultStatus::Unlocked { accounts } => accounts
-                .first()
-                .map(|account| account.address.clone())
-                .ok_or_else(|| QorError::PaymentRefused("the vault holds no account".into()))?,
+            VaultStatus::Unlocked { accounts } if accounts.is_empty() => {
+                return Err(QorError::PaymentRefused(
+                    "the vault holds no account".into(),
+                ))
+            }
+            VaultStatus::Unlocked { .. } => state.vault.active_address()?,
             _ => {
                 return Err(QorError::PaymentRefused(
                     "the vault is not open. Open the QOR Launcher, then click the link again"
@@ -1724,6 +1814,8 @@ pub fn run() {
             vault_lock,
             vault_add_account,
             vault_set_active,
+            vault_owners,
+            qor_new_identity,
             vault_export_phrase,
             chain_status,
             chain_set_endpoint,

@@ -137,7 +137,8 @@ function ClaimCard({ onClose }: { onClose: () => void }) {
       if (!arrival.needs_name) {
         throw new Error(arrival.sign_in_problem ?? 'QOR ID could not be reached.');
       }
-      const address = accounts[0]?.address;
+      // The account the host tried: the one last in use on this PC, else the first (0.1.12).
+      const address = arrival.address ?? accounts[0]?.address;
       if (!address) throw new Error('No account is available to claim a name with.');
       setSession(await identity.registerWithKey(address, name));
     } catch (e) {

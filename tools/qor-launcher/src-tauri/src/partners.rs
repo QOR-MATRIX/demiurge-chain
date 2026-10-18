@@ -73,8 +73,9 @@ pub fn list(data_dir: &Path) -> Vec<Partner> {
 /// Record a finalised trade. Called only after the chain has reported one.
 pub fn remember(data_dir: &Path, address: &str, label: Option<&str>) -> QorResult<()> {
     let mut partners = list(data_dir);
-    match partners.iter_mut().find(|one| one.address == address) {
-        Some(known) => {
+    let partner = match partners.iter().position(|one| one.address == address) {
+        Some(at) => {
+            let mut known = partners.remove(at);
             known.last_traded = now();
             known.trades = known.trades.saturating_add(1);
             // A name learnt later is kept; a trade sent to a bare address does
@@ -82,14 +83,19 @@ pub fn remember(data_dir: &Path, address: &str, label: Option<&str>) -> QorResul
             if label.is_some() {
                 known.label = label.map(str::to_string);
             }
+            known
         }
-        None => partners.push(Partner {
+        None => Partner {
             address: address.to_string(),
             label: label.map(str::to_string),
             last_traded: now(),
             trades: 1,
-        }),
-    }
+        },
+    };
+    // At the front before the stable sort: the clock counts whole seconds, so a
+    // partner traded with twice in the second of another's trade must still
+    // come first, not keep its older place in a tie.
+    partners.insert(0, partner);
     partners.sort_by_key(|one| std::cmp::Reverse(one.last_traded));
     partners.truncate(KEPT);
 
@@ -143,6 +149,35 @@ mod tests {
             .find(|one| one.address == "5Bob")
             .expect("bob");
         assert_eq!(bob.label.as_deref(), Some("bob"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The clock counts whole seconds. Bob traded with this second and Alice
+    /// traded with again in it tie; Alice, the latest, comes first. Before,
+    /// she kept her older place, and the test above failed whenever the second
+    /// turned between its first two trades.
+    #[test]
+    fn a_partner_traded_with_again_in_the_same_second_comes_first() {
+        let dir = dir("tie");
+        let earlier = Partner {
+            address: "5Alice".into(),
+            label: None,
+            last_traded: 1,
+            trades: 1,
+        };
+        let this_second = Partner {
+            address: "5Bob".into(),
+            label: None,
+            last_traded: now(),
+            trades: 1,
+        };
+        std::fs::write(
+            path(&dir),
+            serde_json::to_vec(&[this_second, earlier]).unwrap(),
+        )
+        .unwrap();
+        remember(&dir, "5Alice", None).unwrap();
+        assert_eq!(list(&dir)[0].address, "5Alice");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

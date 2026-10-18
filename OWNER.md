@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 18 October 2026 (morning). One page, rewritten every session.
+For Andrew, 18 October 2026 (afternoon). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -8,40 +8,45 @@ A blockchain that pays makers when their work is used, and a desktop launcher to
 The currency, **CGT**, is for spending, not holding. Seven products are planned on one
 sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurge-chain`.
 
-## Live today (checked tonight, from outside)
+## Live today (checked this afternoon, from outside)
 
-- **Devnet** — *the test chain on servers* — at `wss://rpc.qorsync.dev`, **runtime version 9 since
-  tonight**, which you signed: the Mesh is live there, so paid seeding can be tested.
+- **Devnet** — *the test chain on servers* — at `wss://rpc.qorsync.dev`, runtime 9: the **Mesh**
+  — *launchers sharing files for pay* — is live there, so paid seeding can be tested.
 - **QOR ID** — *the one sign-in* — and **Social** — *the chat service* — on Railway.
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`.
-- **Launcher 0.1.10 for testers** (you installed it tonight; it works), published as a **GitHub Release** — *a public download on
-  the repository* — with QOR Media inside. Its download page with install steps and the
-  test checklist: `claude.ai/artifact/Uw2NRswDw9quvSBxQFbBLv` (private until you share it).
+- **Launcher 0.1.11 for testers**, a **GitHub Release** — *a public download on the repository*
+  — with QOR Media inside. Download page and checklist: `claude.ai/artifact/Uw2NRswDw9quvSBxQFbBLv`
+  (private until you share it).
 
-## Newest: launcher 0.1.11, published for testers
+## Newest: one wallet under two QOR IDs, fixed in launcher 0.1.12
 
-The download page now gives testers 0.1.11 (same link). Release:
-`github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.11`.
+You saw one balance shown under two QOR IDs on one PC. The cause: the launcher always opened on
+the wallet's **first account** — *one address inside your wallet* — whichever QOR ID was signed in,
+and paid ARQADE tips from it. In 0.1.12 (**its installer is on your Desktop**; the download page already offers it):
 
-- **Right-click a file in the Library** → **Publish to the Mesh…**: one dialog says it becomes
-  public, then the Mesh seeds it. A controller's Y button opens the same menu.
-- **A premium look:** a new heading typeface, the menu grouped as Play, Own, Create, Connect
-  and Network with a glowing marker, buttons that light up and shine, panels with depth.
-- **Testers need 2,500 test CGT each**, not 1,000: a first publish holds about 1,007 as a
-  deposit. The download page says so.
+- **Each account keeps its own QOR ID**, and the launcher opens on the one you used last.
+- **The Vault labels every account** with its QOR ID, and warns, with a one-click fix, when the
+  account on screen isn't the signed-in QOR ID's. The menu's account card warns too.
+- **Settings, signed out, lists each account** to sign in as, and *A new QOR ID* makes one on a new,
+  empty account, so two QOR IDs never share CGT.
+- **Tips pay from the signed-in QOR ID's own account.**
 
-## Earlier tonight
+Every launcher test passes (296, plus 14 screen checks). Not a lock between people: whoever uses
+the launcher can reach every account. Two people who must keep CGT apart need separate Windows
+logins.
 
-- **The Mesh is merged** (pull request #40, every CI check green): seeders paid from an
-  **escrow** — *CGT an uploader sets aside* — for proving they hold a file and for serving it.
-- **You upgraded the devnet**, read back: the rehearsed file, your sudo key unchanged, the
-  Mesh there with its one-hour period.
+## Earlier today
+
+- **Launcher 0.1.11 published for testers:** right-click a Library file → *Publish to the Mesh*,
+  and the new look. Testers need **2,500 test CGT** each.
+- **The devnet** runs runtime 9 with the Mesh, an upgrade you signed last night.
 
 ## What only you can do
 
-1. **Share the download page** with your testers (its Share menu), and **send each tester test
+1. **Publish 0.1.12 with the one command I gave you** (I'm not allowed to create releases). Until
+   then the download page's button answers "not found". Then merge **pull request #43**.
+2. **Share the download page** with your testers (its Share menu), and **send each tester test
    CGT** from the faucet when they send you their address.
-2. **Install 0.1.11** from the page or your Desktop: nobody has installed it yet.
 3. **Crediting godmode with 100,000,000 CGT:** a faucet transfer you sign; I need its address.
 4. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
 5. **Keep the `godmode` account safe**; move or delete `social-secrets.txt` on your Desktop.

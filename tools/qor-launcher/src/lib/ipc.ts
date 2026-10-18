@@ -86,6 +86,8 @@ export type VaultStatus =
  */
 export interface Arrival {
   accounts: AccountView[];
+  /** The account sign-in was tried with; a name, when one is needed, is claimed for it. */
+  address: string | null;
   /** Present when the person is signed in. */
   session: Session | null;
   /** The vault's key has no QOR ID yet: ask for a name. */
@@ -321,7 +323,15 @@ export const vault = {
   setActive: (address: string) => call<void>('vault_set_active', { address }),
   /** The host asks in its own dialog first. */
   exportPhrase: () => call<string>('vault_export_phrase'),
+  /** Which QOR ID each account belongs to, as this launcher has seen, and the account last in use (0.1.12). */
+  owners: () => call<AccountOwners>('vault_owners'),
 };
+
+/** Which QOR ID each of this PC's accounts belongs to, as the launcher has seen it. */
+export interface AccountOwners {
+  owners: Record<string, string>;
+  last: string | null;
+}
 
 /** A project on this machine, read from its repository. */
 export interface QontrolProject {
@@ -870,8 +880,10 @@ export const identity = {
   removeAvatar: () => call<Session>('qor_remove_avatar'),
   /** The account's own avatar as a data URL from this machine's copy, or null. */
   avatar: (refresh: boolean) => call<string | null>('qor_avatar', { refresh }),
-  /** Try QOR ID again with the open vault, as opening it does. */
-  signIn: () => call<Arrival>('qor_sign_in'),
+  /** Sign in with an account of the vault: the one named, else the one last in use, else the first. */
+  signIn: (address?: string) => call<Arrival>('qor_sign_in', { address: address ?? null }),
+  /** A new QOR ID on a new account of this vault, so it holds its own CGT; one host dialog. */
+  newIdentity: (username: string) => call<Arrival>('qor_new_identity', { username }),
   logout: () => call<void>('qor_logout'),
   setEndpoint: (endpoint: string) => call<void>('qor_set_auth_endpoint', { endpoint }),
 };
