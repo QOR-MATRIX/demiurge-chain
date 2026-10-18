@@ -1,7 +1,7 @@
 {
   "name": "@demiurge/qor-launcher",
   "private": true,
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "QOR Launcher - the sovereign gateway to the Demiurge ecosystem",
   "type": "module",
   "scripts": {
@@ -16,6 +16,7 @@
     "check": "node scripts/check-design.mjs && node scripts/check-accessibility.mjs && node scripts/check-gates-view.mjs && node scripts/check-projects-view.mjs && node scripts/check-inventory-view.mjs && node scripts/check-market-view.mjs && node scripts/check-qq-view.mjs && node scripts/check-social-view.mjs && node scripts/check-library-view.mjs && node scripts/check-mesh-view.mjs && node scripts/check-vault-gate.mjs && node scripts/check-contrast.mjs && node scripts/check-readability.mjs"
   },
   "dependencies": {
+    "@fontsource/barlow-semi-condensed": "^5.3.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2",
     "@tauri-apps/plugin-notification": "^2",

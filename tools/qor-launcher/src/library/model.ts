@@ -31,6 +31,17 @@ export interface Item {
   album: string | null;
 }
 
+/** A file published from the Library: the asset, and the file's own fingerprint, which the Mesh serves it by. */
+export interface PublishReceipt {
+  collection: number;
+  item: number;
+  name: string;
+  reference: { algo: string; root: string; size: number };
+  file: { algo: string; root: string; size: number };
+  tx_hash: string;
+  block_hash: string;
+}
+
 export const library = {
   folders: () => invoke<{ folders: string[]; suggested: string[] }>('library_folders'),
   addFolder: (path?: string) => invoke<string | null>('library_add_folder', { path: path ?? null }),
@@ -43,6 +54,8 @@ export const library = {
   thumbnail: (path: string) => invoke<ArrayBuffer>('library_thumbnail', { path }),
   reveal: (path: string) => invoke<void>('library_reveal', { path }),
   open: (path: string) => invoke<void>('library_open', { path }),
+  /** Publish a file as an asset the Mesh seeds (L10.2). The host shows the dialog; this only asks it. */
+  publish: (path: string) => invoke<PublishReceipt>('library_publish', { path }),
 };
 
 /** Where QOR Media sits, docked over the Library: a rectangle of the launcher's window in physical pixels. */

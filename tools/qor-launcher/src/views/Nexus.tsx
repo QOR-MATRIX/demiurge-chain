@@ -393,7 +393,7 @@ function StateBadge({ state }: { state: SystemState }) {
         : 'text-ink-faint';
 
   return (
-    <span className={`eyebrow flex flex-none items-center gap-1.5 text-micro ${tone}`}>
+    <span className={`status-pill flex-none ${tone}`}>
       <span
         className={`dot ${
           state === 'live' ? 'dot-ok' : state === 'local' ? 'dot-warn' : ''

@@ -7,9 +7,13 @@
  * The Nexus sits at the top and is where you land: it is the map, and everything
  * else on this rail is also reachable from it. The rail exists for the second
  * visit onward, when you already know where you are going.
+ *
+ * Below the Nexus, destinations are grouped by what a person is doing: playing,
+ * owning, creating, connecting, and the network itself. The current one is marked
+ * by one lit bar (`.nav-glider`) that glides from item to item.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useUnread } from '../../social/link';
 import {
   Boxes,
@@ -46,20 +50,44 @@ interface Item {
   hint: string;
 }
 
-const ITEMS: Item[] = [
-  { id: 'nexus', label: 'Nexus', icon: LayoutGrid, hint: 'Every system, one place' },
-  { id: 'vault', label: 'Vault', icon: Wallet, hint: 'Hold, send and receive CGT' },
-  { id: 'inventory', label: 'Inventory', icon: Boxes, hint: 'DRC-369 assets you own' },
-  { id: 'market', label: 'Market', icon: Store, hint: 'What is for sale on chain, as your node reads it' },
-  { id: 'projects', label: 'Projects', icon: FolderGit2, hint: 'Version your work, on this machine' },
-  { id: 'qq', label: 'QQ', icon: Shapes, hint: 'The QOR Engine: build and play a game here' },
-  { id: 'arqade', label: 'ARQADE', icon: Gamepad2, hint: 'Games and collectibles on the Demiurge devnet' },
-  { id: 'library', label: 'Library', icon: Library, hint: 'Your games, videos, music, pictures and documents' },
-  { id: 'social', label: 'Social', icon: MessagesSquare, hint: 'Rooms, messages, presence and profiles' },
-  { id: 'mesh', label: 'Mesh', icon: Share2, hint: 'Seed published work for others, within your limits' },
-  { id: 'chain', label: 'Chain', icon: Radio, hint: 'Node, network and validators' },
-  { id: 'gates', label: 'Gates', icon: ListChecks, hint: 'Release-gate progress from docs/GATES.toml' },
-  { id: 'settings', label: 'Settings', icon: Settings, hint: 'Themes, endpoints, security' },
+/** The rail's groups, in order: a group with no title is the Nexus, on its own at the top. */
+const GROUPS: { title: string | null; items: Item[] }[] = [
+  { title: null, items: [{ id: 'nexus', label: 'Nexus', icon: LayoutGrid, hint: 'Every system, one place' }] },
+  {
+    title: 'Play',
+    items: [
+      { id: 'library', label: 'Library', icon: Library, hint: 'Your games, videos, music, pictures and documents' },
+      { id: 'arqade', label: 'ARQADE', icon: Gamepad2, hint: 'Games and collectibles on the Demiurge devnet' },
+      { id: 'qq', label: 'QQ', icon: Shapes, hint: 'The QOR Engine: build and play a game here' },
+    ],
+  },
+  {
+    title: 'Own',
+    items: [
+      { id: 'vault', label: 'Vault', icon: Wallet, hint: 'Hold, send and receive CGT' },
+      { id: 'inventory', label: 'Inventory', icon: Boxes, hint: 'DRC-369 assets you own' },
+      { id: 'market', label: 'Market', icon: Store, hint: 'What is for sale on chain, as your node reads it' },
+    ],
+  },
+  {
+    title: 'Create',
+    items: [
+      { id: 'projects', label: 'Projects', icon: FolderGit2, hint: 'Version your work, on this machine' },
+      { id: 'mesh', label: 'Mesh', icon: Share2, hint: 'Seed published work for others, and be paid for it' },
+    ],
+  },
+  {
+    title: 'Connect',
+    items: [{ id: 'social', label: 'Social', icon: MessagesSquare, hint: 'Rooms, messages, presence and profiles' }],
+  },
+  {
+    title: 'Network',
+    items: [
+      { id: 'chain', label: 'Chain', icon: Radio, hint: 'Node, network and validators' },
+      { id: 'gates', label: 'Gates', icon: ListChecks, hint: 'Release-gate progress from docs/GATES.toml' },
+      { id: 'settings', label: 'Settings', icon: Settings, hint: 'Themes, endpoints, security' },
+    ],
+  },
 ];
 
 export function Rail() {
@@ -72,6 +100,20 @@ export function Rail() {
   const standing = useAscent().standing;
   const progress = useProgress(Boolean(session));
   const avatar = useOwnAvatar();
+  const list = useRef<HTMLDivElement>(null);
+  const [glider, setGlider] = useState<{ top: number; height: number } | null>(null);
+
+  // The lit bar sits behind the current item, measured from the item itself, so it follows any change of density or
+  // scale; it glides because only its transform and height change.
+  useLayoutEffect(() => {
+    const place = () => {
+      const current = list.current?.querySelector<HTMLElement>('[aria-current="page"]');
+      setGlider(current ? { top: current.offsetTop, height: current.offsetHeight } : null);
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [surface]);
 
   // The backdrops grow richer with the level (QFX), and read it from here. The
   // rail is mounted whenever the launcher is in use, so this is the one writer.
@@ -83,54 +125,51 @@ export function Rail() {
   }, [level]);
 
   return (
-    <nav
-      aria-label="Primary"
-      className="flex w-52 flex-none flex-col border-r border-edge bg-void"
-    >
-      <ul className="flex flex-col gap-0.5 p-3">
-        {ITEMS.map(({ id, label, icon: Icon, hint }) => {
-          const active = surface === id;
-          return (
-            <li key={id}>
-              <button
-                type="button"
-                onClick={() => go(id)}
-                title={hint}
-                aria-current={active ? 'page' : undefined}
-                className={`group relative flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors duration-150 ${
-                  active
-                    ? 'bg-surface text-ink'
-                    : 'text-ink-muted hover:bg-raised hover:text-ink-body'
-                }`}
-              >
-                <span
-                  aria-hidden="true"
-                  className={`absolute left-0 top-0 h-full w-[2px] transition-opacity duration-150 ${
-                    active ? 'bg-accent opacity-100' : 'opacity-0'
-                  }`}
-                />
-                <Icon
-                  size={16}
-                  strokeWidth={1.75}
-                  className={active ? 'text-accent' : 'text-current'}
-                />
-                <span className="heading text-caption tracking-label">{label}</span>
-                {id === 'social' && unread > 0 && (
-                  <span
-                    className="numeric ml-auto min-w-5 bg-accent px-1.5 text-center text-micro font-semibold text-void"
-                    aria-label={`${unread} unread`}
-                    data-social-unread
-                  >
-                    {unread > 99 ? '99+' : unread}
-                  </span>
-                )}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+    <nav aria-label="Primary" className="nav flex w-60 flex-none flex-col">
+      <div ref={list} className="relative min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2">
+        <span
+          aria-hidden="true"
+          className="nav-glider"
+          style={
+            glider
+              ? { transform: `translateY(${glider.top}px)`, height: glider.height, opacity: 1 }
+              : { opacity: 0 }
+          }
+        />
+        {GROUPS.map((group) => (
+          <div key={group.title ?? 'home'} role="group" aria-label={group.title ?? undefined}>
+            {group.title && <p className="nav-group">{group.title}</p>}
+            <ul className="flex flex-col gap-0.5">
+              {group.items.map(({ id, label, icon: Icon, hint }) => {
+                const active = surface === id;
+                return (
+                  <li key={id}>
+                    <button
+                      type="button"
+                      onClick={() => go(id)}
+                      title={hint}
+                      aria-current={active ? 'page' : undefined}
+                      className="nav-item"
+                    >
+                      <span className="nav-icon" aria-hidden="true">
+                        <Icon size={16} strokeWidth={1.9} />
+                      </span>
+                      <span>{label}</span>
+                      {id === 'social' && unread > 0 && (
+                        <span className="numeric nav-badge" aria-label={`${unread} unread`} data-social-unread>
+                          {unread > 99 ? '99+' : unread}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
 
-      <div className="mt-auto border-t border-edge p-3">
+      <div className="border-t border-edge-soft p-3">
         <Surface
           as="button"
           interactive

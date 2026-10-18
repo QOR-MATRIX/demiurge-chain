@@ -445,4 +445,78 @@ pub(crate) mod live {
             );
         }
     }
+
+    /// A file published from the Library (L10.2): minted as an asset whose manifest names it alone, with no commit, after
+    /// a dialog that says it becomes public; once minted the Mesh holds it as one's own work, by the file's own
+    /// fingerprint. Declined, nothing is written.
+    #[tokio::test]
+    #[ignore = "needs a running Demiurge development node; see the module docs"]
+    async fn a_file_published_from_the_library_is_minted_and_seeded() {
+        let me = Launcher::new(true).await;
+        // An account's first mint also creates its collection, and holds just over 1,000 CGT in deposits for it.
+        fund_from_alice(&endpoint(), me.account, 2_000 * CGT).await;
+        let bytes = work(200 * 1024, 9);
+        let source = me.dir.0.join("Holiday.jpg");
+        std::fs::write(&source, &bytes).unwrap();
+        let file = crate::content::ContentRef::of_file(&source).unwrap();
+        let (name, manifest) =
+            crate::library::commands::publication("Holiday.jpg", 1_700_000_000, file).unwrap();
+        let reference = manifest.reference();
+        let store = crate::content::TemporaryStore::in_data_dir(&me.dir.0);
+        let publish = |confirm: Scripted| {
+            let (store, source, manifest, name) = (&store, &source, &manifest, &name);
+            let (vault, chain, address) = (&me.vault, &me.chain, me.address());
+            async move {
+                let result = chain
+                    .publish_file(vault, &confirm, &address, name, &reference, &file, || {
+                        store.put_file(&file, source)?;
+                        store.put(&reference, &manifest.bytes())?;
+                        Ok(())
+                    })
+                    .await;
+                (result, confirm)
+            }
+        };
+
+        let (declined, asked) = publish(Scripted::declining()).await;
+        assert!(matches!(declined, Err(QorError::Declined)), "{declined:?}");
+        let body = asked.asked.lock()[0].body.clone();
+        assert!(
+            body.contains("becomes public") && body.contains("yours to share"),
+            "the dialog says so: {body}"
+        );
+        assert!(
+            !store.path_of(&file).exists(),
+            "declined, nothing is written"
+        );
+
+        let (receipt, _) = publish(Scripted::approving()).await;
+        let receipt = receipt.unwrap();
+        assert_eq!(receipt.name, "Holiday.jpg");
+        assert_eq!(receipt.file.root, file.root_hex());
+        let asset = me
+            .chain
+            .assets_of(&me.address())
+            .await
+            .unwrap()
+            .into_iter()
+            .find(|a| (a.collection, a.item) == (receipt.collection, receipt.item))
+            .expect("the asset is on the chain");
+        assert_eq!(
+            asset.current.root,
+            reference.root_hex(),
+            "the asset is its manifest"
+        );
+        assert_eq!(asset.commit, None, "a Library file has no commit");
+
+        me.mesh.take_in_own().await.unwrap();
+        let held = me.mesh.held().await;
+        assert!(
+            held.iter().any(|h| h.root == file.root_hex()
+                && h.kind == "own"
+                && h.size == bytes.len() as u64),
+            "the Mesh holds the file as one's own work: {held:?}"
+        );
+        me.mesh.stop().await;
+    }
 }

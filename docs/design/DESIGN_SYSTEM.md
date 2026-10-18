@@ -22,6 +22,13 @@ What effects owe the people using them is not optional:
   `tools/qor-launcher/scripts/check-design.mjs` fails on colour literals outside the token files and on sizes or
   tracking off the scales, and on nothing else.
 
+**Premium and plain to read (the owner, 17 October 2026).** The owner asked for "a high quality and premium feeling
+gaming style look and feel that is easy for gamers and creators to understand", with "a sleek and professional
+smoothness", animated buttons and a more enticing menu. Under ADR-080 that is a direction for how the effects are
+spent, not a new rule: depth and light carry the premium feel (lit panels, glowing primary controls, a sheen that
+crosses a button), and plain grouping carries the understanding (the rail grouped by what a person is doing). The
+obligations below are unchanged.
+
 **History.** Until 6 October 2026 this section ruled glows, pointer-following light, canvas backdrops, gradients, neon
 and looping animation out of every surface, with two exceptions: QFX (`src/qfx/`, ADR-051, 22 September 2026) for its
 canvas and pointer rules, and the ceremony (`src/qfx/ceremony/`, 28 September 2026) for glow, gradients and loops. ADR-080
@@ -84,8 +91,13 @@ belong, not a defect waiting to be fixed.
 
 ## 3. Type
 
-System fonts only, so every surface renders correctly offline and on first run:
-- display and body: Segoe UI Variable, then the platform's UI face;
+Every face renders offline and on first run: the display face is bundled with the launcher, the others are the
+system's.
+- display (headings, the rail, buttons, eyebrows): **Barlow Semi Condensed** at 500, 600 and 700, bundled through
+  `@fontsource/barlow-semi-condensed` (SIL Open Font License), then Segoe UI Variable Display. Chosen on 17 October 2026
+  for a condensed, athletic display face that still reads plainly at small sizes; until then the display face was the
+  system's;
+- body: Segoe UI Variable, then the platform's UI face;
 - numbers and addresses: Cascadia Mono, SF Mono or Consolas.
 
 ### Scale
@@ -109,6 +121,7 @@ Every size is one of eight steps. Arbitrary sizes (`text-[13px]`) are not used.
 | --- | --- |
 | `.eyebrow` | Uppercase label above a heading or field: micro, semibold, eyebrow tracking, muted ink |
 | `.heading` | Display face, semibold, uppercase, heading tracking, full ink. Size comes from the scale |
+| `.view-title` | A view's title: display face, bold, display size, uppercase, with a line of light under its header |
 | `.numeric` | Mono with tabular figures, for amounts, addresses, block numbers and counts |
 
 ### Tracking
@@ -134,18 +147,24 @@ Spacing uses Tailwind's 0.25rem unit, which the density setting rescales.
 | List row | `px-4 py-3` |
 | Between panels | `gap-4`; between tiles `gap-3`; between sections `mb-9` |
 
-**Radius is 2px** (`rounded-qor`, `--radius-qor`) on every panel, control and field. The exceptions are
-the status dot and the switch, which are circles.
+**Radius is 8px on controls and fields** (`rounded-qor`, `--radius-qor`) **and 12px on panels, glass and menus**
+(`--radius-panel`), since 17 October 2026 (2px before). The status dot, the switch and the status pill are round.
+
+**Depth.** A panel is lit from above: a faint gradient of the raised colour over its fill, a one-pixel highlight on its
+top edge, and a soft shadow below. Every colour in it is a theme token mixed with transparency.
 
 ## 5. Components
 
 | Component | Where | Notes |
 | --- | --- | --- |
-| Surface | `components/ui/Surface.tsx`, `.surface` | Translucent panel with blur, hairline, 2px radius. `interactive` answers hover with a raised fill and an accent-dim border. |
-| Panel | `views/parts.tsx` | A Surface with corner marks; a button when clickable |
-| Corner marks | `.cut` | Two 9px accent corners at half opacity; full opacity on hover when interactive. Instrumentation for a selected or actionable panel. |
+| Surface | `components/ui/Surface.tsx`, `.surface` | Translucent panel with blur, lit from above, 12px radius. `interactive` lifts 2px toward the pointer, takes an accent-dim border and glows faintly in the accent. |
+| Panel | `views/parts.tsx` | A Surface with corner brackets; a button when clickable |
+| Corner brackets | `.cut` | Two accent brackets that follow the panel's rounding: faint on a static panel, stronger on one that can be pressed, and growing and glowing on hover. |
+| Navigation rail | `components/chrome/Rail.tsx`, `.nav` | The Nexus, then groups by what a person is doing: Play, Own, Create, Connect, Network. Each destination has an icon tile; the current one's tile is lit in the accent, and one lit bar (`.nav-glider`) glides behind it from item to item. |
+| Status pill | `.status-pill` | A system's state (Ready, Connect, Forming) as a round pill tinted in its status colour, with its dot |
+| File menu | `FileMenu` in `library/LibraryView.tsx`, `.file-menu` | A file's actions in the Library: right-click, Shift+F10 or the Menu key, or Y on a controller. It takes focus; arrows move, Enter chooses, Escape gives focus back to the file. |
 | Glass | `.glass`, `.glass-solid` | Translucent and solid panel fills for dialogs and toasts |
-| Button | `.btn`, `.btn-primary`, `.btn-ghost`, `.btn-danger` | ui size, label tracking, uppercase. One primary per decision. |
+| Button | `.btn`, `.btn-primary`, `.btn-ghost`, `.btn-danger` | Display face, body size, label tracking, uppercase, 8px radius. Primary is a lit accent gradient with a glow in the accent; every button lifts 1px on hover, a sheen of light crosses it once, and it gives under a press. One primary per decision. |
 | Field | `.field`, `.field-invalid` | Well fill; accent border on focus; bad border when invalid |
 | Status dot | `.dot-ok`, `.dot-warn`, `.dot-bad` | 6px circle, flat colour, kept still by choice: a status is read at a glance and must look the same in every theme and under reduced motion |
 | Progress rail | `.rail`, `.rail-fill` | 2px track, solid accent fill |
@@ -159,7 +178,10 @@ Motion confirms a change, and it may also decorate: looping and idle animation a
 (ADR-080, decision 1). Reduce motion stills or skips all of it. The chrome's own motion today:
 - **Entrance:** `animate-rise` (6px, 420ms), and `stagger` for grids at 38ms per item.
 - **View change:** a 160ms cross-fade.
-- **Controls:** colour and border transitions of 150 to 260ms, and a 1px press on buttons.
+- **Controls:** colour, border and shadow transitions of 150 to 260ms. A button lifts 1px on hover, a sheen
+  (`btn-sheen`, 760ms) crosses it once, and it scales to 97% under a press. An interactive panel lifts 2px.
+- **Navigation:** the rail's lit bar glides to the current item (420ms); a menu opens from where it was asked for
+  (`menu-in`, 200ms).
 - **Easing:** `--ease-expo` throughout.
 - **Loading:** a spinning icon, only while something is actually in progress.
 

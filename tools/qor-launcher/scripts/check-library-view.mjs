@@ -13,6 +13,9 @@
 //   - a kind's tab shows that kind; Games says plainly what waits;
 //   - arrow keys move the focus ring along a shelf and between shelves; Enter opens, through `library_open`;
 //   - a game controller does the same: a direction takes the first tile, then moves and repeats while held, A opens;
+//   - each file has a menu, opened by a right-click, by Shift+F10 on a focused tile, and by Y on a controller: it takes
+//     focus, the arrow keys move in it, Escape gives focus back to the tile, and Publish to the Mesh asks the host
+//     to publish exactly that file;
 //   - QOR Media is told where to sit in physical pixels, and to hide when the person leaves the Library;
 //   - Folders: one is taken out, a suggested one added;
 //   - when the host says the index changed, the shelves are read again.
@@ -190,6 +193,7 @@ try {
           case 'library_search':
             return Promise.resolve(ALL.filter((i) => i.name.toLowerCase().includes(args.query.toLowerCase().trim()) || (i.title ?? '').toLowerCase().includes(args.query.toLowerCase().trim())));
           case 'library_thumbnail': return Promise.resolve(new Uint8Array(${JSON.stringify(JPEG)}).buffer);
+          case 'library_publish': return Promise.resolve({ collection: 3, item: 1, name: 'Midnight Lattice.flac', reference: { algo: 'BLAKE3-256', root: 'ab'.repeat(32), size: 200 }, file: { algo: 'BLAKE3-256', root: 'cd'.repeat(32), size: 4096 }, tx_hash: '0x01', block_hash: '0x02' });
           case 'library_open': case 'library_reveal': case 'library_scan': case 'media_place': case 'media_hide':
             return Promise.resolve(cmd === 'library_scan' ? { seen: 5, added: 0, changed: 0, removed: 0 } : null);
           case 'launcher_state': return Promise.resolve(${JSON.stringify(STATE)});
@@ -303,6 +307,55 @@ try {
   await sleep(300);
   const opened = (await calls('library_open')).length - opensBefore;
   check('A opens the focused tile, once, however long it is held', opened === 1, String(opened));
+  await evaluate(`window.__PAD__.connected = false; navigator.getGamepads = () => [null, null, null, null]`);
+
+  // --- a file's menu ---------------------------------------------------------------------
+  const menuOpen = () => evaluate(`Boolean(document.querySelector('[data-file-menu]'))`);
+  const songTile = `[data-shelf="Music"] [data-tile]`;
+  const songPath = await evaluate(`document.querySelector(${JSON.stringify(songTile)})?.getAttribute('data-tile')`);
+  await evaluate(`(() => {
+    const t = document.querySelector(${JSON.stringify(songTile)});
+    const r = t.getBoundingClientRect();
+    t.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left + 20, clientY: r.top + 20 }));
+  })()`);
+  check('a right-click on a file opens its menu', await eventually(`document.querySelector('[data-file-menu]')?.getAttribute('data-file-menu') === ${JSON.stringify(songPath)}`));
+  const items = await evaluate(`[...document.querySelectorAll('[data-file-menu] [role="menuitem"]')].map((b) => b.textContent.trim())`);
+  check('it offers Play, Show in folder and Publish to the Mesh', items.length === 3 && items[0] === 'Play' && items[1] === 'Show in folder' && items[2].startsWith('Publish to the Mesh'), JSON.stringify(items));
+  check('and says publishing makes the file public', (await text('[data-file-menu-publish]')).includes('public'));
+  check('the menu takes focus on its first item', await eventually(`document.activeElement?.hasAttribute('data-file-menu-open')`));
+  if (process.env.LIBRARY_SHOTS) {
+    const { writeFileSync, mkdirSync } = await import('node:fs');
+    mkdirSync(process.env.LIBRARY_SHOTS, { recursive: true });
+    await sleep(300);
+    const shot = await send('Page.captureScreenshot', { format: 'png' });
+    writeFileSync(join(process.env.LIBRARY_SHOTS, 'library-menu.png'), Buffer.from(shot.result.data, 'base64'));
+  }
+  await key('ArrowDown');
+  check('ArrowDown moves down the menu', await eventually(`document.activeElement?.hasAttribute('data-file-menu-reveal')`));
+  await key('ArrowUp');
+  await key('ArrowUp');
+  check('and round from the top to the last item', await eventually(`document.activeElement?.hasAttribute('data-file-menu-publish')`));
+  await key('Escape');
+  check('Escape closes it and gives focus back to the file', await eventually(`!document.querySelector('[data-file-menu]') && document.activeElement?.getAttribute('data-tile') === ${JSON.stringify(songPath)}`));
+  await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'F10', shiftKey: true, bubbles: true }))`);
+  check('Shift+F10 on a focused file opens its menu', await eventually(`document.querySelector('[data-file-menu]')?.getAttribute('data-file-menu') === ${JSON.stringify(songPath)}`));
+  await click('[data-file-menu-publish]');
+  check('Publish to the Mesh asks the host to publish exactly that file', await eventually(`window.__CALLS__.some((c) => c.cmd === 'library_publish')`)
+    && (await calls('library_publish'))[0].path === songPath, JSON.stringify(await calls('library_publish')));
+  check('the menu closes as it asks', !(await menuOpen()));
+  check("what was published is said in the host's words", await eventually(`document.body.textContent.includes('Published “Midnight Lattice.flac” as asset 3/1')`));
+  // Y on a controller opens the focused file's menu, and B closes it.
+  await evaluate(`(() => {
+    const buttons = Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 }));
+    window.__PAD__ = { id: 'fixture pad', index: 0, connected: true, mapping: 'standard', timestamp: 0, axes: [0, 0, 0, 0], buttons };
+    navigator.getGamepads = () => [window.__PAD__, null, null, null];
+    window.dispatchEvent(new Event('gamepadconnected'));
+    document.querySelector(${JSON.stringify(songTile)}).focus();
+  })()`);
+  await tap(3);
+  check("Y on a controller opens the focused file's menu", await eventually(`Boolean(document.querySelector('[data-file-menu]'))`));
+  await tap(1);
+  check('and B closes it', await eventually(`!document.querySelector('[data-file-menu]')`));
   await evaluate(`window.__PAD__.connected = false; navigator.getGamepads = () => [null, null, null, null]`);
 
   // --- search ---------------------------------------------------------------------------

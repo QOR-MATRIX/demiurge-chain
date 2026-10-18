@@ -190,3 +190,79 @@ pub fn library_opened(
     changed(&app);
     Ok(())
 }
+
+/// Publish a file the Library holds to the Mesh (L10.2): as a DRC-369 asset whose manifest names this file alone, after
+/// a host dialog saying it becomes public. Its bytes go into the store the Mesh seeds from only once the vault has
+/// signed, so a declined publish writes nothing; the Mesh takes it in at once if seeding is on.
+#[tauri::command]
+pub async fn library_publish(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<crate::chain::assets::PublishReceipt, QorError> {
+    let item = state.library.item(&path)?;
+    let from = state.vault.active_address()?;
+    let source = std::path::PathBuf::from(&item.path);
+    let hashed = source.clone();
+    let file = tokio::task::spawn_blocking(move || crate::content::ContentRef::of_file(&hashed))
+        .await
+        .map_err(|e| QorError::Internal(e.to_string()))??;
+    let (name, manifest) = publication(&item.name, item.modified, file)?;
+    let reference = manifest.reference();
+    let store = crate::content::TemporaryStore::in_data_dir(&state.data_dir);
+    let receipt = state
+        .chain
+        .publish_file(
+            &state.vault,
+            &crate::HostDialog(app),
+            &from,
+            &name,
+            &reference,
+            &file,
+            || {
+                store.put_file(&file, &source)?;
+                store.put(&reference, &manifest.bytes())?;
+                Ok(())
+            },
+        )
+        .await?;
+    if let Err(e) = state.mesh.take_in_own().await {
+        tracing::warn!(error = %e, "the Mesh could not take in the published file yet; it tries again within a minute");
+    }
+    Ok(receipt)
+}
+
+/// The asset a published file becomes: its name, at most the chain's limit and cut on a character, and a manifest
+/// naming the file alone under that name, dated when the file last changed, from no commit.
+pub(crate) fn publication(
+    file_name: &str,
+    modified: i64,
+    file: crate::content::ContentRef,
+) -> Result<(String, crate::content::Manifest), QorError> {
+    let limit = crate::chain::assets::NAME_LIMIT;
+    let mut name = file_name.trim().to_string();
+    if name.len() > limit {
+        let mut end = limit;
+        while !name.is_char_boundary(end) {
+            end -= 1;
+        }
+        name.truncate(end);
+    }
+    // A manifest path is one plain part: never a separator, a dot part or nothing (ADR-047).
+    let entry = match name.replace(
+        |c: char| c == char::from(0x2f) || c == char::from(0x5c) || c == char::from(0),
+        "_",
+    ) {
+        n if n.is_empty() || n == "." || n == ".." => "file".to_string(),
+        n => n,
+    };
+    if name.is_empty() {
+        name = entry.clone();
+    }
+    let manifest = crate::content::Manifest::new(
+        vec![(entry, file)],
+        u64::try_from(modified).unwrap_or(0),
+        None,
+    )?;
+    Ok((name, manifest))
+}
