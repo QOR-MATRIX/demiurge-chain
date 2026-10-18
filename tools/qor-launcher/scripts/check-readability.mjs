@@ -48,7 +48,7 @@
 // the scrim painted over the interface, and this check failed on every theme.
 
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -85,6 +85,9 @@ const THEME_IDS = [
 // For iterating on one theme: READABILITY_THEMES=architect. A run meant as
 // evidence leaves it unset, and then every theme is measured.
 const THEMES = process.env.READABILITY_THEMES ? process.env.READABILITY_THEMES.split(',') : THEME_IDS;
+// For design work: READABILITY_SHOTS=<folder> also saves every surface as it was rendered, one PNG each.
+const SHOTS = process.env.READABILITY_SHOTS || null;
+if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
 // Anti-aliasing can keep the brightest pixel of a thin stem short of its colour,
 // so the PAINTED measurement is held to this share of the AA threshold. Set from
@@ -745,6 +748,9 @@ try {
           continue;
         }
         judge(`${theme}, ${backdrop}, ${surface}`, await measure());
+        if (SHOTS) {
+          writeFileSync(join(SHOTS, `${theme}-${backdrop}-${surface}.png`), Buffer.from(await shoot(), 'base64'));
+        }
         if ((await evaluate(SCROLL_TO_END)) > 0) {
           judge(`${theme}, ${backdrop}, ${surface}, scrolled to the end`, await measure());
         }

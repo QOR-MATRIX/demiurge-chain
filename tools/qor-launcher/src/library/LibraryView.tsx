@@ -4,9 +4,24 @@
  * A hero for what was last opened, shelves of large tiles by kind, a folders view, and search one key away (`/`). Arrow
  * keys move a focus ring from tile to tile and shelf to shelf, Enter opens, Escape goes back; a game controller does the
  * same with its D-pad or left stick, A and B (`followController`). Files open in QOR Media, docked inside the launcher.
+ *
+ * Each file has a menu (`FileMenu`): right-click a tile, press the Menu key or Shift+F10 on it, or Y on a controller. It
+ * opens, shows the file in its folder, or publishes it to the Mesh (L10.2), which the host asks the person to approve.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
 import {
   Check,
   Clapperboard,
@@ -22,6 +37,7 @@ import {
   Play,
   RefreshCw,
   Search,
+  Share2,
   Trash2,
   X,
 } from 'lucide-react';
@@ -30,6 +46,12 @@ import { useQor } from '../state/store';
 import { dockOver, factOf, library, onLibraryChanged, SHELVES, thumbnailOf, titleOf, type Item, type Kind } from './model';
 
 type Tab = 'all' | 'games' | Kind | 'folders';
+
+/** Where a file's menu opens: beside the pointer, or under the tile it was asked for from. */
+type MenuAt = { item: Item; x: number; y: number };
+
+/** How any tile asks for its file's menu, without every shelf passing it down. */
+const MenuContext = createContext<(item: Item, x: number, y: number) => void>(() => {});
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'all', label: 'Home' },
@@ -67,6 +89,9 @@ export function LibraryView() {
   const [scanning, setScanning] = useState(false);
   const search = useRef<HTMLInputElement>(null);
   const root = useRef<HTMLDivElement>(null);
+  const [menu, setMenu] = useState<MenuAt | null>(null);
+  const [publishing, setPublishing] = useState<string | null>(null);
+  const openMenu = useCallback((item: Item, x: number, y: number) => setMenu({ item, x, y }), []);
 
   // QOR Media docks over the whole Library while it shows, and is hidden when the person goes elsewhere.
   useEffect(() => (root.current ? dockOver(root.current) : undefined), []);
@@ -127,6 +152,22 @@ export function LibraryView() {
     [notify],
   );
 
+  const publish = async (item: Item) => {
+    setPublishing(item.path);
+    try {
+      const receipt = await library.publish(item.path);
+      notify(
+        'ok',
+        `Published “${receipt.name}” as asset ${receipt.collection}/${receipt.item}. The Mesh serves it while seeding is on: find it on the Mesh page.`,
+      );
+    } catch (e) {
+      const why = explain(e);
+      if (!/declined/i.test(why)) notify('bad', why);
+    } finally {
+      setPublishing(null);
+    }
+  };
+
   const rescan = async () => {
     setScanning(true);
     try {
@@ -155,6 +196,7 @@ export function LibraryView() {
   const total = Object.values(counts).reduce((n, c) => n + c, 0);
 
   return (
+    <MenuContext.Provider value={openMenu}>
     <div ref={root} className="library flex h-full min-h-0 flex-col" onKeyDown={onKey} data-library>
       <header className="library-header flex flex-none items-center gap-4 px-8 pb-3 pt-6">
         <span className="library-mark" aria-hidden="true">
@@ -216,6 +258,137 @@ export function LibraryView() {
           <KindGrid kind={tab} onOpen={open} />
         )}
       </div>
+      {publishing && (
+        <p className="library-publishing" role="status" data-library-publishing>
+          <Loader2 size={13} className="animate-spin" /> Publishing to the Mesh. Approve it in the window that opened.
+        </p>
+      )}
+      {menu && (
+        <FileMenu
+          at={menu}
+          busy={publishing !== null}
+          onClose={() => setMenu(null)}
+          onOpen={() => open(menu.item)}
+          onReveal={() => void library.reveal(menu.item.path).catch((e) => notify('bad', explain(e)))}
+          onPublish={() => void publish(menu.item)}
+        />
+      )}
+    </div>
+    </MenuContext.Provider>
+  );
+}
+
+/* ─────────────────────────────── a file's menu ─────────────────────────── */
+
+/**
+ * A file's menu: open it, show it in its folder, or publish it to the Mesh. Keyboard and controller reach every item:
+ * it takes focus when it opens, the arrow keys move within it, Enter chooses, and Escape or a click elsewhere closes it,
+ * giving focus back to the tile it came from.
+ */
+function FileMenu({
+  at,
+  busy,
+  onClose,
+  onOpen,
+  onReveal,
+  onPublish,
+}: {
+  at: MenuAt;
+  busy: boolean;
+  onClose: () => void;
+  onOpen: () => void;
+  onReveal: () => void;
+  onPublish: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [place, setPlace] = useState({ left: at.x, top: at.y });
+  const playable = at.item.kind === 'video' || at.item.kind === 'audio';
+
+  // Kept inside the window, then the first item focused.
+  useLayoutEffect(() => {
+    const menu = ref.current;
+    if (!menu) return;
+    const { width, height } = menu.getBoundingClientRect();
+    setPlace({
+      left: Math.max(8, Math.min(at.x, window.innerWidth - width - 8)),
+      top: Math.max(8, Math.min(at.y, window.innerHeight - height - 8)),
+    });
+    menu.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+  }, [at.x, at.y]);
+
+  useEffect(() => {
+    const away = (e: globalThis.MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) onClose();
+    };
+    window.addEventListener('mousedown', away);
+    window.addEventListener('blur', onClose);
+    return () => {
+      window.removeEventListener('mousedown', away);
+      window.removeEventListener('blur', onClose);
+    };
+  }, [onClose]);
+
+  // Focus goes back to the file's own tile, however the menu was opened: a right-click does not focus it.
+  const close = () => {
+    onClose();
+    const tiles = document.querySelectorAll<HTMLElement>('[data-library] [data-tile]');
+    [...tiles].find((t) => t.dataset.tile === at.item.path)?.focus();
+  };
+  const choose = (action: () => void) => () => {
+    close();
+    action();
+  };
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const items = [...(ref.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? [])];
+    const at = items.indexOf(document.activeElement as HTMLElement);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const step = e.key === 'ArrowDown' ? 1 : -1;
+      items[(at + step + items.length) % items.length]?.focus();
+    } else if (e.key === 'Escape' || e.key === 'Tab') {
+      e.preventDefault();
+      close();
+    }
+    // Arrow keys and Escape belong to the menu while it is open, not to the shelves behind it.
+    e.stopPropagation();
+  };
+
+  return (
+    <div
+      ref={ref}
+      className="file-menu"
+      role="menu"
+      aria-label={`${titleOf(at.item)}: what to do`}
+      style={{ left: place.left, top: place.top }}
+      onKeyDown={onKey}
+      onContextMenu={(e) => e.preventDefault()}
+      data-file-menu={at.item.path}
+    >
+      <p className="file-menu-head">
+        <span className="file-menu-title">{titleOf(at.item)}</span>
+        <span className="numeric file-menu-fact">{factOf(at.item)}</span>
+      </p>
+      <button type="button" role="menuitem" className="file-menu-item" onClick={choose(onOpen)} data-file-menu-open>
+        <Play size={14} aria-hidden="true" /> {playable ? 'Play' : 'Open'}
+      </button>
+      <button type="button" role="menuitem" className="file-menu-item" onClick={choose(onReveal)} data-file-menu-reveal>
+        <FolderOpen size={14} aria-hidden="true" /> Show in folder
+      </button>
+      <span className="file-menu-rule" role="separator" />
+      <button
+        type="button"
+        role="menuitem"
+        className="file-menu-item file-menu-item-mesh"
+        disabled={busy}
+        onClick={choose(onPublish)}
+        data-file-menu-publish
+      >
+        <Share2 size={14} aria-hidden="true" />
+        <span className="file-menu-item-text">
+          Publish to the Mesh…
+          <span className="file-menu-item-note">Makes it public, so other launchers can seed it</span>
+        </span>
+      </button>
     </div>
   );
 }
@@ -260,6 +433,7 @@ const PAD: { key: string; on: (p: Gamepad) => boolean; repeats: boolean }[] = [
   { key: 'ArrowRight', on: (p) => !!p.buttons[15]?.pressed || (p.axes[0] ?? 0) > 0.5, repeats: true },
   { key: 'Enter', on: (p) => !!p.buttons[0]?.pressed, repeats: false },
   { key: 'Escape', on: (p) => !!p.buttons[1]?.pressed, repeats: false },
+  { key: 'ContextMenu', on: (p) => !!p.buttons[3]?.pressed, repeats: false },
 ];
 
 /**
@@ -273,9 +447,19 @@ function followController(root: HTMLElement): () => void {
   const next = new Map<string, number>();
   const press = (key: string) => {
     const here = document.activeElement as HTMLElement | null;
+    // Inside an open file menu the controller drives the menu: up and down, A to choose, B to close.
+    if (here?.closest('[role="menu"]')) {
+      if (key === 'Enter') here.click();
+      else here.dispatchEvent(new globalThis.KeyboardEvent('keydown', { key, bubbles: true }));
+      return;
+    }
     const onTile = !!here?.dataset.tile && root.contains(here);
     if (key === 'Enter') {
       if (onTile) here!.click();
+      return;
+    }
+    if (key === 'ContextMenu') {
+      if (onTile) here!.dispatchEvent(new globalThis.KeyboardEvent('keydown', { key, bubbles: true }));
       return;
     }
     if (!onTile && key !== 'Escape') {
@@ -340,13 +524,35 @@ function Art({ item, large = false }: { item: Item; large?: boolean }) {
   );
 }
 
+/** What opens a file's menu from a tile: a right-click at the pointer, or the Menu key or Shift+F10 under the tile. */
+function useFileMenu(item: Item) {
+  const openMenu = useContext(MenuContext);
+  return {
+    onContextMenu: (e: MouseEvent<HTMLElement>) => {
+      e.preventDefault();
+      openMenu(item, e.clientX, e.clientY);
+    },
+    onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+      if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+        const r = e.currentTarget.getBoundingClientRect();
+        openMenu(item, r.left + 12, r.bottom - 12);
+      }
+    },
+  };
+}
+
 function Tile({ item, onOpen, wide = false }: { item: Item; onOpen: (i: Item) => void; wide?: boolean }) {
   const played = item.position && item.duration ? Math.min(1, item.position / item.duration) : 0;
+  const menu = useFileMenu(item);
   return (
     <button
       type="button"
       className={`library-tile ${wide ? 'library-tile-wide' : ''}`}
       onClick={() => onOpen(item)}
+      {...menu}
+      aria-haspopup="menu"
       data-tile={item.path}
       title={item.path}
     >

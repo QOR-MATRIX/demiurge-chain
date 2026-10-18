@@ -834,6 +834,12 @@ type = "tightening"
 change = "library.tests requires qor_media_is_found_where_qor_media_points_where_it_is_installed_or_where_it_is_deployed in place of qor_media_is_found_where_qor_media_points_or_where_it_is_deployed: the same test, renamed because it now also checks the copy the 0.1.10 installer puts in the launcher's install folder, and that an installed copy is preferred to a developer's deployed one."
 reason = "Tightening: every case the old test checked is still checked, and two are added; no criterion is removed or relaxed."
 
+[[change_log]]
+date = "2026-10-17"
+type = "tightening"
+change = "library.tests requires two more tests: a file published from the Library is one manifest entry named as the file, the same every time, with no commit; and a file is fingerprinted and stored a piece at a time, a changed one refused. The view check library_view grows from 27 checks to 40: each file's menu opens by right-click, Shift+F10 and a controller's Y, takes focus, moves with the arrow keys, gives focus back to its file, and asks the host to publish exactly that file."
+reason = "Tightening: tests and checks added, none removed or relaxed. The whole publish path, minted with no commit and taken in by the Mesh, passed against a development node as mesh::paid::tests::live::a_file_published_from_the_library_is_minted_and_seeded, ignored by default because it needs one (HANDOFF.md section 4 item 89)."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1988,6 +1994,9 @@ Everything a person has in one SteamOS-like view in the launcher, searched insta
     "reports_record_where_playback_stopped_and_what_was_learned",
     "only_colours_written_rrggbb_make_a_theme",
     "qor_media_is_found_where_qor_media_points_where_it_is_installed_or_where_it_is_deployed",
+    # Publishing a Library file to the Mesh (L10.2): what it becomes, and its bytes stored a piece at a time.
+    "a_published_file_is_one_entry_named_as_the_file_and_the_same_every_time",
+    "a_file_is_fingerprinted_and_stored_a_piece_at_a_time_and_a_changed_one_is_refused",
   ]
 
   # The view, in a real browser against a stand-in host.

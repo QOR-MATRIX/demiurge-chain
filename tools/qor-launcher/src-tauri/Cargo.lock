@@ -7508,7 +7508,7 @@ dependencies = [
 
 [[package]]
 name = "qor-launcher"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "argon2",
  "base64 0.22.1",

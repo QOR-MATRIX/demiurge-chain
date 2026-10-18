@@ -826,7 +826,9 @@ L10.2, because finding who holds a root reads the escrow's assignments on chain.
    merged:** a root is found through the chain (an escrow's seeders, then its uploader, each dialed by the node it bound)
    and fetched verified, from the Mesh page by its fingerprint; while seeding with the Mesh grant (ADR-097) the launcher
    takes on copies escrows still ask for, within the disk limit. Shown between three launchers on one PC against a
-   development chain; not yet between PCs over the internet, and not on the devnet, which lacks the pallet.
+   development chain; not yet between PCs over the internet. Live on the devnet since its upgrade to runtime 9
+   (17 October 2026). **A file is published to the Mesh from the Library's file menu** (launcher 0.1.11): minted as an
+   asset whose manifest names it alone, after a dialog saying it becomes public.
 3. [ ] The proofs: storage challenges and serving receipts, as ADR-096 accepts them (U-6). QOR ID attesting receivers on
    chain is a later step of its own. **Both halves built 2026-10-17 on branch `session/mesh`, not merged:**
    `pallet-mesh` checks answers with `mesh-proof` and pays receipts; the launcher answers each period's challenge with a

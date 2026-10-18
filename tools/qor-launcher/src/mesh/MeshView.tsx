@@ -213,7 +213,7 @@ export function MeshView() {
           {held.length === 0 ? (
             <p className="mt-2 text-ui text-ink-muted" data-mesh-empty>
               {status?.node
-                ? 'Nothing yet. Work you publish from Projects or QQ Studio is taken in within a minute.'
+                ? 'Nothing yet. Right-click a file in the Library and choose Publish to the Mesh, or mint a project in Projects; it appears here within a minute.'
                 : 'The Mesh holds nothing while it is off.'}
             </p>
           ) : (

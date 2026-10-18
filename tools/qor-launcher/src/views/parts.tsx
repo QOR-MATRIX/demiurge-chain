@@ -77,11 +77,11 @@ export function ViewHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="flex flex-none items-start gap-6 border-b border-edge px-8 py-6">
+    <header className="view-header flex flex-none items-start gap-6 border-b border-edge-soft px-8 py-6">
       <div className="min-w-0 flex-1">
-        <p className="eyebrow mb-1.5 text-accent">{eyebrow}</p>
+        <p className="eyebrow mb-2 text-accent">{eyebrow}</p>
         <div className="flex items-center gap-2">
-          <h1 className="heading text-heading">{title}</h1>
+          <h1 className="view-title">{title}</h1>
           {body && <InfoTip text={body} />}
         </div>
       </div>

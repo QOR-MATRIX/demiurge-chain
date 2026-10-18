@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 17 October 2026 (late evening). One page, rewritten every session.
+For Andrew, 17 October 2026 (night). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -10,38 +10,44 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 ## Live today (checked tonight, from outside)
 
-- **Devnet** — *the test chain on servers* — at `wss://rpc.qorsync.dev`, runtime version 8.
+- **Devnet** — *the test chain on servers* — at `wss://rpc.qorsync.dev`, **runtime version 9 since
+  tonight**, which you signed: the Mesh is live there, so paid seeding can be tested.
 - **QOR ID** — *the one sign-in* — and **Social** — *the chat service* — on Railway.
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`.
-- **Launcher 0.1.9**, unsigned, with Social and the Library: its installer is on your Desktop.
+- **Launcher 0.1.10 for testers** (you installed it tonight; it works), published as a **GitHub Release** — *a public download on
+  the repository* — with QOR Media inside. Its download page with install steps and the
+  test checklist: `claude.ai/artifact/Uw2NRswDw9quvSBxQFbBLv` (private until you share it).
 
-## New tonight: the Mesh pays for its work, on branch `session/mesh` (not merged)
+## Newest: launcher 0.1.11, on your Desktop (not published yet)
 
-- **Built (steps 1 to 4 of 7):** an uploader opens an **escrow** — *CGT set aside for
-  seeders* — at their own prices. Seeders take the file on, prove each hour that they still
-  hold it, and are paid for that and for what they serve, from **receipts** — *a downloader's
-  signed "I got this"*. Files can now be found by fingerprint alone.
-- **One question, once:** turning seeding on asks whether the Mesh may sign its own work
-  for your account. It can never send your CGT (ADR-097, my engineering choice).
-- **Seen working** on a test chain on this PC, paid to the exact Spark. **Not on the devnet
-  yet**, and not yet between two PCs.
+- **Right-click a file in the Library** → **Publish to the Mesh…**: one dialog says it becomes
+  public, then the Mesh seeds it. A controller's Y button opens the same menu.
+- **A premium look:** a new heading typeface, the menu grouped as Play, Own, Create, Connect
+  and Network with a glowing marker, buttons that light up and shine, panels with depth.
+- **Testers need 2,500 test CGT each**, not 1,000: a first publish holds about 1,007 as a
+  deposit. The download page says so.
+
+## Earlier tonight
+
+- **The Mesh is merged** (pull request #40, every CI check green): seeders paid from an
+  **escrow** — *CGT an uploader sets aside* — for proving they hold a file and for serving it.
+- **You upgraded the devnet**, read back: the rehearsed file, your sudo key unchanged, the
+  Mesh there with its one-hour period.
 
 ## What only you can do
 
-1. **Say when to merge `session/mesh`**, then **sign the devnet's upgrade to runtime 9** with
-   your sudo key — *the devnet's admin key* — so the Mesh can pay there. I rehearse it on a
-   local chain first.
-2. **Crediting godmode with 100,000,000 CGT:** the recommended way is a transfer from the
-   faucet, which you sign. I still need godmode's chain address.
-3. **Drive X: has 99 GB free** (90% full), better than this morning. Builds fail near zero.
-4. **Look at the Library** in 0.1.9; **test World, translation, friends and levels**.
-5. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
-6. **Keep the `godmode` account safe**; move or delete `social-secrets.txt` on your Desktop.
-7. **Update QQ Studio** and publish again; the last two L1.4 checks; CI for QQ; the
-   welcome-grant payer; an email; replace the key pasted on 5 October.
-8. **Housekeeping:** `archive-bZLIQp/` (one zip); the old `QOR-MATRIX/arqade` repository.
+1. **Share the download page** with your testers (its Share menu), and **send each tester test
+   CGT** from the faucet when they send you their address.
+2. **Try 0.1.11** from your Desktop, then say whether to merge pull request #41 and
+   publish 0.1.11 for testers; the download page then points at it.
+3. **Crediting godmode with 100,000,000 CGT:** a faucet transfer you sign; I need its address.
+4. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
+5. **Keep the `godmode` account safe**; move or delete `social-secrets.txt` on your Desktop.
+6. **Housekeeping:** `archive-bZLIQp/` (one zip); the old `QOR-MATRIX/arqade` repository.
+7. **Still open from before:** update QQ Studio and publish again; the last two L1.4 checks; CI for
+   QQ; the welcome-grant payer; an email; replace the key pasted on 5 October.
 
 ## Cost per month
 
-The Mesh, QOR Media and translation: $0; all run on each PC (the Mesh uses n0's public
+The release download is free on GitHub. The Mesh, QOR Media and translation: $0; all run on each PC (the Mesh uses n0's public
 relays for now, which n0 runs; ours come later). Railway is not yet measured. Vercel and Neon: free plans, per earlier notes.

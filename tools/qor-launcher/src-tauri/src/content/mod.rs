@@ -73,6 +73,22 @@ impl ContentRef {
         }
     }
 
+    /// The reference of the file at `path`, read a piece at a time, so a file larger than memory can be named.
+    pub fn of_file(path: &Path) -> Result<Self, ContentError> {
+        let file = std::fs::File::open(path).map_err(|e| {
+            ContentError::Invalid(format!("{} could not be read: {e}", path.display()))
+        })?;
+        let mut hasher = blake3::Hasher::new();
+        let size = std::io::copy(&mut std::io::BufReader::new(file), &mut hasher).map_err(|e| {
+            ContentError::Invalid(format!("{} could not be read: {e}", path.display()))
+        })?;
+        Ok(Self {
+            algo: HashAlgo::Blake3_256,
+            root: *hasher.finalize().as_bytes(),
+            size,
+        })
+    }
+
     pub fn root_hex(&self) -> String {
         hex::encode(self.root)
     }
@@ -406,11 +422,104 @@ impl TemporaryStore {
         std::fs::rename(&partial, &target).map_err(|e| ContentError::Store(e.to_string()))?;
         Ok(())
     }
+
+    /// Copy the file at `source` in under its root, unless it is already there, a piece at a time. The copy is hashed
+    /// as it is written and refused if it is not what `reference` says, so a file that changed since it was
+    /// fingerprinted is never filed under the old fingerprint.
+    pub fn put_file(&self, reference: &ContentRef, source: &Path) -> Result<(), ContentError> {
+        let target = self.path_of(reference);
+        if std::fs::metadata(&target).is_ok_and(|m| m.len() == reference.size) {
+            return Ok(());
+        }
+        let blobs = target.parent().expect("a blob is inside the store");
+        std::fs::create_dir_all(blobs).map_err(|e| ContentError::Store(e.to_string()))?;
+        let readme = self.dir.join("README.txt");
+        if !readme.exists() {
+            std::fs::write(&readme, STORE_README)
+                .map_err(|e| ContentError::Store(e.to_string()))?;
+        }
+        let partial = blobs.join(format!(".{}.partial", reference.root_hex()));
+        let copied = (|| -> std::io::Result<(u64, [u8; 32])> {
+            let mut from = std::io::BufReader::new(std::fs::File::open(source)?);
+            let mut to = std::io::BufWriter::new(std::fs::File::create(&partial)?);
+            let mut hasher = blake3::Hasher::new();
+            let mut buf = vec![0u8; 64 * 1024];
+            let mut size = 0u64;
+            loop {
+                let n = std::io::Read::read(&mut from, &mut buf)?;
+                if n == 0 {
+                    break;
+                }
+                hasher.update(&buf[..n]);
+                std::io::Write::write_all(&mut to, &buf[..n])?;
+                size += n as u64;
+            }
+            std::io::Write::flush(&mut to)?;
+            Ok((size, *hasher.finalize().as_bytes()))
+        })();
+        let (size, root) = copied.map_err(|e| {
+            let _ = std::fs::remove_file(&partial);
+            ContentError::Store(e.to_string())
+        })?;
+        if size != reference.size || root != reference.root {
+            let _ = std::fs::remove_file(&partial);
+            return Err(ContentError::Store(format!(
+                "{} changed since it was fingerprinted; publish it again",
+                source.display()
+            )));
+        }
+        std::fs::rename(&partial, &target).map_err(|e| ContentError::Store(e.to_string()))?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A Library file is fingerprinted and stored a piece at a time, as the same reference its bytes give, and a file
+    /// that changed after it was fingerprinted is never filed under the old fingerprint.
+    #[test]
+    fn a_file_is_fingerprinted_and_stored_a_piece_at_a_time_and_a_changed_one_is_refused() {
+        let dir = std::env::temp_dir().join(format!("qor-content-file-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let bytes: Vec<u8> = (0..300_000u32).map(|i| (i % 251) as u8).collect();
+        let source = dir.join("a song.flac");
+        std::fs::write(&source, &bytes).unwrap();
+
+        let reference = ContentRef::of_file(&source).unwrap();
+        assert_eq!(reference, ContentRef::of(&bytes));
+        let store = TemporaryStore::in_data_dir(&dir);
+        store.put_file(&reference, &source).unwrap();
+        assert_eq!(std::fs::read(store.path_of(&reference)).unwrap(), bytes);
+        store.put_file(&reference, &source).unwrap();
+
+        let mut changed = bytes.clone();
+        changed[1000] ^= 1;
+        std::fs::write(&source, &changed).unwrap();
+        let other = ContentRef {
+            root: [9; 32],
+            ..reference
+        };
+        assert!(
+            store.put_file(&other, &source).is_err(),
+            "bytes that are not the fingerprint's"
+        );
+        assert!(!store.path_of(&other).exists(), "nothing is filed under it");
+        let leftovers = std::fs::read_dir(store.path_of(&other).parent().unwrap())
+            .unwrap()
+            .filter(|e| {
+                e.as_ref()
+                    .unwrap()
+                    .file_name()
+                    .to_string_lossy()
+                    .ends_with(".partial")
+            })
+            .count();
+        assert_eq!(leftovers, 0, "no partial copy is left behind");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     fn files(list: &[(&str, &[u8])]) -> Vec<(String, ContentRef)> {
         list.iter()

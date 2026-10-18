@@ -1767,6 +1767,7 @@ pub fn run() {
             library::commands::library_counts,
             library::commands::library_thumbnail,
             library::commands::library_reveal,
+            library::commands::library_publish,
             library::commands::library_opened,
             library::commands::library_open,
             media::media_place,

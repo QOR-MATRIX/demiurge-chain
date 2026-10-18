@@ -334,3 +334,40 @@ fn every_extension_is_shelved_once() {
         assert_eq!(kind_of(Path::new(name)), kind, "{name}");
     }
 }
+
+/// What a file published from the Library becomes (L10.2): one manifest entry under the file's own name, cut to the
+/// chain's limit on a character, never a path with separators, the same manifest every time for the same file.
+#[test]
+fn a_published_file_is_one_entry_named_as_the_file_and_the_same_every_time() {
+    use crate::chain::assets::NAME_LIMIT;
+    use crate::content::ContentRef;
+    let file = ContentRef::of(b"a picture");
+    let (name, manifest) =
+        super::commands::publication("Holiday.jpg", 1_700_000_000, file).unwrap();
+    assert_eq!(name, "Holiday.jpg");
+    assert_eq!(manifest.entries.len(), 1);
+    assert_eq!(manifest.entries[0].path, "Holiday.jpg");
+    assert_eq!(manifest.entries[0].content, file);
+    assert_eq!(manifest.source, None, "a Library file has no commit");
+    let (_, again) = super::commands::publication("Holiday.jpg", 1_700_000_000, file).unwrap();
+    assert_eq!(
+        again.reference(),
+        manifest.reference(),
+        "the same file makes the same asset"
+    );
+
+    let long = "é".repeat(NAME_LIMIT);
+    let (name, _) = super::commands::publication(&long, 0, file).unwrap();
+    assert!(
+        name.len() <= NAME_LIMIT && long.starts_with(&name),
+        "cut on a character"
+    );
+
+    let (_, odd) = super::commands::publication("a/b.txt", 0, file).unwrap();
+    assert_eq!(
+        odd.entries[0].path, "a_b.txt",
+        "never a path with a separator"
+    );
+    let (_, dots) = super::commands::publication("..", 0, file).unwrap();
+    assert_eq!(dots.entries[0].path, "file");
+}

@@ -13,7 +13,7 @@ reaches `main` by pull request. `origin` is the private archive, not the current
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 item 86 (17 October 2026): the launcher's half of the Mesh's paid work (L10.2 to L10.4), on branch `session/mesh`, not merged: ADR-097's Mesh grant, one host dialog after which the Mesh signs its own proofs, claims, assignments and receipts and nothing a node describes differently; a seeder seen paid for holding and for serving on a development chain whose period is a minute. Not on the devnet, which lacks the pallet.** Before it: §4 item 85 (17 October 2026): the owner's "Go with best and most recommended path forward": ADR-096 accepts the Mesh's proofs, names `pallet-mesh` and gives the takedown list to root; `pallet-mesh` and `mesh-proof` built at `spec_version` 9 on branch `session/mesh`, not merged, not on the devnet.** Before it: §4 item 84 (17 October 2026): the Mesh decided (ADR-095) and L10.1 built on branch `session/mesh`, not merged: a node in the launcher on iroh, seeding opt-in with the person's limits, own published work served, files fetched verified; no CGT moves yet.** Before it: §4 item 83 (17 October 2026): launcher 0.1.9 built from `main`, with Social and the Library, its installer on the owner's Desktop.** Before it: §4 item 82 (17 October 2026): #37 merged, the Library and QOR Media in `main`, CI green on it with its images from `mirror.gcr.io`; Qt PDF was installed all along, so PDF (L9.5) can start.** Before it: §4 item 81 (16 and 17 October 2026): the Library and QOR Media, release 1's first four items (L9.1 to L9.4), built on branch `session/library`. Before it: §4 item 80 (17 October 2026): #35 merged and live on Railway, World, friends, translation and levels with it; the owner tests later; next, the Library.** Before it: §4 item 79 (16 October 2026): room levels, Elite accounts and godmode (ADR-093), added to #35. Before it: §4 item 78 (16 October 2026): the owner's first conversation on Social, and World, friends and circles, and translation on the reader's PC built (ADR-092), not merged. Before it: §4 item 77 (16 October 2026): Social deployed on Railway beside QOR ID, checked from outside, and the launcher pointed at it. Before it: §4 item 76 (15 October 2026): #31 merged, QOR ID's side of Social live, and the launcher's Social surface built and merged as #33 (16 October 2026). Before it: §4 item 75 (15 October 2026): Social decided (ADR-091), QOR ID ready for it, and the Social service built and tested, now in `main`. Before it: §4 item 74 (15 October 2026): the owner's first publish from QQ Studio was refused by the node before any
+**Newest: §4 item 89 (17 October 2026): launcher 0.1.11 built, not yet published: a file's menu in the Library publishes it to the Mesh, and a premium look throughout (a bundled display face, a grouped rail with a gliding marker, lit buttons and panels); its installer on the owner's Desktop.** Before it: §4 item 88 (17 October 2026): the owner upgraded Demiurge Devnet to runtime 9; the Mesh is live on it, with its 600-block period, and paid seeding can be tested.** Before it: §4 item 87 (17 October 2026): #40 merged (`580aa9e`, CI green on every job), and launcher 0.1.10 published for testers as the GitHub Release `launcher-v0.1.10`, with QOR Media inside and a download page; the devnet's upgrade to runtime 9 rehearsed against its own live runtime and waiting on the owner's signature.** Before it: §4 item 86 (17 October 2026): the launcher's half of the Mesh's paid work (L10.2 to L10.4), on branch `session/mesh`, not merged: ADR-097's Mesh grant, one host dialog after which the Mesh signs its own proofs, claims, assignments and receipts and nothing a node describes differently; a seeder seen paid for holding and for serving on a development chain whose period is a minute. Not on the devnet, which lacks the pallet.** Before it: §4 item 85 (17 October 2026): the owner's "Go with best and most recommended path forward": ADR-096 accepts the Mesh's proofs, names `pallet-mesh` and gives the takedown list to root; `pallet-mesh` and `mesh-proof` built at `spec_version` 9 on branch `session/mesh`, not merged, not on the devnet.** Before it: §4 item 84 (17 October 2026): the Mesh decided (ADR-095) and L10.1 built on branch `session/mesh`, not merged: a node in the launcher on iroh, seeding opt-in with the person's limits, own published work served, files fetched verified; no CGT moves yet.** Before it: §4 item 83 (17 October 2026): launcher 0.1.9 built from `main`, with Social and the Library, its installer on the owner's Desktop.** Before it: §4 item 82 (17 October 2026): #37 merged, the Library and QOR Media in `main`, CI green on it with its images from `mirror.gcr.io`; Qt PDF was installed all along, so PDF (L9.5) can start.** Before it: §4 item 81 (16 and 17 October 2026): the Library and QOR Media, release 1's first four items (L9.1 to L9.4), built on branch `session/library`. Before it: §4 item 80 (17 October 2026): #35 merged and live on Railway, World, friends, translation and levels with it; the owner tests later; next, the Library.** Before it: §4 item 79 (16 October 2026): room levels, Elite accounts and godmode (ADR-093), added to #35. Before it: §4 item 78 (16 October 2026): the owner's first conversation on Social, and World, friends and circles, and translation on the reader's PC built (ADR-092), not merged. Before it: §4 item 77 (16 October 2026): Social deployed on Railway beside QOR ID, checked from outside, and the launcher pointed at it. Before it: §4 item 76 (15 October 2026): #31 merged, QOR ID's side of Social live, and the launcher's Social surface built and merged as #33 (16 October 2026). Before it: §4 item 75 (15 October 2026): Social decided (ADR-091), QOR ID ready for it, and the Social service built and tested, now in `main`. Before it: §4 item 74 (15 October 2026): the owner's first publish from QQ Studio was refused by the node before any
 block; an account that cannot pay is now told so before anyone is asked, naming the account and the chain, and the
 whole reason reaches the Studio and the launcher's log.** Before it: item 73 (10 October 2026): P3.4 built. QQ Studio
 publishes a project as its Cartridge through the launcher that started it (ADR-088, the owner's: a Cartridge holds the
@@ -2701,6 +2701,83 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     answers 525 and no document names it), ARQADE, and the devnet at `spec_version` 8. **Not done:** two PCs over the
     internet; closing an escrow from the launcher; refusing to serve a listed root already held (L10.7); the runtime
     upgrade to 9 on the devnet, which the owner signs; `archive-bZLIQp/`, which holds one zip, `gk_3.1.77_windows_amd64.zip`, left untouched.
+
+87. **17 October 2026: launcher 0.1.10 published for testers, #40 merged, and runtime 9 rehearsed.** The owner asked for an
+    installer testers download from a download page, holding everything the tests above need, and chose: testers on
+    the devnet once it is upgraded, a GitHub Release with a page, and merging before building. **Merged:** #40 at
+    `580aa9e`, after CI passed every job on its head `4508283` (the chain's job and the launcher's among them). **The
+    installer:** version 0.1.10 (`package.json`, `package-lock.json`, `tauri.conf.json`, `Cargo.toml`, `Cargo.lock`).
+    The Windows installer now carries QOR Media: `scripts/stage-qor-media.mjs` runs `tools/qor-media/build.ps1 -Deploy`
+    (its four Qt Test suites, 42 tests, passed each time) into `src-tauri/media-bundle/` (not tracked), mapped to
+    `qor-media/` in the install folder by `tauri.bundle.conf.json`, and `media::find` looks there before a developer's
+    deployed copy (its test renamed and extended; the library gate follows, logged). QOR Media and the Qontrol helper
+    import `VCRUNTIME140.dll` (the launcher does not), so a post-install hook (`src-tauri/windows/installer-hooks.nsh`)
+    runs the `vc_redist.x64.exe` windeployqt ships, quietly. The Mesh page gained a button that copies a file's whole
+    fingerprint (39 view checks), which fetching by fingerprint needs. `npm run app:build` built both bundles from the
+    tree of `4508283`; `git diff 4508283 matrix/main` is empty, so the installer is `main`'s at `580aa9e`. **The release:**
+    `launcher-v0.1.10`, a pre-release on `QOR-MATRIX/demiurge-chain`, asset `QOR-Launcher_0.1.10_x64-setup.exe`,
+    **68,976,975 bytes, SHA-256 `7b515d7515cea2bb6a067bbeaf4df69053f4a44b05462d408d1befe156e33489`**, downloaded back
+    from its public URL (200) and matched. Its contents listed with 7-Zip: the launcher, the Qontrol helper and
+    libgit2's licence, and QOR Media's 186 files with its FFmpeg backend. **The download page:** a private Artifact,
+    `https://claude.ai/artifact/Uw2NRswDw9quvSBxQFbBLv`, which the owner shares: the download, the checksum and how to
+    check it, SmartScreen, the recovery phrase, test CGT from the faucet, and the tests as a checklist (Library and QOR
+    Media, Social, the wallet, Mesh seeding, and the Mesh's paid work once runtime 9 is live). **The upgrade:** a node
+    built with `--features sudo` at the branch head; runtime 9 is `demiurge_runtime.compact.compressed.wasm`,
+    **539,214 bytes, SHA-256 `318643587f6fe625346f4d4cd4a2ac31037d0a2e88225a06999915c84e037cfc`**, in the owner's
+    Downloads as `demiurge-runtime-v9.compact.compressed.wasm`. Rehearsed with `chain/scripts/rehearse-upgrade.mjs`
+    (now with Mesh checks) on a local chain started from the devnet's own live `:code` (516,949 bytes, v8) and no Mesh
+    genesis: spec_version 9, Sudo kept with its key, the transfer, the asset, an ARQ Wallet payout and a round kept
+    working, and the Mesh came up with ADR-096's 600-block period and 100-block window, bound a node, opened, took and
+    closed an escrow (all 200 CGT back) and set a takedown as root. **Passed.** **Not done:** the owner signing the
+    upgrade; installing 0.1.10 on a clean PC (installing needs an administrator prompt; nobody has run it yet); a log
+    file testers can send (the launcher logs only to a console it does not have when installed); code signing (L6).
+
+88. **17 October 2026: the owner upgraded Demiurge Devnet to `spec_version` 9 — the Mesh is live.** Walked through it one
+    step at a time. The first signature, at #203267, was `sudo.sudoUncheckedWeight(system.remark(...))` with the right
+    file as the remark: the Sudo page's second dropdown starts on `remark`. It succeeded and changed nothing (no
+    `CodeUpdated`), found by decoding the block. Signed again with `system.setCode`. **Read back from
+    `wss://rpc.qorsync.dev`:** `demiurge` spec_version 9, `transaction_version` 2; `:code` 539,214 bytes with SHA-256
+    `318643587f6fe625346f4d4cd4a2ac31037d0a2e88225a06999915c84e037cfc`, the rehearsed file; `Sudo::Key` unchanged
+    (`5HN6PZA4…Zadn`); `Mesh` with 11 calls, `PeriodLength` 600 and `AnswerWindowLength` 100 (ADR-096's, as rehearsed),
+    `MeshApi_period` answering 338; finality advancing (#203,323 → #203,329 in 36 s); readiness 200. **Trap:** on the
+    Sudo page, pick `setCode(code)` in the second dropdown; the field must read `code`, not `remark`. **Then the owner
+    installed 0.1.10** from the release over 0.1.9 on their PC, and confirmed it working without error: the version 0.1.10,
+    and a file from the Library playing inside the launcher in the QOR Media the installer carries. Not yet: an install
+    on a PC that never had the launcher or the Visual C++ runtime.
+
+89. **17 October 2026: launcher 0.1.11, built from `130d83c` on branch `session/launcher-0.1.10-release` (#41), not
+    merged, not published.** Going through the steps as a newcomer, the owner found no way to put a Library file on the
+    Mesh, and asked; told that the Mesh carries published work (ADR-095 decision 3) and offered three ways, they chose
+    publishing a file from the Library, and asked for "a high quality and premium feeling gaming style look and feel
+    that is easy for gamers and creators to understand", with animated buttons and a more enticing menu. **Publishing a
+    Library file:** `library_publish` fingerprints the file a piece at a time (`ContentRef::of_file`), builds a manifest
+    naming it alone (`library::commands::publication`: its name cut to the chain's limit on a character, never a path
+    with a separator, dated when the file last changed, no commit), and mints it through `ChainClient::publish_file`,
+    which shares `mint_core` with Projects' `mint`; the pallet's commit is optional, so none is sent. The dialog says
+    first that the file becomes public and to publish only what is one's to share. Approved, the bytes are copied into
+    the temporary store a piece at a time and refused if the file changed since it was fingerprinted
+    (`TemporaryStore::put_file`), and the Mesh takes them in at once. **The file's menu** (`FileMenu`): right-click,
+    Shift+F10, the Menu key, or Y on a controller; Play or Open, Show in folder, Publish to the Mesh…; it takes focus,
+    the arrows move in it, Escape gives focus back to the file's tile (first written to give it to whatever had focus,
+    which a right-click never moves: the view check caught it). The Mesh page's empty state now says where work comes
+    from. **Found on the way:** an account's first mint holds 1,006.875 CGT in deposits, mostly for its collection, so
+    the download page's 1,000 test CGT per tester could not publish anything; it says 2,500 now. **The look**
+    (DESIGN_SYSTEM.md, under ADR-080, no new decision): Barlow Semi Condensed bundled as the display face
+    (`@fontsource/barlow-semi-condensed` 5.3.0, OFL); 8px controls and 12px panels, lit from above with a top highlight
+    and a shadow; buttons with a lit accent gradient, a glow, a sheen that crosses once on hover and a press; interactive
+    panels that lift 2px and glow; corner brackets that follow the rounding; status pills; view titles in the display
+    size with a line of light; and the rail grouped as Play, Own, Create, Connect and Network, each destination an icon
+    tile, the current one lit, with one bar that glides to it. Every colour is a theme token, so all five themes
+    restyle; seen in Architect and Numen. `check-readability.mjs` can now save every screen it measures
+    (`READABILITY_SHOTS`), which is how the redesign was looked at. **Evidence:** the launcher's `cargo test --locked`,
+    294 passed, 15 ignored; clippy and fmt clean; `npm run check`, all thirteen checks in every theme (readability as
+    painted 371, the Library's view 40, the Mesh's 39); the publish path against a development node,
+    `a_file_published_from_the_library_is_minted_and_seeded`, passed (declined writes nothing; the asset is the manifest,
+    with no commit; the Mesh holds the file as one's own). Gates: library.tests requires two more (logged). **The
+    installer:** `QOR Launcher_0.1.11_x64-setup.exe`, **69,235,782 bytes, SHA-256
+    `0783b780502953c551439c0c36cfcf4f7088920d95883cd23fe7c3dd2967b2ce`**, QOR Media inside, copied to the owner's
+    Desktop. **Not done:** #41 merged; 0.1.11 published as a release and the download page pointed at it; nobody has
+    installed 0.1.11 yet.
 
 ## 5. Traps, so nobody re-learns them
 

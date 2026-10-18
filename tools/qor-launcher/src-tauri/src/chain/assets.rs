@@ -298,6 +298,20 @@ pub struct TradeReceipt {
     pub block_hash: String,
 }
 
+/// A file published from the Library: the asset, its manifest and the file itself.
+#[derive(Debug, Clone, Serialize)]
+pub struct PublishReceipt {
+    pub collection: u32,
+    pub item: u32,
+    pub name: String,
+    /// The asset's fingerprint: its manifest's.
+    pub reference: ContentView,
+    /// The file's own fingerprint, which the Mesh serves it by.
+    pub file: ContentView,
+    pub tx_hash: String,
+    pub block_hash: String,
+}
+
 /// A finalised revision: the asset, and what it now points at.
 #[derive(Debug, Clone, Serialize)]
 pub struct RevisionReceipt {
@@ -355,10 +369,104 @@ impl ChainClient {
             ));
         }
 
-        let connection = self.connected().await?;
-        let deposits = self
-            .mint_deposits(&connection, owner, request.name.len())
+        let (minted, finalised) = self
+            .mint_core(
+                vault,
+                confirm,
+                from,
+                owner,
+                &request.name,
+                &request.reference,
+                Some(&request.commit),
+                |deposits, chain_name, endpoint| {
+                    mint_prompt(request, &owner_address, deposits, chain_name, endpoint)
+                },
+                before_submit,
+            )
             .await?;
+
+        Ok(MintReceipt {
+            collection: minted.collection,
+            item: minted.item,
+            name: request.name.clone(),
+            reference: ContentView::from(&request.reference),
+            commit: CommitView::from(&request.commit),
+            tx_hash: finalised.tx_hash,
+            block_hash: finalised.block_hash,
+        })
+    }
+
+    /// Publish one file as a DRC-369 asset, so the Mesh can seed it: a manifest naming the file alone, minted with no
+    /// commit, after the person approves a dialog saying the file becomes public. `before_submit` puts the bytes in the
+    /// temporary content store once the vault has signed, so a declined publish writes nothing anywhere.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn publish_file(
+        &self,
+        vault: &Vault,
+        confirm: &dyn Confirm,
+        from: &str,
+        name: &str,
+        manifest: &ContentRef,
+        file: &ContentRef,
+        before_submit: impl FnOnce() -> QorResult<()>,
+    ) -> QorResult<PublishReceipt> {
+        let owner = normalise_address(from)?;
+        let owner_address = canonical_address(from)?;
+        if name.len() > NAME_LIMIT {
+            return Err(QorError::Qontrol(format!(
+                "an asset's name is at most {NAME_LIMIT} bytes, and \"{name}\" is {}",
+                name.len()
+            )));
+        }
+        let (minted, finalised) = self
+            .mint_core(
+                vault,
+                confirm,
+                from,
+                owner,
+                name,
+                manifest,
+                None,
+                |deposits, chain_name, endpoint| {
+                    publish_prompt(name, file, &owner_address, deposits, chain_name, endpoint)
+                },
+                before_submit,
+            )
+            .await?;
+        Ok(PublishReceipt {
+            collection: minted.collection,
+            item: minted.item,
+            name: name.to_string(),
+            reference: ContentView::from(manifest),
+            file: ContentView::from(file),
+            tx_hash: finalised.tx_hash,
+            block_hash: finalised.block_hash,
+        })
+    }
+
+    /// What every mint shares: the deposits checked before anyone is asked, the call built from metadata, approved,
+    /// signed in the vault, finalised, and its `Minted` event read.
+    #[allow(clippy::too_many_arguments)]
+    async fn mint_core(
+        &self,
+        vault: &Vault,
+        confirm: &dyn Confirm,
+        from: &str,
+        owner: [u8; 32],
+        name: &str,
+        reference: &ContentRef,
+        commit: Option<&CommitId>,
+        prompt: impl FnOnce(MintDeposits, &str, &str) -> Prompt,
+        before_submit: impl FnOnce() -> QorResult<()>,
+    ) -> QorResult<(MintedRead, Finalised)> {
+        if reference.algo != HashAlgo::Blake3_256 {
+            return Err(QorError::Internal(
+                "only a BLAKE3-256 reference can be minted (ADR-047 decision 1)".into(),
+            ));
+        }
+        let owner_address = canonical_address(from)?;
+        let connection = self.connected().await?;
+        let deposits = self.mint_deposits(&connection, owner, name.len()).await?;
         // Caught here, in words naming the account, rather than by the node refusing the signed mint (15 October 2026).
         let free = self.balance(from).await?;
         if free < deposits.total {
@@ -376,12 +484,12 @@ impl ChainClient {
             "Drc369",
             "mint",
             (
-                ContentRefArg::from(&request.reference),
-                Some(CommitIdArg::from(&request.commit)),
-                request.name.as_bytes().to_vec(),
+                ContentRefArg::from(reference),
+                commit.map(CommitIdArg::from),
+                name.as_bytes().to_vec(),
                 true,
-                // `derived_from`: a mint from Projects names no source. Minting
-                // a remix is not offered yet (M4.2, ADR-061).
+                // `derived_from`: a mint from Projects or the Library names no source. Minting a remix is not offered
+                // yet (M4.2, ADR-061).
                 None::<(u32, u32)>,
             ),
         );
@@ -393,9 +501,7 @@ impl ChainClient {
                 confirm,
                 from,
                 &call,
-                |chain_name, endpoint| {
-                    mint_prompt(request, &owner_address, deposits, chain_name, endpoint)
-                },
+                |chain_name, endpoint| prompt(deposits, chain_name, endpoint),
                 before_submit,
                 "mint",
             )
@@ -414,16 +520,7 @@ impl ChainClient {
             })?
             .decode_fields_unchecked_as::<MintedRead>()
             .map_err(|e| QorError::Rpc(format!("the Minted event could not be read: {e}")))?;
-
-        Ok(MintReceipt {
-            collection: minted.collection,
-            item: minted.item,
-            name: request.name.clone(),
-            reference: ContentView::from(&request.reference),
-            commit: CommitView::from(&request.commit),
-            tx_hash: finalised.tx_hash,
-            block_hash: finalised.block_hash,
-        })
+        Ok((minted, finalised))
     }
 
     /// Make an asset permanent. One-way: there is no call that undoes it.
@@ -963,6 +1060,41 @@ struct MintDeposits {
     total: u128,
     /// This account has no singles collection yet, so the mint creates one.
     first: bool,
+}
+
+/// What the person publishing a file from the Library is shown. It says first that the file becomes public.
+fn publish_prompt(
+    name: &str,
+    file: &ContentRef,
+    owner: &str,
+    deposits: MintDeposits,
+    chain_name: &str,
+    endpoint: &str,
+) -> Prompt {
+    let first = if deposits.first {
+        "This is this account's first mint, so it also creates its singles collection.\n"
+    } else {
+        ""
+    };
+    Prompt {
+        title: "Publish this file to the Mesh?".into(),
+        body: format!(
+            "Publish \"{name}\" as a DRC-369 asset.\n\n\
+             It becomes public. While you seed, anyone with its fingerprint can fetch it from the Mesh, and it stays \
+             listed on the chain. Publish only what is yours to share.\n\n\
+             File: {size} bytes, fingerprint {algo} {root}\n\
+             {first}\
+             Held from your balance as deposits: {held} {symbol}. A deposit is held, not spent.\n\n\
+             Owner: {owner}\nChain: {chain_name}\nNode: {endpoint}\n\n\
+             Approving signs this mint with your key and sends it.",
+            size = file.size,
+            algo = file.algo.label(),
+            root = file.root_hex(),
+            held = crate::cgt::format_cgt_grouped(deposits.total),
+            symbol = crate::cgt::SYMBOL,
+        ),
+        approve: "Publish".into(),
+    }
 }
 
 /// What the person approving a mint is shown.
