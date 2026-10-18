@@ -18,7 +18,16 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
   the repository* — with QOR Media inside. Its download page with install steps and the
   test checklist: `claude.ai/artifact/Uw2NRswDw9quvSBxQFbBLv` (private until you share it).
 
-## New tonight
+## Newest: launcher 0.1.11, on your Desktop (not published yet)
+
+- **Right-click a file in the Library** → **Publish to the Mesh…**: one dialog says it becomes
+  public, then the Mesh seeds it. A controller's Y button opens the same menu.
+- **A premium look:** a new heading typeface, the menu grouped as Play, Own, Create, Connect
+  and Network with a glowing marker, buttons that light up and shine, panels with depth.
+- **Testers need 2,500 test CGT each**, not 1,000: a first publish holds about 1,007 as a
+  deposit. The download page says so.
+
+## Earlier tonight
 
 - **The Mesh is merged** (pull request #40, every CI check green): seeders paid from an
   **escrow** — *CGT an uploader sets aside* — for proving they hold a file and for serving it.
@@ -29,7 +38,8 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 1. **Share the download page** with your testers (its Share menu), and **send each tester test
    CGT** from the faucet when they send you their address.
-2. **Merge pull request #41** — *the notes for this release* — once its checks pass.
+2. **Try 0.1.11** from your Desktop, then say whether to merge pull request #41 and
+   publish 0.1.11 for testers; the download page then points at it.
 3. **Crediting godmode with 100,000,000 CGT:** a faucet transfer you sign; I need its address.
 4. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
 5. **Keep the `godmode` account safe**; move or delete `social-secrets.txt` on your Desktop.
