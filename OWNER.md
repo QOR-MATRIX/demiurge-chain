@@ -43,7 +43,7 @@ logins.
 
 ## What only you can do
 
-1. **Merge pull request #43** (0.1.12's code into `main`). Then install 0.1.12 and try two QOR IDs.
+1. **Install 0.1.12 and try two QOR IDs**, using the download page's six new tests. (You merged #43.)
 2. **Share the download page** with your testers (its Share menu), and **send each tester test
    CGT** from the faucet when they send you their address.
 3. **Crediting godmode with 100,000,000 CGT:** a faucet transfer you sign; I need its address.
