@@ -44,6 +44,8 @@ export type QorErrorKind =
   | 'qontrol'
   | 'payment_refused'
   | 'unfunded'
+  | 'no_profile'
+  | 'pin'
   | 'internal';
 
 /** An account's level and XP, as QOR ID keeps them (ADR-078). */
@@ -86,7 +88,7 @@ export type VaultStatus =
  */
 export interface Arrival {
   accounts: AccountView[];
-  /** The account sign-in was tried with; a name, when one is needed, is claimed for it. */
+  /** The wallet's account, which sign-in was tried with; a name, when one is needed, is claimed for it. */
   address: string | null;
   /** Present when the person is signed in. */
   session: Session | null;
@@ -239,6 +241,8 @@ export interface GatesReport {
 
 export interface LauncherState {
   version: string;
+  /** This PC's profiles, for Who's playing? (ADR-099). */
+  profiles: ProfileView[];
   vault: VaultStatus;
   session: Session | null;
   chain_endpoint: string;
@@ -274,8 +278,9 @@ export function asQorError(error: unknown): QorError {
 const FRIENDLY: Partial<Record<QorErrorKind, string>> = {
   vault_locked: 'Your vault is locked. Unlock it to continue.',
   no_vault: 'There is no vault on this device yet.',
-  vault_exists: 'A vault already exists here. Remove it before creating another.',
-  vault_open: 'The vault is open. Lock it before restoring another.',
+  vault_exists: 'That account already has a QOR ID on this PC.',
+  vault_open: 'A QOR ID is signed in on this PC. Sign it out first.',
+  no_profile: 'No QOR ID is signed in on this PC. Choose yours, or make a new one.',
   bad_passphrase: 'That passphrase is not correct.',
   passphrase_vault:
     'This vault was sealed with a passphrase. Type it once more and it will never be asked again, or restore from your recovery phrase.',
@@ -308,30 +313,62 @@ export const vault = {
   generatePhrase: () => call<string>('vault_generate_phrase'),
   /** Creates the vault, its key in the keychain, then tries QOR ID (ADR-016, ADR-056). */
   create: (phrase: string) => call<Arrival>('vault_create', { phrase }),
-  /** The address a recovery phrase opens. Stores nothing. */
-  previewPhrase: (phrase: string) => call<string>('vault_preview_phrase', { phrase }),
-  /** Seal a vault from a phrase already held; a vault already here is set aside after a host dialog. */
-  restore: (phrase: string) => call<Arrival>('vault_restore', { phrase }),
+  /** The address a recovery phrase opens: its first account, or the one at `index`. Stores nothing. */
+  previewPhrase: (phrase: string, index = 0) =>
+    call<string>('vault_preview_phrase', index ? { phrase, index } : { phrase }),
+  /**
+   * Seal a wallet from a phrase already held. Signed out, it opens that account's profile on this PC or makes a new
+   * one; signed in to a profile whose wallet will not open, it replaces that wallet after a host dialog (ADR-099).
+   */
+  // The phrase alone unless another account is asked for: the host takes the first by default.
+  restore: (phrase: string, index = 0) => call<Arrival>('vault_restore', index ? { phrase, index } : { phrase }),
   /** Opens the vault, then tries QOR ID. Nothing is asked, except one last Windows Hello for a vault sealed under it. */
   unlock: () => call<Arrival>('vault_unlock'),
   /** A passphrase vault from before ADR-055: its passphrase once more, and it moves to the keychain. */
   moveToKeychain: (passphrase: string) =>
     call<Arrival>('vault_move_to_keychain', { passphrase }),
   lock: () => call<void>('vault_lock'),
-  addAccount: (label: string) => call<AccountView>('vault_add_account', { label }),
   /** The account the rail shows, which a product's first publish signs as (ADR-090). */
   setActive: (address: string) => call<void>('vault_set_active', { address }),
   /** The host asks in its own dialog first. */
   exportPhrase: () => call<string>('vault_export_phrase'),
-  /** Which QOR ID each account belongs to, as this launcher has seen, and the account last in use (0.1.12). */
-  owners: () => call<AccountOwners>('vault_owners'),
 };
 
-/** Which QOR ID each of this PC's accounts belongs to, as the launcher has seen it. */
-export interface AccountOwners {
-  owners: Record<string, string>;
-  last: string | null;
+/** A profile on this PC, as Who's playing? shows it: no balance, nothing secret (ADR-099). */
+export interface ProfileView {
+  id: string;
+  /** Its QOR ID's name, once it has signed in to QOR ID. */
+  name: string | null;
+  address: string;
+  has_pin: boolean;
+  signed_in: boolean;
+  /** Seconds before its PIN can be tried again. */
+  wait_seconds: number;
 }
+
+/** Another account an older wallet's phrase has used, which can become a profile of its own. */
+export interface OtherAccount {
+  index: number;
+  address: string;
+  balance: string;
+}
+
+/** Each QOR ID on this PC is a profile: its own wallet, its own data, a PIN (ADR-099). */
+export const profiles = {
+  list: () => call<ProfileView[]>('profiles_list'),
+  /** Open a signed-out profile with its PIN; its wallet opens and QOR ID is tried. */
+  open: (id: string, pin: string) => call<Arrival>('profile_open', { id, pin }),
+  /** Sign the profile out completely. One without a PIN chooses it here. */
+  signOut: (pin?: string) => call<void>('profile_sign_out', { pin: pin ?? null }),
+  setPin: (pin: string) => call<void>('profile_set_pin', { pin }),
+  /** Accounts this wallet's phrase used that are not a profile yet (wallets from before profiles only). */
+  otherAccounts: () => call<OtherAccount[]>('profile_other_accounts'),
+  /** Make one of those a profile of its own and switch to it; this profile signs out, choosing `pin` if it has none. */
+  split: (index: number, pin?: string) => call<Arrival>('profile_split', { index, pin: pin ?? null }),
+};
+
+/** A PIN is 6 to 12 digits. */
+export const validPin = (pin: string) => /^[0-9]{6,12}$/.test(pin);
 
 /** A project on this machine, read from its repository. */
 export interface QontrolProject {
@@ -880,11 +917,8 @@ export const identity = {
   removeAvatar: () => call<Session>('qor_remove_avatar'),
   /** The account's own avatar as a data URL from this machine's copy, or null. */
   avatar: (refresh: boolean) => call<string | null>('qor_avatar', { refresh }),
-  /** Sign in with an account of the vault: the one named, else the one last in use, else the first. */
-  signIn: (address?: string) => call<Arrival>('qor_sign_in', { address: address ?? null }),
-  /** A new QOR ID on a new account of this vault, so it holds its own CGT; one host dialog. */
-  newIdentity: (username: string) => call<Arrival>('qor_new_identity', { username }),
-  logout: () => call<void>('qor_logout'),
+  /** Try QOR ID again with the open vault, as opening it does. */
+  signIn: () => call<Arrival>('qor_sign_in'),
   setEndpoint: (endpoint: string) => call<void>('qor_set_auth_endpoint', { endpoint }),
 };
 

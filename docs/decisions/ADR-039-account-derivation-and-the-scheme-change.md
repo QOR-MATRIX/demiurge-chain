@@ -1,6 +1,8 @@
 # ADR-039: Derivation paths, and what the key-scheme change does to accounts that already exist
 
-**Status:** Accepted, 19 September 2026. [ADR-023](ADR-023-sr25519-with-ecosystem-derivation.md) left the form of
+**Status:** Accepted, 19 September 2026. **Amended by** [ADR-099](ADR-099-each-qor-id-is-its-own-profile.md) (18 October 2026): a profile's wallet holds one
+account, so further accounts are no longer derived in the launcher. The derivation paths stand, for wallets from before
+0.1.13, whose other accounts become profiles of their own. [ADR-023](ADR-023-sr25519-with-ecosystem-derivation.md) left the form of
 further accounts "to that launcher work"; this is that work, and this record is the rest of what carrying it out
 decided.
 **Accepted under the owner's standing delegation for engineering choices.** Nothing here is a value

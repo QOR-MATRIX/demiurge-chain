@@ -1,7 +1,9 @@
 # ADR-098: Each QOR ID on a PC keeps its own account, and the launcher says whose account is on screen
 
-**Status:** **Accepted**, 18 October 2026, under the owner's standing delegation for engineering choices, after the owner
-found one wallet's balance shown under two QOR IDs on one PC. **Amends** [ADR-016](ADR-016-sign-in-with-unlock.md):
+**Status:** **Superseded** by [ADR-099](ADR-099-each-qor-id-is-its-own-profile.md) the same day, by the owner: "QOR IDs need to be separate entirely." Each QOR
+ID is now a profile with its own wallet, its own data and a PIN; the labelled accounts of one wallet below no longer
+exist. It was built and published as launcher 0.1.12. Accepted, 18 October 2026, under the owner's standing delegation
+for engineering choices, after the owner found one wallet's balance shown under two QOR IDs on one PC. **Amends** [ADR-016](ADR-016-sign-in-with-unlock.md):
 the arrival grant covers the account launch signs in with, which is no longer always the vault's first. **Amends**
 [ADR-090](ADR-090-the-account-a-publish-signs-with.md)'s "Unchanged" note: QOR ID sign-in and `qor://pay` no longer use
 the first account. It decides **no economic value**.

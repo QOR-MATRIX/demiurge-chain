@@ -11,13 +11,13 @@ use crate::{AppState, HostDialog};
 
 #[tauri::command]
 pub async fn mesh_status(state: tauri::State<'_, AppState>) -> Result<Status, QorError> {
-    Ok(state.mesh.status().await)
+    Ok(state.mesh()?.status().await)
 }
 
 /// What the Mesh holds, own published work first.
 #[tauri::command]
 pub async fn mesh_held(state: tauri::State<'_, AppState>) -> Result<Vec<Held>, QorError> {
-    Ok(state.mesh.held().await)
+    Ok(state.mesh()?.held().await)
 }
 
 /// Turn seeding on or off, and set its limits. On needs both limits. Turning it on asks once whether the Mesh may be
@@ -28,13 +28,13 @@ pub async fn mesh_configure(
     state: tauri::State<'_, AppState>,
     settings: Settings,
 ) -> Result<Status, QorError> {
-    let status = state.mesh.configure(settings).await?;
-    if settings.seeding && state.mesh.grant().is_none() && state.vault.active_address().is_ok() {
-        match state.mesh.allow_paid(&HostDialog(app)).await {
+    let status = state.mesh()?.configure(settings).await?;
+    if settings.seeding && state.mesh()?.grant().is_none() && state.vault.active_address().is_ok() {
+        match state.mesh()?.allow_paid(&HostDialog(app)).await {
             Ok(_) | Err(QorError::Declined) => {}
             Err(e) => tracing::warn!(error = %e, "the Mesh could not be allowed to sign its work"),
         }
-        return Ok(state.mesh.status().await);
+        return Ok(state.mesh()?.status().await);
     }
     Ok(status)
 }
@@ -45,7 +45,7 @@ pub async fn mesh_allow_paid(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<PaidStatus, QorError> {
-    state.mesh.allow_paid(&HostDialog(app)).await
+    state.mesh()?.allow_paid(&HostDialog(app)).await
 }
 
 /// Fetch a file by its fingerprint alone, from whoever the chain says holds it.
@@ -54,7 +54,7 @@ pub async fn mesh_fetch_root(
     state: tauri::State<'_, AppState>,
     root: String,
 ) -> Result<Fetched, QorError> {
-    state.mesh.fetch_root(&root).await
+    state.mesh()?.fetch_root(&root).await
 }
 
 /// Pay seeders to hold one's own published work, at one's own prices, after a host dialog. Returns the escrow's number.
@@ -77,7 +77,7 @@ pub async fn mesh_ticket(
     state: tauri::State<'_, AppState>,
     root: String,
 ) -> Result<String, QorError> {
-    state.mesh.ticket(&root).await
+    state.mesh()?.ticket(&root).await
 }
 
 /// Fetch what a ticket names, verified against its fingerprint.
@@ -86,5 +86,5 @@ pub async fn mesh_fetch(
     state: tauri::State<'_, AppState>,
     ticket: String,
 ) -> Result<Fetched, QorError> {
-    state.mesh.fetch(&ticket).await
+    state.mesh()?.fetch(&ticket).await
 }

@@ -277,7 +277,7 @@ pub async fn qq_open_studio(app: tauri::AppHandle, path: Option<String>) -> Resu
         product: launch.product.clone(),
         vault: state.vault.clone(),
         chain: state.chain.clone(),
-        data_dir: state.data_dir.clone(),
+        data_dir: state.personal_dir()?,
         confirm: std::sync::Arc::new(crate::HostDialog(app.clone())),
     });
     host::launch(launch, handler, move |exited| {

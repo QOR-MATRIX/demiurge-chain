@@ -98,6 +98,14 @@ pub enum QorError {
     #[error("{0}")]
     Mesh(String),
 
+    /// No QOR ID is signed in on this PC, so there is nothing personal to act on (ADR-099).
+    #[error("no QOR ID is signed in on this PC. Choose one, or make a new one")]
+    NoProfile,
+
+    /// A profile's PIN was wrong, not a PIN, or asked too often (ADR-099). The sentence is for the person.
+    #[error("{0}")]
+    Pin(String),
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -131,6 +139,8 @@ impl QorError {
             Self::Social { .. } => "social",
             Self::Translation(_) => "translation",
             Self::Mesh(_) => "mesh",
+            Self::NoProfile => "no_profile",
+            Self::Pin(_) => "pin",
             Self::Internal(_) => "internal",
         }
     }

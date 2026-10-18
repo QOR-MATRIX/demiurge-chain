@@ -24,6 +24,8 @@ pub fn entry_name(id: &str) -> String {
 pub trait KeyStore: Send + Sync {
     fn put(&self, name: &str, secret: &str) -> QorResult<()>;
     fn get(&self, name: &str) -> QorResult<String>;
+    /// Remove a secret. One that is not there is already removed.
+    fn delete(&self, name: &str) -> QorResult<()>;
 }
 
 /// The operating system's keychain.
@@ -54,6 +56,13 @@ impl KeyStore for OsKeychain {
             other => QorError::Keychain(other.to_string()),
         })
     }
+
+    fn delete(&self, name: &str) -> QorResult<()> {
+        match entry(name)?.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+            Err(other) => Err(QorError::Keychain(other.to_string())),
+        }
+    }
 }
 
 /// Test support: a keychain in memory.
@@ -78,6 +87,10 @@ pub mod testing {
                 .get(name)
                 .cloned()
                 .ok_or_else(|| QorError::Keychain("no such entry".into()))
+        }
+        fn delete(&self, name: &str) -> QorResult<()> {
+            self.0.lock().remove(name);
+            Ok(())
         }
     }
 }

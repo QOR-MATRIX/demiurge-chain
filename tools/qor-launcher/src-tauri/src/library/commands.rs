@@ -21,7 +21,7 @@ pub fn changed(app: &tauri::AppHandle) {
 
 #[tauri::command]
 pub fn library_folders(state: tauri::State<'_, AppState>) -> Result<Folders, QorError> {
-    let folders = state.library.folders()?;
+    let folders = state.library()?.folders()?;
     let suggested = super::Library::suggested()
         .into_iter()
         .filter(|s| !folders.contains(s))
@@ -57,11 +57,11 @@ pub async fn library_add_folder(
         }
     };
     let Some(path) = path else { return Ok(None) };
-    let folder = state.library.add_folder(std::path::Path::new(&path))?;
-    if let Some(watch) = state.library_watch.get() {
+    let folder = state.library()?.add_folder(std::path::Path::new(&path))?;
+    if let Some(watch) = state.personal()?.library_watch.as_ref() {
         watch.add(&folder);
     }
-    let library = std::sync::Arc::clone(&state.library);
+    let library = state.library()?;
     let scanning = folder.clone();
     let told = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
@@ -78,10 +78,10 @@ pub fn library_remove_folder(
     state: tauri::State<'_, AppState>,
     path: String,
 ) -> Result<(), QorError> {
-    if let Some(watch) = state.library_watch.get() {
+    if let Some(watch) = state.personal()?.library_watch.as_ref() {
         watch.remove(&path);
     }
-    state.library.remove_folder(&path)?;
+    state.library()?.remove_folder(&path)?;
     changed(&app);
     Ok(())
 }
@@ -92,7 +92,7 @@ pub async fn library_scan(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<Scanned, QorError> {
-    let library = std::sync::Arc::clone(&state.library);
+    let library = state.library()?;
     let scanned = tauri::async_runtime::spawn_blocking(move || library.scan_all())
         .await
         .map_err(|e| QorError::Internal(format!("the scan stopped: {e}")))??;
@@ -108,7 +108,7 @@ pub fn library_search(
     limit: Option<u32>,
 ) -> Result<Vec<Item>, QorError> {
     state
-        .library
+        .library()?
         .search(&query, kind.as_deref(), limit.unwrap_or(60))
 }
 
@@ -119,7 +119,7 @@ pub fn library_shelf(
     order: Option<String>,
     limit: Option<u32>,
 ) -> Result<Vec<Item>, QorError> {
-    state.library.shelf(
+    state.library()?.shelf(
         kind.as_deref(),
         order.as_deref().unwrap_or("added"),
         limit.unwrap_or(40),
@@ -128,7 +128,7 @@ pub fn library_shelf(
 
 #[tauri::command]
 pub fn library_counts(state: tauri::State<'_, AppState>) -> Result<Vec<(String, i64)>, QorError> {
-    state.library.counts()
+    state.library()?.counts()
 }
 
 /// A picture's thumbnail, as raw JPEG bytes.
@@ -137,7 +137,7 @@ pub async fn library_thumbnail(
     state: tauri::State<'_, AppState>,
     path: String,
 ) -> Result<tauri::ipc::Response, QorError> {
-    let library = std::sync::Arc::clone(&state.library);
+    let library = state.library()?;
     let bytes = tauri::async_runtime::spawn_blocking(move || library.thumbnail(&path))
         .await
         .map_err(|e| QorError::Internal(format!("the thumbnail stopped: {e}")))??;
@@ -152,7 +152,7 @@ pub fn library_reveal(
     path: String,
 ) -> Result<(), QorError> {
     use tauri_plugin_opener::OpenerExt as _;
-    state.library.item(&path)?;
+    state.library()?.item(&path)?;
     app.opener()
         .reveal_item_in_dir(&path)
         .map_err(|e| QorError::Io(e.to_string()))
@@ -166,8 +166,8 @@ pub async fn library_open(
     state: tauri::State<'_, AppState>,
     path: String,
 ) -> Result<(), QorError> {
-    state.library.item(&path)?;
-    state.library.opened(&path, None)?;
+    state.library()?.item(&path)?;
+    state.library()?.opened(&path, None)?;
     changed(&app);
     if crate::media::open(&app, &path).await? {
         return Ok(());
@@ -186,7 +186,7 @@ pub fn library_opened(
     path: String,
     position: Option<f64>,
 ) -> Result<(), QorError> {
-    state.library.opened(&path, position)?;
+    state.library()?.opened(&path, position)?;
     changed(&app);
     Ok(())
 }
@@ -200,7 +200,7 @@ pub async fn library_publish(
     state: tauri::State<'_, AppState>,
     path: String,
 ) -> Result<crate::chain::assets::PublishReceipt, QorError> {
-    let item = state.library.item(&path)?;
+    let item = state.library()?.item(&path)?;
     let from = state.vault.active_address()?;
     let source = std::path::PathBuf::from(&item.path);
     let hashed = source.clone();
@@ -209,7 +209,7 @@ pub async fn library_publish(
         .map_err(|e| QorError::Internal(e.to_string()))??;
     let (name, manifest) = publication(&item.name, item.modified, file)?;
     let reference = manifest.reference();
-    let store = crate::content::TemporaryStore::in_data_dir(&state.data_dir);
+    let store = crate::content::TemporaryStore::in_data_dir(&state.personal_dir()?);
     let receipt = state
         .chain
         .publish_file(
@@ -226,7 +226,7 @@ pub async fn library_publish(
             },
         )
         .await?;
-    if let Err(e) = state.mesh.take_in_own().await {
+    if let Err(e) = state.mesh()?.take_in_own().await {
         tracing::warn!(error = %e, "the Mesh could not take in the published file yet; it tries again within a minute");
     }
     Ok(receipt)

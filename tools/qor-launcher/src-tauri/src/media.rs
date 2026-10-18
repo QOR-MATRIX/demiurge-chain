@@ -266,13 +266,13 @@ pub async fn open(app: &tauri::AppHandle, path: &str) -> QorResult<bool> {
     ) else {
         return Ok(false);
     };
-    let item = state.library.item(path)?;
+    let item = state.library()?.item(path)?;
     let media = &state.media;
     let start = !*media.running.lock();
     if start {
         let handler = Arc::new(MediaHandler {
             queue: Arc::clone(&media.queue),
-            library: Arc::clone(&state.library),
+            library: state.library()?,
             changed: {
                 let told = app.clone();
                 Arc::new(move || crate::library::commands::changed(&told))

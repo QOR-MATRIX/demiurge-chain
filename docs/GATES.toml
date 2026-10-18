@@ -846,6 +846,12 @@ type = "tightening"
 change = "A new criterion, alpha.accounts-view, on a new suite accounts_view (scripts/check-accounts-view.mjs, 21 checks): the launcher signs in as the account last in use and shows the signed-in QOR ID's own account, labels each account with its QOR ID, says when the account on screen is not the signed-in QOR ID's and switches in one click, signs in as the QOR ID chosen by its account, claims a name only for the account that has none, and makes a new QOR ID on a new account. The check joins npm run check, so CI's launcher job runs fourteen checks, not thirteen ([ci].quality_gates updated). check-vault-gate.mjs signs in through the new per-account button and gains a check that the account is named, 65 to 66."
 reason = "Tightening: a criterion, a suite and checks added, none removed or relaxed. The owner found one wallet's balance shown under two QOR IDs on one PC (HANDOFF.md section 4 item 91). Two planted faults (the first account chosen at arrival, and a name claimed for the first account) were each caught by the new check."
 
+[[change_log]]
+date = "2026-10-18"
+type = "ci-scope"
+change = "alpha.accounts-view is replaced by alpha.profiles-view, on a new suite profiles_view (scripts/check-profiles-view.mjs, 25 checks), and the suite accounts_view and scripts/check-accounts-view.mjs are removed. The new check holds the screens to ADR-099: signed out, Who's playing? lists the QOR IDs by name, shows no balance and opens no wallet; a QOR ID opens only with its PIN, a short PIN is never sent and a wrong one opens nothing; opened, the wallet is that QOR ID's own; signing out asks the host and leaves nothing of its account or balance on screen; a QOR ID with no PIN chooses one, typed twice and matching, as it is left; a new QOR ID is a new wallet with its own empty balance, and the Vault offers no second account; an older phrase's other account becomes a QOR ID of its own by its index. check-vault-gate.mjs returns to its version before 0.1.12, 66 checks to 65: the check that sign-in names an account goes, as sign-in again uses the wallet's one account. npm run check still runs fourteen checks."
+reason = "The owner superseded ADR-098 with ADR-099 the same day ('QOR IDs need to be separate entirely'), so the behaviour alpha.accounts-view checked (accounts of one wallet labelled with QOR IDs, a sign-in chosen by account) no longer exists. Recorded as a scope change, not a tightening, because a criterion, a suite and an assertion were removed, as on 2026-09-28 for ADR-055 and ADR-056; the owner is asked whether they read it as loosening. Two planted faults (the PIN step accepting a PIN shorter than six digits, and the split sending no PIN for a QOR ID that has none) were each caught: 18 of 22 passed, the rest failing or stopping at the faults; restored, 25 of 25."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -891,7 +897,7 @@ quality_gates = [
   "chain/: two validators agree, finalise and catch up. A job of its own, because it needs a release build with the sudo feature: cargo build -p demiurge-node --release --features sudo --locked, then node scripts/check-two-validators.mjs. It fails the run; criterion alpha.multi-validator reads it. Since 2026-09-21 it runs NIGHTLY (03:00 UTC) and on workflow_dispatch, not on every push",
   "services/qor-auth: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test -- --include-ignored, against a migrated Postgres 16 and a Redis 7.4",
   "services/social: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test, against a Postgres 16 (a database per test) and a real WebSocket on a loopback port; its log, SQL and migration checks run with the tests",
-  "tools/qor-launcher: npm ci, frontend build and npm run check, fourteen checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the Library view, the Mesh view, the accounts view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
+  "tools/qor-launcher: npm ci, frontend build and npm run check, fourteen checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the Library view, the Mesh view, the profiles view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
   "cargo audit of services/qor-auth, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside the compiled graph (services/qor-auth/.cargo/audit.toml)",
   "cargo audit of services/social, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside Social's compiled graph (services/social/.cargo/audit.toml)",
   "cargo audit of tools/qor-launcher/src-tauri, ignoring only RUSTSEC-2026-0344 while CI confirms ruzstd is outside the compiled graph and still in the lockfile (tools/qor-launcher/src-tauri/.cargo/audit.toml, ADR-089)",
@@ -998,9 +1004,9 @@ dir = "tools/qor-launcher"  # The Mesh (ADR-095). Since 2026-10-17.
 command = "node scripts/check-mesh-view.mjs"
 needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places)"
 
-[suites.accounts_view]
-dir = "tools/qor-launcher"  # Whose account is on screen (launcher 0.1.12). Since 2026-10-18.
-command = "node scripts/check-accounts-view.mjs"
+[suites.profiles_view]
+dir = "tools/qor-launcher"  # Each QOR ID is a profile of its own (ADR-099, launcher 0.1.13). Since 2026-10-18.
+command = "node scripts/check-profiles-view.mjs"
 needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places)"
 
 [suites.gnosis]
@@ -1292,12 +1298,12 @@ nothing holds value."""
   suite = "launcher"
   require = []
 
-  # Each QOR ID on a shared PC keeps its own account, and the launcher says whose account is on screen before anything
-  # is sent from it (launcher 0.1.12; the owner found one wallet shown under two QOR IDs, 2026-10-18).
+  # Each QOR ID on a PC is a profile of its own: its own wallet, opened with its PIN, closed completely when it signs out
+  # (ADR-099, launcher 0.1.13; superseding ADR-098's alpha.accounts-view, 2026-10-18).
   [[gates.criteria]]
-  id = "alpha.accounts-view"
+  id = "alpha.profiles-view"
   kind = "tests"
-  suite = "accounts_view"
+  suite = "profiles_view"
   require = []
 
   [[gates.criteria]]

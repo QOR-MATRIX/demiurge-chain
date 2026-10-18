@@ -20,8 +20,6 @@
 //! webview. `localStorage` in a webview is readable by anything that achieves
 //! script execution in that webview; the keychain is not.
 
-pub mod owners;
-
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -115,6 +113,8 @@ pub struct IdentityClient {
     http: reqwest::Client,
     endpoint: parking_lot::RwLock<String>,
     session: parking_lot::RwLock<Option<Session>>,
+    /// The signed-in profile (ADR-099), whose tokens are kept in the keychain under its id. None while no profile is.
+    profile: parking_lot::RwLock<Option<String>>,
 }
 
 impl IdentityClient {
@@ -130,7 +130,47 @@ impl IdentityClient {
             http,
             endpoint: parking_lot::RwLock::new(endpoint.into()),
             session: parking_lot::RwLock::new(None),
+            profile: parking_lot::RwLock::new(None),
         })
+    }
+
+    /// Keep tokens for this profile, or for none (ADR-099). The session in memory belonged to the profile before, so it
+    /// is dropped.
+    pub fn set_profile(&self, id: Option<&str>) {
+        *self.profile.write() = id.map(str::to_string);
+        *self.session.write() = None;
+    }
+
+    /// The keychain entry for a token of the signed-in profile. No profile, no entry: nothing is read or kept.
+    fn token_entry(&self, kind: TokenKind) -> QorResult<keyring::Entry> {
+        let profile = self
+            .profile
+            .read()
+            .clone()
+            .ok_or(QorError::NotAuthenticated)?;
+        keyring::Entry::new(
+            KEYCHAIN_SERVICE,
+            &format!("{}:{profile}", kind.entry_name()),
+        )
+        .map_err(|e| QorError::Keychain(e.to_string()))
+    }
+
+    fn write_token(&self, kind: TokenKind, token: &str) -> QorResult<()> {
+        self.token_entry(kind)?
+            .set_password(token)
+            .map_err(|e| QorError::Keychain(e.to_string()))
+    }
+
+    fn read_token(&self, kind: TokenKind) -> QorResult<String> {
+        self.token_entry(kind)?
+            .get_password()
+            .map_err(|_| QorError::NotAuthenticated)
+    }
+
+    fn clear_token(&self, kind: TokenKind) {
+        if let Ok(entry) = self.token_entry(kind) {
+            let _ = entry.delete_credential();
+        }
     }
 
     pub fn endpoint(&self) -> String {
@@ -296,7 +336,7 @@ impl IdentityClient {
         );
         let signature = vault.sign(confirm, &prompt, &address, &message).await?;
 
-        let token = read_token(TokenKind::Access)?;
+        let token = self.read_token(TokenKind::Access)?;
 
         let response = self
             .http
@@ -350,7 +390,7 @@ impl IdentityClient {
 
     /// Fetch the profile for the current access token.
     async fn load_profile(&self) -> QorResult<Session> {
-        let token = read_token(TokenKind::Access)?;
+        let token = self.read_token(TokenKind::Access)?;
 
         let response = self
             .http
@@ -428,7 +468,7 @@ impl IdentityClient {
         if fresh {
             self.refresh().await?;
         }
-        read_token(TokenKind::Access)
+        self.read_token(TokenKind::Access)
     }
 
     /// Choose this account's QOR ID name, once, while it is on a name QOR ID made (ADR-091 decision 5). QOR ID renames
@@ -456,13 +496,13 @@ impl IdentityClient {
         F: Fn(String) -> Fut,
         Fut: std::future::Future<Output = reqwest::Result<reqwest::Response>>,
     {
-        let response = send(read_token(TokenKind::Access)?)
+        let response = send(self.read_token(TokenKind::Access)?)
             .await
             .map_err(|e| QorError::Network(e.to_string()))?;
         match read_json(response, context).await {
             Err(QorError::NotAuthenticated) => {
                 self.refresh().await?;
-                let response = send(read_token(TokenKind::Access)?)
+                let response = send(self.read_token(TokenKind::Access)?)
                     .await
                     .map_err(|e| QorError::Network(e.to_string()))?;
                 read_json(response, context).await
@@ -548,7 +588,7 @@ impl IdentityClient {
 
     /// Exchange the refresh token for a new access token.
     pub async fn refresh(&self) -> QorResult<Session> {
-        let refresh_token = read_token(TokenKind::Refresh)?;
+        let refresh_token = self.read_token(TokenKind::Refresh)?;
 
         let value = self
             .post_json(
@@ -567,7 +607,7 @@ impl IdentityClient {
     /// pressed sign out must end up signed out on this device regardless of
     /// whether the network cooperated.
     pub async fn logout(&self) {
-        if let Ok(token) = read_token(TokenKind::Access) {
+        if let Ok(token) = self.read_token(TokenKind::Access) {
             let _ = self
                 .http
                 .post(self.url("auth/logout"))
@@ -576,8 +616,8 @@ impl IdentityClient {
                 .await;
         }
 
-        clear_token(TokenKind::Access);
-        clear_token(TokenKind::Refresh);
+        self.clear_token(TokenKind::Access);
+        self.clear_token(TokenKind::Refresh);
         *self.session.write() = None;
     }
 
@@ -612,8 +652,8 @@ impl IdentityClient {
         })?;
 
         let _ = tokens.expires_in;
-        write_token(TokenKind::Access, &tokens.access_token)?;
-        write_token(TokenKind::Refresh, &tokens.refresh_token)?;
+        self.write_token(TokenKind::Access, &tokens.access_token)?;
+        self.write_token(TokenKind::Refresh, &tokens.refresh_token)?;
         Ok(())
     }
 }
@@ -634,26 +674,13 @@ impl TokenKind {
     }
 }
 
-fn keychain(kind: TokenKind) -> QorResult<keyring::Entry> {
-    keyring::Entry::new(KEYCHAIN_SERVICE, kind.entry_name())
-        .map_err(|e| QorError::Keychain(e.to_string()))
-}
-
-fn write_token(kind: TokenKind, token: &str) -> QorResult<()> {
-    keychain(kind)?
-        .set_password(token)
-        .map_err(|e| QorError::Keychain(e.to_string()))
-}
-
-fn read_token(kind: TokenKind) -> QorResult<String> {
-    keychain(kind)?
-        .get_password()
-        .map_err(|_| QorError::NotAuthenticated)
-}
-
-fn clear_token(kind: TokenKind) {
-    if let Ok(entry) = keychain(kind) {
-        let _ = entry.delete_credential();
+/// The token entries from before profiles (ADR-099), named without a profile. Removed once, at the move, so a token
+/// that belonged to the one wallet is never read as any profile's.
+pub fn forget_unscoped_tokens() {
+    for kind in [TokenKind::Access, TokenKind::Refresh] {
+        if let Ok(entry) = keyring::Entry::new(KEYCHAIN_SERVICE, kind.entry_name()) {
+            let _ = entry.delete_credential();
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 18 October 2026 (afternoon). One page, rewritten every session.
+For Andrew, 18 October 2026 (evening). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -11,49 +11,44 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 ## Live today (checked this afternoon, from outside)
 
 - **Devnet** — *the test chain on servers* — at `wss://rpc.qorsync.dev`, runtime 9: the **Mesh**
-  — *launchers sharing files for pay* — is live there, so paid seeding can be tested.
+  — *launchers sharing files for pay* — is live there.
 - **QOR ID** — *the one sign-in* — and **Social** — *the chat service* — on Railway.
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`.
-- **Launcher 0.1.12 for testers**, a **GitHub Release** — *a public download on the repository*
-  — with QOR Media inside. Download page and checklist: `claude.ai/artifact/Uw2NRswDw9quvSBxQFbBLv`
-  (private until you share it).
+- **Launcher 0.1.12 for testers**, a **GitHub Release** — *a public download on the repository*.
+  Download page: `claude.ai/artifact/Uw2NRswDw9quvSBxQFbBLv` (private until you share it).
 
-## Newest: one wallet under two QOR IDs, fixed in launcher 0.1.12
+## Newest: each QOR ID is now separate, in launcher 0.1.13 (built, not published)
 
-You saw one balance shown under two QOR IDs on one PC. The cause: the launcher always opened on
-the wallet's **first account** — *one address inside your wallet* — whichever QOR ID was signed in,
-and paid ARQADE tips from it. In 0.1.12 (**published for testers**; the download page offers it, checked):
+Your ~59,000 came from your **old second account** — *another address made from your phrase* —
+which the launcher re-made every time you asked for a "new" one. As you asked, each QOR ID is now
+**a profile** — *its own wallet and data on this PC*:
 
-- **Each account keeps its own QOR ID**, and the launcher opens on the one you used last.
-- **The Vault labels every account** with its QOR ID, and warns, with a one-click fix, when the
-  account on screen isn't the signed-in QOR ID's. The menu's account card warns too.
-- **Settings, signed out, lists each account** to sign in as, and *A new QOR ID* makes one on a new,
-  empty account, so two QOR IDs never share CGT.
-- **Tips pay from the signed-in QOR ID's own account.**
+- **Its own wallet**, one account. A new QOR ID gets a new phrase and starts at 0.
+- **Signing out closes it completely**: balance, chats, Library and Mesh all leave the screen.
+- **Who's playing?** then lists your QOR IDs by name only. Each opens with **its PIN** (6–12
+  digits), chosen the first time you sign it out. The one you used last still opens by itself.
+- **Your current wallet becomes the first profile** (Yaldobaoth's, 37,000). To get the 57,900
+  account back as its own QOR ID: Settings → *Other accounts from this wallet's recovery phrase*.
 
-Every launcher test passes (296, plus 14 screen checks). Not a lock between people: whoever uses
-the launcher can reach every account. Two people who must keep CGT apart need separate Windows
-logins.
-
-## Earlier today
-
-- **Launcher 0.1.11 published for testers:** right-click a Library file → *Publish to the Mesh*,
-  and the new look. Testers need **2,500 test CGT** each.
-- **The devnet** runs runtime 9 with the Mesh, an upgrade you signed last night.
+Every test passes (302 host tests, 14 screen checks). A PIN keeps people at the keyboard out;
+someone who can run programs as your Windows user could guess it slowly, so for real
+separation use separate Windows logins. **Once you install 0.1.13, don't go back to 0.1.12**:
+it would not find your wallet.
 
 ## What only you can do
 
-1. **Install 0.1.12 and try two QOR IDs**, using the download page's six new tests. (You merged #43.)
-2. **Share the download page** with your testers (its Share menu), and **send each tester test
-   CGT** from the faucet when they send you their address.
-3. **Crediting godmode with 100,000,000 CGT:** a faucet transfer you sign; I need its address.
-4. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
-5. **Keep the `godmode` account safe**; move or delete `social-secrets.txt` on your Desktop.
-6. **Housekeeping:** `archive-bZLIQp/` (one zip); the old `QOR-MATRIX/arqade` repository.
-7. **Still open from before:** update QQ Studio and publish again; the last two L1.4 checks; CI for
-   QQ; the welcome-grant payer; an email; replace the key pasted on 5 October.
+1. **Say "commit and publish 0.1.13"**, or install it from your Desktop first and try it.
+2. **Rule on one gate change:** ADR-098's check was replaced by ADR-099's (the old screens
+   are gone). Is that a loosening? Last time, for similar removals, you said no.
+3. **Share the download page** with testers, and **send each tester test CGT** from the faucet.
+4. **Crediting godmode with 100,000,000 CGT:** a faucet transfer you sign; I need its address.
+5. **Before Social opens to anyone else:** the rules reports are judged against (L8.7).
+6. **Keep the `godmode` account safe**; move or delete `social-secrets.txt` on your Desktop.
+7. **Still open:** `archive-bZLIQp/` (one zip); the old `QOR-MATRIX/arqade` repository; QQ
+   Studio's update; the last two L1.4 checks; CI for QQ; the welcome-grant payer; an email;
+   replace the key pasted on 5 October.
 
 ## Cost per month
 
-The release download is free on GitHub. The Mesh, QOR Media and translation: $0; all run on each PC (the Mesh uses n0's public
-relays for now, which n0 runs; ours come later). Railway is not yet measured. Vercel and Neon: free plans, per earlier notes.
+GitHub downloads are free. The Mesh, QOR Media and translation: $0, all on each PC (the Mesh
+uses n0's public relays for now). Railway is not yet measured. Vercel and Neon: free plans.
