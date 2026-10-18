@@ -4,7 +4,9 @@ The sovereign gateway to the Demiurge ecosystem. One desktop application through
 which every chain and engine system is reached: QOR ID, the CGT Vault, the game
 library, community, peer-to-peer distribution and the node itself.
 
-**Status:** Version 0.1.13 (unsigned, no update channel; 18 October 2026: each QOR ID on a PC is a
+**Status:** Version 0.1.14 (unsigned, no update channel; 18 October 2026: the ARQADE screen docks ARQADE's Qt
+app, a 3D home with the games, the player's Sparks and the rankings, signed in through the launcher (ADR-102, P7.19);
+and amounts are shown and typed in Sparks, 1,000 to a CGT (ADR-101). 0.1.13 the same day made each QOR ID on a PC a
 profile of its own, with its own wallet and data, opened with its PIN and closed completely when it signs out
 (ADR-099). 0.1.12 the same day labelled the accounts of one wallet (ADR-098, superseded). 0.1.11, 17 October 2026: a file's menu in
 the Library that publishes it to the Mesh, and a premium look throughout: a bundled display

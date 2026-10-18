@@ -6,7 +6,8 @@
     ],
     "resources": {
       "licenses/libgit2-COPYING.txt": "licenses/libgit2-COPYING.txt",
-      "media-bundle/qor-media/": "qor-media/"
+      "media-bundle/qor-media/": "qor-media/",
+      "arqade-bundle/arqade/": "arqade/"
     },
     "windows": {
       "nsis": {
