@@ -14,7 +14,7 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
   — *launchers sharing files for pay* — is live there, so paid seeding can be tested.
 - **QOR ID** — *the one sign-in* — and **Social** — *the chat service* — on Railway.
 - **ARQADE** — *the gaming website* — at `qor-arqade-tau.vercel.app`.
-- **Launcher 0.1.11 for testers**, a **GitHub Release** — *a public download on the repository*
+- **Launcher 0.1.12 for testers**, a **GitHub Release** — *a public download on the repository*
   — with QOR Media inside. Download page and checklist: `claude.ai/artifact/Uw2NRswDw9quvSBxQFbBLv`
   (private until you share it).
 
@@ -22,7 +22,7 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 You saw one balance shown under two QOR IDs on one PC. The cause: the launcher always opened on
 the wallet's **first account** — *one address inside your wallet* — whichever QOR ID was signed in,
-and paid ARQADE tips from it. In 0.1.12 (**its installer is on your Desktop**; the download page already offers it):
+and paid ARQADE tips from it. In 0.1.12 (**published for testers**; the download page offers it, checked):
 
 - **Each account keeps its own QOR ID**, and the launcher opens on the one you used last.
 - **The Vault labels every account** with its QOR ID, and warns, with a one-click fix, when the
@@ -43,8 +43,7 @@ logins.
 
 ## What only you can do
 
-1. **Publish 0.1.12 with the one command I gave you** (I'm not allowed to create releases). Until
-   then the download page's button answers "not found". Then merge **pull request #43**.
+1. **Install 0.1.12 and try two QOR IDs**, using the download page's six new tests. (You merged #43.)
 2. **Share the download page** with your testers (its Share menu), and **send each tester test
    CGT** from the faucet when they send you their address.
 3. **Crediting godmode with 100,000,000 CGT:** a faucet transfer you sign; I need its address.
