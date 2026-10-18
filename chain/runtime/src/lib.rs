@@ -90,7 +90,7 @@ pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::Account
 /// transaction whose error does not say why.
 pub type Address = MultiAddress<AccountId, ()>;
 
-/// Balances are `u128` counts of Sparks, the atomic unit (ADR-035).
+/// Balances are `u128` counts of embers, the atomic unit (ADR-035).
 pub type Balance = u128;
 
 /// Index of a transaction in an account's sequence.
@@ -257,7 +257,7 @@ impl pallet_grandpa::Config for Runtime {
 }
 
 parameter_types! {
-    /// 100 CGT, in Sparks (ADR-036, at the eighteen decimals of ADR-035).
+    /// 100 CGT, in embers (ADR-036, at the eighteen decimals of ADR-035).
     ///
     /// Derived from a target, never picked: sponsoring a million accounts costs
     /// a negligible share of the sponsorship budget, while dust spam stays

@@ -53,7 +53,7 @@ mod mock;
 mod tests;
 pub mod weights;
 
-/// An amount of CGT, in Sparks (AGENTS.md §5): the runtime's balance type.
+/// An amount of CGT, in embers (AGENTS.md §5): the runtime's balance type.
 pub type Balance = u128;
 
 /// An escrow's number, given in order.

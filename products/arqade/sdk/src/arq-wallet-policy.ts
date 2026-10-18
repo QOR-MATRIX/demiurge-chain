@@ -2,7 +2,7 @@
 // developer's own; this module sets none. The protocol's bounds on delays and windows are U-16 and are passed in,
 // never assumed.
 
-import { checkSparks } from './amount';
+import { checkEmbers } from './amount';
 
 export type ArqWalletPolicy = {
   maxPayout: bigint;
@@ -28,7 +28,7 @@ export function validatePolicy(p: ArqWalletPolicy, bounds: ProtocolBounds): stri
   const problems: string[] = [];
   for (const key of ['maxPayout', 'epochBudget', 'perRecipientPerEpoch'] as const) {
     try {
-      checkSparks(p[key]);
+      checkEmbers(p[key]);
       if (p[key] === BigInt(0)) problems.push(`${key} is zero, so nothing could ever be paid`);
     } catch {
       problems.push(`${key} is outside 0..u128`);

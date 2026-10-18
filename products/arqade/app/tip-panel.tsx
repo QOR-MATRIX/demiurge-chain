@@ -15,9 +15,9 @@ const GAMES: [string, string][] = [
 
 type Tip = { id: string; amount: string; label: string; status: 'waiting' | 'paid' | 'expired'; block: number | null; link?: string };
 
-const cgt = (sparks: string) => {
-  const whole = sparks.length > 18 ? sparks.slice(0, -18) : '0';
-  const fraction = sparks.padStart(19, '0').slice(-18).replace(/0+$/, '');
+const cgt = (embers: string) => {
+  const whole = embers.length > 18 ? embers.slice(0, -18) : '0';
+  const fraction = embers.padStart(19, '0').slice(-18).replace(/0+$/, '');
   return `${Number(whole).toLocaleString('en-US')}${fraction ? '.' + fraction : ''} CGT`;
 };
 

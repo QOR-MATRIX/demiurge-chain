@@ -76,8 +76,8 @@ pub(crate) struct Ledger {
     /// What this launcher received from each seeder, per escrow and period, as its receipts said.
     pub received: Vec<Received>,
     pub payments: Vec<Payment>,
-    /// Everything paid to the account for the Mesh's work, Sparks.
-    pub paid_sparks: String,
+    /// Everything paid to the account for the Mesh's work, embers.
+    pub paid_embers: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -110,7 +110,7 @@ pub struct Payment {
     /// `storage` or `serving`.
     pub kind: String,
     pub escrow: Option<u64>,
-    pub paid_sparks: String,
+    pub paid_embers: String,
     pub paid_cgt: String,
     pub block_hash: String,
 }
@@ -123,7 +123,7 @@ pub struct PaidStatus {
     pub account: Option<String>,
     pub holdings: Vec<HoldingView>,
     pub pending_receipts: usize,
-    pub paid_sparks: String,
+    pub paid_embers: String,
     pub paid_cgt: String,
     pub payments: Vec<Payment>,
 }
@@ -160,18 +160,18 @@ impl Ledger {
     }
 
     fn paid(&self) -> u128 {
-        self.paid_sparks.parse().unwrap_or(0)
+        self.paid_embers.parse().unwrap_or(0)
     }
 
     fn record(&mut self, kind: &str, escrow: Option<u64>, paid: u128, block_hash: String) {
         if paid == 0 {
             return;
         }
-        self.paid_sparks = self.paid().saturating_add(paid).to_string();
+        self.paid_embers = self.paid().saturating_add(paid).to_string();
         self.payments.push(Payment {
             kind: kind.into(),
             escrow,
-            paid_sparks: paid.to_string(),
+            paid_embers: paid.to_string(),
             paid_cgt: crate::cgt::format_cgt(paid),
             block_hash,
         });
@@ -281,7 +281,7 @@ impl Mesh {
                 })
                 .collect(),
             pending_receipts: ledger.pending.len(),
-            paid_sparks: paid.to_string(),
+            paid_embers: paid.to_string(),
             paid_cgt: crate::cgt::format_cgt(paid),
             payments: ledger.payments.iter().rev().cloned().collect(),
         }

@@ -119,7 +119,7 @@ struct RecordRead {
 // ── Rows, and what is done with them ─────────────────────────────────────────
 
 /// One listing as the chain's storage holds it: an asset, who listed it, and
-/// the price in Sparks. What [`ChainClient::listed`] returns, and all an
+/// the price in embers. What [`ChainClient::listed`] returns, and all an
 /// indexer would have to return in its place.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct Row {
@@ -507,7 +507,7 @@ impl ChainClient {
                     revisable: record.revisable,
                     listing: Some(ListingView {
                         seller: address_of(&row.seller),
-                        price_sparks: row.price.to_string(),
+                        price_embers: row.price.to_string(),
                         price_cgt: cgt::format_cgt_grouped(row.price),
                         void: row.seller != holder,
                     }),

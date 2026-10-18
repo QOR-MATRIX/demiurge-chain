@@ -149,9 +149,9 @@ struct SoldRead {
 pub struct ListingView {
     /// Who listed it, as this chain writes an address.
     pub seller: String,
-    /// The price in Sparks, as a decimal string: `u128` does not survive
+    /// The price in embers, as a decimal string: `u128` does not survive
     /// JavaScript's `number`.
-    pub price_sparks: String,
+    pub price_embers: String,
     /// The price in CGT, grouped for reading.
     pub price_cgt: String,
     /// Whoever listed it no longer holds the asset, so nobody can buy it. Its
@@ -197,7 +197,7 @@ pub struct Payout {
     /// receives what is left, and for a source's recipients, who divide the
     /// remix share between them in proportion to their own shares.
     pub share: Option<String>,
-    pub amount_sparks: String,
+    pub amount_embers: String,
     pub amount_cgt: String,
     /// The recipient is the buyer, so this part never leaves their account.
     pub to_buyer: bool,
@@ -206,7 +206,7 @@ pub struct Payout {
 /// What a sale at one price pays, part by part, in the order the chain pays it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Breakdown {
-    pub price_sparks: String,
+    pub price_embers: String,
     pub price_cgt: String,
     /// The asset this one was derived from, when a sale owes it a remix share.
     pub source: Option<TradeItem>,
@@ -251,7 +251,7 @@ pub struct SaleView {
 pub struct ListReceipt {
     pub collection: u32,
     pub item: u32,
-    pub price_sparks: String,
+    pub price_embers: String,
     pub price_cgt: String,
     pub tx_hash: String,
     pub block_hash: String,
@@ -274,7 +274,7 @@ pub struct SaleReceipt {
     pub name: String,
     pub seller: String,
     pub buyer: String,
-    pub price_sparks: String,
+    pub price_embers: String,
     pub price_cgt: String,
     /// What each account received, from the event and not from the launcher's
     /// arithmetic.
@@ -288,7 +288,7 @@ pub struct SaleReceipt {
 /// bytes they did not see.
 #[derive(Debug, Clone, Copy)]
 pub struct Seen<'a> {
-    pub price_sparks: u128,
+    pub price_embers: u128,
     /// The root the asset carried, as 64 hex characters.
     pub root: &'a str,
 }
@@ -597,12 +597,12 @@ fn percent(parts_per_million: u32) -> String {
     format!("{whole}.{}%", digits.trim_end_matches('0'))
 }
 
-fn cgt_of(sparks: u128) -> String {
-    cgt::format_cgt_grouped(sparks)
+fn cgt_of(embers: u128) -> String {
+    cgt::format_cgt_grouped(embers)
 }
 
-fn with_symbol(sparks: u128) -> String {
-    format!("{} {}", cgt_of(sparks), cgt::SYMBOL)
+fn with_symbol(embers: u128) -> String {
+    format!("{} {}", cgt_of(embers), cgt::SYMBOL)
 }
 
 impl SaleState {
@@ -636,7 +636,7 @@ impl SaleState {
             kind,
             address: address_of(who),
             share,
-            amount_sparks: amount.to_string(),
+            amount_embers: amount.to_string(),
             amount_cgt: cgt_of(amount),
             to_buyer: viewer == Some(who),
         };
@@ -674,7 +674,7 @@ impl SaleState {
             .as_ref()
             .filter(|_| preview.source.is_some());
         Some(Breakdown {
-            price_sparks: preview.price.to_string(),
+            price_embers: preview.price.to_string(),
             price_cgt: cgt_of(preview.price),
             source: source_terms
                 .and(preview.source)
@@ -825,11 +825,11 @@ impl SaleState {
             return Some(reason);
         }
         let price = self.live_listing().map(|listing| listing.price)?;
-        if price != seen.price_sparks {
+        if price != seen.price_embers {
             return Some(format!(
                 "The price changed since you looked: it was {} and it is {} now. Nothing was \
                  sent.",
-                with_symbol(seen.price_sparks),
+                with_symbol(seen.price_embers),
                 with_symbol(price)
             ));
         }
@@ -1001,7 +1001,7 @@ impl ChainClient {
             .map_err(|e| QorError::Rpc(format!("the listing could not be decoded: {e}")))?;
         Ok(Some(ListingView {
             seller: address_of(&listing.seller.0),
-            price_sparks: listing.price.to_string(),
+            price_embers: listing.price.to_string(),
             price_cgt: cgt_of(listing.price),
             void: listing.seller.0 != holder,
         }))
@@ -1260,20 +1260,20 @@ impl ChainClient {
         Ok(state.view(pasted_root.as_deref()))
     }
 
-    /// What a sale of an asset at `price_sparks` would pay, before it is listed:
+    /// What a sale of an asset at `price_embers` would pay, before it is listed:
     /// the chain's answer, for no buyer in particular.
     pub async fn sale_preview(
         &self,
         collection: u32,
         item: u32,
-        price_sparks: u128,
+        price_embers: u128,
     ) -> QorResult<Breakdown> {
-        if price_sparks == 0 {
+        if price_embers == 0 {
             return Err(zero_price());
         }
         let connection = self.connected().await?;
         let state = self
-            .sale_state(&connection, collection, item, None, Ask::At(price_sparks))
+            .sale_state(&connection, collection, item, None, Ask::At(price_embers))
             .await?
             .ok_or_else(|| no_such_asset(collection, item))?;
         state.breakdown().ok_or_else(not_asked)
@@ -1292,16 +1292,16 @@ impl ChainClient {
         from: &str,
         collection: u32,
         item: u32,
-        price_sparks: u128,
+        price_embers: u128,
     ) -> QorResult<ListReceipt> {
         let seller = normalise_address(from)?;
-        if price_sparks == 0 {
+        if price_embers == 0 {
             return Err(zero_price());
         }
 
         let connection = self.connected().await?;
         let state = self
-            .sale_state(&connection, collection, item, None, Ask::At(price_sparks))
+            .sale_state(&connection, collection, item, None, Ask::At(price_embers))
             .await?
             .filter(|state| state.holder == seller)
             .ok_or_else(|| {
@@ -1311,12 +1311,12 @@ impl ChainClient {
             })?;
         if state
             .live_listing()
-            .is_some_and(|listing| listing.price == price_sparks)
+            .is_some_and(|listing| listing.price == price_embers)
         {
             return Err(QorError::Qontrol(format!(
                 "{} is already listed at {}. Nothing was sent.",
                 named(&state.asset),
-                with_symbol(price_sparks)
+                with_symbol(price_embers)
             )));
         }
         let breakdown = state.breakdown().ok_or_else(not_asked)?;
@@ -1325,7 +1325,7 @@ impl ChainClient {
         }
 
         let call =
-            dynamic::transaction("Drc369Royalties", "list", (collection, item, price_sparks));
+            dynamic::transaction("Drc369Royalties", "list", (collection, item, price_embers));
         let was = state.live_listing().map(|listing| listing.price);
         let finalised = self
             .sign_and_finalise(
@@ -1359,8 +1359,8 @@ impl ChainClient {
         Ok(ListReceipt {
             collection,
             item,
-            price_sparks: price_sparks.to_string(),
-            price_cgt: cgt_of(price_sparks),
+            price_embers: price_embers.to_string(),
+            price_cgt: cgt_of(price_embers),
             tx_hash: finalised.tx_hash,
             block_hash: finalised.block_hash,
         })
@@ -1519,7 +1519,7 @@ impl ChainClient {
             kind,
             address: address_of(&who.0),
             share: None,
-            amount_sparks: amount.to_string(),
+            amount_embers: amount.to_string(),
             amount_cgt: cgt_of(amount),
             to_buyer: who.0 == buyer,
         };
@@ -1541,7 +1541,7 @@ impl ChainClient {
             name: state.asset.name.clone(),
             seller: address_of(&sold.from.0),
             buyer: address_of(&sold.to.0),
-            price_sparks: sold.price.to_string(),
+            price_embers: sold.price.to_string(),
             price_cgt: cgt_of(sold.price),
             payouts,
             tx_hash: finalised.tx_hash,
@@ -1757,16 +1757,16 @@ fn buy_prompt(
 mod tests {
     use super::super::assets::ContentView;
     use super::*;
-    use crate::cgt::SPARKS_PER_CGT;
+    use crate::cgt::EMBERS_PER_CGT;
     use crate::content::ContentRef;
     use crate::testing::Scripted;
 
     const NOWHERE: &str = "ws://127.0.0.1:1";
-    const ED: u128 = 100 * SPARKS_PER_CGT;
+    const ED: u128 = 100 * EMBERS_PER_CGT;
 
     /// An amount in whole CGT.
     fn c(whole: u128) -> u128 {
-        whole * SPARKS_PER_CGT
+        whole * EMBERS_PER_CGT
     }
 
     // ── What follows from what was read ─────────────────────────────────────
@@ -1897,7 +1897,7 @@ mod tests {
         let breakdown = state.breakdown().expect("the chain was asked");
 
         assert_eq!(breakdown.price_cgt, "3,000.00");
-        assert_eq!(breakdown.price_sparks, c(3_000).to_string());
+        assert_eq!(breakdown.price_embers, c(3_000).to_string());
         assert_eq!(
             breakdown.source,
             Some(TradeItem {
@@ -1963,7 +1963,7 @@ mod tests {
             source_terms: None,
             preview: Some(Preview {
                 source: None,
-                ..chain_says(SPARKS_PER_CGT / 2, None, &[], &[], SPARKS_PER_CGT / 2, None)
+                ..chain_says(EMBERS_PER_CGT / 2, None, &[], &[], EMBERS_PER_CGT / 2, None)
             }),
             ..state
         };
@@ -2166,7 +2166,7 @@ mod tests {
             "the chain's order"
         );
 
-        // A Spark out either way is a misreading, and nobody is shown it.
+        // A ember out either way is a misreading, and nobody is shown it.
         for price in [c(3_000) - 1, c(3_000) + 1] {
             let error =
                 Preview::from_read(read(c(150), c(285), c(2_565)), price, None, nothing_named)
@@ -2238,8 +2238,8 @@ mod tests {
             c(300),
             Some(BUYER),
             &[(CREATOR, c(150))],
-            &[(CREATOR, c(28) + SPARKS_PER_CGT / 2)],
-            c(121) + SPARKS_PER_CGT / 2,
+            &[(CREATOR, c(28) + EMBERS_PER_CGT / 2)],
+            c(121) + EMBERS_PER_CGT / 2,
             unreceivable(),
         );
         assert_eq!(state.unreceivable(&twice), None);
@@ -2489,7 +2489,7 @@ mod tests {
         let root = state.asset.current.root.clone();
         assert_eq!(
             state.refuses(Seen {
-                price_sparks: c(1_000),
+                price_embers: c(1_000),
                 root: &root
             }),
             Some(refused)
@@ -2514,8 +2514,8 @@ mod tests {
         let price = c(3_000);
         let state = listed();
         let root = state.asset.current.root.clone();
-        fn seen(price_sparks: u128, root: &str) -> Seen<'_> {
-            Seen { price_sparks, root }
+        fn seen(price_embers: u128, root: &str) -> Seen<'_> {
+            Seen { price_embers, root }
         }
 
         assert_eq!(state.refuses(seen(price, &root)), None);
@@ -2745,7 +2745,7 @@ mod tests {
         let change = list_prompt(
             &state.asset,
             &breakdown,
-            Some(2_000 * SPARKS_PER_CGT),
+            Some(2_000 * EMBERS_PER_CGT),
             "Demiurge Development",
             super::super::LOCAL_RPC,
         );
@@ -2848,7 +2848,7 @@ mod tests {
         let listed = asset(7, 2, "a-remix");
         let prompt = unlist_prompt(
             &listed,
-            3_000 * SPARKS_PER_CGT,
+            3_000 * EMBERS_PER_CGT,
             false,
             "Demiurge Development",
             super::super::LOCAL_RPC,
@@ -2933,7 +2933,7 @@ mod tests {
         let from = address_of(&SELLER);
         let root = "ab".repeat(32);
         let seen = Seen {
-            price_sparks: 1,
+            price_embers: 1,
             root: &root,
         };
 

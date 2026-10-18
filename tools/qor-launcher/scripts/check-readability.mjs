@@ -177,8 +177,8 @@ const TOKEN = { symbol: 'CGT', name: 'Creator God Token', decimals: 18, sub_unit
 // The first is listed, so the price on a card is on the screen being measured;
 // the second carries a listing its previous holder made, which is void.
 const ASSETS = [
-  { collection: 0, item: 0, name: 'first-song', origin: { algo: 'BLAKE3-256', root: '1f'.repeat(32), size: 211 }, current: { algo: 'BLAKE3-256', root: '3d'.repeat(32), size: 377 }, commit: { kind: 'SHA-1', id: 'a1'.repeat(20) }, revisable: true, listing: { seller: ADDRESS, price_sparks: '1200500000000000000000', price_cgt: '1,200.50', void: false } },
-  { collection: 0, item: 1, name: 'final-mix', origin: { algo: 'BLAKE3-256', root: '4c'.repeat(32), size: 99 }, current: { algo: 'BLAKE3-256', root: '4c'.repeat(32), size: 99 }, commit: { kind: 'SHA-1', id: 'b2'.repeat(20) }, revisable: false, listing: { seller: '5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy', price_sparks: '900000000000000000000', price_cgt: '900.00', void: true } },
+  { collection: 0, item: 0, name: 'first-song', origin: { algo: 'BLAKE3-256', root: '1f'.repeat(32), size: 211 }, current: { algo: 'BLAKE3-256', root: '3d'.repeat(32), size: 377 }, commit: { kind: 'SHA-1', id: 'a1'.repeat(20) }, revisable: true, listing: { seller: ADDRESS, price_embers: '1200500000000000000000', price_cgt: '1,200.50', void: false } },
+  { collection: 0, item: 1, name: 'final-mix', origin: { algo: 'BLAKE3-256', root: '4c'.repeat(32), size: 99 }, current: { algo: 'BLAKE3-256', root: '4c'.repeat(32), size: 99 }, commit: { kind: 'SHA-1', id: 'b2'.repeat(20) }, revisable: false, listing: { seller: '5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy', price_embers: '900000000000000000000', price_cgt: '900.00', void: true } },
 ];
 // Selling and buying (L4.6). What a sale pays, with a part the chain would
 // refuse, so the warning under it is on the screen too; and someone else's
@@ -186,17 +186,17 @@ const ASSETS = [
 // so the card's and the dialog's warnings are measured as well.
 const OTHER = '5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy';
 const PAYOUTS = [
-  { kind: 'source', address: '5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y', share: null, amount_sparks: '60000000000000000000', amount_cgt: '60.00', to_buyer: false },
-  { kind: 'royalty', address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty', share: '9.5%', amount_sparks: '108300000000000000000', amount_cgt: '108.30', to_buyer: true },
-  { kind: 'seller', address: OTHER, share: null, amount_sparks: '1031700000000000000000', amount_cgt: '1,031.70', to_buyer: false },
+  { kind: 'source', address: '5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y', share: null, amount_embers: '60000000000000000000', amount_cgt: '60.00', to_buyer: false },
+  { kind: 'royalty', address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty', share: '9.5%', amount_embers: '108300000000000000000', amount_cgt: '108.30', to_buyer: true },
+  { kind: 'seller', address: OTHER, share: null, amount_embers: '1031700000000000000000', amount_cgt: '1,031.70', to_buyer: false },
 ];
 const BREAKDOWN = {
-  price_sparks: '1200000000000000000000', price_cgt: '1,200.00',
+  price_embers: '1200000000000000000000', price_cgt: '1,200.00',
   source: { collection: 2, item: 7 }, source_share: '5%', payouts: PAYOUTS,
   blocked: 'A sale at this price cannot settle as things stand. 5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y is owed 60.00 CGT from it, and that account holds too little to stay open on that: an account needs 100.00 CGT to exist.',
 };
 const FOUND = {
-  asset: { collection: 9, item: 3, name: 'someone-elses-remix', origin: { algo: 'BLAKE3-256', root: '7a'.repeat(32), size: 512 }, current: { algo: 'BLAKE3-256', root: '7a'.repeat(32), size: 512 }, commit: { kind: 'SHA-1', id: 'd4'.repeat(20) }, revisable: true, listing: { seller: OTHER, price_sparks: '1200000000000000000000', price_cgt: '1,200.00', void: false } },
+  asset: { collection: 9, item: 3, name: 'someone-elses-remix', origin: { algo: 'BLAKE3-256', root: '7a'.repeat(32), size: 512 }, current: { algo: 'BLAKE3-256', root: '7a'.repeat(32), size: 512 }, commit: { kind: 'SHA-1', id: 'd4'.repeat(20) }, revisable: true, listing: { seller: OTHER, price_embers: '1200000000000000000000', price_cgt: '1,200.00', void: false } },
   holder: OTHER, held_by_viewer: false, derived_from: { collection: 2, item: 7 },
   terms: { recipients: [{ address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty', share: '9.5%' }], remix: '12%' },
   source_terms: null,
@@ -283,7 +283,7 @@ const HOST_STUB = `
         if (cmd === 'drc369_market') return ok(${JSON.stringify(MARKET)});
         if (cmd === 'listing_vocabulary') return ok(${JSON.stringify(VOCABULARY)});
         if (cmd === 'listing_drafts') return ok([]);
-        if (cmd === 'cgt_balance') return ok({ address: args.address, sparks: '8994500000000000000000', cgt: '8994.5', display: '8,994.50 CGT' });
+        if (cmd === 'cgt_balance') return ok({ address: args.address, embers: '8994500000000000000000', cgt: '8994.5', display: '8,994.50 CGT' });
         if (cmd === 'chain_status')
           return ok({ endpoint: 'ws://127.0.0.1:9944', reachable: true, chain_name: 'Demiurge Development', block_number: 812, finalized_number: 810, latency_ms: 3, detail: null });
         if (cmd === 'cgt_nonce') return ok(3);

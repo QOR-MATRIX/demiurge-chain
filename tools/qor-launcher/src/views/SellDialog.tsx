@@ -169,7 +169,7 @@ export function SellDialog({
     setAnswers((was) => ({ ...was, [field]: was[field] === value ? '' : value }));
 
   const samePrice =
-    live !== null && preview.state === 'ready' && preview.breakdown.price_sparks === live.price_sparks;
+    live !== null && preview.state === 'ready' && preview.breakdown.price_embers === live.price_embers;
   const canList =
     preview.state === 'ready' &&
     preview.price === price.trim() &&

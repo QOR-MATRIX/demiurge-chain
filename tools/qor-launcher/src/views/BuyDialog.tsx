@@ -74,7 +74,7 @@ export function BuyDialog({ from, sale: opened, symbol, onBought, onClose }: Pro
           from,
           asset.collection,
           asset.item,
-          breakdown.price_sparks,
+          breakdown.price_embers,
           asset.current.root,
         ),
       );

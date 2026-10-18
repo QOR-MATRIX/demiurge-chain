@@ -75,7 +75,7 @@ exists.
 
 | Field | Meaning |
 | --- | --- |
-| `maxPayout` | The largest single payout, in Sparks |
+| `maxPayout` | The largest single payout, in embers |
 | `epochBlocks` | How long an epoch lasts, in blocks |
 | `epochBudget` | The most the Vault pays in one epoch, all players together |
 | `perRecipientPerEpoch` | The most one account receives in one epoch |
@@ -83,7 +83,7 @@ exists.
 | `accrualExpiryBlocks` | How long an accrued, unclaimed payout waits before returning to the Vault |
 | `loosenDelayBlocks` | How long a loosening or a withdrawal waits before it applies. The protocol sets its minimum |
 
-Amounts are **integer Sparks** (`1 CGT = 10^18 Sparks`), as decimal strings in JSON and `bigint` in TypeScript. The
+Amounts are **integer embers** (`1 CGT = 10^18 embers`), as decimal strings in JSON and `bigint` in TypeScript. The
 SDK's `parseCgt` and `formatCgt` convert, and refuse excess precision rather than rounding. The SDK's
 `validatePolicy` checks a policy before you sign it (both exist today, [`../README.md`](../README.md)).
 
@@ -104,7 +104,7 @@ const args = payoutArgs({
   issuedAt: currentBlock,          // a payout older than the outcome window is refused
   ruleVersion: 'flux-four@3',      // must be in the policy's ruleVersions
   to: winner.account,              // the player's SS58 address, proven through QOR ID
-  amount: parseCgt('25'),          // bigint Sparks, sent as a decimal string
+  amount: parseCgt('25'),          // bigint embers, sent as a decimal string
 });
 await api.tx.arqWallet.payout(...args).signAndSend(authority); // then wait for finality and the Paid or Accrued event
 ```

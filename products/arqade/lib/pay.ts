@@ -12,8 +12,8 @@
 import { DEVNET } from './chain';
 
 export const APP_ID = 'arqade';
-/** The owner's cap per request, in Sparks: 100,000 CGT (ADR-076 decision 6). */
-export const CAP_SPARKS = BigInt(100_000) * BigInt(10) ** BigInt(18);
+/** The owner's cap per request, in embers: 100,000 CGT (ADR-076 decision 6). */
+export const CAP_EMBERS = BigInt(100_000) * BigInt(10) ** BigInt(18);
 /** How long a request stays valid. The launcher refuses anything over fifteen minutes. */
 export const REQUEST_TTL_SECS = 10 * 60;
 
@@ -40,12 +40,12 @@ export function requestJson(r: PayRequest): string {
   return JSON.stringify({ v: r.v, app: r.app, id: r.id, to: r.to, amount: r.amount, label: r.label, genesis: r.genesis, exp: r.exp });
 }
 
-/** Build a request. Amount in Sparks; refused outside 1..=cap. */
-export function newRequest(to: string, amountSparks: bigint, label: string, nowSecs: number, id = requestId()): PayRequest {
-  if (amountSparks <= BigInt(0) || amountSparks > CAP_SPARKS) throw new Error('The amount must be above zero and at most 100,000 CGT.');
+/** Build a request. Amount in embers; refused outside 1..=cap. */
+export function newRequest(to: string, amountEmbers: bigint, label: string, nowSecs: number, id = requestId()): PayRequest {
+  if (amountEmbers <= BigInt(0) || amountEmbers > CAP_EMBERS) throw new Error('The amount must be above zero and at most 100,000 CGT.');
   const clean = label.trim();
   if (!clean || [...clean].length > 80 || /[\u0000-\u001f\u007f]/.test(clean)) throw new Error('The description is not valid.');
-  return { v: 1, app: APP_ID, id, to, amount: amountSparks.toString(), label: clean, genesis: DEVNET.genesis, exp: nowSecs + REQUEST_TTL_SECS };
+  return { v: 1, app: APP_ID, id, to, amount: amountEmbers.toString(), label: clean, genesis: DEVNET.genesis, exp: nowSecs + REQUEST_TTL_SECS };
 }
 
 /** ARQADE's request-signing key, from the server's environment (`QOR_PAY_SIGNING_KEY`, PKCS#8, base64). */

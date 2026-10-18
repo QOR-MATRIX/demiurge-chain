@@ -418,7 +418,7 @@ export function ClaimGrant() {
   const account = useQor(selectActiveAccount);
   const balance = useQor(selectActiveBalance);
 
-  const empty = balance ? BigInt(balance.sparks) === 0n : false;
+  const empty = balance ? BigInt(balance.embers) === 0n : false;
   if (!account || !empty) return null;
 
   // The launcher can talk to the chain since ADR-040, and sign for it. What is

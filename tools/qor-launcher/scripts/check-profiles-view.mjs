@@ -109,6 +109,7 @@ const HOST_STUB = `
   };
   window.__S__ = S;
   const BAL = { '${GOD}': '9,000.00', '${YAL}': '25.00', '${NEW}': '0.00', '${SPLIT}': '57,900.00' };
+  const SPARKS = { '${GOD}': '9,000,000', '${YAL}': '25,000', '${NEW}': '0', '${SPLIT}': '57,900,000' };
   const me = () => S.profiles.find((p) => p.id === S.signedIn) ?? null;
   const views = () => S.profiles.map((p) => ({ ...p, signed_in: p.id === S.signedIn }));
   const account = (p) => ({ address: p.address, account_id: '0x' + '01'.repeat(32), path: '', index: 0, label: 'Primary' });
@@ -157,7 +158,7 @@ const HOST_STUB = `
           S.signedIn = 'p-split';
           return Promise.resolve(arrival());
         }
-        case 'cgt_balance': return Promise.resolve({ address: args.address, sparks: '0', cgt: '0', display: (BAL[args.address] ?? '0.00') + ' CGT' });
+        case 'cgt_balance': return Promise.resolve({ address: args.address, embers: '0', cgt: '0', display: (BAL[args.address] ?? '0.00') + ' CGT', in_sparks: (SPARKS[args.address] ?? '0') + ' Sparks' });
         case 'cgt_nonce': return Promise.resolve(0);
         case 'qor_restore': return refuse('not_authenticated', 'not signed in');
         case 'touch_vault': case 'vault_lock': case 'vault_set_active': case 'social_disconnect': case 'social_connect': return Promise.resolve(null);
@@ -265,6 +266,8 @@ try {
   await until(`[...document.querySelectorAll('.eyebrow')].some((n) => n.textContent.trim() === 'Account')`, 'the Vault');
   check('the Vault offers no second account', !(await evaluate(`Boolean(document.querySelector('[title="Derive another account from this vault"]'))`))
     && (await evaluate(`document.querySelectorAll('aside li').length`)) === 1);
+  check('the Vault shows the balance in Sparks too, a thousandth of a CGT each (ADR-101)',
+    await eventually(`(document.querySelector('[data-vault-sparks]')?.textContent ?? '').trim() === '9,000,000 Sparks'`), await text('[data-vault-sparks]'));
 
   // --- signing out closes it completely ----------------------------------------------------------------------------
   await settings();

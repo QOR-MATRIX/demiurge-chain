@@ -106,10 +106,10 @@ export function SettingsView() {
             <dd className="text-ink">
               {token?.name} ({token?.symbol}), {token?.decimals} decimals
             </dd>
-            <dt className="text-ink-muted">Sub-unit</dt>
+            <dt className="text-ink-muted">Units</dt>
             <dd className="text-ink">
               {token
-                ? `${(10n ** BigInt(token.decimals)).toString()} ${token.sub_unit}s = 1 ${token.symbol}`
+                ? `1 ${token.symbol} = ${(token.sub_units_per_cgt ?? 1000).toLocaleString()} ${token.sub_unit}s = 10^${token.decimals} ${token.atomic_unit ?? 'ember'}s`
                 : '—'}
             </dd>
           </dl>

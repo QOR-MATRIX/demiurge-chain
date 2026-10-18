@@ -343,7 +343,7 @@ mod tests {
         let handed_out = DEVELOPMENT_ENDOWMENT * Sr25519Keyring::well_known().count() as u128;
         assert!(
             handed_out * 1_000_000 < BASE_SUPPLY,
-            "development genesis hands out {handed_out} Sparks, too close to the base supply to be \
+            "development genesis hands out {handed_out} embers, too close to the base supply to be \
              obviously not a genesis allocation"
         );
     }

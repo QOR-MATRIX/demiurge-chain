@@ -3,7 +3,7 @@
 // payout authority signs with its own key, and a developer's governor calls are signed in their own Vault.
 
 import { blake2b } from '@noble/hashes/blake2.js';
-import { checkSparks } from './amount';
+import { checkEmbers } from './amount';
 import type { ArqWalletPolicy } from './arq-wallet-policy';
 
 /** `PalletId(*b"dmg/arqw")`, in `chain/runtime/src/assets.rs`. Changing it would move every wallet. */
@@ -95,13 +95,13 @@ export function roundId(game: string, ...parts: string[]): string {
   return domainId('arqade:round:v1', game, parts);
 }
 
-/** A policy as the chain's `create` and `set_policy` take it: amounts as decimal strings of Sparks. */
+/** A policy as the chain's `create` and `set_policy` take it: amounts as decimal strings of embers. */
 export function toChainPolicy(p: ArqWalletPolicy) {
   return {
-    maxPayout: checkSparks(p.maxPayout).toString(),
+    maxPayout: checkEmbers(p.maxPayout).toString(),
     epochBlocks: p.epochBlocks,
-    epochBudget: checkSparks(p.epochBudget).toString(),
-    perRecipientPerEpoch: checkSparks(p.perRecipientPerEpoch).toString(),
+    epochBudget: checkEmbers(p.epochBudget).toString(),
+    perRecipientPerEpoch: checkEmbers(p.perRecipientPerEpoch).toString(),
     ruleVersions: [...p.ruleVersions],
     accrualExpiry: p.accrualExpiryBlocks,
     loosenDelay: p.loosenDelayBlocks,
@@ -122,7 +122,7 @@ export type Payout = {
 export function payoutArgs(p: Payout): [number, number, string, number, string, string, string] {
   if (!/^0x[0-9a-f]{64}$/.test(p.outcome)) throw new RangeError('an outcome id is 32 bytes of hex; use outcomeId()');
   if (!Number.isInteger(p.issuedAt) || p.issuedAt < 0) throw new RangeError('issuedAt is a block number');
-  if (checkSparks(p.amount) === BigInt(0)) throw new RangeError('a payout of nothing');
+  if (checkEmbers(p.amount) === BigInt(0)) throw new RangeError('a payout of nothing');
   u32le(p.collection);
   u32le(p.item);
   return [p.collection, p.item, p.outcome, p.issuedAt, p.ruleVersion, p.to, p.amount.toString()];

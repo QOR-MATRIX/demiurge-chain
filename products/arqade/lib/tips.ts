@@ -4,7 +4,7 @@
 // per call, and records what it found. The chain and the clock are passed in, so the whole flow runs in tests.
 
 import { parseCgt } from '../sdk/src/amount';
-import { CAP_SPARKS, newRequest, payLink, type PayRequest } from './pay';
+import { CAP_EMBERS, newRequest, payLink, type PayRequest } from './pay';
 import type { Db } from './db';
 
 /** ARQADE's own games, which a player may tip their creator for. */
@@ -67,13 +67,13 @@ const view = (r: Row, link?: string): TipView => ({
 export async function askTip(db: Db, chain: TipChain, settings: TipSettings, player: string, game: string, amountCgt: string, nowMs: number): Promise<TipView> {
   const name = GAMES[game];
   if (!name) throw new TipError(400, 'Choose one of the arcade’s games.');
-  let sparks: bigint;
+  let embers: bigint;
   try {
-    sparks = parseCgt(amountCgt.trim());
+    embers = parseCgt(amountCgt.trim());
   } catch {
     throw new TipError(400, 'Enter an amount of CGT, such as 10 or 2.5.');
   }
-  if (sparks <= BigInt(0) || sparks > CAP_SPARKS) throw new TipError(400, 'A tip is above zero and at most 100,000 CGT.');
+  if (embers <= BigInt(0) || embers > CAP_EMBERS) throw new TipError(400, 'A tip is above zero and at most 100,000 CGT.');
   const open = await db
     .prepare("SELECT COUNT(*) AS n FROM tips WHERE player = ? AND status = 'waiting' AND expires > ?")
     .bind(player, Math.floor(nowMs / 1000))
@@ -81,7 +81,7 @@ export async function askTip(db: Db, chain: TipChain, settings: TipSettings, pla
   if ((open?.n ?? 0) >= OPEN_LIMIT) throw new TipError(429, 'Finish or let expire the tips already waiting before asking for another.');
 
   const start = await chain.finalizedNumber();
-  const request: PayRequest = newRequest(settings.creator, sparks, `Tip for ${name}`, Math.floor(nowMs / 1000));
+  const request: PayRequest = newRequest(settings.creator, embers, `Tip for ${name}`, Math.floor(nowMs / 1000));
   const link = await payLink(request, settings.key);
   await db
     .prepare(

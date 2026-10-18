@@ -142,8 +142,8 @@ export function Market() {
     setProblem(null);
     try {
       const sale = await sales.find(id, viewer);
-      const was = asset.listing?.price_sparks;
-      const now = sale.asset.listing?.price_sparks;
+      const was = asset.listing?.price_embers;
+      const now = sale.asset.listing?.price_embers;
       if (was && now && was !== now) {
         notify(
           'bad',

@@ -324,9 +324,9 @@ export const selectActiveAccount = (s: State): AccountView | null =>
 export const selectActiveBalance = (s: State): Balance | null =>
   s.activeAddress ? (s.balances[s.activeAddress] ?? null) : null;
 
-/** Total holdings across every account in the vault, in Sparks. */
-export const selectTotalSparks = (s: State): bigint =>
-  Object.values(s.balances).reduce((sum, b) => sum + BigInt(b.sparks), 0n);
+/** Total holdings across every account in the vault, in embers. */
+export const selectTotalEmbers = (s: State): bigint =>
+  Object.values(s.balances).reduce((sum, b) => sum + BigInt(b.embers), 0n);
 
 /**
  * The Ascent, computed from the store.

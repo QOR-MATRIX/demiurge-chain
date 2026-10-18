@@ -1,12 +1,12 @@
 // A project's profile: the manifest a Cartridge carries, which ARQADE renders as the game's store page, and the
 // requirements each stage must meet before it publishes itself (ADR-071, accepted 4 October 2026). Nothing here touches the chain.
 
-import { checkSparks, SPARKS_PER_CGT } from './amount';
+import { checkEmbers, EMBERS_PER_CGT } from './amount';
 
 export const PROFILE_SCHEMA = 'arqade.project/1';
 
 /** The owner's ceiling on a game's price, 4 October 2026 (ADR-071 decision 1). Free is allowed. */
-export const MAX_GAME_PRICE = BigInt(10000) * SPARKS_PER_CGT;
+export const MAX_GAME_PRICE = BigInt(10000) * EMBERS_PER_CGT;
 
 export const STAGES = ['concept', 'prototype', 'early-access', 'released'] as const;
 export type Stage = (typeof STAGES)[number];
@@ -14,9 +14,9 @@ export type Stage = (typeof STAGES)[number];
 /** Media by ADR-047 fingerprint once a store exists, or an external https URL meanwhile (ADR-071 decision 9). */
 export type MediaRef = { url?: string; fingerprint?: string; alt: string };
 
-export type Price = { kind: 'free' } | { kind: 'fixed'; sparks: string };
+export type Price = { kind: 'free' } | { kind: 'fixed'; embers: string };
 
-export type ItemOffer = { id: string; name: string; description: string; sparks: string; editionCap?: number };
+export type ItemOffer = { id: string; name: string; description: string; embers: string; editionCap?: number };
 
 export type ProjectProfile = {
   schema: string;
@@ -60,10 +60,10 @@ function mediaOk(m: MediaRef | undefined): boolean {
 export function priceProblem(price: Price | undefined): string | null {
   if (!price) return 'no price set (free is a price)';
   if (price.kind === 'free') return null;
-  if (!/^(0|[1-9][0-9]*)$/.test(price.sparks)) return 'price is not a whole number of Sparks';
-  const sparks = BigInt(price.sparks);
-  if (sparks === BigInt(0)) return 'a fixed price of zero: use free';
-  if (sparks > MAX_GAME_PRICE) return 'price is above 10,000 CGT';
+  if (!/^(0|[1-9][0-9]*)$/.test(price.embers)) return 'price is not a whole number of embers';
+  const embers = BigInt(price.embers);
+  if (embers === BigInt(0)) return 'a fixed price of zero: use free';
+  if (embers > MAX_GAME_PRICE) return 'price is above 10,000 CGT';
   return null;
 }
 
@@ -110,10 +110,10 @@ const REQUIREMENTS: Record<Stage, (p: ProjectProfile) => string[]> = {
       if (!ITEM_ID.test(item.id) || ids.has(item.id)) m.push(`item ${JSON.stringify(item.id)}: a unique id`);
       ids.add(item.id);
       if (!item.name.trim() || !item.description.trim()) m.push(`item ${item.id}: a name and a description`);
-      if (!/^[1-9][0-9]*$/.test(item.sparks)) m.push(`item ${item.id}: a price in whole Sparks above zero`);
+      if (!/^[1-9][0-9]*$/.test(item.embers)) m.push(`item ${item.id}: a price in whole embers above zero`);
       else {
         try {
-          checkSparks(BigInt(item.sparks));
+          checkEmbers(BigInt(item.embers));
         } catch {
           m.push(`item ${item.id}: a price within u128`);
         }

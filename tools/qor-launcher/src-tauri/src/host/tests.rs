@@ -610,7 +610,7 @@ async fn a_project_is_minted_then_revised_then_left_alone_through_the_channel() 
     fund_from_alice(
         &endpoint,
         normalise_address(&creator).unwrap(),
-        3_000 * crate::cgt::SPARKS_PER_CGT,
+        3_000 * crate::cgt::EMBERS_PER_CGT,
     )
     .await;
     let vault = Arc::new(vault);

@@ -45,9 +45,9 @@ campaign above the platform's review threshold, and anything a player reports.
 
 ## Prices
 
-- **Free, or a fixed price up to 10,000 CGT.** The ceiling is the project owner's rule. Prices are whole Sparks
-  (`1 CGT = 10^18 Sparks`); `priceProblem` refuses anything above the ceiling, a fixed price of zero ("use free"), and
-  any amount with a fraction of a Spark.
+- **Free, or a fixed price up to 10,000 CGT.** The ceiling is the project owner's rule. Prices are whole embers
+  (`1 CGT = 10^18 embers`); `priceProblem` refuses anything above the ceiling, a fixed price of zero ("use free"), and
+  any amount with a fraction of an ember.
 - **Buying gives the player a licence**, a DRC-369 asset in their own Vault. ARQADE launches a paid game for whoever
   holds one. Whether a licence can be resold is not decided yet.
 - Paying for a game is a payment for your work. ARQADE's copy never presents CGT as something that gains value.
@@ -55,7 +55,7 @@ campaign above the platform's review threshold, and anything a player reports.
 ## In-game purchases
 
 Items are **DRC-369 assets the player owns**: skins, ships, cards, equipment. Each is declared in your profile's
-`items`, with a price in Sparks and an optional edition cap. A player can resell an item, and your royalty terms apply
+`items`, with a price in embers and an optional edition cap. A player can resell an item, and your royalty terms apply
 to the resale.
 
 - **No fungible items**: no coins, gems or stacks of consumables sold as tokens (ADR-031). Sell the thing itself.

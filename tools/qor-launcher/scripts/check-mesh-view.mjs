@@ -10,7 +10,7 @@
 //     they serve, and says that to be paid the Mesh signs its own work, asked once, and can never send their CGT;
 //   - on, the account the Mesh signs for is shown; off, the page says it signs for none;
 //   - a file is fetched by its fingerprint only once one is typed, and the host's refusal is shown in its own words;
-//   - an escrow's form suggests no price, sends every amount as exact Sparks, and refuses more than 18 decimals;
+//   - an escrow's form suggests no price, sends every amount as exact embers, and refuses more than 18 decimals;
 //   - seeding cannot be turned on until both limits are chosen, and is asked for with exactly the limits chosen;
 //   - on, it shows what is held, whose it is, and how much of the disk given is used;
 //   - a ticket is asked for by the file's root and put on the clipboard;
@@ -155,7 +155,7 @@ try {
     window.__MESH__ = {
       settings: { seeding: false, diskBytes: 0, uploadBytesPerSecond: 0 },
       held: [],
-      paid: { account: null, holdings: [], pendingReceipts: 0, paidSparks: '0', paidCgt: '0.00 CGT', payments: [] },
+      paid: { account: null, holdings: [], pendingReceipts: 0, paidEmbers: '0', paidCgt: '0.00 CGT', payments: [] },
     };
     window.__CALLBACKS__ = {};
     window.__LISTENERS__ = {};
@@ -315,11 +315,11 @@ try {
   await fill('deposit', '100');
   await until(`!document.querySelector('[data-mesh-escrow-submit]').disabled`, 'the escrow button');
   await click('[data-mesh-escrow-submit]');
-  check('the escrow is asked for in exact Sparks, for the file chosen', await eventually(`window.__CALLS__.some((c) => c.cmd === 'mesh_open_escrow')`)
+  check('the escrow is asked for in exact embers, for the file chosen', await eventually(`window.__CALLS__.some((c) => c.cmd === 'mesh_open_escrow')`)
     && JSON.stringify((await calls('mesh_open_escrow'))[0].terms) === JSON.stringify({
       root: OWN, size: 300 * 1024, copies: 2,
-      storagePriceSparks: '500000000000000000', servingPricePerMibSparks: '1250000000000000000',
-      servingCapPerPeriod: 10 * MIB, depositSparks: '100000000000000000000',
+      storagePriceEmbers: '500000000000000000', servingPricePerMibEmbers: '1250000000000000000',
+      servingCapPerPeriod: 10 * MIB, depositEmbers: '100000000000000000000',
     }), JSON.stringify((await calls('mesh_open_escrow'))[0]));
   check('and the form closes once it is open', await eventually(`!document.querySelector('[data-mesh-escrow]')`));
 

@@ -139,7 +139,7 @@ pub(crate) mod live {
     use crate::testing::Scripted;
     use std::time::Instant;
 
-    const CGT: u128 = crate::cgt::SPARKS_PER_CGT;
+    const CGT: u128 = crate::cgt::EMBERS_PER_CGT;
     const MIB: u64 = 1024 * 1024;
 
     struct Launcher {
@@ -292,10 +292,10 @@ pub(crate) mod live {
             root: reference.root_hex(),
             size: bytes.len() as u64,
             copies: 1,
-            storage_price_sparks: storage_price.to_string(),
-            serving_price_per_mib_sparks: serving_per_mib.to_string(),
+            storage_price_embers: storage_price.to_string(),
+            serving_price_per_mib_embers: serving_per_mib.to_string(),
             serving_cap_per_period: bytes.len() as u64,
-            deposit_sparks: (200 * CGT).to_string(),
+            deposit_embers: (200 * CGT).to_string(),
         };
         let approving = Scripted::approving();
         let escrow = uploader
@@ -331,7 +331,7 @@ pub(crate) mod live {
         })
         .await;
         assert_eq!(
-            seeder.mesh.paid_status().paid_sparks,
+            seeder.mesh.paid_status().paid_embers,
             storage_price.to_string()
         );
         assert_eq!(seeder.balance().await, before + storage_price);
@@ -422,7 +422,7 @@ pub(crate) mod live {
         .await;
         assert_eq!(seeder.balance().await, before + served);
         assert_eq!(
-            seeder.mesh.paid_status().paid_sparks,
+            seeder.mesh.paid_status().paid_embers,
             (storage_price + served).to_string()
         );
         for l in [&uploader, &seeder, &receiver] {

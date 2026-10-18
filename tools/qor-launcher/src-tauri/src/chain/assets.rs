@@ -903,7 +903,7 @@ impl ChainClient {
         }))
     }
 
-    /// What a mint of a name this long would hold from `owner`, in Sparks: the
+    /// What a mint of a name this long would hold from `owner`, in embers: the
     /// item, the name, and the singles collection if this is their first.
     /// Read from the node's own constants, so the dialog says what this chain
     /// will actually hold rather than what the launcher was built believing.
@@ -1362,7 +1362,7 @@ mod tests {
     fn the_mint_prompt_names_what_it_is_approving() {
         let owner = crate::vault::derive::address_of(&[0x04u8; 32]);
         let deposits = MintDeposits {
-            total: 1_002 * crate::cgt::SPARKS_PER_CGT + crate::cgt::SPARKS_PER_CGT / 2,
+            total: 1_002 * crate::cgt::EMBERS_PER_CGT + crate::cgt::EMBERS_PER_CGT / 2,
             first: true,
         };
         let prompt = mint_prompt(

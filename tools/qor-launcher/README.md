@@ -319,7 +319,7 @@ connection from a process the launcher did not start, which is never answered.
 A website can ask the launcher to pay, never make it pay. The `qor` scheme is registered by `tauri-plugin-deep-link`;
 a link clicked while the launcher runs reaches it through `tauri-plugin-single-instance`. Added in 0.1.7. `src-tauri/src/pay.rs` checks a link
 before anything is shown: signed with the Ed25519 key of an app in `KNOWN_APPS` (ARQADE's only, today), Demiurge Devnet
-by genesis, a whole number of Sparks up to 100,000 CGT, a valid account, a short label, unexpired and valid for at most
+by genesis, a whole number of embers up to 100,000 CGT, a valid account, a short label, unexpired and valid for at most
 fifteen minutes, and not already paid (`paid-requests.json` in the app data directory). Only then does the host dialog
 show who asks, the amount, the recipient, that there is no fee, and the balance after; approving is that dialog, not
 Windows Hello (ADR-077). `src-tauri/src/chain/pay.rs` checks the
@@ -442,14 +442,14 @@ read, counts as not met and says why.
 
 ## Money handling
 
-All amounts are integer Sparks in `u128`, never floating point, and the `u128`
+All amounts are integer embers in `u128`, never floating point, and the `u128`
 crosses the IPC boundary as a decimal string because JavaScript's `number` cannot
 hold it.
 
 **Typing an amount round-trips to the host.** The Rust side parses it and returns
-the exact Spark value it would transfer, so the number shown on the confirmation
+the exact ember value it would transfer, so the number shown on the confirmation
 screen is the number that gets signed rather than a JavaScript approximation of
-it. Views show amounts only as the host formats them, in CGT; no Spark count and no
+it. Views show amounts only as the host formats them, in CGT; no ember count and no
 JavaScript `number` stands in for an amount anywhere in the interface. Excess precision is **rejected, not truncated** — silently dropping value
 from a payment is the worst failure mode a wallet has.
 
@@ -467,8 +467,15 @@ existential deposit — because the chain declares no total supply at all while
 issuance is OPEN-1 and the genesis split is OPEN-2. It was 2 decimals until
 September 2026; why it changed is recorded in `docs/DECISIONS.md` (D-000).
 
-Every conversion goes through `src-tauri/src/cgt.rs`. Amounts are integer Sparks
+Every conversion goes through `src-tauri/src/cgt.rs`. Amounts are integer embers
 in `u128`, and excess precision is rejected rather than truncated.
+
+**Sparks (ADR-101).** A Spark is a thousandth of a CGT, the unit people see and
+type; the ember is the atomic unit underneath (1 CGT = 1,000 Sparks = 10^18
+embers). The Vault shows a balance in CGT and in Sparks (`format_sparks`: whole
+Sparks as Sparks, anything finer in full as CGT, never rounded). The send box and a
+sale's price take CGT or Sparks (`parse_amount`: "12.5", "12.5 CGT", "250 Sparks");
+the Mesh's escrow prices are still typed in CGT.
 
 ---
 
@@ -563,9 +570,9 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   royalty terms of its own, derived from an original with terms, is listed, bought and paid out against a
   development node at `spec_version` 4. A declined listing, purchase and withdrawal each move nothing and
   leave the nonce where it was; what the launcher says the sale will pay is what the chain's `Sold` event then
-  reports, part for part; and the four balances are asserted to the Spark, with amounts written out in the
-  test rather than computed (2,000 CGT and seven Sparks: 100 and 300 CGT to the source's two recipients, 40
-  CGT to the remix's own, 1,560 CGT and the seven Sparks to the seller). It also proves a listing below what
+  reports, part for part; and the four balances are asserted to the ember, with amounts written out in the
+  test rather than computed (2,000 CGT and seven embers: 100 and 300 CGT to the source's two recipients, 40
+  CGT to the remix's own, 1,560 CGT and the seven embers to the seller). It also proves a listing below what
   a recipient could receive is refused before anyone is asked, a price or fingerprint that changed since the
   buyer looked is refused before anyone is asked, a void listing can be cleared by anyone, and the chain's
   own `PriceAboveLimit` is put in words. The test sends `set_terms` and a remix mint itself, because the
@@ -672,10 +679,10 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   fingerprint sent with `drc369_buy` are the host's fresh ones, and a price that moved since the list was read
   is said. After a purchase or a withdrawal the Market is read again, not adjusted.
   `node scripts/check-market-view.mjs` passes **127 checks** (2026-10-02) against a fixture whose prices do
-  not follow from their Sparks, whose counts do not follow from the cards on the page, and whose purchase
+  not follow from their embers, whose counts do not follow from the cards on the page, and whose purchase
   breakdown is not a split of the card's price. Proven against 24 faults planted in the view one at a time
   (2026-10-02), and **every one failed the check**: the view sorting the listings itself; formatting the
-  price from Sparks; Buy offered on a listing held in place; unbuyable listings hidden; a void listing's
+  price from embers; Buy offered on a listing held in place; unbuyable listings hidden; a void listing's
   reason hidden; the truncation notice dropped when anything was unreadable; the matching count and the
   yours count worked out from the page; a new filter keeping the old page; Buy opening the dialog on the card
   without asking the host; an older answer drawn over a newer one; an error shown only in the friendly line;

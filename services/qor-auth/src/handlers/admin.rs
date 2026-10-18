@@ -488,8 +488,9 @@ pub async fn unmark_undeliverable_address(
 /// GET /api/v1/admin/grants/owed
 ///
 /// Each grant is named by its account's id, because an account has at most one. The chain account is given as hex
-/// and as SS58 (the configured prefix), and the amount in Sparks as a decimal string, as stored. No email address is
-/// returned: paying a grant needs only the chain account.
+/// and as SS58 (the configured prefix), and the amount in embers (ADR-101) as a decimal string, as stored. No email address is
+/// returned: paying a grant needs only the chain account. The amount is also sent under its name from before ADR-101,
+/// `amount_sparks`, for one release.
 pub async fn list_owed_grants(
     State(state): State<Arc<AppState>>,
     Query(query): Query<PageQuery>,
@@ -512,14 +513,15 @@ pub async fn list_owed_grants(
     let prefix = state.config.chain.ss58_prefix;
     let grants: Vec<Value> = rows
         .iter()
-        .map(|(user_id, account, amount_sparks)| {
+        .map(|(user_id, account, amount_embers)| {
             let chain = crate::handlers::auth::ChainAccount::from_stored(account)
                 .map(|a| a.as_json(prefix))
                 .unwrap_or(Value::Null);
             json!({
                 "user_id": user_id,
                 "chain_account": chain,
-                "amount_sparks": amount_sparks,
+                "amount_embers": amount_embers,
+                "amount_sparks": amount_embers,
             })
         })
         .collect();
@@ -1155,7 +1157,11 @@ mod tests {
         let grants = body["grants"].as_array().expect("grants");
         assert_eq!(grants.len(), 2);
         assert_eq!(grants[0]["user_id"], json!(first));
-        assert_eq!(grants[0]["amount_sparks"], json!("100000000000000000000"));
+        assert_eq!(grants[0]["amount_embers"], json!("100000000000000000000"));
+        assert_eq!(
+            grants[0]["amount_sparks"], grants[0]["amount_embers"],
+            "the old name, for one release"
+        );
         assert_eq!(
             grants[0]["chain_account"]["account_id"],
             json!(format!("0x{}", "01".repeat(32)))

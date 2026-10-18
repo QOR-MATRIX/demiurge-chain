@@ -39,7 +39,7 @@ test('outcome and round ids are deterministic, separated by domain and by field 
   assert.throws(()=>W.outcomeId('','x'),/non-empty/);
 });
 
-test('policies and payouts become the chain call arguments, amounts as decimal Sparks strings',()=>{
+test('policies and payouts become the chain call arguments, amounts as decimal embers strings',()=>{
   const S=10n**18n;
   const p={maxPayout:5n*S,epochBlocks:100,epochBudget:50n*S,perRecipientPerEpoch:10n*S,ruleVersions:['flux@1'],accrualExpiryBlocks:500,loosenDelayBlocks:600};
   assert.deepEqual(W.toChainPolicy(p),{maxPayout:(5n*S).toString(),epochBlocks:100,epochBudget:(50n*S).toString(),perRecipientPerEpoch:(10n*S).toString(),ruleVersions:['flux@1'],accrualExpiry:500,loosenDelay:600});

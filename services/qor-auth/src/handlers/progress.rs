@@ -101,8 +101,9 @@ pub const UNLOCKS: &[(u32, &str)] = &[
     (6, "Ring style: Meridian"),
 ];
 
-/// The welcome grant: 100 CGT in Sparks (18 decimals), set by the owner with ADR-078.
-pub const WELCOME_SPARKS: &str = "100000000000000000000";
+/// The welcome grant: 100 CGT in embers (18 decimals, ADR-101), set by the owner with ADR-078. Stored in
+/// `welcome_grants.amount_sparks`, a column named before ADR-101 renamed the atomic unit: it holds embers.
+pub const WELCOME_EMBERS: &str = "100000000000000000000";
 
 /// The three tasks that make an account owed the welcome grant.
 const WELCOME_TASKS: [&str; 3] = ["tutorial", "verify-email", "link-key"];
@@ -166,7 +167,7 @@ async fn record_welcome(db: &sqlx::PgPool, user_id: Uuid) -> AppResult<()> {
         "#,
     )
     .bind(user_id)
-    .bind(WELCOME_SPARKS)
+    .bind(WELCOME_EMBERS)
     .bind(&WELCOME_TASKS[..])
     .execute(db)
     .await?;

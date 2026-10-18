@@ -53,7 +53,7 @@ pub enum QorError {
     #[error("amount is not valid: {0}")]
     BadAmount(String),
 
-    #[error("insufficient balance: holding {have} Sparks, need {need} Sparks")]
+    #[error("insufficient balance: holding {have} embers, need {need} embers")]
     InsufficientFunds { have: String, need: String },
 
     #[error("operating system keychain error: {0}")]

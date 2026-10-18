@@ -15,7 +15,7 @@ const A=await import(pathToFileURL(path.join(dir,'amount.mjs')).href);
 const P=await import(pathToFileURL(path.join(dir,'arq-wallet-policy.mjs')).href);
 const S=BigInt(10)**BigInt(18);
 
-test('CGT parses to exact Sparks and formats back',()=>{
+test('CGT parses to exact embers and formats back',()=>{
   assert.equal(A.parseCgt('0'),0n);
   assert.equal(A.parseCgt('12.5'),12n*S+S/2n);
   assert.equal(A.parseCgt('0.000000000000000001'),1n);
@@ -31,8 +31,8 @@ test('excess precision, malformed text and amounts past u128 are refused, never 
   assert.equal(A.parseCgt('340282366920938463463.374607431768211455'),A.U128_MAX);
   assert.throws(()=>A.parseCgt('340282366920938463463.374607431768211456'),/u128/);
   assert.throws(()=>A.formatCgt(-1n),/u128/);
-  assert.equal(A.sparksFromJson('42'),42n);
-  for(const bad of [42,'4.2','-1','',null])assert.throws(()=>A.sparksFromJson(bad),RangeError);
+  assert.equal(A.embersFromJson('42'),42n);
+  for(const bad of [42,'4.2','-1','',null])assert.throws(()=>A.embersFromJson(bad),RangeError);
 });
 
 // A developer's example policy and made-up bounds: neither is a platform value (U-16).

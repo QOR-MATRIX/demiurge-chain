@@ -4,7 +4,7 @@
  * Holdings, accounts, send and receive. Two deliberate choices:
  *
  * - **The amount is parsed by the host, not here.** Typing in the send field
- *   round-trips to Rust, which returns the exact Spark value it would transfer.
+ *   round-trips to Rust, which returns the exact ember value it would transfer.
  *   The preview the user confirms is therefore the number that gets signed, not
  *   a JavaScript approximation of it. `u128` does not fit in a `number`, and
  *   floating point has no business anywhere near a balance.
@@ -118,6 +118,11 @@ export function VaultView() {
                     {token?.symbol ?? 'CGT'}
                   </span>
                 </p>
+                {balance?.in_sparks && (
+                  <p className="numeric -mt-3 mb-5 text-caption text-ink-muted" data-vault-sparks>
+                    {balance.in_sparks}
+                  </p>
+                )}
 
                 <div className="flex gap-2">
                   <button
@@ -290,20 +295,18 @@ function SendPanel({ from, onDone }: { from: string; onDone: () => void }) {
         </Field>
 
         <Field
-          label={`Amount in ${token?.symbol ?? 'CGT'}`}
+          label={`Amount in ${token?.symbol ?? 'CGT'} or Sparks`}
           hint={
             amountError ??
             (preview
-              ? `Sends exactly ${preview.display}`
-              : token
-                ? `Up to ${token.decimals} decimal places`
-                : undefined)
+              ? `Sends exactly ${preview.display}${preview.in_sparks && preview.in_sparks !== preview.display ? ` (${preview.in_sparks})` : ''}`
+              : 'Type CGT, or Sparks as "250 Sparks": 1 CGT is 1,000 Sparks')
           }
         >
           <input
             className={`field numeric ${amountError ? 'field-invalid' : ''}`}
             placeholder="0.00"
-            inputMode="decimal"
+            inputMode="text"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
           />

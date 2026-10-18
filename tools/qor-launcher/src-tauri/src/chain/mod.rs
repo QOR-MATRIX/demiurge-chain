@@ -110,9 +110,9 @@ pub struct TransferReceipt {
     pub tx_hash: String,
     pub from: String,
     pub to: String,
-    /// Amount in Sparks, as a decimal string, because `u128` does not survive
+    /// Amount in embers, as a decimal string, because `u128` does not survive
     /// a round trip through JavaScript's `number`.
-    pub amount_sparks: String,
+    pub amount_embers: String,
     pub amount_cgt: String,
     /// The finalised block the transfer is in. Reported only once GRANDPA has
     /// finalised it (ADR-018, ADR-040 decision 7).
@@ -128,7 +128,7 @@ pub struct HistoryEntry {
     pub hash: String,
     pub from: String,
     pub to: Option<String>,
-    pub amount_sparks: Option<String>,
+    pub amount_embers: Option<String>,
     /// The amount rendered in CGT, so the UI never does denomination maths.
     pub amount_cgt: Option<String>,
     pub nonce: u64,
@@ -142,7 +142,7 @@ pub struct HistoryEntry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClaimResult {
     pub success: bool,
-    pub amount_sparks: String,
+    pub amount_embers: String,
     pub amount_cgt: String,
     pub message: String,
 }
@@ -268,7 +268,7 @@ impl ChainClient {
         }
     }
 
-    /// Free balance in Sparks.
+    /// Free balance in embers.
     pub async fn balance(&self, address: &str) -> QorResult<u128> {
         let account = normalise_address(address)?;
         let connection = self.connected().await?;
@@ -320,9 +320,9 @@ impl ChainClient {
         confirm: &dyn Confirm,
         from: &str,
         to: &str,
-        amount_sparks: u128,
+        amount_embers: u128,
     ) -> QorResult<TransferReceipt> {
-        if amount_sparks == 0 {
+        if amount_embers == 0 {
             return Err(QorError::BadAmount(
                 "amount must be greater than zero".into(),
             ));
@@ -364,7 +364,7 @@ impl ChainClient {
             "transfer_keep_alive",
             (
                 MultiAddress::<AccountId32, ()>::Id(AccountId32(to_account)),
-                amount_sparks,
+                amount_embers,
             ),
         );
         let params = DefaultExtrinsicParamsBuilder::<DemiurgeConfig>::new()
@@ -385,7 +385,7 @@ impl ChainClient {
         let prompt = transfer_prompt(
             &from_address,
             &to_address,
-            amount_sparks,
+            amount_embers,
             &connection.chain_name,
             &connection.endpoint,
         );
@@ -437,8 +437,8 @@ impl ChainClient {
             tx_hash,
             from: from_address,
             to: to_address,
-            amount_sparks: amount_sparks.to_string(),
-            amount_cgt: crate::cgt::format_cgt(amount_sparks),
+            amount_embers: amount_embers.to_string(),
+            amount_cgt: crate::cgt::format_cgt(amount_embers),
             block_hash,
         })
     }
@@ -563,7 +563,7 @@ pub fn normalise_endpoint(raw: &str) -> QorResult<String> {
 fn transfer_prompt(
     from: &str,
     to: &str,
-    amount_sparks: u128,
+    amount_embers: u128,
     chain_name: &str,
     endpoint: &str,
 ) -> Prompt {
@@ -572,7 +572,7 @@ fn transfer_prompt(
         body: format!(
             "Send {} {}\n\nFrom: {from}\nTo: {to}\n\nChain: {chain_name}\nNode: {endpoint}\n\n\
              Approving signs this transfer with your key and sends it. It cannot be undone.",
-            crate::cgt::format_cgt_grouped(amount_sparks),
+            crate::cgt::format_cgt_grouped(amount_embers),
             crate::cgt::SYMBOL
         ),
         approve: "Send".into(),
@@ -818,7 +818,7 @@ mod tests {
         let prompt = transfer_prompt(
             &from,
             &to,
-            2 * crate::cgt::SPARKS_PER_CGT,
+            2 * crate::cgt::EMBERS_PER_CGT,
             "Demiurge Development",
             LOCAL_RPC,
         );
@@ -852,8 +852,8 @@ pub(crate) mod live {
 
     /// Enough to clear the existential deposit of 100 CGT (ADR-036) twice
     /// over, on both sides of the transfer under test.
-    const FUNDING: u128 = 1_000 * crate::cgt::SPARKS_PER_CGT;
-    const SENDING: u128 = 200 * crate::cgt::SPARKS_PER_CGT;
+    const FUNDING: u128 = 1_000 * crate::cgt::EMBERS_PER_CGT;
+    const SENDING: u128 = 200 * crate::cgt::EMBERS_PER_CGT;
 
     pub(crate) fn endpoint() -> String {
         std::env::var("QOR_LAUNCHER_TEST_RPC").unwrap_or_else(|_| LOCAL_RPC.to_string())
@@ -995,7 +995,7 @@ pub(crate) mod live {
             receipt.block_hash.starts_with("0x"),
             "the receipt names the finalised block"
         );
-        assert_eq!(receipt.amount_sparks, SENDING.to_string());
+        assert_eq!(receipt.amount_embers, SENDING.to_string());
         assert_eq!(receipt.from, sender);
         assert_eq!(receipt.to, recipient);
 
@@ -1038,7 +1038,7 @@ pub(crate) mod live {
 
         // A creator's first mint holds about 1,100 CGT at the placeholder
         // deposits (ADR-052); this leaves room for the existential deposit.
-        const MINT_FUNDING: u128 = 5_000 * crate::cgt::SPARKS_PER_CGT;
+        const MINT_FUNDING: u128 = 5_000 * crate::cgt::EMBERS_PER_CGT;
 
         let endpoint = endpoint();
         let client = ChainClient::new(&endpoint).unwrap();
@@ -1229,7 +1229,7 @@ pub(crate) mod live {
         fund_from_alice(
             &endpoint,
             normalise_address(&creator).unwrap(),
-            200 * crate::cgt::SPARKS_PER_CGT,
+            200 * crate::cgt::EMBERS_PER_CGT,
         )
         .await;
         let refused = client
@@ -1269,7 +1269,7 @@ pub(crate) mod live {
 
         // Three mints at the placeholder deposits: about 1,002.5 CGT for the
         // first and 502.5 for each of the others (ADR-052), plus room to spare.
-        const TRADE_FUNDING: u128 = 8_000 * crate::cgt::SPARKS_PER_CGT;
+        const TRADE_FUNDING: u128 = 8_000 * crate::cgt::EMBERS_PER_CGT;
 
         let endpoint = endpoint();
         let client = ChainClient::new(&endpoint).unwrap();
@@ -1299,7 +1299,7 @@ pub(crate) mod live {
         fund_from_alice(
             &endpoint,
             normalise_address(&recipient).unwrap(),
-            200 * crate::cgt::SPARKS_PER_CGT,
+            200 * crate::cgt::EMBERS_PER_CGT,
         )
         .await;
 
@@ -1411,7 +1411,7 @@ pub(crate) mod live {
     /// L4.6, end to end against a real node: a remix listed, bought and paid
     /// out — the remix share to its source's recipients, the royalty to its
     /// own, the rest to the seller — and the chain asked afterwards who holds
-    /// what, to the Spark.
+    /// what, to the ember.
     ///
     /// The split's arithmetic is proven where it lives, in
     /// `chain/pallets/drc369-royalties`. What is proven here is the launcher's
@@ -1426,7 +1426,7 @@ pub(crate) mod live {
     #[tokio::test]
     #[ignore = "needs a running Demiurge development node; see the module docs"]
     async fn a_sale_pays_every_part_and_hands_the_asset_over() {
-        use crate::cgt::SPARKS_PER_CGT as CGT;
+        use crate::cgt::EMBERS_PER_CGT as CGT;
         use crate::chain::assets::{CommitIdArg, ContentRefArg, MintRequest, TradeItem};
         use crate::chain::sales::{Payout, PayoutKind, Seen};
         use crate::content::{CommitId, ContentRef, Manifest, SourceRef, TemporaryStore};
@@ -1434,7 +1434,7 @@ pub(crate) mod live {
 
         // A mint holds about 1,100 CGT at the placeholder deposits (ADR-052).
         const FUNDING: u128 = 5_000 * CGT;
-        // Seven Sparks over, so the rounding has somewhere to go.
+        // Seven embers over, so the rounding has somewhere to go.
         const PRICE: u128 = 2_000 * CGT + 7;
 
         #[derive(Debug, DecodeAsType)]
@@ -1639,8 +1639,8 @@ pub(crate) mod live {
             .to_string()
             .contains("no DRC-369 asset"));
         let root = found.asset.current.root.clone();
-        fn seen(price_sparks: u128, root: &str) -> Seen<'_> {
-            Seen { price_sparks, root }
+        fn seen(price_embers: u128, root: &str) -> Seen<'_> {
+            Seen { price_embers, root }
         }
 
         // 2. What cannot happen is refused before anyone is asked.
@@ -1705,7 +1705,7 @@ pub(crate) mod live {
             .await
             .unwrap();
         assert_eq!(approving.times_asked(), 1);
-        assert_eq!(listed.price_sparks, (2 * PRICE).to_string());
+        assert_eq!(listed.price_embers, (2 * PRICE).to_string());
         assert!(listed.block_hash.starts_with("0x"), "a finalised block");
         {
             let asked = approving.asked.lock();
@@ -1717,7 +1717,7 @@ pub(crate) mod live {
         let held = client.assets_of(&remixer).await.unwrap();
         let listing = held[0].listing.as_ref().expect("a listing");
         assert_eq!(listing.seller, remixer);
-        assert_eq!(listing.price_sparks, (2 * PRICE).to_string());
+        assert_eq!(listing.price_embers, (2 * PRICE).to_string());
         assert!(!listing.void);
 
         // The same price again is refused without asking; a new price is a
@@ -1782,9 +1782,9 @@ pub(crate) mod live {
 
         // 6. What the launcher says the sale will pay, before anyone signs: the
         //    chain's own answer (`Drc369RoyaltiesApi::sale_preview`), shown.
-        //    20% of the price is 400 CGT and one Spark; a quarter of that,
+        //    20% of the price is 400 CGT and one ember; a quarter of that,
         //    rounded down, is the creator's 100 CGT, and three quarters the
-        //    collaborator's 300 CGT. Of the 1,600 CGT and seven Sparks left,
+        //    collaborator's 300 CGT. Of the 1,600 CGT and seven embers left,
         //    2.5% is the collaborator's 40 CGT. The seller has the rest.
         let expected: Vec<(PayoutKind, String, u128)> = vec![
             (PayoutKind::Source, creator.clone(), 100 * CGT),
@@ -1795,13 +1795,13 @@ pub(crate) mod live {
         let parts = |payouts: &[Payout]| -> Vec<(PayoutKind, String, u128)> {
             payouts
                 .iter()
-                .map(|p| (p.kind, p.address.clone(), p.amount_sparks.parse().unwrap()))
+                .map(|p| (p.kind, p.address.clone(), p.amount_embers.parse().unwrap()))
                 .collect()
         };
         let looked = client.sale(&number, Some(&buyer)).await.unwrap();
         assert_eq!(looked.cannot_buy, None);
         let foretold = looked.breakdown.as_ref().expect("a live listing");
-        assert_eq!(foretold.price_sparks, PRICE.to_string());
+        assert_eq!(foretold.price_embers, PRICE.to_string());
         assert_eq!(parts(&foretold.payouts), expected);
         assert_eq!(foretold.blocked, None);
         assert_eq!(
@@ -1888,12 +1888,12 @@ pub(crate) mod live {
             .unwrap();
         assert_eq!(approving.times_asked(), 1);
         assert!(receipt.block_hash.starts_with("0x"), "a finalised block");
-        assert_eq!(receipt.price_sparks, PRICE.to_string());
+        assert_eq!(receipt.price_embers, PRICE.to_string());
         assert_eq!(receipt.seller, remixer);
         assert_eq!(receipt.buyer, buyer);
         assert_eq!(parts(&receipt.payouts), expected);
 
-        // The balances, to the Spark. There is no transaction payment yet
+        // The balances, to the ember. There is no transaction payment yet
         // (OPEN-4); when there is, the buyer's line is the one that says so.
         assert_eq!(
             client.balance(&creator).await.unwrap(),
@@ -2080,7 +2080,7 @@ pub(crate) mod live {
         let mut last = 0u128;
         for listing in &page.listings {
             let sale = listing.asset.listing.as_ref().expect("a listed asset");
-            let price: u128 = sale.price_sparks.parse().unwrap();
+            let price: u128 = sale.price_embers.parse().unwrap();
             assert!(price >= last, "cheapest first");
             last = price;
             assert!(!listing.held_by_viewer);
@@ -2111,13 +2111,13 @@ pub(crate) mod live {
     #[tokio::test]
     #[ignore = "needs a running Demiurge development node; see the module docs"]
     async fn a_listing_made_here_is_read_back_by_the_market() {
-        use crate::cgt::SPARKS_PER_CGT as CGT;
+        use crate::cgt::EMBERS_PER_CGT as CGT;
         use crate::chain::assets::MintRequest;
         use crate::chain::market::{MarketListing, Order, Show, Standing, PAGE};
         use crate::content::{CommitId, ContentRef, Manifest, SourceRef, TemporaryStore};
 
         const FUNDING: u128 = 5_000 * CGT;
-        // Eleven Sparks over a whole number, so the price is read exactly.
+        // Eleven embers over a whole number, so the price is read exactly.
         const PRICE: u128 = 321 * CGT + 11;
 
         let endpoint = endpoint();
@@ -2230,7 +2230,7 @@ pub(crate) mod live {
         assert_eq!(own.asset.current.root, manifest.reference().root_hex());
         let listing = own.asset.listing.as_ref().unwrap();
         assert_eq!(listing.seller, seller);
-        assert_eq!(listing.price_sparks, PRICE.to_string());
+        assert_eq!(listing.price_embers, PRICE.to_string());
         assert!(!listing.void);
         let mine = client
             .market(Some(&seller), Show::Yours, Order::Number, 0, PAGE)

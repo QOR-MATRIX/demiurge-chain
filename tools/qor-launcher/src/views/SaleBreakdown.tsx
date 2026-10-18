@@ -40,7 +40,7 @@ function Row({
     <li
       className="flex items-baseline justify-between gap-4 py-1"
       data-payout={payout.kind}
-      data-payout-amount={payout.amount_sparks}
+      data-payout-amount={payout.amount_embers}
     >
       <span className="min-w-0 text-caption text-ink-body">
         {label}
