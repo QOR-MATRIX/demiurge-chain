@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Demiurge blockchain — CGT, QOR ID and the QOR Launcher</title>
+  <meta name="description" content="Demiurge is a Substrate layer 1 that pays creators when their work is used: CGT, QOR ID, the QOR Launcher, ARQADE and the Mesh. Open source, on a test network.">
+  <link rel="canonical" href="https://qorsync.dev/">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="theme-color" content="#06070a">
+  <meta name="color-scheme" content="dark">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Demiurge">
+  <meta property="og:title" content="Demiurge — the chain that pays creators when their work is used">
+  <meta property="og:description" content="A Substrate layer 1 on the Polkadot SDK. One sign-in, one asset format, one currency: QOR ID, DRC-369 and CGT. Open source, live on a test network.">
+  <meta property="og:url" content="https://qorsync.dev/">
+  <meta property="og:image" content="https://qorsync.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Demiurge: the chain that pays creators when their work is used">
+  <meta property="og:locale" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Demiurge — the chain that pays creators when their work is used">
+  <meta name="twitter:description" content="A Substrate layer 1 on the Polkadot SDK: QOR ID, DRC-369 and CGT. Open source, live on a test network.">
+  <meta name="twitter:image" content="https://qorsync.dev/og.png">
+
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/icon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="/icon-180.png">
+  <link rel="manifest" href="/site.webmanifest">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Barlow:wght@400;500&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/main.js" defer></script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://qorsync.dev/#organization",
+        "name": "Demiurge",
+        "alternateName": ["Demiurge chain", "Demiurge blockchain"],
+        "url": "https://qorsync.dev/",
+        "logo": "https://qorsync.dev/icon-512.png",
+        "description": "Demiurge builds a Substrate layer 1 on the Polkadot SDK, and the products on it, so that creators are paid when their work is used, licensed or remixed.",
+        "sameAs": [
+          "https://github.com/QOR-MATRIX/demiurge-chain",
+          "https://github.com/QOR-MATRIX"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://qorsync.dev/#website",
+        "name": "Demiurge",
+        "url": "https://qorsync.dev/",
+        "inLanguage": "en",
+        "publisher": { "@id": "https://qorsync.dev/#organization" }
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": "https://qorsync.dev/#source",
+        "name": "demiurge-chain",
+        "description": "The Demiurge chain (a Substrate layer 1), QOR ID, the QOR Launcher and ARQADE, in one repository.",
+        "codeRepository": "https://github.com/QOR-MATRIX/demiurge-chain",
+        "programmingLanguage": ["Rust", "TypeScript"],
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "author": { "@id": "https://qorsync.dev/#organization" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://qorsync.dev/#launcher",
+        "name": "QOR Launcher",
+        "description": "The Demiurge desktop: a CGT wallet whose keys never leave the host process, the Library with QOR Media, Social, and the Mesh.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Windows 10, Windows 11",
+        "softwareVersion": "0.1.12",
+        "downloadUrl": "https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.12",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "publisher": { "@id": "https://qorsync.dev/#organization" }
+      },
+      {
+        "@type": "WebApplication",
+        "@id": "https://qorsync.dev/#arqade",
+        "name": "ARQADE",
+        "url": "https://qor-arqade-tau.vercel.app/",
+        "description": "Games played with a QOR ID, with every owned collectible a DRC-369 asset on the Demiurge devnet.",
+        "applicationCategory": "GameApplication",
+        "browserRequirements": "A current web browser",
+        "publisher": { "@id": "https://qorsync.dev/#organization" }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <canvas id="aether" aria-hidden="true"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="bar">
+    <nav class="bar-inner" aria-label="Main">
+      <a class="mark" href="/" aria-label="Demiurge, home">
+        <svg class="sigil" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="32" r="29" />
+          <circle cx="32" cy="32" r="12" />
+          <path d="M32 6 L54.5 45 L9.5 45 Z" />
+          <circle class="sigil-core" cx="32" cy="32" r="4" />
+        </svg>
+        <span>Demiurge</span>
+      </a>
+      <ul class="links">
+        <li><a href="#primitives">Primitives</a></li>
+        <li><a href="#live">Live</a></li>
+        <li><a href="#products">Products</a></li>
+        <li><a href="#principles">Principles</a></li>
+        <li><a href="#source">Source</a></li>
+      </ul>
+      <a class="btn btn-ember btn-sm" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.12">Get the launcher</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <p class="eyebrow rise">Substrate L1 · Polkadot SDK</p>
+      <h1 id="hero-title" class="rise"><span class="gilt">Demiurge</span></h1>
+      <p class="lede rise">The chain that pays creators when their work is used, licensed or remixed.</p>
+      <p class="sub rise">One sign-in, one asset format, one currency: <strong>QOR ID</strong>, <strong>DRC-369</strong> and
+        <strong>CGT</strong>, the Creator God Token. CGT is for spending, not holding.</p>
+      <div class="actions rise">
+        <a class="btn btn-ember" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.12">
+          Download the QOR Launcher
+          <span class="btn-note">Windows · 0.1.12 · tester build</span>
+        </a>
+        <a class="btn btn-gilt" href="https://github.com/QOR-MATRIX/demiurge-chain">Read the source</a>
+      </div>
+      <p class="status rise"><span class="pulse" aria-hidden="true"></span> Demiurge Devnet is live, on test value only.
+        No production network exists yet, and nothing here holds real value.</p>
+    </section>
+
+    <section id="primitives" class="block" aria-labelledby="primitives-title">
+      <header class="block-head reveal">
+        <p class="eyebrow">I · The substrate</p>
+        <h2 id="primitives-title">Four primitives, native to the protocol</h2>
+        <p class="block-lede">Every product shares them, so nothing has to invent its own identity, asset format or
+          payment rail.</p>
+      </header>
+      <div class="grid four">
+        <article class="card reveal" data-tilt>
+          <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="11" r="5"/><path d="M6 27 C6 20 10.5 17 16 17 C21.5 17 26 20 26 27"/><path d="M16 2 V5"/></svg></span>
+          <h3>QOR ID</h3>
+          <p>One identity: a name, a key, levels and an avatar, used by every product, and by other apps through
+            OAuth 2.1.</p>
+        </article>
+        <article class="card reveal" data-tilt>
+          <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 3 L29 16 L16 29 L3 16 Z"/><path d="M16 10 L22 16 L16 22 L10 16 Z"/><circle cx="16" cy="16" r="1.6" class="fill"/></svg></span>
+          <h3>DRC-369</h3>
+          <p>One asset format: a creator's work pinned by fingerprint, with royalties, remix royalties and nesting
+            enforced on chain.</p>
+        </article>
+        <article class="card reveal" data-tilt>
+          <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12"/><circle cx="16" cy="16" r="3" class="fill"/><path d="M16 1 V4 M16 28 V31 M1 16 H4 M28 16 H31"/></svg></span>
+          <h3>CGT</h3>
+          <p>One currency, for spending: 18 decimals, every amount a whole number of Sparks, settling every flow of
+            value in the system.</p>
+        </article>
+        <article class="card reveal" data-tilt>
+          <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="9" cy="7" r="3"/><circle cx="9" cy="25" r="3"/><circle cx="23" cy="13" r="3"/><path d="M9 10 V22 M9 18 C9 14 20 18 22.5 16"/></svg></span>
+          <h3>Qontrol</h3>
+          <p>Version control for people who make things: git underneath, a creator's view on top, and a commit
+            that can be minted as an asset.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="live" class="block" aria-labelledby="live-title">
+      <header class="block-head reveal">
+        <p class="eyebrow">II · Running now</p>
+        <h2 id="live-title">Live today, on test value</h2>
+        <p class="block-lede">Test CGT has no value, and the test network can be reset.</p>
+      </header>
+      <ul class="ledger">
+        <li class="row reveal">
+          <span class="row-name">Demiurge Devnet</span>
+          <span class="row-what">Two validators and a public node. DRC-369 assets, royalties, ARQ Wallets and the Mesh's
+            escrows.</span>
+          <code class="row-where">wss://rpc.qorsync.dev</code>
+        </li>
+        <li class="row reveal">
+          <span class="row-name">QOR ID</span>
+          <span class="row-what">The one sign-in: by key in the launcher, levels and XP, avatars, and sign-in for other
+            apps.</span>
+          <a class="row-where" href="https://id.qorsync.dev">id.qorsync.dev</a>
+        </li>
+        <li class="row reveal">
+          <span class="row-name">Social</span>
+          <span class="row-what">Chat inside the launcher: a World room everyone shares, friends and circles, and
+            translation done on your own PC.</span>
+          <span class="row-where">In the launcher</span>
+        </li>
+        <li class="row reveal">
+          <span class="row-name">ARQADE</span>
+          <span class="row-what">Solo and multiplayer games played with a QOR ID, rankings and chat, and tips approved in
+            the launcher.</span>
+          <a class="row-where" href="https://qor-arqade-tau.vercel.app">Play ARQADE</a>
+        </li>
+        <li class="row reveal">
+          <span class="row-name">QOR Launcher</span>
+          <span class="row-what">The desktop: a wallet whose keys never reach the interface, the Library with QOR
+            Media, Social and the Mesh.</span>
+          <a class="row-where" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.12">0.1.12 for Windows</a>
+        </li>
+      </ul>
+    </section>
+
+    <section id="products" class="block" aria-labelledby="products-title">
+      <header class="block-head reveal">
+        <p class="eyebrow">III · Built on it</p>
+        <h2 id="products-title">The products</h2>
+        <p class="block-lede">Each signs in with QOR ID, keeps creations as DRC-369 assets and settles in CGT.</p>
+      </header>
+      <div class="grid three">
+        <article class="card reveal" data-tilt>
+          <p class="pill pill-live">Built</p>
+          <h3>QOR Launcher</h3>
+          <p>The desktop home: vault, inventory, market, projects, and the host every product runs under, signing
+            only behind its own dialog.</p>
+        </article>
+        <article class="card reveal" data-tilt>
+          <p class="pill pill-live">Live</p>
+          <h3>QOR ID and Social</h3>
+          <p>One sign-in for everything, and chat in the launcher: a World room, friends and circles, and translation
+            done on your own PC.</p>
+        </article>
+        <article class="card reveal" data-tilt>
+          <p class="pill pill-live">Live on the devnet</p>
+          <h3>ARQADE</h3>
+          <p>The gaming platform: games played with a QOR ID, every owned collectible a DRC-369 asset, CGT the only
+            currency.</p>
+        </article>
+        <article class="card reveal" data-tilt>
+          <p class="pill pill-live">Live on the devnet</p>
+          <h3>The Mesh</h3>
+          <p>Launchers that hold and serve each other's published work, paid from the uploader's escrow for storage
+            and serving they prove.</p>
+        </article>
+        <article class="card reveal" data-tilt>
+          <p class="pill pill-live">Built</p>
+          <h3>Library and QOR Media</h3>
+          <p>Everything you own and make, in one place, opened in a player, viewer and editor docked inside the
+            launcher.</p>
+        </article>
+        <article class="card reveal" data-tilt>
+          <p class="pill pill-work">In progress</p>
+          <h3>QQ, the QOR Engine</h3>
+          <p>Virtual worlds on Qt 6, with an agent that designs and builds. QQ Studio edits lit 3D worlds; worlds
+            that play are next.</p>
+        </article>
+      </div>
+      <p class="aside reveal">Planned: <strong>GNOSIS</strong> for music production, <strong>Stream</strong> for music
+        distribution and licensing over the Mesh, and a fuller <strong>Market</strong>. The roadmap is
+        <a href="https://github.com/QOR-MATRIX/demiurge-chain/blob/main/docs/DIRECTION.md">DIRECTION.md</a>.</p>
+    </section>
+
+    <section id="principles" class="block" aria-labelledby="principles-title">
+      <header class="block-head reveal">
+        <p class="eyebrow">IV · The law</p>
+        <h2 id="principles-title">Principles</h2>
+      </header>
+      <div class="tablets">
+        <article class="tablet reveal">
+          <span class="numeral" aria-hidden="true">I</span>
+          <h3>Paid for use, not for holding</h3>
+          <p>Validators are paid for securing the chain, seeders for storing and serving, and creators when their work
+            is used, licensed or remixed.</p>
+        </article>
+        <article class="tablet reveal">
+          <span class="numeral" aria-hidden="true">II</span>
+          <h3>Only the vault signs</h3>
+          <p>No product, website or engine holds a key. Every signature is approved in the launcher's own dialog,
+            which a web page can neither draw nor answer.</p>
+        </article>
+        <article class="tablet reveal">
+          <span class="numeral" aria-hidden="true">III</span>
+          <h3>The code is the truth</h3>
+          <p>Documents are checked against the code, every decision is a dated record, and nothing is called done
+            without evidence from a run.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="questions" class="block" aria-labelledby="questions-title">
+      <header class="block-head reveal">
+        <p class="eyebrow">V · Asked often</p>
+        <h2 id="questions-title">Questions</h2>
+      </header>
+      <div class="faq">
+        <details class="reveal">
+          <summary>What is Demiurge?</summary>
+          <p>A Substrate layer 1 built on the Polkadot SDK, and the products on it: the QOR Launcher, QOR ID, ARQADE,
+            the Mesh and QQ. Its standard pieces (consensus, finality, networking, upgrades) are the SDK's own; its own
+            pallets carry DRC-369 assets, royalties, game payouts and the Mesh.</p>
+        </details>
+        <details class="reveal">
+          <summary>What is CGT?</summary>
+          <p>The Creator God Token, the currency every flow of value settles in. It has 18 decimals and every amount is
+            a whole number of Sparks. Its design rests on one rule from the economic model: every mechanic must make sense
+            even if CGT could never be traded for dollars, because people hold it to do things they already want to do.</p>
+        </details>
+        <details class="reveal">
+          <summary>Can I use it today?</summary>
+          <p>Yes, on test value. Install the QOR Launcher, and it makes your wallet and signs you in to QOR ID. Test CGT
+            comes from the devnet's faucet and has no value.</p>
+        </details>
+        <details class="reveal">
+          <summary>Where is the current code?</summary>
+          <p>At <a href="https://github.com/QOR-MATRIX/demiurge-chain">github.com/QOR-MATRIX/demiurge-chain</a>, under
+            Apache-2.0. It is the only current repository: earlier copies of the project describe a design it no longer
+            follows.</p>
+        </details>
+      </div>
+    </section>
+
+    <section id="source" class="block source" aria-labelledby="source-title">
+      <div class="source-inner reveal">
+        <p class="eyebrow">VI · Open source</p>
+        <h2 id="source-title">Read it, run it, build on it</h2>
+        <p class="block-lede">The chain, QOR ID, the launcher and ARQADE live in one repository, with every pull request
+          tested on GitHub Actions and every release gate measured rather than asserted.</p>
+        <div class="actions">
+          <a class="btn btn-gilt" href="https://github.com/QOR-MATRIX/demiurge-chain">github.com/QOR-MATRIX/demiurge-chain</a>
+        </div>
+        <ul class="doc-links">
+          <li><a href="https://github.com/QOR-MATRIX/demiurge-chain/blob/main/docs/DIRECTION.md">Roadmap</a></li>
+          <li><a href="https://github.com/QOR-MATRIX/demiurge-chain/blob/main/docs/economics/CGT.md">The economic model</a></li>
+          <li><a href="https://github.com/QOR-MATRIX/demiurge-chain/blob/main/docs/DECISIONS.md">Decisions</a></li>
+          <li><a href="https://github.com/QOR-MATRIX/demiurge-chain/blob/main/docs/protocol/PROTOCOL.md">What the chain does</a></li>
+          <li><a href="https://github.com/QOR-MATRIX/demiurge-chain/blob/main/SECURITY.md">Security</a></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="foot-inner">
+      <a class="mark" href="/" aria-label="Demiurge, home">
+        <svg class="sigil" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="32" r="29" />
+          <circle cx="32" cy="32" r="12" />
+          <path d="M32 6 L54.5 45 L9.5 45 Z" />
+          <circle class="sigil-core" cx="32" cy="32" r="4" />
+        </svg>
+        <span>Demiurge</span>
+      </a>
+      <p>Pre-release and unaudited. Test value only. Apache-2.0.</p>
+      <p class="foot-links"><a href="https://github.com/QOR-MATRIX/demiurge-chain">GitHub</a> ·
+        <a href="https://id.qorsync.dev">QOR ID</a> · <a href="https://qor-arqade-tau.vercel.app">ARQADE</a> ·
+        <a href="/llms.txt">llms.txt</a></p>
+    </div>
+  </footer>
+</body>
+</html>
