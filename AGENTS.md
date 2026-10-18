@@ -58,7 +58,8 @@ should be copied forward.
 
 ## 5. Money
 
-- CGT has 18 decimals. All amounts are integer Sparks in `u128`. Never use floating point for money.
+- CGT has 18 decimals. All amounts are integer **embers** in `u128` (1 CGT = 10^18 embers; a Spark is a thousandth of a
+  CGT, 10^15 embers, a unit of display and entry: ADR-101). Never use floating point for money.
 - Reject excess precision; never truncate an amount.
 - **Scaled arithmetic uses the SDK's helpers, never a hand-written `a * b / c`** (ADR-035). A fraction of an
   amount uses `Perbill`, `Permill` or another `PerThing`; a ratio uses `multiply_by_rational_with_rounding`,

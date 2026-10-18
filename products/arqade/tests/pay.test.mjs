@@ -32,8 +32,8 @@ test('the link ARQADE signs is the one the launcher pins and accepts',async()=>{
 
 test('a request stays within the owner\'s cap and has a sane description',()=>{
   assert.throws(()=>P.newRequest(ALICE,0n,'Tip',NOW));
-  assert.throws(()=>P.newRequest(ALICE,P.CAP_SPARKS+1n,'Tip',NOW));
-  assert.ok(P.newRequest(ALICE,P.CAP_SPARKS,'Tip',NOW));
+  assert.throws(()=>P.newRequest(ALICE,P.CAP_EMBERS+1n,'Tip',NOW));
+  assert.ok(P.newRequest(ALICE,P.CAP_EMBERS,'Tip',NOW));
   assert.throws(()=>P.newRequest(ALICE,1n,'',NOW));
   assert.throws(()=>P.newRequest(ALICE,1n,'x'.repeat(81),NOW));
   assert.throws(()=>P.newRequest(ALICE,1n,'line\nbreak',NOW));

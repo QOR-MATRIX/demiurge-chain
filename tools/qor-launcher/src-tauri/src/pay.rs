@@ -6,7 +6,7 @@
 //!
 //! - signed by a known app, over exactly the bytes it carries;
 //! - Demiurge Devnet, by genesis hash (ADR-077 decision 3; the chain's own genesis is checked again before signing);
-//! - a whole number of Sparks above zero and at most the owner's cap of 100,000 CGT (ADR-076 decision 6);
+//! - a whole number of embers above zero and at most the owner's cap of 100,000 CGT (ADR-076 decision 6);
 //! - a valid account to pay, a short label, an id, and not expired, nor valid for longer than fifteen minutes;
 //! - not already paid (`PaidRequests`, ADR-076 decision 7).
 //!
@@ -27,9 +27,9 @@ use crate::vault::canonical_address;
 pub const DEVNET_GENESIS: &str =
     "0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a";
 
-/// The most one request may ask: 100,000 CGT in Sparks (18 decimals), the owner's cap for the devnet's test CGT
+/// The most one request may ask: 100,000 CGT in embers (18 decimals), the owner's cap for the devnet's test CGT
 /// (ADR-076 decision 6).
-pub const CAP_SPARKS: u128 = 100_000 * 1_000_000_000_000_000_000;
+pub const CAP_EMBERS: u128 = 100_000 * 1_000_000_000_000_000_000;
 
 /// The longest a request may be valid for, from now.
 const LONGEST_VALIDITY_SECS: i64 = 15 * 60;
@@ -60,7 +60,7 @@ struct Signed {
     app: String,
     id: String,
     to: String,
-    /// Sparks, as a decimal string: a JSON number cannot hold every u128.
+    /// Embers, as a decimal string: a JSON number cannot hold every u128.
     amount: String,
     label: String,
     genesis: String,
@@ -76,7 +76,7 @@ pub struct PayRequest {
     pub id: String,
     /// The account to pay, canonical SS58.
     pub to: String,
-    pub amount_sparks: u128,
+    pub amount_embers: u128,
     pub label: String,
     pub expires: i64,
 }
@@ -181,19 +181,19 @@ fn parse_from(link: &str, now: i64, apps: &[KnownApp]) -> QorResult<PayRequest> 
         || signed.amount.len() > 39
         || !signed.amount.bytes().all(|b| b.is_ascii_digit())
     {
-        return Err(refuse("the amount is not a whole number of Sparks"));
+        return Err(refuse("the amount is not a whole number of embers"));
     }
-    let amount_sparks: u128 = signed
+    let amount_embers: u128 = signed
         .amount
         .parse()
-        .map_err(|_| refuse("the amount is not a whole number of Sparks"))?;
-    if amount_sparks == 0 {
+        .map_err(|_| refuse("the amount is not a whole number of embers"))?;
+    if amount_embers == 0 {
         return Err(refuse("the amount is zero"));
     }
-    if amount_sparks > CAP_SPARKS {
+    if amount_embers > CAP_EMBERS {
         return Err(refuse(format!(
             "the amount is above the most one request may ask, {} {}",
-            crate::cgt::format_cgt_grouped(CAP_SPARKS),
+            crate::cgt::format_cgt_grouped(CAP_EMBERS),
             crate::cgt::SYMBOL
         )));
     }
@@ -212,7 +212,7 @@ fn parse_from(link: &str, now: i64, apps: &[KnownApp]) -> QorResult<PayRequest> 
         app_name: app.name,
         id: signed.id,
         to,
-        amount_sparks,
+        amount_embers,
         label: label.to_string(),
         expires: signed.exp,
     })
@@ -316,7 +316,7 @@ mod tests {
     fn a_signed_request_within_every_limit_is_accepted() {
         let paid = parse_with(&link(&request(serde_json::json!({})), &signer())).expect("accepted");
         assert_eq!(paid.app_name, "ARQADE");
-        assert_eq!(paid.amount_sparks, 5 * 10u128.pow(18));
+        assert_eq!(paid.amount_embers, 5 * 10u128.pow(18));
         assert_eq!(paid.to, canonical_address(ALICE).unwrap());
         assert_eq!(paid.remark(), "qor-pay:arqade:0123456789abcdef");
     }
@@ -329,7 +329,7 @@ mod tests {
     fn a_link_made_by_arqades_code_is_accepted() {
         let paid = parse_with(ARQADE_LINK).expect("ARQADE's link");
         assert_eq!(paid.id, "0123456789abcdef0123456789abcdef");
-        assert_eq!(paid.amount_sparks, 5 * 10u128.pow(18));
+        assert_eq!(paid.amount_embers, 5 * 10u128.pow(18));
         assert_eq!(paid.label, "Tip for Flux Four");
     }
 
@@ -362,9 +362,9 @@ mod tests {
                 "valid too long",
             ),
             (serde_json::json!({ "amount": "0" }), "zero"),
-            (serde_json::json!({ "amount": "1.5" }), "not whole Sparks"),
+            (serde_json::json!({ "amount": "1.5" }), "not whole embers"),
             (
-                serde_json::json!({ "amount": (CAP_SPARKS + 1).to_string() }),
+                serde_json::json!({ "amount": (CAP_EMBERS + 1).to_string() }),
                 "above the cap",
             ),
             (
@@ -388,7 +388,7 @@ mod tests {
                 "{why} must be refused"
             );
         }
-        let at_cap = request(serde_json::json!({ "amount": CAP_SPARKS.to_string() }));
+        let at_cap = request(serde_json::json!({ "amount": CAP_EMBERS.to_string() }));
         assert!(
             parse_with(&link(&at_cap, &signer())).is_ok(),
             "the cap itself is allowed"

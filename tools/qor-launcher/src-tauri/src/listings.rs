@@ -204,9 +204,9 @@ pub struct Listing {
     pub details: Vec<Detail>,
     /// Exactly what the creator typed, so the form shows it back unchanged.
     pub price_cgt: String,
-    /// The same number in Sparks, as a decimal string because JSON has no
+    /// The same number in embers, as a decimal string because JSON has no
     /// 128-bit integer. Parsed exactly; no float touches it.
-    pub price_sparks: String,
+    pub price_embers: String,
     pub notes: String,
     pub created: u64,
     pub updated: u64,
@@ -308,8 +308,8 @@ pub fn save(data_dir: &Path, draft: &Draft) -> QorResult<Listing> {
 
     // Exact, or refused. `parse_cgt` rejects excess precision rather than
     // truncating it, and no float is involved (ADR-035, AGENTS.md §5).
-    let sparks = cgt::parse_cgt(&draft.price_cgt)?;
-    if sparks == 0 {
+    let embers = cgt::parse_amount(&draft.price_cgt)?;
+    if embers == 0 {
         return Err(QorError::Qontrol(
             "a listing needs a price. Nothing here decides what it should be.".into(),
         ));
@@ -324,8 +324,8 @@ pub fn save(data_dir: &Path, draft: &Draft) -> QorResult<Listing> {
         title: title.to_string(),
         category: category.id.to_string(),
         details,
-        price_cgt: cgt::format_cgt(sparks),
-        price_sparks: sparks.to_string(),
+        price_cgt: cgt::format_cgt(embers),
+        price_embers: embers.to_string(),
         notes: notes.to_string(),
         created,
         updated: now(),
@@ -404,8 +404,8 @@ mod tests {
         let dir = dir_for("round-trip");
         let saved = save(&dir, &draft()).unwrap();
         assert_eq!(
-            saved.price_sparks,
-            (2505 * cgt::SPARKS_PER_CGT / 10).to_string()
+            saved.price_embers,
+            (2505 * cgt::EMBERS_PER_CGT / 10).to_string()
         );
         assert_eq!(saved.price_cgt, "250.50");
         assert_eq!(load(&dir, 1, 0).unwrap(), saved);

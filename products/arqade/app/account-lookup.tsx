@@ -16,8 +16,8 @@ type Snapshot = {
 };
 
 /** Exact CGT, grouped for reading: the whole part gets separators, the fraction is never rounded. */
-const cgt = (sparks: string) => {
-  const [whole, fraction] = formatCgt(BigInt(sparks)).split('.');
+const cgt = (embers: string) => {
+  const [whole, fraction] = formatCgt(BigInt(embers)).split('.');
   return BigInt(whole).toLocaleString('en-US') + (fraction ? '.' + fraction : '');
 };
 

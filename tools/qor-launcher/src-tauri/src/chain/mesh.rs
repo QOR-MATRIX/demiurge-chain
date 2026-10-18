@@ -112,7 +112,7 @@ impl Granted {
 pub struct Done {
     pub tx_hash: String,
     pub block_hash: String,
-    /// Sparks.
+    /// Embers.
     pub paid: u128,
 }
 
@@ -160,11 +160,11 @@ pub struct EscrowTerms {
     pub root: String,
     pub size: u64,
     pub copies: u8,
-    /// Sparks, as decimal strings: a `u128` does not survive JavaScript's `number`.
-    pub storage_price_sparks: String,
-    pub serving_price_per_mib_sparks: String,
+    /// Embers, as decimal strings: a `u128` does not survive JavaScript's `number`.
+    pub storage_price_embers: String,
+    pub serving_price_per_mib_embers: String,
     pub serving_cap_per_period: u64,
-    pub deposit_sparks: String,
+    pub deposit_embers: String,
 }
 
 #[derive(Debug, DecodeAsType)]
@@ -535,15 +535,15 @@ impl ChainClient {
         terms: &EscrowTerms,
     ) -> QorResult<u64> {
         let root = parse_root(&terms.root)?;
-        let sparks = |v: &str, what: &str| {
-            // Integer Sparks, never rounded (AGENTS.md §5).
+        let embers = |v: &str, what: &str| {
+            // Integer embers, never rounded (AGENTS.md §5).
             v.trim().parse::<u128>().map_err(|_| {
-                QorError::BadAmount(format!("the {what} is not a whole number of Sparks"))
+                QorError::BadAmount(format!("the {what} is not a whole number of embers"))
             })
         };
-        let storage_price = sparks(&terms.storage_price_sparks, "storage price")?;
-        let serving_price = sparks(&terms.serving_price_per_mib_sparks, "serving price")?;
-        let deposit = sparks(&terms.deposit_sparks, "deposit")?;
+        let storage_price = embers(&terms.storage_price_embers, "storage price")?;
+        let serving_price = embers(&terms.serving_price_per_mib_embers, "serving price")?;
+        let deposit = embers(&terms.deposit_embers, "deposit")?;
         if terms.size == 0 || terms.copies == 0 {
             return Err(QorError::Mesh(
                 "An escrow holds a file of at least one byte, for at least one copy.".into(),

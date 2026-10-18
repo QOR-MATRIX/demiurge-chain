@@ -91,8 +91,9 @@ runaway inflation nor a hoarding deflation is the resting state. Any document, m
 that describes one without the other is describing half a mechanism.
 
 **Precision is unchanged by this direction.** The chain encodes CGT at eighteen decimals with an
-atomic unit called the Spark (`chain/runtime/src/denomination.rs`, the single source of truth since
-M3.5; eighteen decimals was confirmed as a decision by ADR-035). One hundred trillion
+atomic unit called the ember (`chain/runtime/src/denomination.rs`, the single source of truth since
+M3.5; eighteen decimals was confirmed as a decision by ADR-035, and the atomic unit named the ember by ADR-101,
+which made the **Spark** a thousandth of a CGT: 1 CGT = 1,000 Sparks = 10^18 embers). One hundred trillion
 CGT at eighteen decimals is 10^32 atomic units, which fits comfortably in the `u128` balance type
 (maximum about 3.4 × 10^38). Eighteen decimals is **decided** (ADR-035), on both conditions the owner attached: the stale headroom
 comment was corrected, and scaled arithmetic uses the SDK's helpers (AGENTS.md §5). U-1 is closed and

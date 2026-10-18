@@ -2,7 +2,7 @@
 //
 // The balance is `System::Account` from storage; the assets are the chain's own answer to the runtime API
 // `Drc369Api::assets_of`. Both are decoded here exactly as the runtime encodes them (SCALE), with every length
-// and bound checked; tests pin the layouts. Amounts stay integer Sparks (bigint) and leave as decimal strings.
+// and bound checked; tests pin the layouts. Amounts stay integer embers (bigint) and leave as decimal strings.
 // Nothing here signs, and the network is checked by its genesis before anything is read.
 
 import { blake2b } from '@noble/hashes/blake2.js';

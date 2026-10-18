@@ -98,8 +98,8 @@ export function computeAscent(input: AscentInputs): AscentState {
     );
 
   const holding = activeAddress
-    ? BigInt(balances[activeAddress]?.sparks ?? '0') > 0n
-    : Object.values(balances).some((b) => BigInt(b.sparks) > 0n);
+    ? BigInt(balances[activeAddress]?.embers ?? '0') > 0n
+    : Object.values(balances).some((b) => BigInt(b.embers) > 0n);
 
   // A node the launcher is running itself, rather than someone else's.
   const selfHosted =

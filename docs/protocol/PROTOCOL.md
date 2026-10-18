@@ -27,9 +27,9 @@ finalises blocks, its validator set is governed, and it reproduces the behaviour
 - Account keys are **Sr25519** (ADR-023). Signatures are `MultiSignature`, so the runtime also accepts
   Ed25519 and ECDSA, as any standard Substrate runtime does (ADR-038).
 - The currency is **CGT**, the Creator-God Token (ADR-045), with **18 decimals** (ADR-035). The atomic,
-  indivisible unit is the **Spark**: `1 CGT = 10^18 Sparks`. Every amount in the runtime, in genesis and
-  on the wire is an integer count of Sparks in `u128`.
-- The **existential deposit is 100 CGT**, `10^20` Sparks (ADR-036). An account whose free balance falls
+  indivisible unit is the **ember**: `1 CGT = 10^18 embers`. Every amount in the runtime, in genesis and
+  on the wire is an integer count of embers in `u128`.
+- The **existential deposit is 100 CGT**, `10^20` embers (ADR-036). An account whose free balance falls
   below it is removed from state and its remaining balance is destroyed, which lowers total issuance.
 - `pallet-balances` provides transfers, holds, freezes and reserves. Scaled arithmetic uses the SDK's
   helpers, never a hand-written `a * b / c` (AGENTS.md §5, ADR-035).
@@ -261,7 +261,7 @@ and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369
   recipients (ADR-057), each with a `Permill` share of every sale, no account twice, no share of zero, the shares
   summing to at most one whole. `remix` is the share of every sale of a remix of this asset owed to these recipients;
   it needs at least one recipient.
-- **A sale settled in CGT.** **`list(collection, item, price)`**: the holder offers the asset at a price in Sparks
+- **A sale settled in CGT.** **`list(collection, item, price)`**: the holder offers the asset at a price in embers
   above zero, or changes the price. **`unlist(collection, item)`**: the seller or the holder; or anyone, once the
   seller no longer holds the asset and the listing is void. **`buy(collection, item, max_price)`**: refused if the
   listing is void, the buyer is the seller, or the price is above `max_price`. It pays, from the buyer, in one

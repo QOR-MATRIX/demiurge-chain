@@ -82,7 +82,7 @@ pub mod weights;
 
 pub use pallet_drc369::{CollectionId, ItemId};
 
-/// An amount of CGT, in Sparks (AGENTS.md §5): the runtime's balance type.
+/// An amount of CGT, in embers (AGENTS.md §5): the runtime's balance type.
 pub type Balance = u128;
 
 /// The game's own name for one outcome it pays. Unique per wallet within the
@@ -142,7 +142,7 @@ use frame_support::{pallet_prelude::*, CloneNoBound, DebugNoBound, EqNoBound, Pa
 #[scale_info(skip_type_params(MaxVersions, MaxLen))]
 #[codec(mel_bound())]
 pub struct Policy<MaxVersions: Get<u32>, MaxLen: Get<u32>> {
-    /// The largest single payout, in Sparks.
+    /// The largest single payout, in embers.
     pub max_payout: Balance,
     /// How long an epoch lasts, in blocks.
     pub epoch_blocks: u32,

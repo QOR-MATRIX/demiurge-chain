@@ -26,7 +26,7 @@ Engine, for building games. Every product shares the same four primitives:
 | --- | --- |
 | **QOR ID** | One identity: a name, a key, levels and an avatar, used by every product and by other apps through OAuth 2.1 |
 | **DRC-369** | One asset format: a creator's work pinned by fingerprint, with royalties, remix royalties and nesting enforced on chain |
-| **CGT** | One currency, for spending: 18 decimals, every amount an integer number of Sparks |
+| **CGT** | One currency, for spending: 1 CGT = 1,000 Sparks; 18 decimals underneath, every amount a whole number of embers |
 | **Qontrol** | Version control for people who make things: git underneath, a creator's view on top |
 
 ## Live today, on test value

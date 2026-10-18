@@ -98,7 +98,7 @@ pub mod weights;
 
 pub use pallet_drc369::{CollectionId, ContentRef, ItemId};
 
-/// An amount of CGT, in Sparks (AGENTS.md §5): the runtime's balance type.
+/// An amount of CGT, in embers (AGENTS.md §5): the runtime's balance type.
 pub type Balance = u128;
 
 /// How one sale's price is divided. Every amount this pallet moves comes from
@@ -259,7 +259,7 @@ pub mod pallet {
     pub struct Listing<AccountId> {
         /// Who listed it. A sale goes ahead only while they still hold it.
         pub seller: AccountId,
-        /// The price, in Sparks.
+        /// The price, in embers.
         pub price: Balance,
     }
 

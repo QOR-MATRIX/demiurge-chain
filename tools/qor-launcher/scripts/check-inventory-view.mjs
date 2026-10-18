@@ -163,12 +163,12 @@ const MESSAGE = 'for the album';
 const SELLER = '5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy';
 const ROYALTY = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
 const SOURCE = '5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y';
-const sparks = (cgt) => `${cgt.replace(/[,.]/g, '')}0000000000000000`;
+const embers = (cgt) => `${cgt.replace(/[,.]/g, '')}0000000000000000`;
 const payout = (kind, address, share, cgt) => ({
-  kind, address, share, amount_sparks: sparks(cgt), amount_cgt: cgt, to_buyer: false,
+  kind, address, share, amount_embers: embers(cgt), amount_cgt: cgt, to_buyer: false,
 });
 const BREAKDOWN = {
-  price_sparks: sparks('1,200.50'),
+  price_embers: embers('1,200.50'),
   price_cgt: '1,200.50',
   source: { collection: 2, item: 7 },
   source_share: '5%',
@@ -181,7 +181,7 @@ const BREAKDOWN = {
 };
 // A price no sale could settle at: the host says why, and the view shows it.
 const BLOCKED = {
-  price_sparks: sparks('7.00'),
+  price_embers: embers('7.00'),
   price_cgt: '7.00',
   source: null,
   source_share: null,
@@ -190,7 +190,7 @@ const BLOCKED = {
 };
 // Answered late, after the price in the field has moved on.
 const SLOW = {
-  price_sparks: sparks('55.00'),
+  price_embers: embers('55.00'),
   price_cgt: '55.00',
   source: null,
   source_share: null,
@@ -199,10 +199,10 @@ const SLOW = {
 };
 // What the CHAIN says the listing is, once listed: deliberately not the price
 // that was typed, so a card that drew what it believed cannot pass.
-const LISTING = { seller: ADDRESS, price_sparks: sparks('1,234.00'), price_cgt: '1,234.00', void: false };
+const LISTING = { seller: ADDRESS, price_embers: embers('1,234.00'), price_cgt: '1,234.00', void: false };
 const LISTED = [{ ...FRESH, revisable: false, listing: LISTING }];
 const SAME = {
-  price_sparks: LISTING.price_sparks,
+  price_embers: LISTING.price_embers,
   price_cgt: LISTING.price_cgt,
   source: null,
   source_share: null,
@@ -218,7 +218,7 @@ const FOUND_ASSET = {
   current: ref('7a', 512),
   commit: { kind: 'SHA-1', id: 'd4'.repeat(20) },
   revisable: true,
-  listing: { seller: SELLER, price_sparks: sparks('3,000.00'), price_cgt: '3,000.00', void: false },
+  listing: { seller: SELLER, price_embers: embers('3,000.00'), price_cgt: '3,000.00', void: false },
 };
 const TERMS = { recipients: [{ address: ROYALTY, share: '9.5%' }], remix: '12%' };
 const FOUND = {
@@ -229,7 +229,7 @@ const FOUND = {
   terms: TERMS,
   source_terms: { recipients: [{ address: SOURCE, share: '40%' }], remix: '5%' },
   breakdown: {
-    price_sparks: sparks('3,000.00'),
+    price_embers: embers('3,000.00'),
     price_cgt: '3,000.00',
     source: { collection: 2, item: 7 },
     source_share: '5%',
@@ -260,11 +260,11 @@ const REPRICED = {
   ...FOUND,
   asset: {
     ...FOUND_ASSET,
-    listing: { ...FOUND_ASSET.listing, price_sparks: sparks('3,500.00'), price_cgt: '3,500.00' },
+    listing: { ...FOUND_ASSET.listing, price_embers: embers('3,500.00'), price_cgt: '3,500.00' },
   },
   breakdown: {
     ...FOUND.breakdown,
-    price_sparks: sparks('3,500.00'),
+    price_embers: embers('3,500.00'),
     price_cgt: '3,500.00',
     payouts: [
       payout('source', SOURCE, null, '176.05'),
@@ -293,7 +293,7 @@ const RECEIPT = {
   name: FOUND_ASSET.name,
   seller: SELLER,
   buyer: ADDRESS,
-  price_sparks: sparks('3,500.00'),
+  price_embers: embers('3,500.00'),
   price_cgt: '3,500.00',
   payouts: REPRICED.breakdown.payouts,
   tx_hash: '0x07',
@@ -469,7 +469,7 @@ try {
           window.__LISTING_SAVES__.push(args.draft);
           return Promise.resolve({
             ...args.draft,
-            price_sparks: '1',
+            price_embers: '1',
             created: 1,
             updated: 2,
           });
@@ -497,7 +497,7 @@ try {
           return Promise.resolve({
             collection: args.collection,
             item: args.item,
-            price_sparks: ${JSON.stringify(BREAKDOWN.price_sparks)},
+            price_embers: ${JSON.stringify(BREAKDOWN.price_embers)},
             price_cgt: ${JSON.stringify(BREAKDOWN.price_cgt)},
             tx_hash: '0x05',
             block_hash: '0x06',
@@ -1392,7 +1392,7 @@ try {
   const firstBuy = (await evaluate(`window.__BUY_CALLS__`))[0] ?? {};
   check('the host was sent the price and the fingerprint that were on screen',
     firstBuy.from === ADDRESS && `${firstBuy.collection}/${firstBuy.item}` === foundId &&
-      firstBuy.priceSparks === FOUND.breakdown.price_sparks && firstBuy.root === FOUND.asset.current.root,
+      firstBuy.priceEmbers === FOUND.breakdown.price_embers && firstBuy.root === FOUND.asset.current.root,
     JSON.stringify(firstBuy));
   check('after a refusal the dialog asks the host for the asset again',
     (await evaluate(`window.__SALE_CALLS__.length`)) === salesBeforeRefusal + 1);
@@ -1415,7 +1415,7 @@ try {
   const buyCalls = await evaluate(`window.__BUY_CALLS__`);
   check('buying asks the host once more, and only once', buyCalls.length === 2, `${buyCalls.length}`);
   check('with the price that was on screen when Buy was pressed',
-    buyCalls[1]?.priceSparks === REPRICED.breakdown.price_sparks && buyCalls[1]?.root === REPRICED.asset.current.root,
+    buyCalls[1]?.priceEmbers === REPRICED.breakdown.price_embers && buyCalls[1]?.root === REPRICED.asset.current.root,
     JSON.stringify(buyCalls[1]));
   await until(`window.__ASSET_CALLS__.length > ${asksBeforeBuy}`, 'the chain to be asked what is held');
   await until(`Boolean(document.querySelector('main [data-asset="${foundId}"]'))`, 'the bought asset among those held');

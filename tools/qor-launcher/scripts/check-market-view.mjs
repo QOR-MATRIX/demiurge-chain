@@ -27,7 +27,7 @@
 //     the empty state, and the error state in the host's words.
 //
 // The fixture's numbers are ones no arithmetic in the view could reproduce:
-// prices whose display string does not follow from their Sparks, counts that
+// prices whose display string does not follow from their embers, counts that
 // do not follow from the cards on the page, and a purchase breakdown that is
 // not a split of the card's price. A view that computed any of them would draw
 // something else.
@@ -83,10 +83,10 @@ const NESTER = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
 const ELSEWHERE = '5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y';
 const ref = (byte, size) => ({ algo: 'BLAKE3-256', root: byte.repeat(32), size });
 
-// The price a card shows is the host's string. Its Sparks are deliberately
-// not what that string says, so a view that formatted Sparks itself would draw
+// The price a card shows is the host's string. Its embers are deliberately
+// not what that string says, so a view that formatted embers itself would draw
 // another number.
-const asset = (collection, item, name, byte, revisable, seller, priceCgt, priceSparks, isVoid) => ({
+const asset = (collection, item, name, byte, revisable, seller, priceCgt, priceEmbers, isVoid) => ({
   collection,
   item,
   name,
@@ -94,7 +94,7 @@ const asset = (collection, item, name, byte, revisable, seller, priceCgt, priceS
   current: ref(byte, 100 + item),
   commit: { kind: 'SHA-1', id: byte.repeat(20) },
   revisable,
-  listing: { seller, price_sparks: priceSparks, price_cgt: priceCgt, void: isVoid },
+  listing: { seller, price_embers: priceEmbers, price_cgt: priceCgt, void: isVoid },
 });
 
 const BUYABLE = {
@@ -203,19 +203,19 @@ const PAGES = {
 
 // What Buy reads again for 7/2: the price moved since the Market was read, and
 // the breakdown is the host's (no arithmetic on 4,321.09 or 4,500.00 gives it).
-const sparks = (cgt) => `${cgt.replace(/[,.]/g, '')}0000000000000000`;
+const embers = (cgt) => `${cgt.replace(/[,.]/g, '')}0000000000000000`;
 const payout = (kind, address, share, cgt) => ({
-  kind, address, share, amount_sparks: sparks(cgt), amount_cgt: cgt, to_buyer: false,
+  kind, address, share, amount_embers: embers(cgt), amount_cgt: cgt, to_buyer: false,
 });
 const SALE = {
-  asset: { ...BUYABLE.asset, listing: { seller: SELLER, price_sparks: sparks('4,500.00'), price_cgt: '4,500.00', void: false } },
+  asset: { ...BUYABLE.asset, listing: { seller: SELLER, price_embers: embers('4,500.00'), price_cgt: '4,500.00', void: false } },
   holder: SELLER,
   held_by_viewer: false,
   derived_from: null,
   terms: { recipients: [{ address: NESTER, share: '7.25%' }], remix: '3%' },
   source_terms: null,
   breakdown: {
-    price_sparks: sparks('4,500.00'),
+    price_embers: embers('4,500.00'),
     price_cgt: '4,500.00',
     source: null,
     source_share: null,
@@ -228,7 +228,7 @@ const SALE = {
 };
 const RECEIPT = {
   collection: 7, item: 2, name: 'night-drive', seller: SELLER, buyer: ADDRESS,
-  price_sparks: SALE.breakdown.price_sparks, price_cgt: '4,500.00',
+  price_embers: SALE.breakdown.price_embers, price_cgt: '4,500.00',
   payouts: SALE.breakdown.payouts, tx_hash: '0x07', block_hash: '0x08',
 };
 const OUTAGE = 'the node did not answer: fixture outage while reading 2/7';
@@ -710,7 +710,7 @@ try {
   const buy = await evaluate(`window.__BUY_CALLS__`);
   check('buying sends one purchase, with the price and the fingerprint the host gave the dialog',
     buy.length === 1 && buy[0].from === ADDRESS && buy[0].collection === 7 && buy[0].item === 2 &&
-      buy[0].priceSparks === SALE.breakdown.price_sparks && buy[0].root === SALE.asset.current.root,
+      buy[0].priceEmbers === SALE.breakdown.price_embers && buy[0].root === SALE.asset.current.root,
     JSON.stringify(buy));
   check('the person is told it is theirs, at the price the chain settled',
     await eventually(`document.body.textContent.includes('Bought "night-drive" for 4,500.00 CGT.')`));

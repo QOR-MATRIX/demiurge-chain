@@ -14,7 +14,7 @@ import { Coins, Copy, Download, Fingerprint, Loader2, Share2 } from 'lucide-reac
 
 import { useQor } from '../state/store';
 import { Panel, Stat, ViewHeader } from '../views/parts';
-import { bytes, DISK_CHOICES, mesh, rate, short, toSparks, UPLOAD_CHOICES, type Held, type MeshStatus } from './model';
+import { bytes, DISK_CHOICES, mesh, rate, short, toEmbers, UPLOAD_CHOICES, type Held, type MeshStatus } from './model';
 
 function explain(e: unknown): string {
   return e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : String(e);
@@ -372,16 +372,16 @@ function EscrowForm({
   const terms = (() => {
     const n = Number(copies);
     const cap = Number(capMib);
-    const [s, v, d] = [toSparks(storage), toSparks(serving), toSparks(deposit)];
+    const [s, v, d] = [toEmbers(storage), toEmbers(serving), toEmbers(deposit)];
     if (!Number.isInteger(n) || n < 1 || n > 16 || !Number.isInteger(cap) || cap < 0 || s === null || v === null || d === null) return null;
     return {
       root: file.root,
       size: file.size,
       copies: n,
-      storagePriceSparks: s,
-      servingPricePerMibSparks: v,
+      storagePriceEmbers: s,
+      servingPricePerMibEmbers: v,
       servingCapPerPeriod: cap * 1024 * 1024,
-      depositSparks: d,
+      depositEmbers: d,
     };
   })();
 

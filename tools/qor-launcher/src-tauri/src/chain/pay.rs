@@ -41,10 +41,10 @@ impl ChainClient {
             ));
         }
         let balance = self.balance(from).await?;
-        let after = balance.checked_sub(request.amount_sparks).ok_or_else(|| {
+        let after = balance.checked_sub(request.amount_embers).ok_or_else(|| {
             QorError::InsufficientFunds {
                 have: balance.to_string(),
-                need: request.amount_sparks.to_string(),
+                need: request.amount_embers.to_string(),
             }
         })?;
 
@@ -58,7 +58,7 @@ impl ChainClient {
                             "dest",
                             Value::unnamed_variant("Id", [Value::from_bytes(to)]),
                         ),
-                        ("value", Value::u128(request.amount_sparks)),
+                        ("value", Value::u128(request.amount_embers)),
                     ],
                 )],
             ),
@@ -98,10 +98,10 @@ fn pay_prompt(
     chain_name: &str,
     endpoint: &str,
 ) -> Prompt {
-    let cgt = |sparks: u128| {
+    let cgt = |embers: u128| {
         format!(
             "{} {}",
-            crate::cgt::format_cgt_grouped(sparks),
+            crate::cgt::format_cgt_grouped(embers),
             crate::cgt::SYMBOL
         )
     };
@@ -113,7 +113,7 @@ fn pay_prompt(
              Chain: {chain_name} (checked: Demiurge Devnet)\nNode: {endpoint}\n\n\
              The request was signed by {app}. Approving signs this payment with your key and sends it. It cannot be \
              undone.",
-            amount = cgt(request.amount_sparks),
+            amount = cgt(request.amount_embers),
             label = request.label,
             app = request.app_name,
             to = request.to,
@@ -134,7 +134,7 @@ mod tests {
             app_name: "ARQADE",
             id: "0123456789abcdef".into(),
             to: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY".into(),
-            amount_sparks: 5 * 10u128.pow(18),
+            amount_embers: 5 * 10u128.pow(18),
             label: "Tip for Flux Four".into(),
             expires: 0,
         };

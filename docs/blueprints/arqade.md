@@ -93,7 +93,7 @@ Checked on 4 October 2026, and the runtime again on 6 October; recheck against t
   `spec_version` 8, `transaction_version` 2.
 - **No fees** (no transaction-payment pallet), **no treasury**, **no issuance**, **no randomness**, **no proxy**, **no
   sponsorship**. Fees are never estimated or shown, because there are none.
-- **CGT:** 18 decimals, integer Sparks, `1 CGT = 10^18 Sparks`, existential deposit 100 CGT, SS58 prefix 42
+- **CGT:** 18 decimals, integer embers, `1 CGT = 10^18 embers`, existential deposit 100 CGT, SS58 prefix 42
   (`chain/runtime/src/denomination.rs`). Devnet CGT is **test CGT**; say which network wherever value moves.
 - **Accounts:** AccountId32, SS58, Sr25519, derived as the ecosystem derives them (ADR-023). No key is ever made from
   a username or an email address.
@@ -155,7 +155,7 @@ approval, and delegated authority is only ever what the chain enforces (M5.2), n
 
 - One typed boundary against the connected runtime's metadata. Check the genesis hash before anything else; detect
   an endpoint or runtime change; refuse a wrong network.
-- Integer Sparks end to end, as decimal strings in JSON. Reject excess precision and overflow. No floating point for
+- Integer embers end to end, as decimal strings in JSON. Reject excess precision and overflow. No floating point for
   any amount, price, payout or comparison. Spendable balance accounts for reserves, holds, freezes and the
   existential deposit.
 - Follow finalised heads with reconnect and backoff; show connection state and data age; keep a last-known value as

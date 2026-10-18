@@ -131,22 +131,28 @@ export interface TokenInfo {
   symbol: string;
   name: string;
   decimals: number;
+  /** The unit people see and type: the Spark, a thousandth of a CGT (ADR-101). */
   sub_unit: string;
+  sub_units_per_cgt?: number;
+  /** The chain's atomic unit: the ember. */
+  atomic_unit?: string;
 }
 
 export interface Balance {
   address: string;
-  /** Integer Sparks as a decimal string. `u128` does not fit in a JS number. */
-  sparks: string;
+  /** Integer embers as a decimal string. `u128` does not fit in a JS number. */
+  embers: string;
   cgt: string;
   display: string;
+  /** The same amount in Sparks, or in full as CGT when finer than a Spark (ADR-101). */
+  in_sparks?: string;
 }
 
 export interface TransferReceipt {
   tx_hash: string;
   from: string;
   to: string;
-  amount_sparks: string;
+  amount_embers: string;
   amount_cgt: string;
   /** The finalised block the transfer is in, not merely the one it entered. */
   block_hash: string;
@@ -156,7 +162,7 @@ export interface HistoryEntry {
   hash: string;
   from: string;
   to: string | null;
-  amount_sparks: string | null;
+  amount_embers: string | null;
   amount_cgt: string | null;
   nonce: number;
   block_number: number | null;
@@ -166,7 +172,7 @@ export interface HistoryEntry {
 
 export interface ClaimResult {
   success: boolean;
-  amount_sparks: string;
+  amount_embers: string;
   amount_cgt: string;
   message: string;
 }
@@ -494,8 +500,8 @@ export interface OwnedAsset {
 /** An asset's listing on chain: who is selling it, and for how much. */
 export interface ListingView {
   seller: string;
-  /** Integer Sparks as a decimal string. `u128` does not fit in a JS number. */
-  price_sparks: string;
+  /** Integer embers as a decimal string. `u128` does not fit in a JS number. */
+  price_embers: string;
   /** The price in CGT, grouped for reading. Display only. */
   price_cgt: string;
   /** Whoever listed it no longer holds the asset, so nobody can buy from it. */
@@ -517,7 +523,7 @@ export interface Payout {
   address: string;
   /** A royalty recipient's share. Null for the seller and for a source's recipients. */
   share: string | null;
-  amount_sparks: string;
+  amount_embers: string;
   amount_cgt: string;
   /** The recipient is the buyer, so this part never leaves their account. */
   to_buyer: boolean;
@@ -528,7 +534,7 @@ export interface Payout {
  * The chain's own answer, which the host asks it for; the view only draws it.
  */
 export interface Breakdown {
-  price_sparks: string;
+  price_embers: string;
   price_cgt: string;
   /** The asset this one was remixed from, when a sale owes it a share. */
   source: TradeItem | null;
@@ -559,7 +565,7 @@ export interface SaleView {
 export interface ListReceipt {
   collection: number;
   item: number;
-  price_sparks: string;
+  price_embers: string;
   price_cgt: string;
   tx_hash: string;
   block_hash: string;
@@ -579,7 +585,7 @@ export interface SaleReceipt {
   name: string;
   seller: string;
   buyer: string;
-  price_sparks: string;
+  price_embers: string;
   price_cgt: string;
   payouts: Payout[];
   tx_hash: string;
@@ -634,7 +640,7 @@ export interface Listing {
   category: string;
   details: ListingDetail[];
   price_cgt: string;
-  price_sparks: string;
+  price_embers: string;
   notes: string;
   created: number;
   updated: number;
@@ -684,11 +690,11 @@ export const sales = {
   unlist: (from: string, collection: number, item: number) =>
     call<UnlistReceipt>('drc369_unlist', { from, collection, item }),
   /**
-   * Buy a listed asset. `priceSparks` and `root` are what was on screen: if
+   * Buy a listed asset. `priceEmbers` and `root` are what was on screen: if
    * either has changed on chain, the host asks nobody and sends nothing.
    */
-  buy: (from: string, collection: number, item: number, priceSparks: string, root: string) =>
-    call<SaleReceipt>('drc369_buy', { from, collection, item, priceSparks, root }),
+  buy: (from: string, collection: number, item: number, priceEmbers: string, root: string) =>
+    call<SaleReceipt>('drc369_buy', { from, collection, item, priceEmbers, root }),
 };
 
 /** Whose listings the Market shows (`chain/market.rs`'s `Show`). */

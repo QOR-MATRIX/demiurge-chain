@@ -51,8 +51,8 @@ not invented here, under AGENTS.md §5.
 
 | Value | What | Record |
 | --- | --- | --- |
-| Precision | Eighteen decimals; `1 CGT = 10^18 Sparks` | ADR-035 |
-| Existential deposit | 100 CGT, `10^20` Sparks | ADR-036, deriving from ADR-030 |
+| Precision | Eighteen decimals; `1 CGT = 10^18 embers` | ADR-035 |
+| Existential deposit | 100 CGT, `10^20` embers | ADR-036, deriving from ADR-030 |
 | Ticker | `CGT` | ADR-045 |
 | Address prefix | 42, development and test networks only | ADR-024 |
 | Block production | Aura | ADR-019 |

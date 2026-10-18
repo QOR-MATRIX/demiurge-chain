@@ -536,7 +536,7 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
    taken from theme tokens; one type and spacing scale; the design system documented (reconciliation §7).
    Since 6 October 2026 ADR-080 allows those effects again (§5); the tokens and scales still bind.
 2. [x] Accessibility settings that take effect: the contrast override and the motion preference.
-3. [x] Amounts never pass through JavaScript numbers; no raw Spark counts in user-facing views; no
+3. [x] Amounts never pass through JavaScript numbers; no raw ember counts in user-facing views; no
    2-decimal fallback.
 4. [ ] Host-side confirmation before any signature, except the QOR ID sign-in or name claim that directly
    follows unlocking or creating the vault, which opening the vault approves (ADR-016; since ADR-056 nothing is asked to open it). The webview cannot
@@ -844,6 +844,21 @@ L10.2, because finding who holds a root reads the escrow's assignments on chain.
 6. [ ] Demiurge's own relays, in place of n0's public ones.
 7. [ ] The takedown list seeders refuse, kept by the root origin (ADR-096).
 
+#### L11: Sparks and embers (ADR-101; depends on nothing)
+
+1. [ ] A Spark is a thousandth of a CGT and the ember the atomic unit, everywhere: the chain's documentation and
+   constants (`SPARK`, embers in every comment), the launcher's parsing and display (CGT to three decimals or Sparks,
+   exact beyond that, embers on the wire with the old `sparks` name read for one release), QOR ID, ARQADE and its SDK,
+   QQ, and every current document. No amount changes.
+
+#### L12: The launcher on Qt, in stages (ADR-103)
+
+1. [ ] Stage 1: new surfaces are Qt applications docked under the product host (QQ Studio, QOR Media, ARQADE).
+2. [ ] Stage 2: a Qt shell linking the Rust host through a typed bridge (CXX-Qt), the host and its tests unchanged, the
+   shell unable to reach a key and a check proving it. Needs its own record first.
+3. [ ] Stage 3: each React surface rebuilt in the Qt shell, one at a time, each with its own checks before the React one
+   is retired.
+
 ### The product tracks
 
 One track per product, added on 21 September 2026 at the owner's instruction, in the form ADR-050
@@ -1142,7 +1157,7 @@ here sets an economic value; payouts are U-16.
    pending" that read nothing, and the terminal's `chain` printing "block #undefined"); the 13 inherited lint errors
    fixed and lint made a CI gate. Each solo game was played in headless Chrome after the fixes, with no page errors.
 2. [x] Live reads from Demiurge Devnet, read-only: the genesis hash checked, the finalised head, an account's CGT
-   balance in integer Sparks, and its DRC-369 inventory from finalised state, shown stale rather than zero on loss.
+   balance in integer embers, and its DRC-369 inventory from finalised state, shown stale rather than zero on loss.
 
    **Done 4 October 2026.** `lib/chain.ts` checks the genesis and name and reads the finalised and best heads
    (`/api/chain`); `lib/account.ts` reads `System::Account` and `Drc369Api_assets_of` at the finalised block and decodes
@@ -1255,6 +1270,20 @@ here sets an economic value; payouts are U-16.
     travels in an address). Without a session, or if QOR ID refuses, QOR ID's page shows. Three QOR ID tests, three
     more host tests, and the flow is in the log check. **Not yet:** QOR ID deployed with the route, and a person using
     it in the running launcher, which come before the tick.
+
+19. [ ] ARQADE in the launcher on Qt (ADR-102): `products/arqade/qt/`, docked under the product host, signed in with the
+    launcher's QOR ID, Qt Quick and Qt Quick 3D throughout, holding no key. Its home, the games, rankings and the
+    player's Sparks.
+20. [ ] The four solo games rebuilt in QQ (ADR-102): Rift Survivor, Void Runner, Synapse and Orbital, in 3D with
+    physically based materials, bloom, particles and spatial sound, keyboard, mouse and gamepad, reduced motion
+    honoured, each deterministic for a seed and its inputs.
+21. [ ] The platform reward pool on the devnet (ADR-102): ARQADE's own Cartridge and ARQ Wallet, funded with test CGT by
+    the owner, whose policy (largest payout, epoch budget, per-player cap, the games' rule versions) the owner sets.
+22. [ ] Runs confirmed by replay (ADR-102): a seed from the ARQADE service, the run's inputs replayed by the service with
+    the same rules, and Sparks paid from the pool for the outcome the replay reaches, once. Depends on P7.20 and P7.21.
+23. [ ] The website without Energy (ADR-102): the Energy store, Energy Tokens and local token wallet removed; its own
+    games point to the launcher.
+24. [ ] The two multiplayer arenas rebuilt in QQ (ADR-102), on the ARQADE service. Depends on P7.19.
 
 ## 8. Scope
 

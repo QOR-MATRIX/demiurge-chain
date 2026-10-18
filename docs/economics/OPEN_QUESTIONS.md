@@ -103,7 +103,7 @@ different trust and language problem. Unknown.
 
 ### U-3: what "credits" is
 
-"Credits" is the working name for the legible display unit. Whether a credit is a fixed multiple of
+"Credits" is the working name for the legible display unit. **Part answered by ADR-101** (18 October 2026): the **Spark**, a thousandth of a CGT, is the legible unit people see and type; the atomic unit is the ember. Whether a stable display unit is converted to CGT at settlement stays open. Whether a credit is a fixed multiple of
 CGT (a formatting choice) or the stable unit of U-2 (a conversion) is not stated. The two are different
 things with different failure modes. Unknown.
 
@@ -275,6 +275,12 @@ demand to spend. Three things are undecided, and none has a value:
 
 On the devnet ARQADE builds and tests the whole loop with test CGT and values marked as placeholders. In production
 nothing is paid out until this item is decided and removed.
+
+**Free play rewarded in Sparks, 18 October 2026 (ADR-102).** The owner asked for players to be rewarded in Sparks for
+play, with Energy removed, and chose one **platform reward pool** over each game's own wallet: ARQADE's own ARQ Wallet,
+funded by the owner with test CGT, paying only for runs the ARQADE service has replayed. Play is free, so no entry leads
+to a prize. Still undecided here, for production: whether a reward for free play is allowed at all and what may fund it
+(the spend test: the pool names no demand sink), and every amount, budget and cap, which are the pool's governor's.
 
 ### U-17: backing a game in CGT
 

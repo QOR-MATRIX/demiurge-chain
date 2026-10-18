@@ -487,7 +487,7 @@ fn the_largest_amounts_cannot_overflow() {
             None,
             "refused, not wrapped"
         );
-        // The whole base supply (10^14 CGT at 18 decimals, 10^32 Sparks) per MiB, for a TiB: fits, exactly.
+        // The whole base supply (10^14 CGT at 18 decimals, 10^32 embers) per MiB, for a TiB: fits, exactly.
         let supply = 10u128.pow(32);
         assert_eq!(
             Mesh::serving_cost(supply, 1 << 40),

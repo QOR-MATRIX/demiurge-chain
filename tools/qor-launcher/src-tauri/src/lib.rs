@@ -456,7 +456,7 @@ pub struct LauncherState {
 
 /// Static facts about CGT, so the UI never hardcodes them.
 ///
-/// **No supply figure.** This struct carried `total_supply_sparks` and
+/// **No supply figure.** This struct carried `total_supply_embers` and
 /// `total_supply_cgt`, which the Settings surface showed as "Total supply", at
 /// the fixed 13,000,000,000 ADR-003 superseded. There is nothing to replace it
 /// with: the base supply is released over a decay curve and complemented by
@@ -469,7 +469,11 @@ pub struct TokenInfo {
     pub symbol: &'static str,
     pub name: &'static str,
     pub decimals: u32,
+    /// The unit people see and type: the Spark, a thousandth of a CGT (ADR-101).
     pub sub_unit: &'static str,
+    pub sub_units_per_cgt: u32,
+    /// The chain's atomic unit: the ember, 10^-18 CGT (ADR-101).
+    pub atomic_unit: &'static str,
 }
 
 impl Default for TokenInfo {
@@ -479,6 +483,8 @@ impl Default for TokenInfo {
             name: cgt::NAME,
             decimals: cgt::DECIMALS,
             sub_unit: "Spark",
+            sub_units_per_cgt: cgt::SPARKS_PER_CGT as u32,
+            atomic_unit: "ember",
         }
     }
 }
@@ -487,9 +493,23 @@ impl Default for TokenInfo {
 #[derive(Serialize)]
 pub struct Balance {
     pub address: String,
-    pub sparks: String,
+    pub embers: String,
     pub cgt: String,
     pub display: String,
+    /// The same amount in Sparks (ADR-101), or in full as CGT when it is finer than a Spark.
+    pub in_sparks: String,
+}
+
+impl Balance {
+    fn of(address: String, embers: u128) -> Self {
+        Self {
+            address,
+            embers: embers.to_string(),
+            cgt: cgt::format_cgt(embers),
+            display: format!("{} {}", cgt::format_cgt_grouped(embers), cgt::SYMBOL),
+            in_sparks: cgt::format_sparks(embers),
+        }
+    }
 }
 
 // ───────────────────────────── commands: shell ──────────────────────────────
@@ -917,12 +937,12 @@ async fn profile_other_accounts(
             continue;
         }
         let nonce = state.chain.nonce(&address).await.unwrap_or(0);
-        let sparks = state.chain.balance(&address).await.unwrap_or(0);
-        if nonce > 0 || sparks > 0 {
+        let embers = state.chain.balance(&address).await.unwrap_or(0);
+        if nonce > 0 || embers > 0 {
             found.push(OtherAccount {
                 index,
                 address,
-                balance: format!("{} {}", cgt::format_cgt_grouped(sparks), cgt::SYMBOL),
+                balance: format!("{} {}", cgt::format_cgt_grouped(embers), cgt::SYMBOL),
             });
         }
     }
@@ -1025,26 +1045,17 @@ async fn cgt_balance(
     state: tauri::State<'_, AppState>,
     address: String,
 ) -> Result<Balance, QorError> {
-    let sparks = state.chain.balance(&address).await?;
-    Ok(Balance {
-        address,
-        sparks: sparks.to_string(),
-        cgt: cgt::format_cgt(sparks),
-        display: format!("{} {}", cgt::format_cgt_grouped(sparks), cgt::SYMBOL),
-    })
+    let embers = state.chain.balance(&address).await?;
+    Ok(Balance::of(address, embers))
 }
 
 /// Parse a human amount and report it back, so the UI can preview a send
 /// without duplicating denomination logic in TypeScript.
 #[tauri::command]
 fn cgt_parse_amount(amount: String) -> Result<Balance, QorError> {
-    let sparks = cgt::parse_cgt(&amount)?;
-    Ok(Balance {
-        address: String::new(),
-        sparks: sparks.to_string(),
-        cgt: cgt::format_cgt(sparks),
-        display: format!("{} {}", cgt::format_cgt_grouped(sparks), cgt::SYMBOL),
-    })
+    // CGT or Sparks, as typed (ADR-101).
+    let embers = cgt::parse_amount(&amount)?;
+    Ok(Balance::of(String::new(), embers))
 }
 
 /// Sign and submit a CGT transfer.
@@ -1056,10 +1067,10 @@ async fn cgt_send(
     to: String,
     amount: String,
 ) -> Result<TransferReceipt, QorError> {
-    let sparks = cgt::parse_cgt(&amount)?;
+    let embers = cgt::parse_amount(&amount)?;
     let receipt = state
         .chain
-        .transfer(&state.vault, &HostDialog(app), &from, &to, sparks)
+        .transfer(&state.vault, &HostDialog(app), &from, &to, embers)
         .await?;
     Ok(receipt)
 }
@@ -1221,8 +1232,8 @@ async fn drc369_sale_preview(
     item: u32,
     price: String,
 ) -> Result<chain::sales::Breakdown, QorError> {
-    let sparks = cgt::parse_cgt(&price)?;
-    state.chain.sale_preview(collection, item, sparks).await
+    let embers = cgt::parse_amount(&price)?;
+    state.chain.sale_preview(collection, item, embers).await
 }
 
 /// List an asset for sale at a price in CGT, or change its price, through the
@@ -1237,7 +1248,7 @@ async fn drc369_list(
     price: String,
 ) -> Result<chain::sales::ListReceipt, QorError> {
     // Exact, or refused: excess precision is never rounded away (AGENTS.md §5).
-    let sparks = cgt::parse_cgt(&price)?;
+    let embers = cgt::parse_amount(&price)?;
     state
         .chain
         .list(
@@ -1246,7 +1257,7 @@ async fn drc369_list(
             &from,
             collection,
             item,
-            sparks,
+            embers,
         )
         .await
 }
@@ -1266,7 +1277,7 @@ async fn drc369_unlist(
         .await
 }
 
-/// Buy a listed asset. `price_sparks` and `root` are what the buyer was shown:
+/// Buy a listed asset. `price_embers` and `root` are what the buyer was shown:
 /// if either has changed on chain, nobody is asked and nothing is sent.
 #[tauri::command]
 async fn drc369_buy(
@@ -1275,10 +1286,10 @@ async fn drc369_buy(
     from: String,
     collection: u32,
     item: u32,
-    price_sparks: String,
+    price_embers: String,
     root: String,
 ) -> Result<chain::sales::SaleReceipt, QorError> {
-    let seen = price_sparks
+    let seen = price_embers
         .parse::<u128>()
         .map_err(|_| QorError::BadAmount("the price that was shown is not a number".into()))?;
     state
@@ -1290,7 +1301,7 @@ async fn drc369_buy(
             collection,
             item,
             chain::sales::Seen {
-                price_sparks: seen,
+                price_embers: seen,
                 root: &root,
             },
         )
@@ -1930,7 +1941,7 @@ fn handle_pay_link(app: tauri::AppHandle, link: String) {
                 format!(
                     "{} {} paid to {} for \"{}\".\n\nIt is final on Demiurge Devnet. {} will see it shortly.\n\n\
                      Transaction: {}",
-                    cgt::format_cgt_grouped(request.amount_sparks),
+                    cgt::format_cgt_grouped(request.amount_embers),
                     cgt::SYMBOL,
                     request.to,
                     request.label,

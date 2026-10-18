@@ -27,20 +27,20 @@ export interface PaidStatus {
   account: string | null;
   holdings: { escrow: number; root: string; size: number; answered: number | null }[];
   pendingReceipts: number;
-  paidSparks: string;
+  paidEmbers: string;
   paidCgt: string;
-  payments: { kind: 'storage' | 'serving'; escrow: number | null; paidSparks: string; paidCgt: string; blockHash: string }[];
+  payments: { kind: 'storage' | 'serving'; escrow: number | null; paidEmbers: string; paidCgt: string; blockHash: string }[];
 }
 
-/** What an uploader asks of an escrow. Every price is theirs, in Sparks as a decimal string. */
+/** What an uploader asks of an escrow. Every price is theirs, in embers as a decimal string. */
 export interface EscrowTerms {
   root: string;
   size: number;
   copies: number;
-  storagePriceSparks: string;
-  servingPricePerMibSparks: string;
+  storagePriceEmbers: string;
+  servingPricePerMibEmbers: string;
   servingCapPerPeriod: number;
-  depositSparks: string;
+  depositEmbers: string;
 }
 
 export interface Held {
@@ -61,14 +61,14 @@ export const mesh = {
 };
 
 /**
- * An amount typed in CGT, as a whole number of Sparks (18 decimals), exactly: no floating point touches it, and more
+ * An amount typed in CGT, as a whole number of embers (18 decimals), exactly: no floating point touches it, and more
  * than 18 decimals is refused rather than cut (AGENTS.md §5). Null when it is not an amount.
  */
-export function toSparks(cgt: string): string | null {
+export function toEmbers(cgt: string): string | null {
   const m = /^(\d+)(?:\.(\d{1,18}))?$/.exec(cgt.trim());
   if (!m) return null;
-  const sparks = BigInt(m[1] ?? '0') * 10n ** 18n + BigInt((m[2] ?? '').padEnd(18, '0') || '0');
-  return sparks.toString();
+  const embers = BigInt(m[1] ?? '0') * 10n ** 18n + BigInt((m[2] ?? '').padEnd(18, '0') || '0');
+  return embers.toString();
 }
 
 const GIB = 1024 ** 3;

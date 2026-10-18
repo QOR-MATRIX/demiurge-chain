@@ -6,10 +6,10 @@
 
 /// Decimal places (ADR-035).
 ///
-/// `1 CGT = 10^18 Sparks`, and the Spark is the atomic, indivisible unit.
+/// `1 CGT = 10^18 embers`, and the ember is the atomic, indivisible unit.
 ///
 /// Headroom: at the base supply of 100,000,000,000,000 CGT (ADR-003) the full
-/// supply is `10^32` Sparks against `u128`'s ceiling of about `3.4 × 10^38`, so
+/// supply is `10^32` embers against `u128`'s ceiling of about `3.4 × 10^38`, so
 /// about six orders of magnitude spare. That is enough for the SDK's own
 /// arithmetic, which was checked rather than assumed: `PerThing` divides before
 /// it multiplies, and `multiply_by_rational_with_rounding` uses a 256-bit
@@ -18,11 +18,15 @@
 /// requires the SDK's helpers for scaled arithmetic.
 pub const DECIMALS: u8 = 18;
 
-/// One CGT, in Sparks.
+/// One CGT, in embers.
 pub const CGT: u128 = 10u128.pow(DECIMALS as u32);
 
+/// One Spark, in embers: a thousandth of a CGT (ADR-101). The unit people see and type, and the unit players are
+/// rewarded in. Nothing on chain is denominated in it; every balance stays a whole number of embers.
+pub const SPARK: u128 = CGT / 1_000;
+
 /// The minimum balance an account must hold to be kept in state: 100 CGT
-/// (ADR-036), which is `10^20` Sparks.
+/// (ADR-036), which is `10^20` embers.
 ///
 /// Derived from the owner's target, never picked (ADR-030): sponsoring a
 /// million accounts costs a negligible share of the sponsorship budget, while
@@ -66,6 +70,13 @@ mod tests {
         assert_eq!(CGT, 1_000_000_000_000_000_000);
         assert_eq!(EXISTENTIAL_DEPOSIT, 100 * CGT);
         assert_eq!(EXISTENTIAL_DEPOSIT, 100_000_000_000_000_000_000);
+    }
+
+    /// A Spark is a thousandth of a CGT, a whole number of embers (ADR-101).
+    #[test]
+    fn a_spark_is_a_thousandth_of_a_cgt() {
+        assert_eq!(SPARK * 1_000, CGT);
+        assert_eq!(SPARK, 1_000_000_000_000_000);
     }
 
     /// ADR-030 derived 100 CGT from two constraints. Asserting the constant

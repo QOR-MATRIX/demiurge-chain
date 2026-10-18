@@ -268,7 +268,7 @@ export function TradeDialog({ from, held, start, onSent, onClose }: Props) {
                   in motion, the two headings say in words — so it is hidden
                   from assistive technology. */}
               <div className="trade-lane" aria-hidden="true" data-trade-lane>
-                {!stillnessWanted() && <span key={travel} className="trade-spark" />}
+                {!stillnessWanted() && <span key={travel} className="trade-ember" />}
               </div>
 
               {/* Where they go. */}
