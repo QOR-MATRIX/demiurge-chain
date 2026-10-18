@@ -1,0 +1,65 @@
+<!doctype html>
+<!-- The share image (og.png, 1200 × 630), rendered by render-images.mjs. Not served. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Barlow+Semi+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@500&display=block">
+<style>
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #06070a; }
+  .card {
+    position: relative; width: 1200px; height: 630px; box-sizing: border-box; padding: 92px 90px;
+    background:
+      radial-gradient(700px 500px at 82% 20%, rgba(255, 106, 0, 0.18), transparent 65%),
+      radial-gradient(600px 500px at 0% 100%, rgba(201, 164, 92, 0.10), transparent 60%),
+      #06070a;
+    color: #f3ede1;
+  }
+  .frame { position: absolute; inset: 22px; border: 1px solid rgba(201, 164, 92, 0.32); }
+  .frame::before, .frame::after { content: ""; position: absolute; width: 26px; height: 26px; border: 2px solid #c9a45c; }
+  .frame::before { left: -2px; top: -2px; border-right: 0; border-bottom: 0; }
+  .frame::after { right: -2px; bottom: -2px; border-left: 0; border-top: 0; }
+  svg.astro { position: absolute; right: -90px; top: -40px; width: 700px; height: 700px; }
+  .eyebrow { font: 600 22px/1 "Barlow Semi Condensed", sans-serif; letter-spacing: 0.34em; text-transform: uppercase; color: #c9a45c; }
+  h1 {
+    margin: 26px 0 26px -4px; font: 700 132px/0.95 "Cinzel", serif; letter-spacing: 0.06em; text-transform: uppercase;
+    background: linear-gradient(100deg, #8a6c3a 0%, #ead39a 22%, #fff4d6 32%, #c9a45c 48%, #ead39a 72%, #b8904d 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 30px rgba(201, 164, 92, 0.35));
+  }
+  p { margin: 0; max-width: 640px; font: 500 38px/1.25 "Barlow Semi Condensed", sans-serif; }
+  .url { position: absolute; left: 90px; bottom: 74px; font: 500 26px/1 "IBM Plex Mono", monospace; color: #ff9142; }
+  .url::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 16px; border-radius: 50%; background: #ff6a00; box-shadow: 0 0 18px #ff6a00; vertical-align: 2px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <svg class="astro" viewBox="-350 -350 700 700" fill="none">
+      <g stroke="rgba(201,164,92,0.30)" stroke-width="1.2">
+        <circle r="300"/><circle r="258"/><circle r="186"/><circle r="102"/>
+        <path d="M0 -186 L161 93 L-161 93 Z"/><path d="M186 0 L0 186 L-186 0 L0 -186 Z" transform="rotate(20)"/>
+      </g>
+      <g stroke="rgba(201,164,92,0.5)" stroke-width="1.2" id="ticks"></g>
+      <g stroke="rgba(255,106,0,0.55)" stroke-width="2.4">
+        <path d="M102 0 A102 102 0 0 1 78 66"/><path d="M-51 88 A102 102 0 0 1 -101 14"/><path d="M-51 -88 A102 102 0 0 1 27 -98"/>
+      </g>
+      <circle cx="258" cy="0" r="5" fill="#ff6a00"/>
+      <circle r="8" fill="#ff6a00"/>
+    </svg>
+    <div class="frame"></div>
+    <div class="eyebrow">Substrate L1 · Polkadot SDK</div>
+    <h1>Demiurge</h1>
+    <p>The chain that pays creators when their work is used.</p>
+    <div class="url">qorsync.dev</div>
+  </div>
+  <script>
+    const g = document.getElementById('ticks');
+    for (let i = 0; i < 72; i++) {
+      const a = (i / 72) * Math.PI * 2, len = i % 6 === 0 ? 18 : 7, R = 300;
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      l.setAttribute('x1', Math.cos(a) * R); l.setAttribute('y1', Math.sin(a) * R);
+      l.setAttribute('x2', Math.cos(a) * (R - len)); l.setAttribute('y2', Math.sin(a) * (R - len));
+      g.appendChild(l);
+    }
+  </script>
+</body>
+</html>

@@ -8,8 +8,8 @@ Makers earn when their work is used, licensed or remixed — on one sign-in, one
 [![Pleroma CI](https://github.com/QOR-MATRIX/demiurge-chain/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/QOR-MATRIX/demiurge-chain/actions/workflows/ci.yml)
 &nbsp;·&nbsp; Apache-2.0 &nbsp;·&nbsp; Pre-release, unaudited, test value only
 
-[Where work stands](HANDOFF.md) · [Roadmap](docs/DIRECTION.md) · [Decisions](docs/DECISIONS.md) ·
-[The economic model](docs/economics/CGT.md) · [What the chain does](docs/protocol/PROTOCOL.md)
+**[qorsync.dev](https://qorsync.dev)** · [Where work stands](HANDOFF.md) · [Roadmap](docs/DIRECTION.md) ·
+[Decisions](docs/DECISIONS.md) · [The economic model](docs/economics/CGT.md) · [What the chain does](docs/protocol/PROTOCOL.md)
 
 </div>
 
@@ -18,8 +18,9 @@ Makers earn when their work is used, licensed or remixed — on one sign-in, one
 ## What Demiurge is
 
 Demiurge is a **Substrate layer 1 on the Polkadot SDK** whose currency is **CGT, the Creator God Token**, and a
-family of products built on it: the **QOR Launcher** on the desktop, **QOR ID** for signing in everywhere, **ARQADE**
-for games, and **QQ**, the QOR Engine, for building them. Every product shares the same four primitives:
+family of products built on it: the **QOR Launcher** on the desktop, **QOR ID** for signing in everywhere, **Social** for
+chat, **ARQADE** for games, **the Mesh**, where launchers hold and serve each other's published work, and **QQ**, the QOR
+Engine, for building games. Every product shares the same four primitives:
 
 | Primitive | What it is |
 | --- | --- |
@@ -32,10 +33,11 @@ for games, and **QQ**, the QOR Engine, for building them. Every product shares t
 
 | Service | Where | What it does |
 | --- | --- | --- |
-| **Demiurge Devnet** | `wss://rpc.qorsync.dev` | Two validators and a public node; DRC-369 assets, royalties, ARQ Wallets (one payout account per game) |
+| **Demiurge Devnet** | `wss://rpc.qorsync.dev` | Two validators and a public node at runtime 9; DRC-369 assets, royalties, ARQ Wallets (one payout account per game) and the Mesh's escrows |
 | **QOR ID** | [id.qorsync.dev](https://id.qorsync.dev) | Sign-in by key or password, sign-in for other apps, levels and XP, avatars |
+| **Social** | inside the launcher | Chat: a World room, friends and circles, rooms with levels, translation on the reader's own PC |
 | **ARQADE** | [qor-arqade-tau.vercel.app](https://qor-arqade-tau.vercel.app) | Solo and multiplayer games, rankings, chat, devnet reads, tips approved in the launcher |
-| **QOR Launcher** | `tools/qor-launcher/` (0.1.8, unsigned installer) | The vault, sending and minting, Inventory, the Market, Projects, the QFX backdrops, ARQADE in its own window, QQ's preview |
+| **QOR Launcher** | [0.1.12 for Windows](https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.12) (unsigned tester build) | The vault, sending and minting, Inventory, the Market, Projects, the Library with QOR Media, Social, the Mesh, ARQADE in its own window |
 
 There is **no production network**, and nothing here should hold real value. The economic model is decided in
 direction but not implemented: no issuance, treasury or transaction fee exists, because each needs a number that is
@@ -62,8 +64,10 @@ flowchart LR
 
 | Product | Status |
 | --- | --- |
-| **QOR Launcher** — the desktop home: vault, assets, market, projects | Built; signed installer and updates to come (L6) |
+| **QOR Launcher** — the desktop home: vault, assets, market, projects, Library | Built, 0.1.12 for testers; signed installer and updates to come (L6) |
 | **QOR ID** — one sign-in for everything | Live |
+| **Social** — chat in the launcher | Live |
+| **The Mesh** — launchers holding and serving published work, paid from the uploader's escrow for proven work | Live on the devnet |
 | **ARQADE** — games played with a QOR ID, collectibles as DRC-369 assets | Live on the devnet |
 | **QQ, the QOR Engine** — virtual worlds on Qt 6, with an agent that designs and builds ([ADR-083](docs/decisions/ADR-083-qq-on-qt.md)) | QQ Studio on Qt 6.12 edits lit 3D worlds, saved as canonical QML in a project and opened from the launcher (P3.1 done); worlds that play are next |
 | **Qontrol** — versioning for creators | Built in the launcher |
@@ -76,7 +80,10 @@ flowchart LR
 | --- | --- | --- |
 | [`chain/`](chain/README.md) | The chain: runtime, node, and `pallet-validator-set`, `pallet-drc369`, `pallet-drc369-royalties`, `pallet-arq-wallet` (ADR-013, ADR-032) | Active |
 | `services/qor-auth/` | QOR ID (Rust, Axum, Postgres, Redis) | Active |
+| `services/social/` | Social (Rust, Postgres, one WebSocket per client) | Active |
 | `tools/qor-launcher/` | The QOR Launcher (Tauri 2, Rust host, React) | Active |
+| `tools/qor-media/` | QOR Media, the Library's player, viewer and editor (Qt 6) | Active |
+| [`site/`](site/README.md) | [qorsync.dev](https://qorsync.dev), the project's homepage (ADR-100) | Active |
 | `products/arqade/` | ARQADE (Next.js on Vercel) and its developer SDK (ADR-069, ADR-074) | Active |
 | [`products/qq/`](products/qq/README.md) | QQ on Qt 6 (ADR-083): the runtime module, QQ Studio and its render tests | Active, built on the owner's machine |
 | `apps/`, `cli/`, `sdk/`, `packages/`, `client/` | Clients built for the pre-realignment protocol | Frozen (D-011) |
@@ -92,7 +99,7 @@ cd tools/qor-launcher && npm run app:dev    # the launcher
 cd products/arqade && npm test              # ARQADE
 ```
 
-Every pull request runs the chain, QOR ID, the launcher with ten browser checks, ARQADE, coverage and a security scan
+Every pull request runs the chain, QOR ID, Social, the launcher with fourteen browser checks, ARQADE, coverage and a security scan
 on GitHub Actions. Release gates are measured, not asserted: [`docs/GATES.toml`](docs/GATES.toml).
 
 ## Principles
