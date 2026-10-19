@@ -431,7 +431,8 @@ QStringList SceneIO::kinds() const
             QStringLiteral("Sun"),    QStringLiteral("Ground"),  QStringLiteral("Player"),
             QStringLiteral("Emitter"), QStringLiteral("Sound"),  QStringLiteral("Behaviour"),
             QStringLiteral("Trigger"), QStringLiteral("ScreenText"), QStringLiteral("ScreenBar"),
-            QStringLiteral("ScreenButton"), QStringLiteral("ScreenImage"), QStringLiteral("ScreenPanel")};
+            QStringLiteral("ScreenButton"), QStringLiteral("ScreenImage"), QStringLiteral("ScreenPanel"),
+            QStringLiteral("InputAction")};
 }
 
 QVariantList SceneIO::entities(QObject *scene) const

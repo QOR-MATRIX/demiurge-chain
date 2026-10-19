@@ -846,6 +846,12 @@ private slots:
         s.window->grabWindow().save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-orb-run-paused.png")));
         QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(s.drawn(QStringLiteral("Resume"))));
         QVERIFY(s.runUntil([&] { return !s.scene->property("paused").toBool() && !paused->isVisible(); }, 3000));
+
+        // Its pause action (P3.9): P holds the world and shows the pause screen, and P again lets it go on.
+        QTest::keyClick(s.window.get(), Qt::Key_P);
+        QVERIFY(s.runUntil([&] { return s.scene->property("paused").toBool() && paused->isVisible(); }, 3000));
+        QTest::keyClick(s.window.get(), Qt::Key_P);
+        QVERIFY(s.runUntil([&] { return !s.scene->property("paused").toBool() && !paused->isVisible(); }, 3000));
     }
 
     // ── the game's interface (P3.8, ADR-105) ──
@@ -1043,6 +1049,154 @@ private slots:
         const QColor ember = frame.pixelColor(middle);
         QVERIFY2(ember.red() > 230 && ember.green() > 80 && ember.green() < 130 && ember.blue() < 30,
                  qPrintable(ember.name()));
+    }
+
+    // ── input actions (P3.9, ADR-105) ──
+
+    void anActionIsHeldFromTheKeyboardTheMouseThePadAndAFinger()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/log.qml")),
+                  "import QQ\nLogic {\n    property string log: \"\"\n"
+                  "    onPressed: (action) => log += \"+\" + action + \";\"\n"
+                  "    onReleased: (action) => log += \"-\" + action + \";\"\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    InputAction { name: \"fire\"; keys: \"F, Mouse Right\"; pad: \"X\" }\n"
+                           "    InputAction { name: \"boost\" }\n"
+                           "    ScreenButton { name: \"Boost\"; anchor: \"bottom-right\"; text: \"Boost\"; action: \"boost\" }\n"
+                           "    Behaviour { name: \"Log\"; source: \"../logic/log.qml\" }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        qq::Input *input = s.input();
+        input->setReadsHardware(false);
+        QObject *logged = s.entity(QStringLiteral("Log"));
+        QVERIFY(s.runUntil([logged] { return logged->property("logic").value<QObject *>() != nullptr; }, 5000));
+        auto log = [logged] { return logged->property("logic").value<QObject *>()->property("log").toString(); };
+        auto clear = [logged] { logged->property("logic").value<QObject *>()->setProperty("log", QString()); };
+        s.run(200);
+        clear();
+
+        // The keyboard: held while the key is.
+        QTest::keyPress(s.window.get(), Qt::Key_F);
+        QCOMPARE(log(), QStringLiteral("+fire;"));
+        QVERIFY(input->held(QStringLiteral("fire")));
+        QTest::keyRelease(s.window.get(), Qt::Key_F);
+        QCOMPARE(log(), QStringLiteral("+fire;-fire;"));
+        QVERIFY(!input->held(QStringLiteral("fire")));
+
+        // The mouse, away from any button.
+        clear();
+        QTest::mouseClick(s.window.get(), Qt::RightButton, {}, QPoint(200, 120));
+        QCOMPARE(log(), QStringLiteral("+fire;-fire;"));
+
+        // The pad: X.
+        clear();
+        input->gamepadButtons({QStringLiteral("X")});
+        input->gamepadButtons({});
+        QCOMPARE(log(), QStringLiteral("+fire;-fire;"));
+
+        // A finger on a button that holds an action: the touch control.
+        clear();
+        QQuickItem *boost = s.drawn(QStringLiteral("Boost"));
+        QVERIFY(boost);
+        const QPoint centre = boost->mapToScene(QPointF(boost->width() / 2, boost->height() / 2)).toPoint();
+        QTest::mousePress(s.window.get(), Qt::LeftButton, {}, centre);
+        QVERIFY(input->held(QStringLiteral("boost")));
+        QTest::mouseRelease(s.window.get(), Qt::LeftButton, {}, centre);
+        QCOMPARE(log(), QStringLiteral("+boost;-boost;"));
+
+        // Jump and run are actions too, built in with their old bindings.
+        clear();
+        QTest::keyPress(s.window.get(), Qt::Key_Space);
+        QTest::keyRelease(s.window.get(), Qt::Key_Space);
+        QCOMPARE(log(), QStringLiteral("+jump;-jump;"));
+        QCOMPARE(input->describe(QStringLiteral("run")), QStringLiteral("Shift / Pad LS / Pad LB / Pad RB"));
+        QCOMPARE(input->describe(QStringLiteral("fire")), QStringLiteral("F / Mouse Right / Pad X"));
+    }
+
+    void aPlayerRebindsAnActionByPressingWhatTheyWant()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/log.qml")),
+                  "import QQ\nLogic {\n    property string log: \"\"\n"
+                  "    onPressed: (action) => log += \"+\" + action + \";\"\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    InputAction { name: \"fire\"; keys: \"F\"; pad: \"X\" }\n"
+                           "    Behaviour { name: \"Log\"; source: \"../logic/log.qml\" }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        qq::Input *input = s.input();
+        input->setReadsHardware(false);
+        QObject *logged = s.entity(QStringLiteral("Log"));
+        QVERIFY(s.runUntil([logged] { return logged->property("logic").value<QObject *>() != nullptr; }, 5000));
+        QObject *logic = logged->property("logic").value<QObject *>();
+        auto log = [logic] { return logic->property("log").toString(); };
+
+        // Asked from logic, as a controls screen would: the next key the player presses is the binding, and that press
+        // does nothing else.
+        QMetaObject::invokeMethod(logic, "rebind", Q_ARG(QVariant, QStringLiteral("fire")));
+        QCOMPARE(input->listening(), QStringLiteral("fire"));
+        QTest::keyPress(s.window.get(), Qt::Key_G);
+        QTest::keyRelease(s.window.get(), Qt::Key_G);
+        QCOMPARE(input->listening(), QString());
+        QCOMPARE(log(), QString());
+        QCOMPARE(input->describe(QStringLiteral("fire")), QStringLiteral("G / Pad X"));
+        QTest::keyPress(s.window.get(), Qt::Key_F);
+        QTest::keyRelease(s.window.get(), Qt::Key_F);
+        QCOMPARE(log(), QString());  // the old key no longer fires
+        QTest::keyPress(s.window.get(), Qt::Key_G);
+        QTest::keyRelease(s.window.get(), Qt::Key_G);
+        QCOMPARE(log(), QStringLiteral("+fire;"));
+
+        // The pad the same way: Y, held while it is named, counts for nothing until it is let go.
+        input->listen(QStringLiteral("fire"));
+        input->gamepadButtons({QStringLiteral("Y")});
+        QCOMPARE(input->describe(QStringLiteral("fire")), QStringLiteral("G / Pad Y"));
+        QCOMPARE(log(), QStringLiteral("+fire;"));
+        input->gamepadButtons({});
+        input->gamepadButtons({QStringLiteral("Y")});
+        QCOMPARE(log(), QStringLiteral("+fire;+fire;"));
+        input->gamepadButtons({});
+
+        // A built-in one too: jump on J, and Space no longer.
+        input->listen(QStringLiteral("jump"));
+        QTest::keyPress(s.window.get(), Qt::Key_J);
+        QTest::keyRelease(s.window.get(), Qt::Key_J);
+        QTest::keyPress(s.window.get(), Qt::Key_Space);
+        QCOMPARE(input->jump(), false);
+        QTest::keyRelease(s.window.get(), Qt::Key_Space);
+        QTest::keyPress(s.window.get(), Qt::Key_J);
+        QCOMPARE(input->jump(), true);
+        QTest::keyRelease(s.window.get(), Qt::Key_J);
+    }
+
+    void thePointerPicksWhatItIsOver()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/aim.qml")),
+                  "import QQ\nLogic {\n    property string over: \"\"\n"
+                  "    onFrame: (dt) => { const p = pointing(); over = p ? p.entity.name : \"nothing\" }\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    Shape { name: \"Target\"; position: Qt.vector3d(0, 1, 0); scale: Qt.vector3d(1.5, 1.5, 1.5) }\n"
+                           "    Behaviour { name: \"Aim\"; source: \"../logic/aim.qml\" }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        QObject *aim = s.entity(QStringLiteral("Aim"));
+        auto over = [aim] {
+            QObject *logic = aim->property("logic").value<QObject *>();
+            return logic ? logic->property("over").toString() : QString();
+        };
+        QVERIFY(s.runUntil([&] { return !over().isEmpty(); }, 5000));
+        // Where the target is on the screen, as the world projects it.
+        QVector3D onScreen;
+        QVERIFY(QMetaObject::invokeMethod(s.world, "mapFrom3DScene", Q_RETURN_ARG(QVector3D, onScreen),
+                                          Q_ARG(QVector3D, QVector3D(0, 1, 0))));
+        QTest::mouseMove(s.window.get(), QPoint(int(onScreen.x()), int(onScreen.y())));
+        QVERIFY2(s.runUntil([&] { return over() == QStringLiteral("Target"); }, 2000), qPrintable(over()));
+        QTest::mouseMove(s.window.get(), QPoint(s.window->width() / 2, 8));  // the sky
+        QVERIFY2(s.runUntil([&] { return over() == QStringLiteral("nothing"); }, 2000), qPrintable(over()));
+        QTest::mouseMove(s.window.get(), QPoint(s.window->width() / 2, s.window->height() - 8));  // the ground
+        QVERIFY2(s.runUntil([&] { return over() == QStringLiteral("Ground"); }, 2000), qPrintable(over()));
     }
 };
 

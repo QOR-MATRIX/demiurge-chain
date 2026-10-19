@@ -2,6 +2,9 @@
 // the world plays and its screen is shown, it sends `clicked`, which a Behaviour that targets it hands its logic
 // (`onClicked`). A target of 48 points tall or more, so a finger finds it; it lifts under the pointer, unless the person
 // asked for less motion.
+//
+// With an `action` (P3.9), it is also a touch control: the action is held while a finger, or the pointer, is on it, so
+// a phone plays with the same actions a keyboard and a gamepad have.
 
 import QtQuick
 import QQ
@@ -10,7 +13,7 @@ ScreenPart {
     id: button
 
     readonly property string kind: "ScreenButton"
-    readonly property var fields: ["name", "screen", "anchor", "insetX", "insetY", "width", "text", "colour"]
+    readonly property var fields: ["name", "screen", "anchor", "insetX", "insetY", "width", "text", "colour", "action"]
     readonly property var ranges: ({ insetX: [-2000, 2000], insetY: [-2000, 2000], width: [0, 1280] })
     readonly property var choices: ({ anchor: places })
 
@@ -20,6 +23,8 @@ ScreenPart {
     property string text: "Play"
     /// Its light: the edge and the glow when it is pointed at.
     property color colour: "#c9a45c"
+    /// An action it holds while pressed (InputAction, P3.9), or nothing.
+    property string action: ""
 
     /// Pressed, while the world plays and its screen is shown.
     signal clicked()
@@ -74,6 +79,9 @@ ScreenPart {
                 hoverEnabled: true
                 cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                 onClicked: button.clicked()
+                onPressed: if (button.action !== "") Input.hold(button.action, true)
+                onReleased: if (button.action !== "") Input.hold(button.action, false)
+                onCanceled: if (button.action !== "") Input.hold(button.action, false)
             }
         }
     }

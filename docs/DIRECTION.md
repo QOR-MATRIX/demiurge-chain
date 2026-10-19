@@ -1142,10 +1142,10 @@ P3.2 and on nothing on chain, and run in this order:
      suites pass. Five planted faults were each caught: the contact relay cut, a removed body left behind, timers
      never run, the player unheard by triggers, and rays with no view.
 
-8. [ ] **The game's interface.** A **Screen** kind drawn over the world, with text, bars, images and buttons that logic
+8. [x] **The game's interface.** A **Screen** kind drawn over the world, with text, bars, images and buttons that logic
    sets; title, pause and message screens; the design system's tokens; reduced motion.
 
-   **Built 19 October 2026** (branch `session/qq-interface`, not yet merged):
+   **Done 19 October 2026, merged (#57, at `f31443f`):**
    - ADR-105's "Screen kind" is built as five kinds on one base (`ScreenPart`): `ScreenText`, `ScreenBar`,
      `ScreenButton`, `ScreenImage` and `ScreenPanel`. Each is a plain entity the Studio's inspector and the agent's
      tools already edit, and each belongs to a named screen (`hud`, `title`, `pause`, …).
@@ -1166,6 +1166,25 @@ P3.2 and on nothing on chain, and run in this order:
      motion ignored, and a part drawn whatever its screen.
 9. [ ] **Input actions.** Named actions with default bindings for keyboard, mouse, gamepad and touch, rebound by the
    player; the pointer picking what it is over. Move, look, jump and run stay as built-in actions.
+
+   **Built 19 October 2026** (branch `session/qq-input`, not yet merged):
+   - **Declaring actions.** A scene names an action with an **InputAction** entity: keys and mouse buttons ("E,
+     Mouse Left") and gamepad buttons ("X, RT"). Every pad button is read, the triggers among them. A
+     `ScreenButton` with an `action` holds it under a finger, which is how touch controls work.
+   - **Built-ins.** Jump and run are built-in actions with their old bindings, so a scene or a player can rebind
+     them. Move and look stay fixed.
+   - **Logic** gains `onPressed`, `onReleased`, `held`, `rebind` (the player's next press becomes the binding for
+     that device, and that press does nothing else), `bindingOf`, and `pointing()`, the entity under the pointer.
+   - **The agent's** `input_set` holds actions by name.
+   - **Input events are read once, as they reach a window.** Qt then sends the same key on to the item with focus,
+     where it would have been seen twice.
+   - **Orb Run** pauses on P, on the pad's Start, or on its Pause button.
+   - **Evidence, on the owner's PC:**
+     - `tst_play` passes 26 cases, 3 of them new: an action from each device and a finger, rebinding keys, pad and
+       jump, and the pointer picking a shape, the sky and the ground.
+     - All eight suites pass in one run: 91 cases.
+     - Five planted faults were each caught: a press never announced, the naming press also firing, a finger
+       holding nothing, picking ignoring the pointer, and every event read twice.
 10. [ ] **2D.** `view: "2d"` with whole-number pixel scaling; **Sprite** (images and sheets, frame animation, lit or
     unlit); **TileMap** (instanced, imported from Tiled's JSON); bodies locked to the plane; a kinematic 2D player for
     platform and top-down games. The launcher preview's 2D scenes import as 2D QQ scenes.
