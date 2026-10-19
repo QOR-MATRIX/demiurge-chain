@@ -3,7 +3,7 @@
 // It starts the production build (`npm run build` first) and visits it as a phone: 390 by 844 CSS pixels, touch, a
 // mobile user agent. What it holds the site to:
 //   - nothing scrolls sideways;
-//   - the sections are a tab bar along the bottom, eight tabs, each a labelled target at least 44 by 44 pixels, and
+//   - the sections are a tab bar along the bottom, six tabs, each a labelled target at least 44 by 44 pixels, and
 //     a tab opens its section;
 //   - every button and link on the home screen, the arenas and the play screen is at least 44 by 44 pixels;
 //   - the world chat's button sits above the tab bar, not over it;
@@ -150,7 +150,7 @@ try {
   const bar = await evaluate(`(() => { const r = document.querySelector('.rail').getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, width: r.width }; })()`);
   check('the sections are a tab bar along the bottom, the whole width', bar.bottom >= 843 && bar.top >= 700 && bar.left === 0 && bar.width === 390, JSON.stringify(bar));
   const tabs = await evaluate(`[...document.querySelectorAll('.rail nav button')].map((b) => { const r = b.getBoundingClientRect(); return { w: r.width, h: r.height, label: getComputedStyle(b, '::after').content, name: b.getAttribute('aria-label') }; })`);
-  check('eight tabs, each 44 by 44 pixels or more', tabs.length === 8 && tabs.every((t) => t.w >= 44 && t.h >= 44), JSON.stringify(tabs.map((t) => `${Math.round(t.w)}x${Math.round(t.h)}`)));
+  check('six tabs, each 44 by 44 pixels or more', tabs.length === 6 && tabs.every((t) => t.w >= 44 && t.h >= 44), JSON.stringify(tabs.map((t) => `${Math.round(t.w)}x${Math.round(t.h)}`)));
   check('each tab is labelled under its icon and named for a screen reader', tabs.every((t) => t.label && t.label !== 'none' && t.label.length > 2 && t.name), tabs.map((t) => t.label).join(' '));
   check('the content takes the whole width', await evaluate(`document.querySelector('.body').getBoundingClientRect().left === 0`));
   const small = await smallTargets();

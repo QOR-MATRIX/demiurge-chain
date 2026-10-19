@@ -14,7 +14,7 @@ the same commit.
 
 | Source | What lives there | Who can change it |
 | --- | --- | --- |
-| **The browser** (`localStorage`) | `demiurge.local.v1`: practice Energy, practice tokens, plays, best scores, session ledger. `demiurge.portal.v1`: intro seen. `demiurge.project.v1`: the creator's draft. `demiurge.muted`: muted chat players. Keys kept from before the rename, so nobody loses progress | The visitor, on this device only. **None of it has value or reaches the chain** |
+| **The browser** (`localStorage`) | `demiurge.local.v1`: completed sessions and each world's best score (since 19 October 2026, P7.23: Energy, practice tokens and the session ledger are gone; older keys are read for these two and the rest ignored). `demiurge.portal.v1`: intro seen. `demiurge.project.v1`: the creator's draft. `demiurge.muted`: muted chat players. Keys kept from before the rename, so nobody loses progress | The visitor, on this device only. **None of it has value or reaches the chain** |
 | **The arcade service** (Postgres, ADR-074; `db/migrations/`) | Players (QOR ID accounts, by QOR ID), matches, standings, chat messages, reports, QOR ID sign-in and session tables (`qor_logins`, `qor_sessions`; `0001`); tips (`0002`); whether a player's first match was reported to QOR ID (`players.first_match_reported`; `0003`) | The server, from authenticated requests; rules in `lib/arena-engine.ts`, writes in `lib/arena-store.ts`, sign-in in `lib/qor-session.ts`, tips in `lib/tips.ts` |
 | **Demiurge Devnet** (`https://rpc.qorsync.dev`) | Finalized and best block, any account's test CGT and DRC-369 assets; a tip's payment, found in a finalised block | ARQADE holds no chain key and submits nothing; it signs only `qor://pay` requests, which the player's launcher pays. The genesis is checked before every read |
 | **The code** | The four solo games, their rules and copy | A release |
@@ -24,9 +24,8 @@ the same commit.
 | Control or display | Source | Permission | Persists | On failure | Verified |
 | --- | --- | --- | --- | --- | --- |
 | Brand "ARQADE · powered by Demiurge", page title | Code | — | — | — | Chrome, 5 Oct: title "ARQADE — powered by Demiurge" |
-| Sidebar views (Overview, Play Now, Multiplayer, Leaderboard, Creation Engine, Terminal, Energy Store, Rewards & Wallet) and URL `#hash` | Code; the view is read from the hash | Anyone | The hash | Unknown hash stays on the current view | Chrome: navigation by sidebar and by hash |
+| Sidebar views (Overview, Play Now, Multiplayer, Leaderboard, Creation Engine, Terminal; Energy Store and Rewards & Wallet removed 19 October 2026, P7.23) and URL `#hash` | Code; the view is read from the hash | Anyone | The hash | Unknown hash stays on the current view | Chrome: navigation by sidebar and by hash |
 | "Your cybercade · Season Zero" | Static copy | — | — | — | Read in the code |
-| Top bar Energy count | Browser (`demiurge.local.v1`) | Visitor | Browser | Unreadable storage resets to the initial 1,000 practice Energy | `page.tsx` validates every stored field |
 | **Connect QOR ID** | Opens the QOR Identity view, where **Sign in with QOR ID** starts the sign-in on QOR ID's own page (P7.3) | Anyone | — | — | Chrome: opens the view |
 | Live strip ("network … online", open lobbies, Global rankings) | Arcade service (`/api/live`, polled every 2 s while visible) | Signed in with QOR ID | — | Shows "connecting" and "—" when the service is unreachable or the visitor is not signed in | `tests/arena.test.mjs`; it shows "Network connecting" when not signed in with QOR ID (`/api/live` answers 401, and the notice says to sign in) |
 | Sidebar panel "Demiurge Devnet · Read-only · see QOR Identity" | Static pointer. **Was "Chain connection pending", which never read anything; replaced 5 Oct** | — | — | — | Chrome |
@@ -39,8 +38,8 @@ the same commit.
 | Display | Source | Notes | Verified |
 | --- | --- | --- | --- |
 | Hero, "Launch Rift Survivor" | Code | Opens the game | Chrome |
-| Energy cache | Browser | Practice only, labelled local | Chrome |
-| Play rewards ("Energy tokens") | Browser, 0–3 per finished game, from Web Crypto | **Practice tokens, no value**, labelled "local play · no cash value". Never become CGT (ADR-069 decision 7) | Chrome |
+| Sessions played | Browser | Counted on this device; "Free to play · no prizes" | `npm run check:phone` opens the home screen |
+| Personal bests | Browser | How many of the four worlds have a best score | Read in the code |
 | Worlds available | Code | Four solo worlds, two shared arenas | — |
 | Creator engine status | Browser (draft exists or not) | — | — |
 
@@ -48,7 +47,7 @@ the same commit.
 
 | Control | Source | Permission | Persists | On failure | Verified |
 | --- | --- | --- | --- | --- | --- |
-| Open game, **Begin session** (costs 20 practice Energy) | Browser | Visitor | Best score and ledger in browser | Under 20 Energy: "Refill your local energy" | Chrome, 5 Oct: each of the four opened and began |
+| Open game, **Begin session** (free since 19 October 2026: no entry cost and no draw after a run, P7.23) | Browser | Visitor | Best score in browser | — | Chrome, 5 Oct: each of the four opened and began; `npm run check:phone` begins Orbital with no Energy, 19 Oct |
 | Play (keys, pointer, touch), pause, sound, reduced motion | Code | Visitor | — | Hidden tab pauses | Chrome: Void Runner scored, Synapse advanced a round on a real key press, Orbital ended after three misses, Rift Survivor scored with a combo; no page errors |
 | Score and result | Browser | **Never submitted, never ranked, never paid** | Browser | — | `IMPLEMENTATION.md`; nothing in the code sends a solo score |
 
@@ -72,11 +71,8 @@ the same commit.
 
 ## Energy Store, Rewards & Wallet
 
-| Control | Source | Notes | Verified |
-| --- | --- | --- | --- |
-| Practice Energy packages, **View package**, refill | Browser | **Free and practice only**. No cash prices since 4 Oct; the package dialog says checkout is not connected | Chrome |
-| Practice-token balance, meter, session ledger, ledger download (`arqade-local-ledger.json`) | Browser | Labelled device-local | Read in the code |
-| "Practice tokens stay practice" panel, **Not convertible** (disabled) | Code | States that Energy and practice tokens are never CGT | Chrome |
+**Removed 19 October 2026** (P7.23, ADR-102): the practice Energy packages and refill, the practice-token balance,
+the session ledger and its download, and the "Not convertible" panel. Play is free, and nothing is drawn after a run.
 
 ## QOR Identity
 
@@ -95,7 +91,7 @@ the same commit.
 | --- | --- | --- | --- |
 | `help`, `clear`, `worlds` | Lists commands, clears, lists the four worlds | Code | Read in the code |
 | `play void\|synapse\|orbital\|rift` | Opens a game | Code | Read in the code |
-| `energy`, `rewards`, `wallet` | Reads practice Energy and tokens; opens the ledger | Browser | Read in the code |
+| `stats` | Reads the sessions completed on this device and each world's best score (since 19 October 2026; `energy`, `rewards` and `wallet` went with Energy) | Browser | Read in the code |
 | `create`, `qor`, `intro` | Opens the creator, the identity view, the intro | Code | Read in the code |
 | `chain` | Reads the devnet's finalized block. **Fixed 5 Oct**: it read a field the devnet reader no longer returns ("block #undefined") | Devnet | Chrome: "Demiurge Devnet · finalized block #20897 · Verified by its genesis" |
 

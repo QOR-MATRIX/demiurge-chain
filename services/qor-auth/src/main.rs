@@ -53,6 +53,8 @@ mod log_hygiene;
 #[cfg(test)]
 mod migration_hygiene;
 #[cfg(test)]
+mod migration_tests;
+#[cfg(test)]
 mod sql_hygiene;
 
 use crate::config::AppConfig;

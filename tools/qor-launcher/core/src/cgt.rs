@@ -133,24 +133,28 @@ fn parse_units(
     unit_name: &str,
     input: &str,
 ) -> QorResult<u128> {
-    let cleaned: String = number.trim().replace([',', '_', ' '], "");
+    let trimmed = number.trim();
 
-    if cleaned.is_empty() {
+    if trimmed.is_empty() {
         return Err(QorError::BadAmount("enter an amount".into()));
     }
-    if cleaned.starts_with('-') {
+    if trimmed.starts_with('-') {
         return Err(QorError::BadAmount("amount cannot be negative".into()));
     }
 
-    let (whole_str, frac_str) = match cleaned.split_once('.') {
-        Some((w, f)) => (w, f),
-        None => (cleaned.as_str(), ""),
-    };
+    let (whole_str, frac_str) = trimmed.split_once('.').unwrap_or((trimmed, ""));
 
     if frac_str.contains('.') {
         return Err(QorError::BadAmount(
             "amount has more than one decimal point".into(),
         ));
+    }
+
+    let invalid = |s: &str| QorError::BadAmount(format!("{s:?} is not a number"));
+
+    // Digits only after the point: no sign, no separator. "1.000,50" is a decimal comma, not a CGT amount.
+    if !frac_str.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(invalid(input.trim()));
     }
     if frac_str.len() as u32 > places {
         return Err(QorError::BadAmount(format!(
@@ -160,9 +164,18 @@ fn parse_units(
         )));
     }
 
-    let whole_str = if whole_str.is_empty() { "0" } else { whole_str };
-
-    let invalid = |s: &str| QorError::BadAmount(format!("{s:?} is not a number"));
+    let whole_digits = whole_digits(whole_str).ok_or_else(|| {
+        QorError::BadAmount(format!(
+            "{:?} is not an amount: a comma, space or underscore may only separate thousands (1,000,000), \
+             and decimals take a point (1.5)",
+            input.trim()
+        ))
+    })?;
+    let whole_str = if whole_digits.is_empty() {
+        "0"
+    } else {
+        whole_digits.as_str()
+    };
 
     let whole: u128 = whole_str.parse().map_err(|_| invalid(input.trim()))?;
     let frac: u128 = if frac_str.is_empty() {
@@ -181,6 +194,30 @@ fn parse_units(
                 "that is more {SYMBOL} than the entire base supply; check the amount"
             ))
         })
+}
+
+/// The digits of an amount's whole part, or None if it is not one.
+///
+/// Plain digits (`1200`), or groups of three after a first group of one to three, all split by the same one of a comma,
+/// a space or an underscore (`1,200`, `1 200 000`, `1_000`). Anything else is refused rather than read: stripping every
+/// separator would read `1,5`, a decimal comma, as fifteen. No sign: `u128`'s own parser would take `+5`.
+fn whole_digits(whole: &str) -> Option<String> {
+    let separator = whole.chars().find(|c| [',', ' ', '_'].contains(c));
+    let groups: Vec<&str> = match separator {
+        Some(s) => whole.split(s).collect(),
+        None => vec![whole],
+    };
+    let digits_only = |g: &str| g.bytes().all(|b| b.is_ascii_digit());
+    if !groups.iter().all(|g| digits_only(g)) {
+        return None;
+    }
+    if separator.is_some() {
+        let (first, rest) = groups.split_first()?;
+        if !(1..=3).contains(&first.len()) || rest.iter().any(|g| g.len() != 3) {
+            return None;
+        }
+    }
+    Some(groups.concat())
 }
 
 /// Format integer embers as a CGT decimal string.
@@ -260,6 +297,44 @@ mod tests {
         );
         assert_eq!(parse_cgt(" 1 200 ").unwrap(), 1200 * EMBERS_PER_CGT);
         assert_eq!(parse_cgt("1_000").unwrap(), 1000 * EMBERS_PER_CGT);
+        assert_eq!(
+            parse_cgt("1,000,000.5").unwrap(),
+            1_000_000 * EMBERS_PER_CGT + EMBERS_PER_CGT / 2
+        );
+    }
+
+    /// A separator is read only where it separates thousands. Stripping every separator read a decimal comma as a
+    /// thousands one: "1,5" was fifteen CGT and "1.000,50" one and a twentieth of a thousandth. A sign is not a digit:
+    /// "1.+5" was 1.05. Each is refused now, so a person sees the problem before any dialog shows an amount.
+    #[test]
+    fn a_separator_or_a_sign_where_it_does_not_belong_is_refused() {
+        for bad in [
+            "1,5",
+            "1.000,50",
+            "1,50",
+            "12,34,567",
+            "1,000 000",
+            "1,,000",
+            ",100",
+            "100,",
+            "1.+5",
+            "+1",
+            "+1.5",
+            "1.5_0",
+            "1 .5",
+            "1. 5",
+            "١٢",
+        ] {
+            let refused = parse_cgt(bad).unwrap_err();
+            assert_eq!(refused.kind(), "bad_amount", "{bad:?}");
+        }
+        assert!(parse_cgt("1,5")
+            .unwrap_err()
+            .to_string()
+            .contains("decimals take a point"));
+        assert!(parse_amount("1,5 Sparks").is_err());
+        assert!(parse_amount("+250 Sparks").is_err());
+        assert_eq!(parse_amount("1,500 Sparks").unwrap(), 1500 * SPARK);
     }
 
     /// Truncating a payment silently is unacceptable, so this must be an error.

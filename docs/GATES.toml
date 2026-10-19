@@ -878,6 +878,18 @@ reason = "A scope change rather than a tightening, because tests leave a suite a
 
 [[change_log]]
 date = "2026-10-19"
+type = "tightening"
+change = "CI's security job gains a step, 'No financial language in what people read (ADR-008)': it runs site/scripts/check-site.mjs, which no job ran before, then fails if APY, ROI, passive income, investment or staking rewards appears in the site, ARQADE (its site, Qt app, library and SDK), the launcher (its interface, host and core), QOR Media, QQ, Social or QOR ID, or yield in their copy (HTML, text, TSX, QML). [ci].quality_gates updated."
+reason = "AGENTS.md section 6 was enforced only on the homepage, by a check CI never ran. A CGT audit on 2026-10-19 found the active scope clean, so the rule can hold from now on. Proven both ways: clean on the tree, and failing on a planted 'passive income'."
+
+[[change_log]]
+date = "2026-10-19"
+type = "ci-scope"
+change = "products/arqade/scripts/check-phone.mjs, which CI's arqade job runs: 'eight tabs, each 44 by 44 pixels or more' becomes 'six tabs, each 44 by 44 pixels or more', because the site loses its Energy Store and Rewards & Wallet sections (P7.23, ADR-102: the website without Energy). Every other case is unchanged, and the size of each tab is held as before."
+reason = "A scope change rather than a loosening: two tabs left the design, and the check counts the tabs the design has. What it holds of each tab, a labelled target of 44 by 44 pixels or more that opens its section, is unchanged."
+
+[[change_log]]
+date = "2026-10-19"
 type = "loosening"
 change = "tools/qor-launcher/scripts/check-accessibility.mjs, which CI's launcher job runs in its step 'Design, accessibility, views, contrast and readability': the six cases 'backdrop <id>: it compiles and runs', each needing 20 frames in a second, become two per backdrop. 'Its shaders compile and its program links' is read from WebGL itself: every compileShader's COMPILE_STATUS and linkProgram's LINK_STATUS on a WebGL2 context, recorded as they happen, must read 2 of 2 compiled and 1 of 1 linked. 'It draws' needs at least one frame in the second. The check runs 55 cases where it ran 49. The 20-a-second bar stays on 'live: the backdrop schedules frames (positive control)', 'off -> live: the backdrop starts again' and 'stored off, then live: the backdrop starts'. No criterion, kind, met condition or counting rule changes."
 reason = "LOOSENING, and recorded as one: a backdrop that draws slowly but steadily now passes where it needed 20 frames a second. That count measured the runner, not the backdrop. CI's software renderer gave 'liquid' 16 to 47 frames a second over thirteen runs read back on 18 and 19 October 2026, 20 to 22 in six of them, and below about 41 a second the launcher's own budget (src/qfx/Canvas.tsx: 24 ms a frame, 30 strikes) stops the loop after thirty slow frames, as it is meant to on a machine that cannot afford it. It failed main at 15cfa12 (the merge of #50) with 16; the same tree had passed at 802c4db with 22, and re-running main's failed job passed with 23. What the check exists to catch is still caught, and named more exactly: planted in liquid's shader, a compile error read '1 of 2 compiled, 0 of 0 linked' and a link error (an input no vertex shader writes) '2 of 2 compiled, 0 of 1 linked', and each also drew 0 frames, so each failed both new cases, where the old check saw only 0 frames. Liquid slowed on purpose (1,500 sines a pixel) drew 11 frames in the second, CI's condition: it passes the new cases and would have failed the old one. Restored, 55 of 55, three runs in three."
@@ -936,6 +948,7 @@ quality_gates = [
   "framework/ stays retired: the security job fails if the directory returns, and with it the six advisories its audit.toml exempted until M3.5",
   "no private key material tracked in git",
   "no credentials committed in configuration files",
+  "the language rule (ADR-008, AGENTS.md section 6) over what people read in the active scope: site/scripts/check-site.mjs, then no APY, ROI, passive income, investment or staking rewards in the site, ARQADE, the launcher, QOR Media, QQ, Social and QOR ID, and no yield in their copy. Since 2026-10-19",
   "no log call in services/qor-auth/src interpolates a token, key, secret, password, link or address, and no request span records the URI",
   "no [patch] section in any tracked manifest, and no reference to a personal Substrate fork anywhere tracked, excluding only ci.yml itself and HANDOFF.md",
   "products/arqade: npm ci, tsc --noEmit, npm run lint (errors fail; four pre-existing warnings do not), npm test (node --test tests/*.test.mjs and sdk/tests), npm run build, then npm run check:phone (scripts/check-phone.mjs: the site as a phone sees it, by touch, served from that build, in the runner's Google Chrome)",

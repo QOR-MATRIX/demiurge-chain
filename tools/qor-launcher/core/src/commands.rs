@@ -31,9 +31,13 @@ pub fn call(command: &str, args: Value) -> QorResult<Value> {
         }
         "format_sparks" => {
             let Embers { embers } = arguments(args)?;
-            let embers: u128 = embers.parse().map_err(|_| {
-                QorError::BadAmount("embers must be a whole number written in digits".into())
-            })?;
+            // Digits only: `u128`'s own parser would also take a leading "+".
+            let embers: u128 = Some(embers.as_str())
+                .filter(|e| !e.is_empty() && e.bytes().all(|b| b.is_ascii_digit()))
+                .and_then(|e| e.parse().ok())
+                .ok_or_else(|| {
+                    QorError::BadAmount("embers must be a whole number written in digits".into())
+                })?;
             Ok(
                 json!({ "sparks": cgt::format_sparks(embers), "cgt": cgt::format_cgt_grouped(embers) }),
             )
@@ -102,12 +106,15 @@ mod tests {
             .as_str()
             .unwrap()
             .starts_with("340,282,366,920,938,463,463."));
-        assert_eq!(
-            call("format_sparks", json!({ "embers": "-1" }))
-                .unwrap_err()
-                .kind(),
-            "bad_amount"
-        );
+        for bad in ["-1", "+1", "", " 1", "1e3", "1.0"] {
+            assert_eq!(
+                call("format_sparks", json!({ "embers": bad }))
+                    .unwrap_err()
+                    .kind(),
+                "bad_amount",
+                "{bad:?}"
+            );
+        }
     }
 
     #[test]

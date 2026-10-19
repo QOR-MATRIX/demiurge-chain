@@ -1323,6 +1323,15 @@ here sets an economic value; payouts are U-16.
     the same rules, and Sparks paid from the pool for the outcome the replay reaches, once. Depends on P7.20 and P7.21.
 23. [ ] The website without Energy (ADR-102): the Energy store, Energy Tokens and local token wallet removed; its own
     games point to the launcher.
+
+    **Energy removed, 19 October 2026** (branch `session/cgt-compliance`):
+    - No Energy store, entry cost, token draw or token wallet. Play is free, and the browser keeps only sessions and
+      best scores.
+    - The terminal's `energy`, `rewards` and `wallet` are one `stats`. The intro and notice say nothing is bought,
+      staked, won or lost.
+    - `check-phone.mjs` counts six tabs (GATES change log).
+
+    **Not yet:** the games pointing to the launcher, which waits on P7.20's rebuilt games.
 24. [ ] The two multiplayer arenas rebuilt in QQ (ADR-102), on the ARQADE service. Depends on P7.19.
 25. [ ] ARQADE's site on phones and by touch (the owner, 18 October 2026: "optimize Arqade for its mobile browser
     users and screen tapping"). **Built, merged (#49, at `943815d`) and live on Vercel:**
