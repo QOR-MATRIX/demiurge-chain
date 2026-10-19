@@ -20,9 +20,48 @@ unsafe_code = "deny"
 [features]
 # Network errors convert from reqwest's. The Windows launcher turns it on; the core alone needs no network yet.
 net = ["dep:reqwest"]
+# The stand-ins tests use: an in-memory keychain, a scripted confirmation, a fake Windows Hello, a vault in a scratch
+# folder. The Windows launcher's tests turn it on through its dev-dependency, so no build that ships has them.
+testing = []
 
 [dependencies]
 serde      = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror  = "2"
 reqwest    = { version = "0.12", default-features = false, features = ["json", "rustls-tls"], optional = true }
+tracing    = "0.1"
+
+# ── The wallet (vault/, profiles.rs), moved from the Windows launcher with the same versions ──────────────────────────
+# sp-core carries the ecosystem's Sr25519 keys, its derivation and SS58 (ADR-023, ADR-024). Pinned to the version in
+# `polkadot-stable2606-1`, the release the chain is built against (ADR-022), so the launcher and the chain derive and
+# verify identically: ADR-033 rule 1 names exactly this case. `full_crypto` is what makes `Pair::sign` available;
+# `serde` is what makes SS58 encoding and decoding available.
+sp-core          = { version = "=43.0.0", features = ["full_crypto", "serde"] }
+bip39            = "2"
+argon2           = "0.5"
+chacha20poly1305 = "0.10"
+zeroize          = { version = "1", features = ["derive"] }
+rand             = "0.8"
+hex              = "0.4"
+# ADR-054's copy is bound to its vault by BLAKE3, the hash of the object model (ADR-047).
+blake3           = "1.8"
+parking_lot      = "0.12"
+chrono           = "0.4"
+
+# The operating system's keychain (ADR-056). Not on Android, where `keyring` has no store and would keep a wallet's key
+# in memory: the Android shell gives the vault a store wrapped by Android's Keystore instead (ADR-104 decision 4).
+[target.'cfg(not(target_os = "android"))'.dependencies]
+keyring = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
+
+# Windows Hello, read only to move a vault sealed under it (ADR-055) to the keychain once (ADR-056).
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+  "Foundation",
+  "Security_Credentials",
+  "Security_Cryptography",
+  "Storage_Streams",
+] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+uuid  = { version = "1", features = ["v4"] }

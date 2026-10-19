@@ -4,10 +4,11 @@
 //!
 //! The recovery phrase never leaves this process and never reaches the webview.
 //! The UI can ask the vault to *sign* something; it can never ask for the key.
-//! That boundary is the whole point of putting custody in the Tauri host rather
-//! than in JavaScript, and it is what the browser extension cannot offer, since
-//! there the keys live in a service worker sharing an address space with page
-//! script.
+//! That boundary is the whole point of putting custody in the Rust core (the
+//! Windows launcher's Tauri host, and the Android launcher's core behind its
+//! bridge, ADR-104) rather than in JavaScript or QML, and it is what the browser
+//! extension cannot offer, since there the keys live in a service worker sharing
+//! an address space with page script.
 //!
 //! At rest the phrase is sealed with Argon2id and XChaCha20-Poly1305 (`seal`)
 //! under a random key kept in the operating system's keychain (`keychain`,
@@ -36,8 +37,8 @@ use std::sync::Arc;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 
+use crate::confirm::{Confirm, Prompt};
 use crate::error::{QorError, QorResult};
-use crate::{Confirm, Prompt};
 use derive::{DerivedAccount, RootKey};
 use hello::{HelloVault, Presence};
 use keychain::KeyStore;
@@ -146,8 +147,9 @@ pub struct MeshGrant {
 }
 
 impl MeshGrant {
-    /// An approval the person gave earlier, as the Mesh's settings recorded it.
-    pub(crate) fn recorded(account: [u8; 32]) -> Self {
+    /// An approval the person gave earlier, as the Mesh's settings recorded it. Public only because the Mesh is still in
+    /// the Windows launcher's crate (DIRECTION L13.2): the Mesh alone calls it, and a test there keeps it that way.
+    pub fn recorded(account: [u8; 32]) -> Self {
         Self { account }
     }
 
@@ -164,7 +166,9 @@ pub struct Vault {
 }
 
 impl Vault {
-    /// A vault in `dir` whose key goes in the operating system's keychain.
+    /// A vault in `dir` whose key goes in the operating system's keychain. Not on Android, which has no keychain here:
+    /// its shell gives the vault a [`KeyStore`] of its own (ADR-104 decision 4).
+    #[cfg(not(target_os = "android"))]
     pub fn new(dir: impl AsRef<Path>) -> Self {
         Self::with_keys(dir, keychain::system())
     }
@@ -552,7 +556,7 @@ impl Vault {
 
     /// Derive the next account in the chain. Tests only: since ADR-099 a profile's wallet holds one account, and tests
     /// that need several parties take them from one phrase this way.
-    #[cfg(test)]
+    #[cfg(any(test, feature = "testing"))]
     pub fn add_account(&self, label: &str) -> QorResult<AccountView> {
         let mut guard = self.inner.lock();
         let session = guard.as_mut().ok_or(QorError::VaultLocked)?;
@@ -640,8 +644,9 @@ It cannot send your CGT anywhere. Turning seeding off ends                  this
 
     /// Sign `message` under the Mesh grant, with no dialog (ADR-097). Only the Mesh's own code calls this, with bytes it
     /// built itself: a granted call it encoded and checked (`chain::mesh::ChainClient::mesh_submit`), or a receipt
-    /// (`chain::mesh::receipt_message`). A test keeps it that way.
-    pub(crate) fn sign_granted(&self, grant: &MeshGrant, message: &[u8]) -> QorResult<[u8; 64]> {
+    /// (`chain::mesh::receipt_message`). A test keeps it that way. Public only because the Mesh is still in the Windows
+    /// launcher's crate (DIRECTION L13.2); nothing in this core calls it, and a test here keeps that so too.
+    pub fn sign_granted(&self, grant: &MeshGrant, message: &[u8]) -> QorResult<[u8; 64]> {
         self.with_account(&derive::address_of(&grant.account), |account| {
             account.sign(message)
         })
@@ -846,7 +851,7 @@ pub fn canonical_address(address: &str) -> QorResult<String> {
 }
 
 /// Test support: a vault in a scratch directory with an in-memory keychain.
-#[cfg(test)]
+#[cfg(any(test, feature = "testing"))]
 pub mod testing {
     use super::keychain::testing::MemoryKeychain;
     use super::Vault;
@@ -862,7 +867,7 @@ pub mod testing {
 mod tests {
     use super::keychain::testing::MemoryKeychain;
     use super::*;
-    use crate::testing::Scripted;
+    use crate::confirm::testing::Scripted;
     use hello::testing::FakeHello;
     use tempdir::Holder;
 
@@ -1536,6 +1541,38 @@ mod tests {
 
         assert_eq!(vault.unlock(&hello).unwrap_err().kind(), "passphrase_vault");
         assert_eq!(asked(&hello), 0);
+    }
+
+    /// The Mesh grant signs with no dialog (ADR-097), so only the Mesh may use it. The Mesh is still in the Windows
+    /// launcher's crate, which is why the vault's signing under the grant and the grant's restoring are public: nothing
+    /// in this core calls either, and that crate's own test names the files there that do.
+    #[test]
+    fn nothing_in_the_core_signs_under_the_mesh_grant() {
+        // Built from pieces, so this test does not find itself.
+        let calls = [
+            [".sign", "_granted("].concat(),
+            ["MeshGrant::", "recorded"].concat(),
+        ];
+        let mut paths = vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("src")];
+        let mut found = Vec::new();
+        let mut read = 0;
+        while let Some(path) = paths.pop() {
+            if path.is_dir() {
+                for entry in std::fs::read_dir(&path).unwrap() {
+                    paths.push(entry.unwrap().path());
+                }
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                let text = std::fs::read_to_string(&path).unwrap();
+                read += 1;
+                for call in &calls {
+                    if text.contains(call.as_str()) {
+                        found.push(format!("{} has {call}", path.display()));
+                    }
+                }
+            }
+        }
+        assert!(read >= 10, "read the core's sources: {read} files");
+        assert!(found.is_empty(), "{found:#?}");
     }
 
     /// Minimal scratch-directory helper so tests do not need a dev-dependency.

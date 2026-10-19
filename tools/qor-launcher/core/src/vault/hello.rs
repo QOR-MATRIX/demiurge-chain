@@ -188,7 +188,7 @@ mod windows_hello {
 }
 
 /// Test support: a deterministic stand-in for Hello, keyed like a TPM key.
-#[cfg(test)]
+#[cfg(any(test, feature = "testing"))]
 pub mod testing {
     use super::Presence;
     use crate::error::{QorError, QorResult};

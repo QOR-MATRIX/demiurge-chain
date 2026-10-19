@@ -176,6 +176,8 @@ panic         = "abort"
 strip         = true
 
 [dev-dependencies]
+# The core's test stand-ins (an in-memory keychain, a scripted confirmation), for tests only (ADR-104).
+qor-launcher-core = { path = "../core", features = ["net", "testing"] }
 tempfile = "3"
 # A stand-in Social server for the socket's tests, on the WebSocket library already in the graph.
 soketto = "0.8"
