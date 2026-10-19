@@ -3272,7 +3272,8 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        - parts of hidden screens faded out of view instead of starting hidden.
      - **Next:** P3.9, input actions.
 
-102. **19 October 2026, late night: #57 and #58 merged by the owner; P3.9, input actions, built on `session/qq-input`.**
+102. **19 October 2026, late night: #57 and #58 merged by the owner; P3.9, input actions, built on `session/qq-input`
+     and pushed at the owner's word as pull request #59.**
      - **Merged:** #57 (P3.8) at `f31443f` and #58 (the records of #54 to #56) at `ee374ba`. P3.8 is ticked in
        DIRECTION. CI passed every job on `ee374ba` (run 39329399993); the run on #57's merge was cancelled as
        #58's superseded it.

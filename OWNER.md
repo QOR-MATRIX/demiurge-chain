@@ -33,7 +33,7 @@ QOR ID redeployed with its cleaned-up database on its own.
 **Merged since:** QQ's game interface (P3.8, #57): titles, scores, bars, buttons and pause
 screens over the game, in our own typefaces. **Built since:** controls a player can rebind
 (P3.9): any key, mouse or pad button, and on-screen buttons for touch. Orb Run pauses on P
-or the pad's Start. Say **"commit and push"** for it.
+or the pad's Start. It is pull request **#59**, waiting for you to merge.
 
 ## Toward a worldwide beta: what only you can do
 
