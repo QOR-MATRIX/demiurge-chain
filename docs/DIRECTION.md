@@ -882,7 +882,7 @@ the Rust core, app ID `app.qorsync.dev`, Android 9 and later, delivered as a sig
 
    **Moved so far:**
    - Sparks and errors (18 October 2026, #50).
-   - The vault, profiles and the confirmation they ask through (19 October 2026, branch `session/core-vault`):
+   - The vault, profiles and the confirmation they ask through (19 October 2026, merged in #56 at `c4972b0`):
      - Their 52 tests moved with them. The core has 73 tests and the Windows launcher 270, and both suites pass.
      - The arm64 APK still builds, with sp-core, schnorrkel and secp256k1's C library compiled for Android.
      - On Android the core has no keychain, because `keyring` would keep a wallet's key in memory there. L13.3 gives
@@ -1128,10 +1128,10 @@ camera. The agent's tools learn each new kind in the same change. Each item is p
 `products/qq/samples/`, made only from kinds and logic files and played by the Qt Test suites. These items depend on
 P3.2 and on nothing on chain, and run in this order:
 
-7. [ ] **Gameplay in logic.** Contacts on bodies and a **Trigger** kind that reports what enters and leaves it;
+7. [x] **Gameplay in logic.** Contacts on bodies and a **Trigger** kind that reports what enters and leaves it;
    raycasts; making and removing entities while the world plays; timers; forces and impulses; kinematic bodies.
 
-   **Built 19 October 2026** (branch `session/qq-gameplay`, not yet merged):
+   **Done 19 October 2026, merged (#55, at `ae11498`):**
    - Logic gains `onStarted`, `onContact`, `onEntered`, `onExited`, `ray`, `spawn`, `remove`, `after`, `every` and
      `cancel`. Timers run on the logic's own clock.
    - A Shape can be `kinematic`, led by its position, and a dynamic one has `push`, `applyForce`, `setVelocity` and
@@ -1142,7 +1142,6 @@ P3.2 and on nothing on chain, and run in this order:
      suites pass. Five planted faults were each caught: the contact relay cut, a removed body left behind, timers
      never run, the player unheard by triggers, and rays with no view.
 
-   It stays unticked until it is merged.
 8. [ ] **The game's interface.** A **Screen** kind drawn over the world, with text, bars, images and buttons that logic
    sets; title, pause and message screens; the design system's tokens; reduced motion.
 
@@ -1391,7 +1390,7 @@ here sets an economic value; payouts are U-16.
 23. [ ] The website without Energy (ADR-102): the Energy store, Energy Tokens and local token wallet removed; its own
     games point to the launcher.
 
-    **Energy removed, 19 October 2026** (branch `session/cgt-compliance`):
+    **Energy removed, 19 October 2026** (merged in #54 at `d93c3c5`, live on Vercel):
     - No Energy store, entry cost, token draw or token wallet. Play is free, and the browser keeps only sessions and
       best scores.
     - The terminal's `energy`, `rewards` and `wallet` are one `stats`. The intro and notice say nothing is bought,
