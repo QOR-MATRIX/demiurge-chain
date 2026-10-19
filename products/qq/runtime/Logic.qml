@@ -28,6 +28,14 @@
 // ScreenBar's `value` through entity(name); it shows and hides whole screens, and pauses the world beneath them.
 //
 //   onClicked: { onlyScreen("hud"); resume() }        // a Behaviour targeting the title's Play button
+//
+// Actions (P3.9): the scene's InputAction entities name what a player can do, with their keys, mouse buttons and pad
+// buttons. Any logic hears them, whatever it targets:
+//
+//   onPressed: (action) => { if (action === "fire") spawn("Shape", { body: "dynamic", position: target.position }) }
+//
+// held(name) says whether one is held now, rebind(name) takes the player's next press as its binding (a controls
+// screen), and pointing() is the entity under the pointer.
 
 import QtQml
 import QQ
@@ -60,6 +68,40 @@ QtObject {
 
     /// The target, a ScreenButton, was pressed.
     signal clicked()
+
+    /// An action became held, or was let go (P3.9): one of the scene's InputActions, or jump or run.
+    signal pressed(string action)
+    signal released(string action)
+
+    /// Whether an action is held now.
+    function held(name) {
+        return Input.held(name)
+    }
+    /// Take the player's next key, mouse button or pad button as `name`'s binding for that device.
+    function rebind(name) {
+        Input.listen(name)
+    }
+    /// An action's bindings as a player reads them: "E / Mouse Left / Pad X".
+    function bindingOf(name) {
+        return Input.describe(name)
+    }
+    /// The entity under the pointer, { entity, point, normal, distance }, or null.
+    function pointing() {
+        const view = scene ? SceneIO.viewOf(scene) : null
+        if (!view)
+            return null
+        const at = view.mapFromItem(null, Input.pointer.x, Input.pointer.y)
+        const hit = view.pick(at.x, at.y)
+        const entity = hit.objectHit ? SceneIO.entityOf(scene, hit.objectHit) : null
+        return entity && !removing(entity)
+               ? { entity: entity, point: hit.scenePosition, normal: hit.sceneNormal, distance: hit.distance } : null
+    }
+
+    property Connections _actions: Connections {
+        target: Input
+        function onPressed(action) { logic.pressed(action) }
+        function onReleased(action) { logic.released(action) }
+    }
 
     /// Show a screen by name, hide one, or show one and nothing else (a title to the game, the game to its end).
     function showScreen(name) {

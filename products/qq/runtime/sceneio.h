@@ -75,7 +75,8 @@ public:
     // ── Editing: what the Studio's panels do, and what the agent's tools will do (P3.3) ──
 
     /// The kinds an entity can be: "Shape", "Lamp", "Prop", "Sun", "Ground", "Player", "Emitter", "Sound", "Behaviour",
-    /// "Trigger", and the screen kinds "ScreenText", "ScreenBar", "ScreenButton", "ScreenImage", "ScreenPanel".
+    /// "Trigger", the screen kinds "ScreenText", "ScreenBar", "ScreenButton", "ScreenImage", "ScreenPanel", and
+    /// "InputAction".
     Q_INVOKABLE QStringList kinds() const;
 
     /// The scene's entities, in file order.

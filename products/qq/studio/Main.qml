@@ -507,6 +507,7 @@ ApplicationWindow {
                                 MenuItem { text: qsTr("Image"); onTriggered: window.add("ScreenImage", { name: "Image" }) }
                                 MenuItem { text: qsTr("Panel"); onTriggered: window.add("ScreenPanel", { name: "Panel" }) }
                             }
+                            MenuItem { text: qsTr("Action"); onTriggered: window.add("InputAction", { name: "action", keys: "E", pad: "X" }) }
                             MenuItem {
                                 text: qsTr("Trigger")
                                 onTriggered: window.add("Trigger", { position: Qt.vector3d(window.target.x, 1, window.target.z),

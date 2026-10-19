@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 19 October 2026 (night). One page, rewritten every session.
+For Andrew, 19 October 2026 (late night). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -30,10 +30,10 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 
 QOR ID redeployed with its cleaned-up database on its own.
 
-**Also built since:** QQ's game interface (P3.8): titles, scores, bars, buttons and pause
-screens drawn over the game, in our own typefaces, still for anyone who turns animations off.
-Orb Run now opens on a title and pauses properly. It is pull request **#57**, waiting for
-you to merge beside these notes.
+**Merged since:** QQ's game interface (P3.8, #57): titles, scores, bars, buttons and pause
+screens over the game, in our own typefaces. **Built since:** controls a player can rebind
+(P3.9): any key, mouse or pad button, and on-screen buttons for touch. Orb Run pauses on P
+or the pad's Start. It is pull request **#59**, waiting for you to merge.
 
 ## Toward a worldwide beta: what only you can do
 

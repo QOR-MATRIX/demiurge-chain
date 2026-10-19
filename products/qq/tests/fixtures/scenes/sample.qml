@@ -160,5 +160,12 @@ Scene {
         width: 0
         text: "Resume"
         colour: "#c9a45c"
+        action: ""
+    }
+
+    InputAction {
+        name: "fire"
+        keys: "F, Mouse Left"
+        pad: "X, RT"
     }
 }

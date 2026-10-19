@@ -55,7 +55,6 @@ Logic {
         // The title first, the world held still behind it.
         pause()
         button("Play", () => { onlyScreen("hud"); resume() })
-        button("Pause", () => { showScreen("pause"); pause() })
         button("Resume", () => { hideScreen("pause"); resume() })
         placeOrb()
         placeOrb()
@@ -68,6 +67,19 @@ Logic {
             const toward = player.feet.minus(boulder.physics ? boulder.physics.scenePosition : boulder.position)
             boulder.push(Qt.vector3d(toward.x, 0, toward.z).normalized().times(6))
         })
+    }
+
+    // Pause: P, the pad's Start, or the Pause button under a finger (its action), and again to go on (P3.9).
+    onPressed: (action) => {
+        if (action !== "pause" || scene.shown.indexOf("title") >= 0)
+            return
+        if (paused) {
+            hideScreen("pause")
+            resume()
+        } else {
+            showScreen("pause")
+            pause()
+        }
     }
 
     // The orbs turn slowly, so they read as things to take.

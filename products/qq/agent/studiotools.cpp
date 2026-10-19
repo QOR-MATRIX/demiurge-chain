@@ -218,7 +218,10 @@ QString StudioTools::instructions()
         "screen kinds (ScreenText, ScreenBar, ScreenButton, ScreenImage, ScreenPanel), each in a named `screen`, placed by an "
         "`anchor` and insets in points of a screen 720 tall; the Scene's `screens` names those shown at the start. Logic sets "
         "their fields through entity(name), and has showScreen, hideScreen, onlyScreen, pause, resume and onClicked (when "
-        "it targets a ScreenButton). Then play, wait, "
+        "it targets a ScreenButton). What a player can do beyond move, look, jump and run is an InputAction (name, keys like "
+        "\"E, Mouse Left\", pad like \"X, RT\"); logic hears it with onPressed: (action) => and onReleased, asks held(name), "
+        "rebinds with rebind(name), and pointing() is the entity under the pointer; a ScreenButton with an `action` holds it "
+        "under a finger. input_set holds actions too. Then play, wait, "
         "input_set and frame_capture to see it run and judge it; log_read for "
         "errors; stop, then revise. Edits are refused while playing, except logic (rebuilt at once on each write) and "
         "input. Stop always restores the scene exactly.\n"
@@ -290,11 +293,13 @@ void StudioTools::addTools()
     m_server->addTool(
         QStringLiteral("input_set"),
         QStringLiteral("While playing, hold the player's controls as a gamepad would: move [right, forward] and look "
-                       "[turn right, tilt up], each from -1 to 1; jump; run. They stay held until changed or stop."),
+                       "[turn right, tilt up], each from -1 to 1; jump; run; and any of the scene's actions by name. "
+                       "They stay held until changed or stop."),
         schema({{QStringLiteral("move"), vec(2, QStringLiteral("[x right, y forward], -1 to 1."))},
                 {QStringLiteral("look"), vec(2, QStringLiteral("[x turn right, y tilt up], -1 to 1."))},
                 {QStringLiteral("jump"), prop(QStringLiteral("boolean"), QStringLiteral("Jump held."))},
-                {QStringLiteral("run"), prop(QStringLiteral("boolean"), QStringLiteral("Run held."))}}),
+                {QStringLiteral("run"), prop(QStringLiteral("boolean"), QStringLiteral("Run held."))},
+                {QStringLiteral("actions"), prop(QStringLiteral("object"), QStringLiteral("Action name to held (true or false)."))}}),
         now([this](Args a) { return inputSet(a); }));
     m_server->addTool(
         QStringLiteral("wait"),
@@ -756,6 +761,7 @@ McpServer::Result StudioTools::stop()
     if (m_drivingInput) {
         if (auto *input = m_engine->singletonInstance<Input *>("QQ", "Input")) {
             input->gamepadState({}, {}, false, false, false);
+            input->release();  // and any action it held
             input->setReadsHardware(true);
         }
         m_drivingInput = false;
@@ -787,6 +793,9 @@ McpServer::Result StudioTools::inputSet(const QJsonObject &args)
     m_drivingInput = true;
     input->gamepadState(QVector2D(float(move[0]), float(move[1])), QVector2D(float(look[0]), float(look[1])),
                         args.value(QStringLiteral("jump")).toBool(), args.value(QStringLiteral("run")).toBool(), true);
+    const QJsonObject actions = args.value(QStringLiteral("actions")).toObject();
+    for (auto it = actions.begin(); it != actions.end(); ++it)
+        input->hold(it.key(), it.value().toBool());
     return McpServer::Result::text(status());
 }
 

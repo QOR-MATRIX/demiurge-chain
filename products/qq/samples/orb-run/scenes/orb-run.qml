@@ -159,6 +159,7 @@ Scene {
         width: 0
         text: "Pause"
         colour: "#c9a45c"
+        action: "pause"
     }
 
     ScreenPanel {
@@ -206,6 +207,7 @@ Scene {
         width: 0
         text: "Play"
         colour: "#c9a45c"
+        action: ""
     }
 
     ScreenPanel {
@@ -241,5 +243,12 @@ Scene {
         width: 0
         text: "Resume"
         colour: "#c9a45c"
+        action: ""
+    }
+
+    InputAction {
+        name: "pause"
+        keys: "P"
+        pad: "Start"
     }
 }

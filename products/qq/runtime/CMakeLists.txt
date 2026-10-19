@@ -25,6 +25,7 @@ qt_add_qml_module(qqruntime
         ScreenButton.qml
         ScreenImage.qml
         ScreenPanel.qml
+        InputAction.qml
         Logic.qml
         Game.qml
     SOURCES
