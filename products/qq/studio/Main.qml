@@ -499,6 +499,11 @@ ApplicationWindow {
                                 onTriggered: window.add("Player", { position: Qt.vector3d(window.target.x, 0, window.target.z + 3) })
                             }
                             MenuItem { text: qsTr("Particles"); onTriggered: window.add("Emitter", { name: "Particles" }) }
+                            MenuItem {
+                                text: qsTr("Trigger")
+                                onTriggered: window.add("Trigger", { position: Qt.vector3d(window.target.x, 1, window.target.z),
+                                                                     scale: Qt.vector3d(2, 2, 2) })
+                            }
                             MenuItem { text: qsTr("Sound…"); onTriggered: soundChooser.open() }
                             MenuItem { text: qsTr("Behaviour"); onTriggered: window.addBehaviour() }
                         }

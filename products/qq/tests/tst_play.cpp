@@ -10,6 +10,7 @@
 #include <QElapsedTimer>
 #include <QFile>
 #include <QImage>
+#include <QPointer>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -549,6 +550,265 @@ private slots:
         s.run(500);
         QCOMPARE(s.entity(QStringLiteral("Turner"))->property("builds").toInt(), 0);
         QCOMPARE(s.entity(QStringLiteral("Box"))->property("eulerRotation").value<QVector3D>().y(), 0.0f);
+    }
+
+    // ── gameplay in logic (P3.7, ADR-105) ──
+
+    void logicHearsItsTargetTouchAnotherEntity()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/touch.qml")),
+                  "import QQ\nLogic {\n    property string met: \"\"\n"
+                  "    onContact: (other, point, normal) => met += (other ? other.name : \"?\") + \";\"\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    Shape { name: \"Plinth\"; position: Qt.vector3d(0, 0.25, 0); scale: Qt.vector3d(2, 0.5, 2) }\n"
+                           "    Shape { name: \"Crate\"; position: Qt.vector3d(0, 3, 0); scale: Qt.vector3d(0.5, 0.5, 0.5); "
+                           "body: \"dynamic\"; bounce: 0 }\n"
+                           "    Behaviour { name: \"Touch\"; source: \"../logic/touch.qml\"; target: \"Crate\" }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        QObject *touch = s.entity(QStringLiteral("Touch"));
+        auto met = [touch] {
+            QObject *logic = touch->property("logic").value<QObject *>();
+            return logic ? logic->property("met").toString().split(QLatin1Char(';'), Qt::SkipEmptyParts) : QStringList();
+        };
+        QVERIFY2(s.runUntil([&] { return met().contains(QStringLiteral("Plinth")); }, 6000), qPrintable(met().join(',')));
+        // Once as they meet, not over and over while it rests there.
+        s.run(1500);
+        QVERIFY2(met().count(QStringLiteral("Plinth")) <= 3, qPrintable(met().join(',')));
+        QVERIFY2(!met().contains(QStringLiteral("?")), qPrintable(met().join(',')));
+    }
+
+    void aTriggerHearsWhatPassesThroughIt()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/gate.qml")),
+                  "import QQ\nLogic {\n    property string log: \"\"\n"
+                  "    onEntered: (other) => log += \"in:\" + (other ? other.name : \"?\") + \";\"\n"
+                  "    onExited: (other) => log += \"out:\" + (other ? other.name : \"?\") + \";\"\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    Trigger { name: \"Gate\"; position: Qt.vector3d(0, 2.5, 0); scale: Qt.vector3d(2, 1, 2) }\n"
+                           "    Shape { name: \"Ball\"; form: \"sphere\"; position: Qt.vector3d(0, 5, 0); "
+                           "scale: Qt.vector3d(0.5, 0.5, 0.5); body: \"dynamic\"; bounce: 0 }\n"
+                           "    Behaviour { name: \"Watch\"; source: \"../logic/gate.qml\"; target: \"Gate\" }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        QObject *watch = s.entity(QStringLiteral("Watch"));
+        auto log = [watch] {
+            QObject *logic = watch->property("logic").value<QObject *>();
+            return logic ? logic->property("log").toString() : QString();
+        };
+        QVERIFY2(s.runUntil([&] { return log().contains(QStringLiteral("out:Ball;")); }, 6000), qPrintable(log()));
+        QCOMPARE(log(), QStringLiteral("in:Ball;out:Ball;"));
+        // Nothing collides with it: the ball fell through to the ground.
+        s.run(1000);
+        QVERIFY2(qAbs(s.where(QStringLiteral("Ball")).y() - 0.25f) < 0.05f,
+                 qPrintable(QStringLiteral("ball at %1").arg(s.where(QStringLiteral("Ball")).y())));
+        QCOMPARE(s.entity(QStringLiteral("Gate"))->property("inside").toInt(), 0);
+    }
+
+    void aTriggerHearsThePlayerWalkIn()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/pickup.qml")),
+                  "import QQ\nLogic {\n    property string who: \"\"\n"
+                  "    onEntered: (other) => { if (!who) who = other ? other.kind + \":\" + other.name : \"?\" }\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    Player { name: \"Hero\" }\n"
+                           "    Trigger { name: \"Orb\"; form: \"sphere\"; position: Qt.vector3d(0, 1, -2.5) }\n"
+                           "    Behaviour { name: \"Pickup\"; source: \"../logic/pickup.qml\"; target: \"Orb\" }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        s.run(400);  // standing
+        QObject *pickup = s.entity(QStringLiteral("Pickup"));
+        auto who = [pickup] {
+            QObject *logic = pickup->property("logic").value<QObject *>();
+            return logic ? logic->property("who").toString() : QString();
+        };
+        QCOMPARE(who(), QString());
+        QTest::keyPress(s.window.get(), Qt::Key_W);
+        const bool heard = s.runUntil([&] { return !who().isEmpty(); }, 3000);
+        QTest::keyRelease(s.window.get(), Qt::Key_W);
+        QVERIFY2(heard, "the orb did not hear the player");
+        QCOMPARE(who(), QStringLiteral("Player:Hero"));
+    }
+
+    void aRayMeetsTheFirstEntityInItsWay()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/look.qml")),
+                  "import QQ\nLogic {\n"
+                  "    property string down: \"\"\n    property real top: -1\n    property real facing: 0\n"
+                  "    property string up: \"\"\n    property string near: \"\"\n    property string below: \"\"\n"
+                  "    onFrame: (dt) => {\n"
+                  "        const d = ray(Qt.vector3d(0, 5, 0), Qt.vector3d(0, -1, 0))\n"
+                  "        down = d ? d.entity.name : \"nothing\"\n"
+                  "        top = d ? d.point.y : -1\n"
+                  "        facing = d ? d.normal.y : 0\n"
+                  "        const u = ray(Qt.vector3d(0, 5, 0), Qt.vector3d(0, 1, 0))\n"
+                  "        up = u ? u.entity.name : \"nothing\"\n"
+                  "        const n = ray(Qt.vector3d(0, 5, 0), Qt.vector3d(0, -2, 0), 2)\n"
+                  "        near = n ? n.entity.name : \"nothing\"\n"
+                  "        const b = ray(target.position, Qt.vector3d(0, -1, 0))\n"
+                  "        below = b ? b.entity.name : \"nothing\"\n"
+                  "    }\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    Shape { name: \"Block\"; position: Qt.vector3d(0, 0.5, 0) }\n"
+                           "    Trigger { name: \"Mist\"; position: Qt.vector3d(0, 3, 0); scale: Qt.vector3d(2, 1, 2) }\n"
+                           "    Shape { name: \"Lens\"; position: Qt.vector3d(3, 2, 0); scale: Qt.vector3d(0.5, 0.5, 0.5); "
+                           "body: \"none\" }\n"
+                           "    Behaviour { name: \"Look\"; source: \"../logic/look.qml\"; target: \"Lens\" }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        QObject *look = s.entity(QStringLiteral("Look"));
+        auto value = [look](const char *name) {
+            QObject *logic = look->property("logic").value<QObject *>();
+            return logic ? logic->property(name) : QVariant();
+        };
+        QVERIFY2(s.runUntil([&] { return !value("down").toString().isEmpty(); }, 5000), "the logic did not run");
+        // Down from above: through the trigger, which nothing hits in play, to the block's top face.
+        QCOMPARE(value("down").toString(), QStringLiteral("Block"));
+        QVERIFY2(qAbs(value("top").toDouble() - 1.0) < 0.01, qPrintable(value("top").toString()));
+        QVERIFY2(value("facing").toDouble() > 0.99, qPrintable(value("facing").toString()));
+        // Up into the sky: nothing. Two metres down from five: short of the block.
+        QCOMPARE(value("up").toString(), QStringLiteral("nothing"));
+        QCOMPARE(value("near").toString(), QStringLiteral("nothing"));
+        // From inside its own target, the target is not met: the ground below is.
+        QCOMPARE(value("below").toString(), QStringLiteral("Ground"));
+    }
+
+    void logicMakesAndRemovesEntitiesOnItsOwnClock()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/rain.qml")),
+                  "import QQ\nLogic {\n"
+                  "    property int ticks: 0\n    property int once: 0\n    property int stopped: 0\n"
+                  "    property int made: 0\n    property bool removed: false\n    property bool refused: false\n"
+                  "    onStarted: {\n"
+                  "        every(0.1, () => ticks += 1)\n"
+                  "        const stop = every(0.1, () => stopped += 1)\n"
+                  "        after(0.35, () => cancel(stop))\n"
+                  "        after(0.2, () => {\n"
+                  "            once += 1\n"
+                  "            for (let i = 0; i < 3; ++i)\n"
+                  "                if (spawn(\"Shape\", { name: \"Drop\" + i, form: \"sphere\", body: \"dynamic\",\n"
+                  "                                      position: Qt.vector3d(i * 2 - 2, 4, 0),\n"
+                  "                                      scale: Qt.vector3d(0.5, 0.5, 0.5) }))\n"
+                  "                    made += 1\n"
+                  "            refused = spawn(\"Dragon\", {}) === null\n"
+                  "        })\n"
+                  "        after(1.5, () => removed = remove(entity(\"Drop1\")))\n"
+                  "    }\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral("    Behaviour { name: \"Rain\"; source: \"../logic/rain.qml\" }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        QObject *rain = s.entity(QStringLiteral("Rain"));
+        auto logic = [rain] { return rain->property("logic").value<QObject *>(); };
+        auto elapsed = [&] { return logic() ? logic()->property("elapsed").toDouble() : 0.0; };
+
+        QVERIFY(s.runUntil([&] { return elapsed() >= 1.2; }, 8000));
+        QCOMPARE(logic()->property("made").toInt(), 3);
+        QCOMPARE(logic()->property("once").toInt(), 1);
+        QCOMPARE(logic()->property("refused").toBool(), true);
+        QCOMPARE(logic()->property("stopped").toInt(), 3);  // at 0.1, 0.2 and 0.3, then cancelled at 0.35
+        const int ticks = logic()->property("ticks").toInt();
+        QVERIFY2(qAbs(ticks - int(elapsed() * 10)) <= 1,
+                 qPrintable(QStringLiteral("%1 ticks in %2 s").arg(ticks).arg(elapsed())));
+        // Spawned while playing, they are bodies, and they fell.
+        for (const char *name : {"Drop0", "Drop1", "Drop2"}) {
+            QObject *drop = s.entity(QLatin1String(name));
+            QVERIFY2(drop && drop->property("physics").value<QObject *>(), name);
+            QVERIFY2(s.where(QLatin1String(name)).y() < 2, name);
+        }
+        QPointer<QObject> body = s.entity(QStringLiteral("Drop1"))->property("physics").value<QObject *>();
+
+        // Removed with its body.
+        QVERIFY(s.runUntil([&] { return logic()->property("removed").toBool() && !s.entity(QStringLiteral("Drop1")); },
+                           4000));
+        QTRY_VERIFY(body.isNull());
+        QVERIFY(s.entity(QStringLiteral("Drop0")) && s.entity(QStringLiteral("Drop2")));
+    }
+
+    void logicPushesDynamicBodiesAndLeadsKinematicOnes()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/kick.qml")),
+                  "import QQ\nLogic {\n    property bool kicked: false\n    property bool refused: false\n"
+                  "    onStarted: after(0.6, () => {\n"
+                  "        kicked = target.push(Qt.vector3d(4, 0, 0))\n"
+                  "        refused = !entity(\"Lift\").push(Qt.vector3d(4, 0, 0))\n"
+                  "    })\n}\n");
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/lift.qml")),
+                  "import QQ\nLogic {\n    onFrame: (dt) => { if (elapsed > 0.5 && target.position.y < 1.25) "
+                  "target.position.y = Math.min(1.25, target.position.y + 0.8 * dt) }\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    Shape { name: \"Ball\"; form: \"sphere\"; position: Qt.vector3d(-3, 0.25, 0); "
+                           "scale: Qt.vector3d(0.5, 0.5, 0.5); body: \"dynamic\"; bounce: 0 }\n"
+                           "    Behaviour { name: \"Kick\"; source: \"../logic/kick.qml\"; target: \"Ball\" }\n"
+                           "    Shape { name: \"Lift\"; position: Qt.vector3d(0, 0.25, -4); scale: Qt.vector3d(2, 0.5, 2); "
+                           "body: \"kinematic\" }\n"
+                           "    Shape { name: \"Rider\"; position: Qt.vector3d(0, 0.75, -4); scale: Qt.vector3d(0.5, 0.5, 0.5); "
+                           "body: \"dynamic\"; bounce: 0 }\n"
+                           "    Behaviour { name: \"Raise\"; source: \"../logic/lift.qml\"; target: \"Lift\" }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        QObject *kick = s.entity(QStringLiteral("Kick"));
+        auto logic = [kick] { return kick->property("logic").value<QObject *>(); };
+        QVERIFY(s.runUntil([&] { return logic() && logic()->property("kicked").toBool(); }, 5000));
+        QCOMPARE(logic()->property("refused").toBool(), true);  // a kinematic body is led, not pushed
+        s.run(1500);
+        QVERIFY2(s.where(QStringLiteral("Ball")).x() > -1.5f,
+                 qPrintable(QStringLiteral("ball at x %1").arg(s.where(QStringLiteral("Ball")).x())));
+
+        // The lift rose a metre, its body with it, and carried its rider up.
+        QVERIFY(s.runUntil(
+            [&] { return s.entity(QStringLiteral("Lift"))->property("position").value<QVector3D>().y() >= 1.249f; }, 6000));
+        s.run(500);
+        QVERIFY2(qAbs(s.where(QStringLiteral("Lift")).y() - 1.25f) < 0.02f,
+                 qPrintable(QStringLiteral("lift's body at %1").arg(s.where(QStringLiteral("Lift")).y())));
+        QVERIFY2(s.where(QStringLiteral("Rider")).y() > 1.6f,
+                 qPrintable(QStringLiteral("rider at %1").arg(s.where(QStringLiteral("Rider")).y())));
+    }
+
+    void theOrbRunSampleIsAGameMadeOfKindsAndLogic()
+    {
+        const QString path = QDir(QStringLiteral(QQ_SAMPLES)).filePath(QStringLiteral("orb-run/scenes/orb-run.qml"));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QString text = QString::fromUtf8(file.readAll());
+        const QUrl url = QUrl::fromLocalFile(path);
+
+        // Kept as the Studio keeps a scene: written back, it is the same bytes.
+        {
+            Stage editing;
+            QVERIFY(editing.open(text, false, url));
+            QCOMPARE(editing.io->write(editing.scene, url), text);
+        }
+
+        Stage s;
+        QVERIFY(s.open(text, true, url));
+        QObject *rules = s.entity(QStringLiteral("Rules"));
+        auto logic = [rules] { return rules->property("logic").value<QObject *>(); };
+        auto score = [&] { return logic() ? logic()->property("score").toInt() : -1; };
+        QVERIFY2(s.runUntil([&] { return logic() && logic()->property("orbsOut").toInt() == 2; }, 5000),
+                 qPrintable(rules->property("error").toString()));
+        QVERIFY(s.entity(QStringLiteral("Orb 1")) && s.entity(QStringLiteral("Orb 1 glow")));
+        QCOMPARE(score(), 0);
+
+        // Walk straight ahead into the first orb: gathered, taken away with its glow, and another placed.
+        s.run(400);
+        QTest::keyPress(s.window.get(), Qt::Key_W);
+        const bool gathered = s.runUntil([&] { return score() >= 1; }, 6000);
+        QTest::keyRelease(s.window.get(), Qt::Key_W);
+        QVERIFY2(gathered, "the player walked through the first orb without gathering it");
+        QTRY_VERIFY(!s.entity(QStringLiteral("Orb 1")) && !s.entity(QStringLiteral("Orb 1 glow")));
+        QVERIFY2(s.runUntil([&] { return s.entity(QStringLiteral("Orb 3")) != nullptr; }, 4000), "no new orb");
+        QCOMPARE(logic()->property("orbsOut").toInt(), 2);
+
+        // The boulder is rolled at the player.
+        const QVector3D boulder = s.where(QStringLiteral("Boulder"));
+        QVERIFY(s.runUntil([&] { return (s.where(QStringLiteral("Boulder")) - boulder).length() > 1.0f; }, 6000));
+        s.window->grabWindow().save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-orb-run.png")));
     }
 };
 

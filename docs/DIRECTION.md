@@ -1032,7 +1032,7 @@ design and build a game from a description. QQ is QOR Engine (ADR-081); ADR-082 
 the same day: QQ Studio edits a lit 3D world and keeps it as canonical QML in a Qontrol project, opened from the
 launcher. P3.2 is done on 10 October 2026: worlds play in the Studio and in the QQ Player, natively and in a browser. P3.3 is
 under way: the Studio's tools are offered to agents over MCP, and its design loop is built; its proof waits on a key.
-Its six Qt Test suites run on the owner's machine, not in CI, which has no licensed Qt.
+Its eight Qt Test suites run on the owner's machine, not in CI, which has no licensed Qt.
 
 The TypeScript/WebGL2 slice built under ADR-082 on 8 October 2026 (`tools/qor-launcher/src/qq/`: 2D shapes,
 particles, an editor surface, scenes saved through Qontrol; `check-qq-view.mjs`, 41 checks) stays as the launcher's
@@ -1112,6 +1112,43 @@ preview until the Qt Player plays in the launcher and in ARQADE (ADR-083 decisio
    textures, sound) from a description through the agent; games delivered over the Mesh; in-game purchases settled in
    CGT; access gating on paid collectibles. Depends on M4.2, M5.2, M5.3, M6.4 and M8. Generation is paid by the creator
    who uses it, on their own provider account (ADR-086); nothing is generated on an account of the project's.
+
+**Real games, in 3D and in 2D (ADR-105, 19 October 2026).** One runtime: 2D is the same world through an orthographic
+camera. The agent's tools learn each new kind in the same change. Each item is proven by a sample game in
+`products/qq/samples/`, made only from kinds and logic files and played by the Qt Test suites. These items depend on
+P3.2 and on nothing on chain, and run in this order:
+
+7. [ ] **Gameplay in logic.** Contacts on bodies and a **Trigger** kind that reports what enters and leaves it;
+   raycasts; making and removing entities while the world plays; timers; forces and impulses; kinematic bodies.
+
+   **Built 19 October 2026** (branch `session/qq-gameplay`, not yet merged):
+   - Logic gains `onStarted`, `onContact`, `onEntered`, `onExited`, `ray`, `spawn`, `remove`, `after`, `every` and
+     `cancel`. Timers run on the logic's own clock.
+   - A Shape can be `kinematic`, led by its position, and a dynamic one has `push`, `applyForce`, `setVelocity` and
+     `setSpin`. `Trigger` is a new kind, in the Studio's Add menu and the agent's instructions.
+   - The proof is **Orb Run** (`products/qq/samples/orb-run/`): one scene and one logic file. Orbs appear on a timer,
+     are gathered by walking through them, and are replaced, and a boulder is rolled at the player.
+   - Evidence, on the owner's PC: `tst_play` passes 18 cases (7 new, the sample among them), and the other seven
+     suites pass. Five planted faults were each caught: the contact relay cut, a removed body left behind, timers
+     never run, the player unheard by triggers, and rays with no view.
+
+   It stays unticked until it is merged.
+8. [ ] **The game's interface.** A **Screen** kind drawn over the world, with text, bars, images and buttons that logic
+   sets; title, pause and message screens; the design system's tokens; reduced motion.
+9. [ ] **Input actions.** Named actions with default bindings for keyboard, mouse, gamepad and touch, rebound by the
+   player; the pointer picking what it is over. Move, look, jump and run stay as built-in actions.
+10. [ ] **2D.** `view: "2d"` with whole-number pixel scaling; **Sprite** (images and sheets, frame animation, lit or
+    unlit); **TileMap** (instanced, imported from Tiled's JSON); bodies locked to the plane; a kinematic 2D player for
+    platform and top-down games. The launcher preview's 2D scenes import as 2D QQ scenes.
+11. [ ] **Fixed steps and replay.** Logic at 60 steps a second whatever the frame rate; seeded random numbers; a run's
+    inputs recorded and replayed with no window to the same outcome. A rewarded outcome never depends on PhysX
+    (ADR-102 decision 5).
+12. [ ] **Animation.** glTF skeletal and morph playback, tweens on any field, and a state machine.
+13. [ ] **Sound.** One-shots from logic, music, and volume groups, panned in a browser where it can be.
+14. [ ] **Materials.** Images on shapes, spot lights and HDR skies.
+15. [ ] **The Studio's basics.** Undo and redo, duplicate, snapping, a hierarchy with parenting and prefabs, an asset
+    browser, a logic editor, and a statistics overlay with physics shown.
+16. [ ] **Saving.** One small store per game, the one the lockdown allows.
 
 #### P4: GNOSIS (P4.1 depends on nothing)
 

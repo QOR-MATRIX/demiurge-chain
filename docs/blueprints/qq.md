@@ -190,7 +190,7 @@ imports.
 
 ## Phases
 
-The roadmap items are DIRECTION P3.1 to P3.6; in short:
+The roadmap items are DIRECTION P3.1 to P3.16; in short:
 
 1. **QQ Studio exists** — 3D viewport, a glTF model, scene tree, inspector, gizmos, canonical QML scenes in Qontrol,
    started from the launcher.
@@ -202,6 +202,21 @@ The roadmap items are DIRECTION P3.1 to P3.6; in short:
 5. **ARQADE delivery** — the WebAssembly Player in ARQADE; the preview retired.
 6. **Collectibles, generation and the Mesh** — DRC-369 items in games, generative assets, Mesh delivery, settlement
    in CGT.
+
+**Real games, in 3D and in 2D** ([ADR-105](../decisions/ADR-105-qq-makes-real-games-in-3d-and-2d.md), 19 October 2026),
+DIRECTION P3.7 to P3.16. **One runtime:** 2D is the same Qt Quick 3D world seen through an orthographic camera,
+scaled by whole numbers so pixel art stays sharp, never a second engine. The Studio, the agent's tools, the scene
+format, the lockdown and the web build serve both, and a 2D game can light its sprites and mix in 3D props. In order:
+
+7. **Gameplay in logic.** Contacts, a Trigger kind, rays, making and removing entities, timers, forces and impulses,
+   and kinematic bodies.
+8. **The game's interface.** A Screen kind over the world.
+9. **Input actions.** Named and rebindable, with the pointer and touch.
+10. **2D.** Sprite, TileMap, bodies locked to the plane, and a 2D player.
+11. **Fixed steps and replay.** What ARQADE's rewarded runs need (ADR-102).
+12. to 16. Animation, sound, materials, the Studio's basics and saving.
+
+Each step is proven by a sample game in `products/qq/samples/`, played by the Qt Test suites.
 
 ---
 

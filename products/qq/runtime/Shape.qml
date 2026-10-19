@@ -2,8 +2,13 @@
 // scale. The quickest thing to build a world from, and what a 2D QQ scene's shapes become when it is imported.
 //
 // In play it is a body: `static` (the default) stands still and things collide with it, `dynamic` falls, tumbles and is
-// pushed about, with its mass, bounce and friction; `none` is scenery that nothing touches. The body is made beside the
-// shape, in the scene, at the shape's place and turn and sized by its scale, so nothing it does is scaled twice.
+// pushed about, with its mass, bounce and friction; `kinematic` goes exactly where logic puts it (its `position` and
+// turn) and pushes dynamic bodies aside, a moving platform or a door; `none` is scenery that nothing touches. The body
+// is made beside the shape, in the scene, at the shape's place and turn and sized by its scale, so nothing it does is
+// scaled twice.
+//
+// For logic (P3.7): `contact` as the body meets another, and push(), applyForce(), setVelocity() and setSpin() on a
+// dynamic one.
 
 import QtQuick
 import QtQuick3D
@@ -19,7 +24,7 @@ Node {
     readonly property var ranges: ({ metalness: [0, 1], roughness: [0, 1], emissivePower: [0, 10], mass: [0.1, 100],
                                      bounce: [0, 1], friction: [0, 1.5] })
     readonly property var choices: ({ form: ["cube", "sphere", "cylinder", "cone", "plane"],
-                                      body: ["static", "dynamic", "none"] })
+                                      body: ["static", "dynamic", "kinematic", "none"] })
 
     property string name: "Shape"
     /// cube, sphere, cylinder, cone or plane.
@@ -31,7 +36,7 @@ Node {
     property color emissive: "#000000"
     property real emissivePower: 0.0
 
-    /// static, dynamic or none: what the shape is in play.
+    /// static, dynamic, kinematic or none: what the shape is in play.
     property string body: "static"
     /// Kilograms, for a dynamic shape.
     property real mass: 1.0
@@ -44,13 +49,43 @@ Node {
     /// The body play made, or null.
     property Node physics: null
 
+    /// The body met another entity's (null for something that is not an entity), at `point`, pushed along `normal`.
+    signal contact(QtObject other, vector3d point, vector3d normal)
+
+    /// A dynamic body's: an impulse (kilogram metres a second) at once, a force (newtons) for this step, a velocity
+    /// (metres a second) or a spin (degrees a second about each axis) set outright. False for any other body.
+    function push(impulse) {
+        if (body !== "dynamic" || !physics)
+            return false
+        physics.applyCentralImpulse(impulse)
+        return true
+    }
+    function applyForce(force) {
+        if (body !== "dynamic" || !physics)
+            return false
+        physics.applyCentralForce(force)
+        return true
+    }
+    function setVelocity(velocity) {
+        if (body !== "dynamic" || !physics)
+            return false
+        physics.setLinearVelocity(velocity)
+        return true
+    }
+    function setSpin(spin) {
+        if (body !== "dynamic" || !physics)
+            return false
+        physics.setAngularVelocity(spin)
+        return true
+    }
+
     readonly property string mesh: ({ cube: "#Cube", sphere: "#Sphere", cylinder: "#Cylinder", cone: "#Cone",
                                        plane: "#Rectangle" })[form] ?? "#Cube"
 
     function makeBody() {
-        if (!live || physics || (body !== "static" && body !== "dynamic"))
+        if (!live || physics || (body !== "static" && body !== "dynamic" && body !== "kinematic"))
             return
-        const made = (body === "dynamic" ? movingBody : standingBody).createObject(parent, {
+        const made = (body === "dynamic" ? movingBody : body === "kinematic" ? ledBody : standingBody).createObject(parent, {
             position: shape.position,
             rotation: shape.rotation
         })
@@ -120,18 +155,51 @@ Node {
                                         : form === "sphere" && evenlyScaled ? ball
                                         : hull
 
+    // Every body names its entity, and reports what it meets and what it enters, so contacts, triggers and rays can say
+    // which entity was involved (Trigger.qml, SceneIO::ray).
     Component {
         id: standingBody
         StaticRigidBody {
+            readonly property QtObject entity: shape
             physicsMaterial: surface
+            sendContactReports: true
+            receiveContactReports: true
+            sendTriggerReports: true
+            onBodyContact: (other, positions, impulses, normals) => shape.reportContact(other, positions, normals)
         }
     }
     Component {
         id: movingBody
         DynamicRigidBody {
+            readonly property QtObject entity: shape
             physicsMaterial: surface
             massMode: DynamicRigidBody.Mass
             mass: shape.mass
+            sendContactReports: true
+            receiveContactReports: true
+            sendTriggerReports: true
+            onBodyContact: (other, positions, impulses, normals) => shape.reportContact(other, positions, normals)
         }
+    }
+    // Led by the shape: its place and turn are the body's, so logic moves it by moving the shape.
+    Component {
+        id: ledBody
+        DynamicRigidBody {
+            readonly property QtObject entity: shape
+            physicsMaterial: surface
+            isKinematic: true
+            kinematicPosition: shape.position
+            kinematicRotation: shape.rotation
+            sendContactReports: true
+            receiveContactReports: true
+            sendTriggerReports: true
+            onBodyContact: (other, positions, impulses, normals) => shape.reportContact(other, positions, normals)
+        }
+    }
+
+    function reportContact(other, positions, normals) {
+        shape.contact(other && other.entity !== undefined ? other.entity : null,
+                      positions.length > 0 ? positions[0] : shape.scenePosition,
+                      normals.length > 0 ? normals[0] : Qt.vector3d(0, 1, 0))
     }
 }

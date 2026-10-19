@@ -42,6 +42,9 @@ Model {
     Component {
         id: slab
         StaticRigidBody {
+            // Named for contacts and rays (P3.7), and heard by what lands on it.
+            readonly property QtObject entity: ground
+            sendContactReports: true
             // Its top face is the drawn plane.
             position: Qt.vector3d(0, -0.5, 0)
             physicsMaterial: PhysicsMaterial { staticFriction: 0.8; dynamicFriction: 0.7; restitution: 0.1 }

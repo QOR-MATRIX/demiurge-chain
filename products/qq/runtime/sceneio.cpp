@@ -429,7 +429,8 @@ QStringList SceneIO::kinds() const
 {
     return {QStringLiteral("Shape"),  QStringLiteral("Lamp"),    QStringLiteral("Prop"),
             QStringLiteral("Sun"),    QStringLiteral("Ground"),  QStringLiteral("Player"),
-            QStringLiteral("Emitter"), QStringLiteral("Sound"),  QStringLiteral("Behaviour")};
+            QStringLiteral("Emitter"), QStringLiteral("Sound"),  QStringLiteral("Behaviour"),
+            QStringLiteral("Trigger")};
 }
 
 QVariantList SceneIO::entities(QObject *scene) const
@@ -480,9 +481,39 @@ bool SceneIO::remove(QObject *entity)
     if (!node || !isEntity(entity) || !node->parentItem()
         || node->parentItem()->property("kind").toString() != QStringLiteral("Scene"))
         return false;
+    // A body play made sits beside its entity in the scene (Shape.qml, Trigger.qml, Player.qml): it leaves the scene with
+    // it at once, taking any model that rides on it, and is deleted when control returns to the event loop, while its
+    // world still stands (see discard()).
+    if (auto *body = qobject_cast<QQuick3DObject *>(entity->property("physics").value<QObject *>());
+        body && body->inherits("QAbstractPhysicsNode")) {
+        body->setParentItem(nullptr);
+        body->deleteLater();
+    }
     node->setParentItem(nullptr);
     entity->deleteLater();
     return true;
+}
+
+QObject *SceneIO::viewOf(QObject *scene) const
+{
+    // Up the 3D tree to the node a World puts its scenes under, which names the View3D (World.qml).
+    for (auto *o = qobject_cast<QQuick3DObject *>(scene); o; o = o->parentItem()) {
+        if (auto *view = o->property("qqView").value<QObject *>())
+            return view;
+    }
+    return nullptr;
+}
+
+QObject *SceneIO::entityOf(QObject *scene, QObject *object) const
+{
+    for (auto *o = qobject_cast<QQuick3DObject *>(object); o && o != scene; o = o->parentItem()) {
+        // A body names its entity; a model riding on a body is found through the body.
+        if (auto *named = o->property("entity").value<QObject *>(); named && isEntity(named))
+            return named;
+        if (isEntity(o) && o->parentItem() == scene)
+            return o;
+    }
+    return nullptr;
 }
 
 void SceneIO::discard(QObject *scene)

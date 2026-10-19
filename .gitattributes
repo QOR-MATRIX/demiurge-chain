@@ -147,3 +147,9 @@ chain/specs/*.json -text
 # ARQADE's sky is a Radiance HDR image with no zero byte in it, so Git would take it for text and, with
 # core.autocrlf=true, change its bytes on a Windows checkout. Byte for byte, always.
 *.hdr binary
+
+# QQ's scenes are canonical: the exact bytes SceneIO writes, with LF line endings, and tst_scene and tst_play compare
+# them byte for byte. With core.autocrlf=true a Windows checkout gave the fixtures CRLF, and the round trip failed on a
+# fresh clone. LF on every platform.
+products/qq/tests/fixtures/**/*.qml text eol=lf
+products/qq/samples/**/*.qml text eol=lf
