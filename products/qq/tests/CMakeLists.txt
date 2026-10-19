@@ -38,7 +38,8 @@ add_test(NAME tst_studio COMMAND tst_studio)
 
 qt_add_executable(tst_play tst_play.cpp)
 
-target_compile_definitions(tst_play PRIVATE QQ_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+target_compile_definitions(tst_play PRIVATE QQ_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+    QQ_SAMPLES="${CMAKE_CURRENT_SOURCE_DIR}/../samples")
 
 target_link_libraries(tst_play PRIVATE
     Qt6::Test Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Quick3D

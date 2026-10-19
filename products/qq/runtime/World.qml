@@ -102,5 +102,7 @@ View3D {
 
     Node {
         id: scene
+        // What a scene under this world is seen through: where a ray is cast (SceneIO::viewOf, Logic.ray).
+        readonly property QtObject qqView: world
     }
 }

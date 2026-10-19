@@ -18,6 +18,7 @@ qt_add_qml_module(qqruntime
         Emitter.qml
         Sound.qml
         Behaviour.qml
+        Trigger.qml
         Logic.qml
         Game.qml
     SOURCES

@@ -74,7 +74,8 @@ public:
 
     // ── Editing: what the Studio's panels do, and what the agent's tools will do (P3.3) ──
 
-    /// The kinds an entity can be: "Shape", "Lamp", "Prop", "Sun", "Ground", "Player", "Emitter", "Sound", "Behaviour".
+    /// The kinds an entity can be: "Shape", "Lamp", "Prop", "Sun", "Ground", "Player", "Emitter", "Sound", "Behaviour",
+    /// "Trigger".
     Q_INVOKABLE QStringList kinds() const;
 
     /// The scene's entities, in file order.
@@ -83,8 +84,19 @@ public:
     /// Add an entity of `kind` to the scene, with `properties` set; it, or null with `lastError` set.
     Q_INVOKABLE QObject *add(QObject *scene, const QString &kind, const QVariantMap &properties = {});
 
-    /// Take an entity out of its scene and delete it. False if it is not an entity of a scene.
+    /// Take an entity out of its scene and delete it, with the body play made for it (its `physics`), which sits beside
+    /// it in the scene. False if it is not an entity of a scene.
     Q_INVOKABLE bool remove(QObject *entity);
+
+    // ── Play: what logic asks of the world (P3.7) ──
+
+    /// The View3D a scene is shown in, or null: what a ray is cast through (Logic.ray). A World names itself on the node it
+    /// puts scenes under (World.qml).
+    Q_INVOKABLE QObject *viewOf(QObject *scene) const;
+
+    /// The entity of `scene` that `object` belongs to: a model drawn for it, a body play made for it, or the entity
+    /// itself. Null for anything else.
+    Q_INVOKABLE QObject *entityOf(QObject *scene, QObject *object) const;
 
     /// Put a whole scene away (the Studio, opening another or stopping play). Its physics bodies are destroyed at once,
     /// before their world; everything else when control returns to the event loop.

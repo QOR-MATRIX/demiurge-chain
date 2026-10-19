@@ -92,4 +92,12 @@ Scene {
         source: "../logic/spin.qml"
         target: "Orb"
     }
+
+    Trigger {
+        name: "Gate"
+        position: Qt.vector3d(0, 1, -4)
+        eulerRotation: Qt.vector3d(0, 0, 0)
+        scale: Qt.vector3d(3, 2, 0.5)
+        form: "box"
+    }
 }

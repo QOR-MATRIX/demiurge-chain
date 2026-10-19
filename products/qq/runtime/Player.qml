@@ -65,6 +65,10 @@ Node {
     Component {
         id: character
         CharacterController {
+            // Named for contacts, triggers and rays (P3.7): a Trigger hears the player walk in.
+            readonly property QtObject entity: player
+            sendContactReports: true
+            sendTriggerReports: true
             collisionShapes: CapsuleShape { diameter: 0.6; height: 1.2 }
             gravity: Qt.vector3d(0, 0, 0)  // fall and jump are the player's own, below
             midAirControl: true

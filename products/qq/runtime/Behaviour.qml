@@ -41,9 +41,27 @@ Node {
         running: behaviour.live && file.object !== null
         onTriggered: {
             // A long frame (a window dragged, a breakpoint) is not a long step: logic never jumps more than 1/20 s.
-            const dt = Math.min(frameTime, 0.05)
-            file.object.elapsed += dt
-            file.object.frame(dt)
+            // The step moves the clock, runs the timers that are due, then `frame`.
+            file.object._step(Math.min(frameTime, 0.05))
+        }
+    }
+
+    // What happens to the target reaches its logic (P3.7): a contact on its body, and what enters or leaves it when it
+    // is a Trigger. A kind without one of these signals simply never sends it.
+    Connections {
+        target: behaviour.live ? behaviour.targetEntity : null
+        ignoreUnknownSignals: true
+        function onContact(other, point, normal) {
+            if (file.object)
+                file.object.contact(other, point, normal)
+        }
+        function onEntered(other) {
+            if (file.object)
+                file.object.entered(other)
+        }
+        function onExited(other) {
+            if (file.object)
+                file.object.exited(other)
         }
     }
 }
