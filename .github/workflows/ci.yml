@@ -366,7 +366,8 @@ jobs:
             tools/qor-launcher/src-tauri/target
             tools/qor-launcher/qontrol-git/target
             tools/qor-launcher/host-proof/target
-          key: ${{ runner.os }}-launcher-${{ hashFiles('tools/qor-launcher/src-tauri/Cargo.lock', 'tools/qor-launcher/qontrol-git/Cargo.lock', 'tools/qor-launcher/host-proof/Cargo.lock') }}
+            tools/qor-launcher/core/target
+          key: ${{ runner.os }}-launcher-${{ hashFiles('tools/qor-launcher/src-tauri/Cargo.lock', 'tools/qor-launcher/qontrol-git/Cargo.lock', 'tools/qor-launcher/host-proof/Cargo.lock', 'tools/qor-launcher/core/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-launcher-
 
       # Qontrol's libgit2 helper is its own crate and its own process, so libgit2
@@ -381,10 +382,20 @@ jobs:
           cargo test --locked
           cargo build --locked
 
-      # The product host's operating-system checks (ADR-046, ADR-088): the launcher's only unsafe code, in a crate of
-      # its own. On Linux its checks are the safe ones (a process's start time); its Windows half is tested on Windows.
+      # The product host's operating-system checks (ADR-046, ADR-088): the launcher host's only unsafe code, in a crate
+      # of its own. On Linux its checks are the safe ones (a process's start time); its Windows half is tested on Windows.
       - name: Product host checks (tools/qor-launcher/host-proof)
         working-directory: ./tools/qor-launcher/host-proof
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --all-targets --locked -- -D warnings
+          cargo test --locked
+
+      # The core shared with the Android launcher (ADR-104), moved out of the host a module at a time with its tests.
+      # A path dependency's tests do not run with the host's, so it gets its own step. Its bridge to the Qt shell is
+      # its only unsafe code, and the only module allowed it.
+      - name: Core (tools/qor-launcher/core)
+        working-directory: ./tools/qor-launcher/core
         run: |
           cargo fmt --all -- --check
           cargo clippy --all-targets --locked -- -D warnings

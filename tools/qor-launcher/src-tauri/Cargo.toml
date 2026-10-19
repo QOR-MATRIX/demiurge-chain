@@ -41,6 +41,8 @@ gix = "0.87"
 serde      = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror  = "2"
+# What holds the keys and talks to the chain, shared with the Android launcher (ADR-104).
+qor-launcher-core = { path = "../core", features = ["net"] }
 toml       = "0.9"
 
 tokio   = { version = "1", features = ["full"] }

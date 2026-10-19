@@ -165,6 +165,7 @@ impl serde::Serialize for QorError {
 
 pub type QorResult<T> = Result<T, QorError>;
 
+#[cfg(feature = "net")]
 impl From<reqwest::Error> for QorError {
     fn from(e: reqwest::Error) -> Self {
         Self::Network(e.to_string())
