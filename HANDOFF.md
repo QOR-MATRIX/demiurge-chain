@@ -13,7 +13,7 @@ reaches `main` by pull request. `origin` is the private archive, not the current
 CGT: Demiurge Devnet (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`) and ARQADE
 (`https://qor-arqade-tau.vercel.app`). §1 has the detail.
 
-**Newest: §4 item 97 (18 October 2026): the QOR Launcher on Android decided (ADR-104, the owner's choices) and its first step built on branch `session/android`, not merged: the core moved out of the Tauri crate with its first two modules, a C bridge, and a Qt shell whose APK runs on an Android 16 emulator, answering through the core.** (Items 95 and 96 are in pull requests #48 and #49.) Before it: **§4 item 94 (18 October 2026): ARQADE rebuilt inside the launcher on Qt decided (ADR-102, ADR-103), and its first stage built on branch `session/sparks` (#47, with #46's branch merged in): a Spark is a thousandth of a CGT and the ember the atomic unit (ADR-101), shown and typed in the launcher; every suite passes.** Before it: **§4 item 93 (18 October 2026): launcher 0.1.13 committed and in pull request #46 (`366bbf6`), with `main` merged in, its installer on the owner's Desktop, not published: each QOR ID on a PC is a profile of its own, with its own wallet and data, a PIN, and *Who's playing?* after signing out (ADR-099, the owner's, superseding ADR-098); every suite passes.** Before it: **§4 item 92 (18 October 2026): the homepage at `https://qorsync.dev/` is live, written for search engines and AI crawlers, with `demiurge.cloud` and `demiurge.guru` redirecting to it, and the repository's description, topics and website set (ADR-100, #45, merged at `316f83f`).** Before it: §4 item 91 (18 October 2026): launcher 0.1.12 published for testers as the GitHub Release `launcher-v0.1.12`, its download page updated, and #43 merged (`2b09bb0`, every check on it passed): each QOR ID on a PC keeps its own account, and the Vault and rail say whose account is on screen (ADR-098); every launcher suite passes, and two planted faults were caught.** Before it: §4 item 90 (18 October 2026): launcher 0.1.11 published for testers as the GitHub Release `launcher-v0.1.11`, after the owner merged #41 (`3e33c1d`); the download page points at it. Before it: §4 item 89 (17 October 2026): launcher 0.1.11 built, not yet published: a file's menu in the Library publishes it to the Mesh, and a premium look throughout (a bundled display face, a grouped rail with a gliding marker, lit buttons and panels); its installer on the owner's Desktop.** Before it: §4 item 88 (17 October 2026): the owner upgraded Demiurge Devnet to runtime 9; the Mesh is live on it, with its 600-block period, and paid seeding can be tested.** Before it: §4 item 87 (17 October 2026): #40 merged (`580aa9e`, CI green on every job), and launcher 0.1.10 published for testers as the GitHub Release `launcher-v0.1.10`, with QOR Media inside and a download page; the devnet's upgrade to runtime 9 rehearsed against its own live runtime and waiting on the owner's signature.** Before it: §4 item 86 (17 October 2026): the launcher's half of the Mesh's paid work (L10.2 to L10.4), on branch `session/mesh`, not merged: ADR-097's Mesh grant, one host dialog after which the Mesh signs its own proofs, claims, assignments and receipts and nothing a node describes differently; a seeder seen paid for holding and for serving on a development chain whose period is a minute. Not on the devnet, which lacks the pallet.** Before it: §4 item 85 (17 October 2026): the owner's "Go with best and most recommended path forward": ADR-096 accepts the Mesh's proofs, names `pallet-mesh` and gives the takedown list to root; `pallet-mesh` and `mesh-proof` built at `spec_version` 9 on branch `session/mesh`, not merged, not on the devnet.** Before it: §4 item 84 (17 October 2026): the Mesh decided (ADR-095) and L10.1 built on branch `session/mesh`, not merged: a node in the launcher on iroh, seeding opt-in with the person's limits, own published work served, files fetched verified; no CGT moves yet.** Before it: §4 item 83 (17 October 2026): launcher 0.1.9 built from `main`, with Social and the Library, its installer on the owner's Desktop.** Before it: §4 item 82 (17 October 2026): #37 merged, the Library and QOR Media in `main`, CI green on it with its images from `mirror.gcr.io`; Qt PDF was installed all along, so PDF (L9.5) can start.** Before it: §4 item 81 (16 and 17 October 2026): the Library and QOR Media, release 1's first four items (L9.1 to L9.4), built on branch `session/library`. Before it: §4 item 80 (17 October 2026): #35 merged and live on Railway, World, friends, translation and levels with it; the owner tests later; next, the Library.** Before it: §4 item 79 (16 October 2026): room levels, Elite accounts and godmode (ADR-093), added to #35. Before it: §4 item 78 (16 October 2026): the owner's first conversation on Social, and World, friends and circles, and translation on the reader's PC built (ADR-092), not merged. Before it: §4 item 77 (16 October 2026): Social deployed on Railway beside QOR ID, checked from outside, and the launcher pointed at it. Before it: §4 item 76 (15 October 2026): #31 merged, QOR ID's side of Social live, and the launcher's Social surface built and merged as #33 (16 October 2026). Before it: §4 item 75 (15 October 2026): Social decided (ADR-091), QOR ID ready for it, and the Social service built and tested, now in `main`. Before it: §4 item 74 (15 October 2026): the owner's first publish from QQ Studio was refused by the node before any
+**Newest: §4 item 97 (18 October 2026): the QOR Launcher on Android decided (ADR-104, the owner's choices) and its first step built on branch `session/android` (#50), not merged: the core moved out of the Tauri crate with its first two modules, a C bridge, and a Qt shell whose APK runs on an Android 16 emulator, answering through the core.** (Item 96 is in pull request #49.) Before it: **§4 item 95 (18 October 2026): ARQADE's Qt app (P7.19, ADR-102) merged (#48, at `6cb96fb`) and published for testers in launcher 0.1.14, the GitHub Release `launcher-v0.1.14`: docked in the launcher's ARQADE screen, a Qt Quick 3D home on Direct3D 12, the games and arenas, the player's Sparks and the rankings, signed in to ARQADE's server through the launcher; every suite passes, and the launcher started the real app.** Before it: **§4 item 94 (18 October 2026): ARQADE rebuilt inside the launcher on Qt decided (ADR-102, ADR-103), and its first stage merged (#47, at `8746501`): a Spark is a thousandth of a CGT and the ember the atomic unit (ADR-101), shown and typed in the launcher; every suite passes.** Before it: **§4 item 93 (18 October 2026): launcher 0.1.13 merged (#46, at `2214c17`), its installer on the owner's Desktop, not published: each QOR ID on a PC is a profile of its own, with its own wallet and data, a PIN, and *Who's playing?* after signing out (ADR-099, the owner's, superseding ADR-098); every suite passes.** Before it: **§4 item 92 (18 October 2026): the homepage at `https://qorsync.dev/` is live, written for search engines and AI crawlers, with `demiurge.cloud` and `demiurge.guru` redirecting to it, and the repository's description, topics and website set (ADR-100, #45, merged at `316f83f`).** Before it: §4 item 91 (18 October 2026): launcher 0.1.12 published for testers as the GitHub Release `launcher-v0.1.12`, its download page updated, and #43 merged (`2b09bb0`, every check on it passed): each QOR ID on a PC keeps its own account, and the Vault and rail say whose account is on screen (ADR-098); every launcher suite passes, and two planted faults were caught.** Before it: §4 item 90 (18 October 2026): launcher 0.1.11 published for testers as the GitHub Release `launcher-v0.1.11`, after the owner merged #41 (`3e33c1d`); the download page points at it. Before it: §4 item 89 (17 October 2026): launcher 0.1.11 built, not yet published: a file's menu in the Library publishes it to the Mesh, and a premium look throughout (a bundled display face, a grouped rail with a gliding marker, lit buttons and panels); its installer on the owner's Desktop.** Before it: §4 item 88 (17 October 2026): the owner upgraded Demiurge Devnet to runtime 9; the Mesh is live on it, with its 600-block period, and paid seeding can be tested.** Before it: §4 item 87 (17 October 2026): #40 merged (`580aa9e`, CI green on every job), and launcher 0.1.10 published for testers as the GitHub Release `launcher-v0.1.10`, with QOR Media inside and a download page; the devnet's upgrade to runtime 9 rehearsed against its own live runtime and waiting on the owner's signature.** Before it: §4 item 86 (17 October 2026): the launcher's half of the Mesh's paid work (L10.2 to L10.4), on branch `session/mesh`, not merged: ADR-097's Mesh grant, one host dialog after which the Mesh signs its own proofs, claims, assignments and receipts and nothing a node describes differently; a seeder seen paid for holding and for serving on a development chain whose period is a minute. Not on the devnet, which lacks the pallet.** Before it: §4 item 85 (17 October 2026): the owner's "Go with best and most recommended path forward": ADR-096 accepts the Mesh's proofs, names `pallet-mesh` and gives the takedown list to root; `pallet-mesh` and `mesh-proof` built at `spec_version` 9 on branch `session/mesh`, not merged, not on the devnet.** Before it: §4 item 84 (17 October 2026): the Mesh decided (ADR-095) and L10.1 built on branch `session/mesh`, not merged: a node in the launcher on iroh, seeding opt-in with the person's limits, own published work served, files fetched verified; no CGT moves yet.** Before it: §4 item 83 (17 October 2026): launcher 0.1.9 built from `main`, with Social and the Library, its installer on the owner's Desktop.** Before it: §4 item 82 (17 October 2026): #37 merged, the Library and QOR Media in `main`, CI green on it with its images from `mirror.gcr.io`; Qt PDF was installed all along, so PDF (L9.5) can start.** Before it: §4 item 81 (16 and 17 October 2026): the Library and QOR Media, release 1's first four items (L9.1 to L9.4), built on branch `session/library`. Before it: §4 item 80 (17 October 2026): #35 merged and live on Railway, World, friends, translation and levels with it; the owner tests later; next, the Library.** Before it: §4 item 79 (16 October 2026): room levels, Elite accounts and godmode (ADR-093), added to #35. Before it: §4 item 78 (16 October 2026): the owner's first conversation on Social, and World, friends and circles, and translation on the reader's PC built (ADR-092), not merged. Before it: §4 item 77 (16 October 2026): Social deployed on Railway beside QOR ID, checked from outside, and the launcher pointed at it. Before it: §4 item 76 (15 October 2026): #31 merged, QOR ID's side of Social live, and the launcher's Social surface built and merged as #33 (16 October 2026). Before it: §4 item 75 (15 October 2026): Social decided (ADR-091), QOR ID ready for it, and the Social service built and tested, now in `main`. Before it: §4 item 74 (15 October 2026): the owner's first publish from QQ Studio was refused by the node before any
 block; an account that cannot pay is now told so before anyone is asked, naming the account and the chain, and the
 whole reason reaches the Studio and the launcher's log.** Before it: item 73 (10 October 2026): P3.4 built. QQ Studio
 publishes a project as its Cartridge through the launcher that started it (ADR-088, the owner's: a Cartridge holds the
@@ -746,6 +746,18 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
       assistive technology with no hidden text. And the new Projects checks first failed to parse, on a
       duplicate `const` — the same fault that hid the Inventory check for a day (item 17). Caught by running
       it, not by reading.
+    - **Published (the owner asked for a download link to test it):**
+      - Launcher **0.1.14**: the version in `package.json`, `tauri.conf.json`, `Cargo.toml`, the lockfiles and the
+        launcher's README. It carries ARQADE's app, Sparks, and 0.1.13's profiles, never published before.
+      - Built by `npm run app:build` from `6826ce4`. Both staging scripts ran their Qt suites, and both passed.
+      - Published as the pre-release `launcher-v0.1.14` at that commit:
+        `https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.14`. Its notes cover upgrading from
+        0.1.12.
+      - The asset `QOR-Launcher_0.1.14_x64-setup.exe` is 78,670,649 bytes, SHA-256 `ee40d17b…659b`. It was downloaded
+        back from its public address and matched.
+      - The download page (the owner's claude.ai artifact) offers it, with tests for ARQADE, profiles and Sparks in
+        place of 0.1.12's account tests.
+      - The homepage's links point at it since #48 merged (checked from outside, 18 October 2026).
     - **Not done:** nobody has opened a diff in a running launcher; every check above drives the built page
       against a fixture host, and the host tests drive real repositories. *(The helper was bundled on
       2026-09-26, item 19.)*
@@ -2915,7 +2927,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     0.1.12 or older launcher opened afterwards finds no wallet and offers to make one).
 
 94. **18 October 2026: ARQADE rebuilt in the launcher on Qt is decided (ADR-102, ADR-103) and its first stage, Sparks
-    and embers (ADR-101), is built on branch `session/sparks`, not merged.** The owner asked to rebuild ARQADE into the
+    and embers (ADR-101), is built on branch `session/sparks`, merged as #47 at `8746501` (#46 at `2214c17` before it).** The owner asked to rebuild ARQADE into the
     launcher "as a new and improved version", Energy replaced by Sparks, the games "rebuilt as high quality versions"
     with "an earning mechanic which rewards players with Sparks", Sparks reworked to "1000 Sparks = 1 CGT", and Qt "for
     all aspects of the QOR experience with the most graphically cutting edge options possible". Asked, the owner chose:
@@ -2945,8 +2957,79 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
     tests left to CI (Docker Desktop was not running). **Next (ADR-102's order):** P7.19, ARQADE's Qt shell in
     `products/arqade/qt/` docked under the product host; P7.20, the four solo games in QQ; then the pool and replay.
 
-97. **18 October 2026: the QOR Launcher on Android (ADR-104, L13), its first step built on branch `session/android`, not
-    merged.**
+95. **18 October 2026: ARQADE's Qt app, P7.19 (ADR-102), built on branch `session/arqade-qt`, committed as `6826ce4` and pushed at the owner's word ("Commit and push all recommended"), in pull request #48, merged by the owner at `6cb96fb`; published for testers in launcher 0.1.14, and the homepage's download links point at it (checked from outside).** The owner
+    merged #46 and #47 ("both are merged."), and stage 2 of ADR-102 followed.
+    - **The app**, `products/arqade/qt/` (Qt 6.12, C++20, Qt Quick and Qt Quick 3D; `README.md` there):
+      - its home: a 3D astrolabe portal (physically based gilt rings around an ember core with a halo; the homepage's
+        triangle and square; embers rising and leaning toward the pointer; filmic tonemapping, bloom, a vignette,
+        4x MSAA);
+      - the four games and two arenas as cards, each with a small 3D emblem; until P7.20 a card opens today's version
+        in the launcher's ARQADE window (`arqade.web`);
+      - the player's QOR ID, level and Sparks, with what rewards are on the devnet said beside them (ADR-102
+        decision 7);
+      - the arenas' rankings from `/api/live`.
+
+      Cinzel and Barlow Semi Condensed, the homepage's faces, are bundled under the SIL Open Font License. It draws on
+      Direct3D 12 when a probe finds it. Where a PC has two graphics cards it uses the one Windows calls
+      high-performance. On this PC, Qt had taken the Intel UHD first; with the change it took the RTX 4060, as `QSG_INFO`
+      showed.
+    - **Its link to the launcher** (ADR-046's product host, as QOR Media's):
+      - `arqade.next`, with a 3-second wait so a sign-in is not held long behind it;
+      - `arqade.signin` and `arqade.web`;
+      - the commands place (which shows it), hide, theme, player, prefs and quit.
+    - **The sign-in:**
+      1. The app asks ARQADE's server (`/api/auth/login`) to start a sign-in and is sent to QOR ID's page.
+      2. The launcher checks that page is QOR ID's sign-in on the QOR ID it uses, asks QOR ID with its own token
+         (`/api/v1/oauth/handoff`), and checks the answer lands on ARQADE over https.
+      3. The app follows only an answer on its own server, which sets `arq_session` in a cookie jar held in memory.
+
+      A session that ends is renewed once, never in a loop.
+    - **The launcher's side:**
+      - `src-tauri/src/arqade/app.rs`: the handler, the app's state (`App::open` starts it once however often the
+        screen is visited, and clears what an ended run left queued) and six commands;
+      - the command queue made generic in `media.rs`, so QOR Media and ARQADE share it;
+      - `host::find_product`;
+      - signing out of a profile quits ARQADE.
+
+      The ARQADE screen (`ArqadeView.tsx`, with `lib/dock.ts` now shared with the Library) starts and docks the app. It
+      falls back to the website's window when the app is absent, fails to start or ends. The app also ships with the
+      installer:
+      - `scripts/stage-arqade.mjs` and the bundle mapping carry it;
+      - the installer hook runs whichever Visual C++ runtime installer it finds;
+      - `.gitattributes` marks `*.hdr` binary.
+    - **Found:**
+      - Six Quick 3D views that each made their own sky with `ProceduralSkyTextureData` crashed Qt 6.12 (heap corruption
+        or an access violation, three runs in three). The first interface test run lost its graphics device.
+      - One HDR image shared by every view (`assets/sky.hdr`, written by `tools/make_light.py`) was stable in five runs
+        in five.
+      - Qt's torus lies flat, an unlit material shows no emission, and strong bloom turns ember to yellow (§5).
+    - **Evidence (this session):**
+      - ARQADE's Qt Test suites pass, 32 tests: the launcher link 15, the server 9, the interface 8. The interface tests
+        draw on the graphics card and save frames, which were looked at.
+      - The QML lint is clean.
+      - The launcher is fmt and clippy clean. `cargo test --features qontrol-no-skips`: **317 passed, 16 ignored**, the
+        twelve new tests among them. Three planted faults in the sign-in were each caught: the page unchecked, the
+        answer passed on wherever it lands, the page logged.
+      - The opt-in test that starts the real app, through `App::open` as the screen does, passes on the RTX 4060 (and
+        passed earlier on the Intel card). It was welcomed, took every command, asked to be signed in with exactly the
+        page its server sent, started once for two visits, and closed with code 0 when told. A review found that a quit
+        queued after ARQADE had already gone would close the next ARQADE at once; with the fix removed, the real app did
+        exactly that and the test failed.
+      - `npm run check` passes all **fifteen** checks: design 3, accessibility 49, gates view 34, Projects 104,
+        Inventory 238, Market 127, QQ 42, Social 59, Library 40, Mesh 39, profiles 26, **ARQADE view 17**, vault gate 65,
+        contrast 54 and readability 371. A planted fault (less motion not passed on) failed the new check, 16 of 17.
+      - `npm run app:build` from this uncommitted tree built an installer, to prove the bundle and the hook. Both staging
+        scripts ran their suites. ARQADE was staged as 1,425 files, 154.6 MiB, and `arqade\arqade.exe` was placed
+        beside the launcher. makensis took the new hook. The installer is 78,673,130 bytes, against 0.1.12's 69,244,187.
+        It is still labelled 0.1.13; it was not kept for testers and not published.
+      - From outside, ARQADE's real sign-in start answers 302 to `id.qorsync.dev/oauth/authorize`, and QOR ID's handoff
+        route answers 401 without a token, where an unknown route answers 404.
+    - **Not done:**
+      - A person signing in through the app in a running launcher.
+      - The games themselves (P7.20), the pool (P7.21) and replay (P7.22).
+
+97. **18 October 2026: the QOR Launcher on Android (ADR-104, L13), its first step built on branch `session/android`,
+    in pull request #50, not merged.**
     - **The owner's request:** "I'd like to build a android varient of the QOR Launcher as well".
     - **The owner's choices, asked:**
       - Qt for Android now, rather than Tauri on Android;
@@ -3007,6 +3090,17 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   this PC's RTX 4060, drew them cleanly. It was the renderer, not the app.
 - Qt's release APK is unsigned, and Android installs nothing unsigned: `shell/build.ps1` signs it.
 
+**Qt Quick 3D's own sky, many times over**
+- Six `View3D`s in one window, each with a `ProceduralSkyTextureData` light probe, crashed Qt 6.12 with heap corruption
+  or an access violation, three runs in three, and once lost the graphics device. Each view alone was fine, and so was
+  each with no probe. Light every view from one image file (`products/arqade/qt/assets/sky.hdr`): Qt loads it once.
+- `TorusGeometry` lies flat, around the up axis: stand it up (`eulerRotation.x: 90`) to face the camera. A
+  `PrincipledMaterial` with `lighting: NoLighting` shows its base colour and drops its emission: for light, keep lighting
+  on with a black base, no reflection and an emissive factor. ExtendedSceneEnvironment adds bloom after tonemapping, so
+  strong bloom turns an orange to yellow.
+- Qt takes the first graphics adapter, which on a laptop is the integrated one. ARQADE asks DXGI for the
+  high-performance adapter and sets `QT_D3D_ADAPTER_INDEX` (`products/arqade/qt/src/main.cpp`).
+
 **QOR Media's Qt Test output**
 - Run from Git Bash or from Python, a Qt Test executable printed nothing and its exit code was all there was. Pass
   `-o <file>,txt` and read the file, as `build.ps1` does; a planted fault's "caught" means nothing until its FAIL line is
@@ -3047,9 +3141,10 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   which needs a credential and so is the owner's to choose.
 
 **Launcher checks**
-- `npm run check` runs eleven checks (the Social view since 15 October 2026): design, accessibility, the gates view, the Projects view, the Inventory
-  view, the Market view (`check-market-view.mjs`), QQ (`check-qq-view.mjs`, since 2026-10-08), the Gate and Windows Hello (`check-vault-gate.mjs`), QFX
-  contrast and readability. It needs `npm run build` first, because nine of them serve `dist`, and a
+- `npm run check` runs fifteen checks (the ARQADE view since 18 October 2026): design, accessibility, the gates view, the Projects view, the
+  Inventory view, the Market view (`check-market-view.mjs`), QQ (`check-qq-view.mjs`, since 2026-10-08), the Social view, the Library view, the
+  Mesh view, the profiles view, the ARQADE view (`check-arqade-view.mjs`), the Gate (`check-vault-gate.mjs`), QFX contrast and readability. It
+  needs `npm run build` first, because most of them serve `dist`, and a
   Chromium-family browser (set `BROWSER_PATH` for one that is not Edge or Chrome in the usual places).
   Readability takes about four minutes; `READABILITY_THEMES=numen` runs one theme while iterating.
 - **The intro covers the whole window for its first seconds, and takes the pointer.** A check that reads pixels

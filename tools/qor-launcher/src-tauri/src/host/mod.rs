@@ -52,6 +52,31 @@ pub struct ProductRecord {
     pub path: PathBuf,
 }
 
+/// Where a product the launcher carries is: the file `named` (its environment variable) points to, if it exists; else
+/// `<id>\<id>.exe` in `installed`, the launcher's resource folder, where the installer puts it; else the same under the
+/// local app data folder, where its build script deploys it.
+pub fn find_product(
+    named: Option<OsString>,
+    installed: Option<PathBuf>,
+    local_app_data: Option<PathBuf>,
+    id: &str,
+) -> Option<PathBuf> {
+    if let Some(named) = named {
+        let named = PathBuf::from(named);
+        return named.is_file().then_some(named);
+    }
+    let program = if cfg!(windows) {
+        format!("{id}.exe")
+    } else {
+        id.to_owned()
+    };
+    [installed, local_app_data]
+        .into_iter()
+        .flatten()
+        .map(|dir| dir.join(id).join(&program))
+        .find(|path| path.is_file())
+}
+
 /// Random bytes as lowercase hex.
 pub(crate) fn random_hex(bytes: usize) -> String {
     let mut buffer = Zeroizing::new(vec![0u8; bytes]);

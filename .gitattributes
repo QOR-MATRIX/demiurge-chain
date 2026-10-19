@@ -143,3 +143,7 @@ chain/Dockerfile text eol=lf
 
 # The devnet's raw chain specification is committed byte for byte as it was built and verified.
 chain/specs/*.json -text
+
+# ARQADE's sky is a Radiance HDR image with no zero byte in it, so Git would take it for text and, with
+# core.autocrlf=true, change its bytes on a Windows checkout. Byte for byte, always.
+*.hdr binary

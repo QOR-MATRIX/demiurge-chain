@@ -98,14 +98,30 @@ struct Next {
     reports: Vec<Report>,
 }
 
-/// Commands waiting for QOR Media, and the place it last sat.
-pub struct Queue {
-    commands: Mutex<VecDeque<Command>>,
+/// A command a newer one of the same kind makes moot, so the older is dropped from the queue unsent.
+pub trait Supersedes {
+    fn supersedes(&self, older: &Self) -> bool;
+}
+
+impl Supersedes for Command {
+    fn supersedes(&self, older: &Self) -> bool {
+        // A newer place, or theme, makes an older one moot.
+        matches!(
+            (self, older),
+            (Command::Place { .. }, Command::Place { .. })
+                | (Command::Theme { .. }, Command::Theme { .. })
+        )
+    }
+}
+
+/// Commands waiting for a docked product (QOR Media, ARQADE), answered to its long-poll request.
+pub struct Queue<C> {
+    commands: Mutex<VecDeque<C>>,
     ready: tokio::sync::Notify,
     wait: Duration,
 }
 
-impl Queue {
+impl<C: Supersedes> Queue<C> {
     pub fn new(wait: Duration) -> Self {
         Self {
             commands: Mutex::new(VecDeque::new()),
@@ -114,22 +130,21 @@ impl Queue {
         }
     }
 
-    pub fn push(&self, command: Command) {
+    pub fn push(&self, command: C) {
         let mut commands = self.commands.lock();
-        // A newer place, or theme, makes an older one moot.
-        if matches!(command, Command::Place { .. }) {
-            commands.retain(|c| !matches!(c, Command::Place { .. }));
-        }
-        if matches!(command, Command::Theme { .. }) {
-            commands.retain(|c| !matches!(c, Command::Theme { .. }));
-        }
+        commands.retain(|older| !command.supersedes(older));
         commands.push_back(command);
         drop(commands);
         self.ready.notify_one();
     }
 
+    /// Drop every command not yet sent: they were for a run of the product that has ended.
+    pub fn clear(&self) {
+        self.commands.lock().clear();
+    }
+
     /// The next command, as soon as there is one, or None after the wait.
-    pub async fn next(&self) -> Option<Command> {
+    pub async fn next(&self) -> Option<C> {
         let deadline = tokio::time::Instant::now() + self.wait;
         loop {
             if let Some(command) = self.commands.lock().pop_front() {
@@ -147,7 +162,7 @@ impl Queue {
 
 /// What answers QOR Media's requests.
 pub struct MediaHandler {
-    pub queue: Arc<Queue>,
+    pub queue: Arc<Queue<Command>>,
     pub library: Arc<Library>,
     /// Told when QOR Media reports something the Library shows.
     pub changed: Arc<dyn Fn() + Send + Sync>,
@@ -206,25 +221,12 @@ pub fn find(
     installed: Option<PathBuf>,
     local_app_data: Option<PathBuf>,
 ) -> Option<PathBuf> {
-    if let Some(named) = named {
-        let named = PathBuf::from(named);
-        return named.is_file().then_some(named);
-    }
-    let program = if cfg!(windows) {
-        "qor-media.exe"
-    } else {
-        "qor-media"
-    };
-    [installed, local_app_data]
-        .into_iter()
-        .flatten()
-        .map(|dir| dir.join("qor-media").join(program))
-        .find(|path| path.is_file())
+    host::find_product(named, installed, local_app_data, "qor-media")
 }
 
 /// QOR Media while the launcher runs: its queue, whether it is running, and the rectangle it sits in.
 pub struct Media {
-    queue: Arc<Queue>,
+    queue: Arc<Queue<Command>>,
     running: Arc<Mutex<bool>>,
     rect: Mutex<Option<Rect>>,
     theme: Mutex<std::collections::BTreeMap<String, String>>,
@@ -241,8 +243,9 @@ impl Default for Media {
     }
 }
 
-/// The launcher's window, as a native handle QOR Media's window becomes a child of (Windows).
-fn parent(app: &tauri::AppHandle) -> Option<i64> {
+/// The launcher's window, as a native handle a docked product's window (QOR Media's, ARQADE's) becomes a child of
+/// (Windows).
+pub(crate) fn parent(app: &tauri::AppHandle) -> Option<i64> {
     #[cfg(windows)]
     {
         app.get_webview_window("main")

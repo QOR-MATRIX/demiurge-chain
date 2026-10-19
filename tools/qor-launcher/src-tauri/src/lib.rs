@@ -256,6 +256,8 @@ pub struct AppState {
     pub translate: Arc<translate::Translator>,
     /// QOR Media, docked inside the launcher when a file is opened from the Library (ADR-094).
     pub media: media::Media,
+    /// ARQADE's Qt app, docked inside the launcher on its ARQADE screen (ADR-102).
+    pub arqade_app: arqade::app::App,
     /// Release-gate progress for the development dashboard (roadmap L2.2).
     pub dashboard: Arc<gates::Dashboard>,
     /// Open briefly after an unlock, for the QOR ID sign-in (ADR-016).
@@ -308,6 +310,7 @@ impl AppState {
             social: Arc::new(social::Social::new(settings.social_url)),
             translate: Arc::new(translate::Translator::new(local_dir.join("translations"))?),
             media: media::Media::default(),
+            arqade_app: arqade::app::App::default(),
             dashboard: Arc::new(gates::Dashboard::new()?),
             arrival: ArrivalGrant::default(),
             personal: parking_lot::RwLock::new(None),
@@ -425,6 +428,8 @@ fn enter_profile(state: &AppState, id: &str, changed: Changed) -> QorResult<()> 
 /// stopped, the Library closed, the wallet locked and its key taken out of the keychain, so it opens again only with
 /// the profile's PIN. Nothing of it stays in memory.
 async fn leave_profile(state: &AppState, events: &dyn social::Events) {
+    // ARQADE holds a session with its server for this profile's QOR ID: it closes with the profile.
+    state.arqade_app.quit();
     state.social.disconnect(events);
     state.identity.logout().await;
     state.identity.set_profile(None);
@@ -2220,6 +2225,12 @@ pub fn run() {
             mesh::commands::mesh_open_escrow,
             qor_set_auth_endpoint,
             arqade_open,
+            arqade::app::arqade_app_open,
+            arqade::app::arqade_app_place,
+            arqade::app::arqade_app_hide,
+            arqade::app::arqade_app_theme,
+            arqade::app::arqade_app_player,
+            arqade::app::arqade_app_prefs,
             gates_report,
             gates_run_suite,
         ])
