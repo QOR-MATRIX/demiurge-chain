@@ -22,3 +22,100 @@
 .tip-panel{margin:0 0 24px}.tip-panel h2{margin:0 0 8px;font-size:17px}.tip-form{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin:12px 0}.tip-form label{display:flex;flex-direction:column;gap:6px;font-size:12px}.tip-form select,.tip-form input{min-width:160px;padding:8px 10px;background:transparent;color:inherit;border:1px solid currentColor;border-radius:2px}
 .avatar{position:relative}.level-bubble{position:absolute;right:-4px;bottom:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ff6a00;color:#06070a;font-size:10px;font-weight:700;line-height:16px;text-align:center}.level-row .xp-bar{display:block;height:4px;margin-top:4px;background:rgba(255,255,255,.12);border-radius:2px;overflow:hidden}.level-row .xp-bar span{display:block;height:100%;background:#ff6a00}
 .player-avatar-img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}.player-avatar-letter{display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;background:#ff6a00;color:#06070a;font-weight:700;line-height:1;user-select:none}@media(prefers-reduced-motion:no-preference){.player-avatar-wrap .player-avatar-img,.player-avatar-wrap .player-avatar-letter{transition:opacity .18s}}
+
+/* -----------------------------------------------------------------------------------------------------------------
+   Phones and touch (19 October 2026). On a narrow screen the side rail becomes a tab bar along the bottom, within the
+   thumb's reach, and the content takes the whole width. Dialogs, the games among them, fill the screen. Everything
+   tapped is at least 44 by 44 pixels. The playfields take touches instead of scrolling the page. Content stays clear of
+   rounded corners and notches (`viewport-fit: cover` in layout.tsx). Last in the file, so it wins over the rules above.
+   ----------------------------------------------------------------------------------------------------------------- */
+:root { --tabbar: 64px; }
+button, a, [role="button"], input, select, textarea { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.play-canvas, .strategy-board { touch-action: none; }
+.play-canvas { cursor: pointer; }
+
+@media (max-width: 760px) {
+  html { -webkit-text-size-adjust: 100%; }
+  .os { display: block; }
+
+  /* The rail, as a tab bar: eight sections, each an icon over its short name. */
+  .rail {
+    inset: auto 0 0 0 !important; width: auto !important;
+    height: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px));
+    flex-direction: row; align-items: stretch;
+    padding: 0 max(2px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(2px, env(safe-area-inset-left, 0px));
+    border-right: 0; border-top: 1px solid #2a2b30;
+    background: #111214f0; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    z-index: 40;
+  }
+  .rail .brand, .rail .workspace, .rail .nav-label, .rail .rail-bottom { display: none !important; }
+  .rail nav { display: flex; flex: 1; padding: 0 !important; gap: 0; margin: 0; }
+  .rail nav button {
+    flex: 1 1 0; min-width: 44px; min-height: var(--tabbar); margin: 0;
+    padding: 9px 1px 7px !important; gap: 5px !important;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 0 !important; border: 0 !important; border-radius: 0 !important; background: none;
+    color: #8f929b;
+  }
+  .rail nav button::after { content: attr(data-short); font: 600 10px/1 system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: .01em; }
+  .rail nav button svg { width: 21px !important; height: 21px !important; flex: none; }
+  .rail nav button small { display: none !important; }
+  .rail nav button.selected { color: #ff8a52; background: linear-gradient(#ff6b351f, #ff6b3500); box-shadow: inset 0 2px 0 #ff6b35; }
+  .rail nav button:active { background: #ffffff0d; }
+
+  /* The content, the whole width, with room left for the tab bar under it. */
+  .body { width: 100% !important; margin-left: 0 !important; padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px)); }
+  .topbar {
+    height: auto; min-height: 58px; gap: 10px;
+    padding: env(safe-area-inset-top, 0px) max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px)) !important;
+  }
+  .topbar .breadcrumb { font-size: 0; min-width: 0; }
+  .topbar .breadcrumb svg { display: none; }
+  .topbar .breadcrumb span { font-size: 13px; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .top-actions { gap: 8px; }
+  .top-actions .badge { display: none; }
+  .energy, .qor-button { min-height: 44px; }
+  .energy { padding: 0 6px; }
+  main { padding: 20px max(14px, env(safe-area-inset-right, 0px)) 28px max(14px, env(safe-area-inset-left, 0px)) !important; }
+
+  /* What the audit found under 44 pixels. */
+  .text-link, .live-strip button, .intro-bottom button, .creator-strip button, .live-notice a, .live-notice button, main .primary, main .secondary { min-height: 44px; }
+  .live-notice a, .live-notice button { display: inline-flex; align-items: center; }
+  .live-strip button { padding: 0 6px; }
+
+  /* The world chat's button sits above the tab bar, and its window fills the screen above it. */
+  .world-chat { bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px) + 12px) !important; right: max(12px, env(safe-area-inset-right, 0px)) !important; }
+  .chat-window { width: calc(100vw - 24px) !important; max-height: calc(100dvh - var(--tabbar) - env(safe-area-inset-bottom, 0px) - 120px) !important; }
+  /* Its button, a round one: the label is its aria-label, and an unread count rides on its corner. */
+  .chat-bubble { position: relative; width: 56px; height: 56px; padding: 0; gap: 0; justify-content: center; border-radius: 50%; }
+  .chat-bubble span, .chat-bubble > .signal-dot { display: none; }
+  .chat-bubble b { position: absolute; top: -3px; right: -3px; }
+
+  /* A game, or any of the site's dialogs, fills the screen. */
+  .game-modal, .info-modal {
+    /* Centred by Tailwind's translate, whose two variables are zeroed here: a plain `translate: none` is folded into
+       `transform` by the CSS minifier, and lost. */
+    inset: 0 !important; top: 0 !important; left: 0 !important; --tw-translate-x: 0 !important; --tw-translate-y: 0 !important;
+    width: 100vw !important; max-width: none !important; height: 100dvh; max-height: none !important;
+    align-content: start; overflow-y: auto; overscroll-behavior: contain;
+    border-radius: 0 !important; border: 0 !important;
+    padding: max(18px, env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) max(18px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px)) !important;
+  }
+  .game-modal [data-slot="dialog-close"], .info-modal [data-slot="dialog-close"] { min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+  .touch-controls { gap: 10px; }
+  .touch-controls button { min-height: 56px; padding: 0 20px; font-size: 13px; flex: 1; justify-content: center; }
+  .touch-controls span { display: none; }
+  .memory-grid { gap: 10px; }
+  .memory-grid button { height: min(137px, 34vw); }
+  .orbital-action { gap: 12px; flex-wrap: wrap; }
+  .orbital-action button { min-height: 56px; flex: 1; justify-content: center; }
+
+  /* The arenas' boards: cells as big as the width allows. */
+  .strategy-board { padding: 10px; gap: 6px; border-bottom-width: 4px; }
+}
+
+/* Touch screens of any width: what was shown on hover shows when pressed, and nothing waits on a hover. */
+@media (hover: none) {
+  .game-card:active, .board-cell:not(:disabled):active { box-shadow: inset 0 0 0 2px #d7bd8e, 0 0 20px #d7bd8e25; }
+  .memory-grid button:not(:disabled):active { background: #263d4b; }
+}

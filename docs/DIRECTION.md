@@ -1284,6 +1284,16 @@ here sets an economic value; payouts are U-16.
 23. [ ] The website without Energy (ADR-102): the Energy store, Energy Tokens and local token wallet removed; its own
     games point to the launcher.
 24. [ ] The two multiplayer arenas rebuilt in QQ (ADR-102), on the ARQADE service. Depends on P7.19.
+25. [ ] ARQADE's site on phones and by touch (the owner, 19 October 2026: "optimize Arqade for its mobile browser
+    users and screen tapping"). **Built on branch `session/arqade-mobile`, not merged:**
+    - Below 760 pixels the side rail is a tab bar along the bottom, and the content takes the whole width.
+    - Games and dialogs fill the screen, every target is 44 by 44 pixels or more, and the chat's button is round,
+      above the tab bar.
+    - Void Runner and Orbital are played by tapping their playfields, and the page reaches the screen's edges inside
+      its safe area.
+    - Held to it by `scripts/check-phone.mjs`, 17 checks, in CI (GATES `arqade.phone`).
+
+    **Not yet:** live on Vercel, which follows the merge, and tried on the owner's own phone.
 
 ## 8. Scope
 

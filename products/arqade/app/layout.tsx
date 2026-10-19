@@ -1,10 +1,19 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 
 const SITE = "https://qor-arqade-tau.vercel.app";
 const DESCRIPTION =
   "ARQADE, the gaming platform powered by Demiurge. Play original games, create new worlds, and explore a sovereign terminal.";
+
+// Phones: the page reaches the screen's rounded edges and notch (globals.css keeps content inside the safe area), and
+// the browser's own bars take ARQADE's darkness.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0d0e11",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),

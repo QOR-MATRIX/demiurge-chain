@@ -858,6 +858,12 @@ type = "tightening"
 change = "check-profiles-view.mjs gains a check that the Vault shows the balance in Sparks too (ADR-101), 25 checks to 26. The Rust suite gains two tests in cgt.rs (amounts typed in CGT or Sparks, precision finer than an ember refused; whole Sparks shown as Sparks, anything finer in full as CGT) and chain/runtime one (a Spark is a thousandth of a CGT)."
 reason = "Tightening: checks and tests added, none removed or relaxed. The planted fault (the CGT figure shown where the Sparks should be) failed the new check, 25 of 26, and passed restored."
 
+[[change_log]]
+date = "2026-10-19"
+type = "tightening"
+change = "A new criterion, arqade.phone, on a new suite arqade_phone (products/arqade/scripts/check-phone.mjs, 17 checks): ARQADE's site visited as a phone, by touch, against its production build. Nothing scrolls sideways; the sections are a tab bar along the bottom, eight labelled tabs of 44 by 44 pixels or more that open their sections; every button and link on the home screen, the arenas and the play screen is 44 by 44 or more; the world chat's button sits above the tab bar; a game fills the screen with a close button of 44 or more; a tap on Orbital's playfield is its lock and the playfields take touches without scrolling; and a desktop keeps the rail along the left. CI's arqade job runs it after the production build ([ci].quality_gates updated)."
+reason = "Tightening: a criterion, a suite and a CI step added, none removed or relaxed. The owner asked for ARQADE to be optimised for phone browsers and tapping. A planted fault (the phone rules' breakpoint narrowed so they never apply) failed eight of the checks; restored, all 17 pass."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -913,7 +919,7 @@ quality_gates = [
   "no credentials committed in configuration files",
   "no log call in services/qor-auth/src interpolates a token, key, secret, password, link or address, and no request span records the URI",
   "no [patch] section in any tracked manifest, and no reference to a personal Substrate fork anywhere tracked, excluding only ci.yml itself and HANDOFF.md",
-  "products/arqade: npm ci, tsc --noEmit, npm run lint (errors fail; four pre-existing warnings do not), npm test (node --test tests/*.test.mjs and sdk/tests) and npm run build",
+  "products/arqade: npm ci, tsc --noEmit, npm run lint (errors fail; four pre-existing warnings do not), npm test (node --test tests/*.test.mjs and sdk/tests), npm run build, then npm run check:phone (scripts/check-phone.mjs: the site as a phone sees it, by touch, served from that build, in the runner's Google Chrome)",
 ]
 not_in_ci_yet = [
   "tools/qor-launcher chain::live: it needs a running development node. Worth adding once the chain job's build time in CI is known.",
@@ -994,6 +1000,11 @@ needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH fo
 dir = "products/arqade"
 command = "npm test"
 needs = "npm ci first (Node 24). No network and no devnet: the devnet reader is tested against a scripted node"
+
+[suites.arqade_phone]
+dir = "products/arqade"  # ARQADE's site on a phone, by touch. Since 2026-10-19.
+command = "node scripts/check-phone.mjs"
+needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places). It serves the build itself"
 
 [suites.qor_engine]
 dir = "tools/qor-launcher"  # QQ, the QOR Engine (ADR-082). Since 2026-10-08.
@@ -1927,6 +1938,13 @@ player's own Vault, and a developer SDK with which others publish games."""
   id = "arqade.tests"
   kind = "tests"
   suite = "arqade"
+  require = []
+
+  # The site on a phone, by touch, in a real browser against the production build (2026-10-19).
+  [[gates.criteria]]
+  id = "arqade.phone"
+  kind = "tests"
+  suite = "arqade_phone"
   require = []
 
 [[gates]]
