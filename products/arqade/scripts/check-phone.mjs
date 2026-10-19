@@ -1,4 +1,4 @@
-// Does ARQADE work on a phone, by touch? (19 October 2026)
+// Does ARQADE work on a phone, by touch? (18 October 2026)
 //
 // It starts the production build (`npm run build` first) and visits it as a phone: 390 by 844 CSS pixels, touch, a
 // mobile user agent. What it holds the site to:

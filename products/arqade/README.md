@@ -16,7 +16,7 @@ Node 22.13 or later.
 
 ```sh
 npm ci
-npm test          # 49 tests (19 October 2026): arenas and chat against Postgres (PGlite), sign-in, tips, the devnet reader, account lookup, the SDK
+npm test          # 49 tests (18 October 2026): arenas and chat against Postgres (PGlite), sign-in, tips, the devnet reader, account lookup, the SDK
 npm run typecheck
 npm run lint
 npm run build     # migrations (production only, see below), then next build
@@ -27,7 +27,7 @@ npm run check:phone  # the build as a phone sees it, by touch, in Edge or Chrome
 Open it as `localhost`, not `127.0.0.1`: Next refuses its development scripts to any other host, and the page then
 never comes alive.
 
-**On phones** (19 October 2026, `app/globals.css`, "Phones and touch"):
+**On phones** (18 October 2026, `app/globals.css`, "Phones and touch"):
 - Below 760 pixels wide the side rail becomes a tab bar along the bottom, and the content takes the whole width.
 - Games and dialogs fill the screen, and every target is at least 44 by 44 pixels.
 - Void Runner and Orbital are played by tapping their playfields; Rift Survivor already took a drag.
