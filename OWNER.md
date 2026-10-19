@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 19 October 2026 (early morning). One page, rewritten every session.
+For Andrew, 19 October 2026 (morning). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -18,16 +18,12 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **Launcher 0.1.14 for testers**, with ARQADE's 3D app inside it:
   `releases/tag/launcher-v0.1.14`.
 
-## Merged tonight
+## Merged since last night
 
 **#48** (ARQADE's 3D app in the launcher), **#49** (ARQADE on phones), **#50** (the
-launcher on Android, its first step) and **#51** (their records).
-
-## Waiting for you to merge
-
-- **#52**, the CI check you decided on tonight: each backdrop must compile and draw,
-  rather than reach 20 frames a second on CI's slow renderer. It failed `main` once.
-  Brought up to date with `main`; nothing else is waiting.
+launcher on Android, its first step), **#51** (their records) and **#52** (the CI check you
+decided on: each backdrop must compile and draw, not reach 20 frames a second on CI's slow
+renderer). Nothing is waiting for you to merge.
 
 ## Android, started
 
