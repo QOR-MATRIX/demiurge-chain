@@ -28,6 +28,18 @@
 // before the first render, and "stored off: no GL context is created" pins it
 // (it fails, with 1, against the old main.tsx).
 //
+// "backdrop liquid: it compiles and runs" then failed main once on 18 October
+// 2026, with 16 frames in the second against a bar of 20; a re-run passed. CI's
+// software renderer gives liquid 16 to 47 frames a second (thirteen runs read
+// back), and below about 41 the launcher's own frame budget (Canvas.tsx: 24 ms,
+// 30 strikes) stops the loop after thirty slow frames, as it should on a machine
+// that cannot afford it, so the count measured the runner, not the backdrop.
+// Since 19 October 2026, by the owner's decision (GATES.toml's change log, a
+// loosening): each backdrop's shaders must compile and its program link, as
+// WebGL itself reports them, and it must then draw at least one frame in the
+// second. The twenty-a-second bar stays on the positive control and on the
+// backdrop starting again from off.
+//
 // Exits non-zero if any check fails.
 
 import { spawn } from 'node:child_process';
@@ -171,6 +183,24 @@ const HOST_STUB = `
     if (this.classList.contains('qfx-canvas') && kind === 'webgl2') window.__glContexts += 1;
     return getContext.call(this, kind, ...rest);
   };
+  // Every shader compiled and program linked on a WebGL2 context, as WebGL
+  // reports it straight after: whether a backdrop compiles is read, not
+  // inferred from its frames.
+  window.__glCompiled = [];
+  window.__glLinked = [];
+  if (window.WebGL2RenderingContext) {
+    const gl2 = WebGL2RenderingContext.prototype;
+    const compileShader = gl2.compileShader;
+    gl2.compileShader = function (shader) {
+      compileShader.call(this, shader);
+      window.__glCompiled.push(Boolean(this.getShaderParameter(shader, this.COMPILE_STATUS)));
+    };
+    const linkProgram = gl2.linkProgram;
+    gl2.linkProgram = function (program) {
+      linkProgram.call(this, program);
+      window.__glLinked.push(Boolean(this.getProgramParameter(program, this.LINK_STATUS)));
+    };
+  }
   window.__frames = 0;
   const schedule = window.requestAnimationFrame.bind(window);
   window.requestAnimationFrame = (callback) => {
@@ -364,12 +394,27 @@ check('live: the scrim is shown', await display('.qfx-scrim'), 'block');
 
 // Every backdrop (Settings, since 8 October 2026) compiles and runs. A shader
 // that does not compile leaves the canvas empty and nothing errors, so each is
-// chosen the way Settings chooses it and must schedule frames; then Still must
-// hold the last of them, as it holds the first.
+// chosen the way Settings chooses it, WebGL says whether its two shaders
+// compiled and its program linked, and it must draw (see the header for why one
+// frame, not twenty); then Still must hold the last of them, as it holds the
+// first. Each choice builds anew: drift, the default, is chosen last.
+const drawing = (n) => n >= 1;
+const built = (compiledFrom, linkedFrom) =>
+  evaluate(`(() => {
+    const c = window.__glCompiled.slice(${compiledFrom});
+    const l = window.__glLinked.slice(${linkedFrom});
+    return c.filter(Boolean).length + ' of ' + c.length + ' compiled, ' + l.filter(Boolean).length + ' of ' + l.length + ' linked';
+  })()`);
 for (const id of ['aurora', 'nebula', 'lattice', 'starfield', 'liquid', 'drift']) {
+  const [compiledFrom, linkedFrom] = await evaluate('[window.__glCompiled.length, window.__glLinked.length]');
   await evaluate(setAttr('data-backdrop', id));
   await toFront();
-  check(`backdrop ${id}: it compiles and runs`, await framesOver(1000), moving);
+  check(
+    `backdrop ${id}: its shaders compile and its program links`,
+    await built(compiledFrom, linkedFrom),
+    '2 of 2 compiled, 1 of 1 linked',
+  );
+  check(`backdrop ${id}: it draws`, await framesOver(1000), drawing);
 }
 await evaluate(setAttr('data-backdrop', 'liquid'));
 await toFront();
