@@ -1,6 +1,8 @@
 # ADR-103: The launcher's screens move to Qt in stages, over the Rust host that keeps the keys
 
-**Status:** **Accepted in direction**, 18 October 2026, by the owner, who asked to "consider using QT for all aspects of
+**Status:** **Accepted in direction**, 18 October 2026, by the owner. **Decision 2's bridge is superseded by
+[ADR-104](ADR-104-the-launcher-on-android-on-qt.md)** (18 October 2026), which starts stage 2 on Android through a small C
+bridge of the core's own, since CXX-Qt does not support Android; the rest of this record stands. The owner asked to "consider using QT for all aspects of
 the QOR experience with the most graphically cutting edge options possible" and chose the Arcade in Qt now, with the
 launcher's own screens following in stages, each stage its own decision. **Amends** the standing position that the
 launcher stays Tauri unless the owner decides (it is now decided in direction). **Relates to** ADR-046 (the product host),

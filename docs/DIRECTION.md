@@ -854,10 +854,39 @@ L10.2, because finding who holds a root reads the escrow's assignments on chain.
 #### L12: The launcher on Qt, in stages (ADR-103)
 
 1. [ ] Stage 1: new surfaces are Qt applications docked under the product host (QQ Studio, QOR Media, ARQADE).
-2. [ ] Stage 2: a Qt shell linking the Rust host through a typed bridge (CXX-Qt), the host and its tests unchanged, the
-   shell unable to reach a key and a check proving it. Needs its own record first.
+2. [ ] Stage 2: a Qt shell linking the Rust host through a bridge, the host and its tests unchanged, the shell unable to
+   reach a key and a check proving it. Its record is ADR-104, which starts it on Android (L13) through a small C bridge
+   of the core's own instead of CXX-Qt.
 3. [ ] Stage 3: each React surface rebuilt in the Qt shell, one at a time, each with its own checks before the React one
    is retired.
+
+#### L13: The launcher on Android, on Qt (ADR-104)
+
+The owner, 18 October 2026: "I'd like to build a android varient of the QOR Launcher as well". Qt 6 for Android over
+the Rust core, app ID `app.qorsync.dev`, Android 9 and later, delivered as a signed APK on GitHub. In this order:
+
+1. [ ] The toolchain, the bridge and a running APK. The Android toolchain is installed by
+   `tools/qor-launcher/shell/android-toolchain.ps1`. `tools/qor-launcher/core/` is the core with its C bridge, and
+   `tools/qor-launcher/shell/` is the Qt shell. It builds an arm64 APK that starts and answers through the core.
+   **Built, 18 October 2026, on branch `session/android`, not merged:**
+   - The toolchain is installed: JDK 21, SDK 36, NDK r27c, Rust's Android targets, the emulator.
+   - The core's C bridge is tested.
+   - The shell's arm64 and x86_64 APKs build and are debug-signed.
+   - The x86_64 build ran on an Android 16 emulator: the core answered through the bridge, and read "1.25 CGT" exactly
+     as 1,250 Sparks.
+
+   **Not yet:** on a phone.
+2. [ ] The core moved out of the Tauri crate, module by module with its tests: Sparks, errors, the vault, profiles, QOR
+   ID's client, the chain client, Social's client, the Library's index and the Mesh. The Windows launcher keeps every
+   test green throughout.
+3. [ ] Keys on Android: the wallet's key sealed with its profile's PIN and wrapped by Android Keystore. The Gate, the
+   profiles and the Vault with Sparks in Qt, and a check that the shell cannot read a key.
+4. [ ] QOR ID's sign-in and Social.
+5. [ ] ARQADE: its Qt module in the same process, signed in through the core. Depends on P7.19.
+6. [ ] The Library: the phone's own photos, music and videos through MediaStore, each opened in the phone's app.
+7. [ ] The Mesh: off until turned on, Wi-Fi only unless the person chooses otherwise.
+8. [ ] A signed APK on a GitHub Release, `android-v<version>`, with a download page. The test key is kept off the
+   repository; the Google Play key is the owner's.
 
 ### The product tracks
 
@@ -1296,7 +1325,7 @@ here sets an economic value; payouts are U-16.
     games point to the launcher.
 24. [ ] The two multiplayer arenas rebuilt in QQ (ADR-102), on the ARQADE service. Depends on P7.19.
 25. [ ] ARQADE's site on phones and by touch (the owner, 18 October 2026: "optimize Arqade for its mobile browser
-    users and screen tapping"). **Built on branch `session/arqade-mobile`, not merged:**
+    users and screen tapping"). **Built, merged (#49, at `943815d`) and live on Vercel:**
     - Below 760 pixels the side rail is a tab bar along the bottom, and the content takes the whole width.
     - Games and dialogs fill the screen, every target is 44 by 44 pixels or more, and the chat's button is round,
       above the tab bar.
@@ -1304,7 +1333,7 @@ here sets an economic value; payouts are U-16.
       its safe area.
     - Held to it by `scripts/check-phone.mjs`, 17 checks, in CI (GATES `arqade.phone`).
 
-    **Not yet:** live on Vercel, which follows the merge, and tried on the owner's own phone.
+    **Not yet:** tried on the owner's own phone.
 
 ## 8. Scope
 

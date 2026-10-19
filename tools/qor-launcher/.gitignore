@@ -1,6 +1,7 @@
 node_modules/
 dist/
 src-tauri/target/
+core/target/
 src-tauri/gen/
 scripts/.flake/
 src-tauri/binaries/

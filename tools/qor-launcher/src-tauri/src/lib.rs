@@ -14,11 +14,12 @@
 //! one JavaScript heap.
 
 pub mod arqade;
-pub mod cgt;
+// Moved into the core shared with the Android launcher (ADR-104, DIRECTION L13.2), and kept at their old paths.
+pub use qor_launcher_core::cgt;
 pub mod chain;
 pub mod config;
 pub mod content;
-pub mod error;
+pub use qor_launcher_core::error;
 pub mod gates;
 pub mod host;
 pub mod identity;
