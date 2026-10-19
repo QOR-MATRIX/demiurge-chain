@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 18 October 2026 (evening). One page, rewritten every session.
+For Andrew, 18 October 2026 (night). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -13,16 +13,14 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 - **The homepage** at **qorsync.dev**, its download links on launcher 0.1.14. **Devnet** —
   *the test chain on servers* — on runtime 9.
 - **QOR ID** — *the one sign-in* — and **Social** — *the chat service* — on Railway.
-- **ARQADE** — *the gaming website* — on Vercel.
+- **ARQADE** — *the gaming website* — on Vercel, now made for phones: a tab bar along the
+  bottom, games filling the screen, played by tapping (#49, merged).
 - **Launcher 0.1.14 for testers**, with ARQADE's 3D app inside it (#48, merged):
   `releases/tag/launcher-v0.1.14`.
 
-## Waiting for you to merge (every check passes on both)
+## Waiting for you to merge
 
-- **#49, ARQADE on phones:** a tab bar along the bottom, games filling the screen, played by
-  tapping. Its preview opens once you are signed in to Vercel; after merging, it is live.
-- **#50, the launcher on Android**, its first step (below). Merge it after #49. It will then
-  need `main` merged in once more, because both add to the same records; I can do that.
+- **#50, the launcher on Android**, its first step (below), brought up to date with `main`.
 
 ## Android, started
 
@@ -36,7 +34,8 @@ it, and allow installs from that app when asked.
 
 ## What only you can do
 
-1. **Merge #49, then #50** (Android, app ID `app.qorsync.dev`, as you confirmed).
+1. **Merge #50** (Android, app ID `app.qorsync.dev`, as you confirmed), and **try ARQADE on
+   your phone** at `qor-arqade-tau.vercel.app`.
 2. **Try ARQADE in 0.1.14:** open it from the menu while signed in. Nobody has yet signed in
    to it through a running launcher.
 3. **Google Search Console** for `qorsync.dev`, and the **GitHub social preview** (`site/og.png`).

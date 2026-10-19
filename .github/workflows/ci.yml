@@ -417,7 +417,7 @@ jobs:
         run: cargo test --locked --features qontrol-no-skips
 
   arqade:
-    name: "ARQADE (products/arqade): install, type check, lint, tests, build"
+    name: "ARQADE (products/arqade): install, type check, lint, tests, build, phones"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -446,6 +446,17 @@ jobs:
       - name: Production build
         working-directory: ./products/arqade
         run: npm run build
+
+      # The site on a phone, by touch (scripts/check-phone.mjs): the tab bar, every target 44 pixels or more, games
+      # filling the screen and played by tapping, nothing scrolling sideways, and the desktop rail kept. It serves
+      # the build above with `next start` and drives the runner's Google Chrome, with its sandbox, as the launcher's
+      # checks do.
+      - name: Let Chrome's sandbox create its namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Phones and touch
+        working-directory: ./products/arqade
+        run: npm run check:phone
 
       # A gate since 2026-10-05, when the 13 React Compiler errors the imported code
       # carried were fixed. Warnings do not fail it; errors do.

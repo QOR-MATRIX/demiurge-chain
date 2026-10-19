@@ -866,6 +866,12 @@ reason = "Tightening: criteria, a suite and checks added, none removed or relaxe
 
 [[change_log]]
 date = "2026-10-18"
+type = "tightening"
+change = "A new criterion, arqade.phone, on a new suite arqade_phone (products/arqade/scripts/check-phone.mjs, 17 checks): ARQADE's site visited as a phone, by touch, against its production build. Nothing scrolls sideways; the sections are a tab bar along the bottom, eight labelled tabs of 44 by 44 pixels or more that open their sections; every button and link on the home screen, the arenas and the play screen is 44 by 44 or more; the world chat's button sits above the tab bar; a game fills the screen with a close button of 44 or more; a tap on Orbital's playfield is its lock and the playfields take touches without scrolling; and a desktop keeps the rail along the left. CI's arqade job runs it after the production build ([ci].quality_gates updated)."
+reason = "Tightening: a criterion, a suite and a CI step added, none removed or relaxed. The owner asked for ARQADE to be optimised for phone browsers and tapping. A planted fault (the phone rules' breakpoint narrowed so they never apply) failed eight of the checks; restored, all 17 pass."
+
+[[change_log]]
+date = "2026-10-18"
 type = "ci-scope"
 change = "The launcher's core moves out of its Tauri crate into tools/qor-launcher/core (ADR-104, DIRECTION L13.2), shared with the Android launcher. Its first two modules, Sparks and amounts (cgt.rs) and the error type, move with their 13 tests, which leave suite launcher (304 tests before, 291 after) for a new suite launcher_core. That suite has 20 tests: the 13, four for the commands a shell sends, and three for the bridge's C boundary. CI's launcher job gains a step that formats, lints and tests the core ([ci].quality_gates updated). No criterion names a moved test, and every test still runs on every pull request."
 reason = "A scope change rather than a tightening, because tests leave a suite a criterion reads (alpha.launcher-tests, which requires every test in suite launcher). None is removed or relaxed: they run in the new step, beside the new ones. Recorded so the drop in the launcher suite's count is not read as a loss."
@@ -925,7 +931,7 @@ quality_gates = [
   "no credentials committed in configuration files",
   "no log call in services/qor-auth/src interpolates a token, key, secret, password, link or address, and no request span records the URI",
   "no [patch] section in any tracked manifest, and no reference to a personal Substrate fork anywhere tracked, excluding only ci.yml itself and HANDOFF.md",
-  "products/arqade: npm ci, tsc --noEmit, npm run lint (errors fail; four pre-existing warnings do not), npm test (node --test tests/*.test.mjs and sdk/tests) and npm run build",
+  "products/arqade: npm ci, tsc --noEmit, npm run lint (errors fail; four pre-existing warnings do not), npm test (node --test tests/*.test.mjs and sdk/tests), npm run build, then npm run check:phone (scripts/check-phone.mjs: the site as a phone sees it, by touch, served from that build, in the runner's Google Chrome)",
 ]
 not_in_ci_yet = [
   "tools/qor-launcher chain::live: it needs a running development node. Worth adding once the chain job's build time in CI is known.",
@@ -1006,6 +1012,11 @@ needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH fo
 dir = "products/arqade"
 command = "npm test"
 needs = "npm ci first (Node 24). No network and no devnet: the devnet reader is tested against a scripted node"
+
+[suites.arqade_phone]
+dir = "products/arqade"  # ARQADE's site on a phone, by touch. Since 2026-10-18.
+command = "node scripts/check-phone.mjs"
+needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places). It serves the build itself"
 
 [suites.qor_engine]
 dir = "tools/qor-launcher"  # QQ, the QOR Engine (ADR-082). Since 2026-10-08.
@@ -1979,6 +1990,13 @@ player's own Vault, and a developer SDK with which others publish games."""
   id = "arqade.view"
   kind = "tests"
   suite = "arqade_view"
+  require = []
+
+  # The site on a phone, by touch, in a real browser against the production build (2026-10-18).
+  [[gates.criteria]]
+  id = "arqade.phone"
+  kind = "tests"
+  suite = "arqade_phone"
   require = []
 
 [[gates]]
