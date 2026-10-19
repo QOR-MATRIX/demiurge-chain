@@ -7,12 +7,21 @@
 //! and is read with no prompt. The vault therefore opens whenever the person is
 //! signed in to their computer, and a copied `vault.qor` opens nothing without
 //! their account's keychain.
+//!
+//! On Android there is no [`system`] keychain here. The `keyring` crate has no
+//! Android store and would fall back to one in memory, which would lose a
+//! wallet's key when the app closed. The Android shell supplies a [`KeyStore`]
+//! of its own, wrapped by Android's Keystore (ADR-104 decision 4, DIRECTION L13.3).
 
+#[cfg(not(target_os = "android"))]
 use std::sync::Arc;
 
-use crate::error::{QorError, QorResult};
+#[cfg(not(target_os = "android"))]
+use crate::error::QorError;
+use crate::error::QorResult;
 
 /// The keychain service every launcher entry sits under.
+#[cfg(not(target_os = "android"))]
 const SERVICE: &str = "cloud.demiurge.qor-launcher";
 
 /// Where a vault's key is kept, by the `key` id in its file.
@@ -29,16 +38,20 @@ pub trait KeyStore: Send + Sync {
 }
 
 /// The operating system's keychain.
+#[cfg(not(target_os = "android"))]
 pub fn system() -> Arc<dyn KeyStore> {
     Arc::new(OsKeychain)
 }
 
+#[cfg(not(target_os = "android"))]
 struct OsKeychain;
 
+#[cfg(not(target_os = "android"))]
 fn entry(name: &str) -> QorResult<keyring::Entry> {
     keyring::Entry::new(SERVICE, name).map_err(|e| QorError::Keychain(e.to_string()))
 }
 
+#[cfg(not(target_os = "android"))]
 impl KeyStore for OsKeychain {
     fn put(&self, name: &str, secret: &str) -> QorResult<()> {
         entry(name)?
@@ -66,7 +79,7 @@ impl KeyStore for OsKeychain {
 }
 
 /// Test support: a keychain in memory.
-#[cfg(test)]
+#[cfg(any(test, feature = "testing"))]
 pub mod testing {
     use super::KeyStore;
     use crate::error::{QorError, QorResult};
@@ -97,7 +110,7 @@ pub mod testing {
 
 /// Against the real keychain. Ignored by default: it writes a throwaway entry
 /// to this computer account's keychain, reads it back and deletes it.
-#[cfg(test)]
+#[cfg(all(test, not(target_os = "android")))]
 mod live {
     use super::{entry, entry_name, system};
 

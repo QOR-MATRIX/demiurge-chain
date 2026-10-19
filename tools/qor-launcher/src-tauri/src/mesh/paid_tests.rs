@@ -72,11 +72,15 @@ async fn a_proof_from_the_store_is_the_proof_the_chain_checks() {
 }
 
 /// The Mesh grant signs with no dialog, so only the Mesh's own code may reach it: the module that encodes and checks
-/// granted calls, and the one that builds receipts (ADR-097 decision 2). A new caller anywhere else fails here.
+/// granted calls, and the one that builds receipts (ADR-097 decision 2). A new caller anywhere else fails here. Since
+/// the vault moved into the core (ADR-104), signing under a grant and restoring one are public there, across a crate
+/// boundary, so restoring a recorded grant is held to the Mesh's settings here too; the core's own test shows nothing
+/// in the core calls either.
 #[test]
 fn only_the_mesh_signs_under_its_grant() {
     let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut callers = Vec::new();
+    let mut restorers = Vec::new();
     let mut stack = vec![src.clone()];
     while let Some(dir) = stack.pop() {
         for entry in std::fs::read_dir(&dir).unwrap().flatten() {
@@ -90,20 +94,25 @@ fn only_the_mesh_signs_under_its_grant() {
                     .is_some_and(|n| n.to_string_lossy().ends_with("tests.rs"))
             {
                 let text = std::fs::read_to_string(&path).unwrap();
+                let name = path
+                    .strip_prefix(&src)
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace('\\', "/");
                 // Split, so this file is not a caller by containing the needle.
                 if text.contains(concat!(".sign_", "granted(")) {
-                    let name = path
-                        .strip_prefix(&src)
-                        .unwrap()
-                        .to_string_lossy()
-                        .replace('\\', "/");
-                    callers.push(name);
+                    callers.push(name.clone());
+                }
+                if text.contains(concat!("MeshGrant::", "recorded")) {
+                    restorers.push(name);
                 }
             }
         }
     }
     callers.sort();
+    restorers.sort();
     assert_eq!(callers, ["chain/mesh.rs", "mesh/paid.rs"]);
+    assert_eq!(restorers, ["mesh/paid.rs"]);
 }
 
 /// Nobody is asked to allow paid work on a chain that cannot pay for it (here, no chain at all), and nothing is recorded.

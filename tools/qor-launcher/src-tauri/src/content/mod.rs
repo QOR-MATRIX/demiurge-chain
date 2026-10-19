@@ -729,4 +729,10 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    /// The store is personal (ADR-099): profiles, now in the core, move it into the first profile by this name.
+    #[test]
+    fn the_store_moves_with_its_profile() {
+        assert!(crate::profiles::PERSONAL.contains(&STORE_DIR));
+    }
 }

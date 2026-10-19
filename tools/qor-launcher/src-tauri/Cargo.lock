@@ -7578,10 +7578,23 @@ dependencies = [
 name = "qor-launcher-core"
 version = "0.1.0"
 dependencies = [
+ "argon2",
+ "bip39",
+ "blake3",
+ "chacha20poly1305",
+ "chrono",
+ "hex",
+ "keyring",
+ "parking_lot",
+ "rand 0.8.8",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
+ "sp-core",
  "thiserror 2.0.20",
+ "tracing",
+ "windows 0.62.2",
+ "zeroize",
 ]
 
 [[package]]

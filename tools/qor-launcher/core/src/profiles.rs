@@ -297,8 +297,10 @@ fn wait_words(seconds: i64) -> String {
     }
 }
 
-/// Everything personal that sat in the data directory before profiles, moved into the first profile's folder.
-const PERSONAL: &[&str] = &[
+/// Everything personal that sat in the data directory before profiles, moved into the first profile's folder. The
+/// last is the content store's folder, `content::STORE_DIR` in the Windows launcher, which a test there holds equal
+/// while the content store is not yet in this core.
+pub const PERSONAL: &[&str] = &[
     "vault.qor",
     crate::vault::hello::LEGACY_COPY_FILE,
     "avatar.bin",
@@ -307,7 +309,7 @@ const PERSONAL: &[&str] = &[
     "listing-drafts",
     "paid-requests.json",
     "mesh",
-    crate::content::STORE_DIR,
+    "temporary-content-store",
 ];
 /// The same, in the local data directory.
 const PERSONAL_LOCAL: &[&str] = &["library"];

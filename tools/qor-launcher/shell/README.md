@@ -6,11 +6,17 @@ The Android launcher is a Qt 6 application, this folder. It sits over the launch
 [`../core`](../core/), which holds the keys and talks to the chain on every platform. The Windows launcher uses the same
 core through Tauri.
 
-## Where it stands (L13.1)
+## Where it stands (L13.1, and L13.2 begun)
 
 - **The core** (`tools/qor-launcher/core`, crate `qor-launcher-core`) is being moved out of the Tauri crate one module at
-  a time, with its tests. It holds Sparks and amounts (`cgt.rs`) and the error type so far. The Windows launcher
-  re-exports both at their old paths, and every test is green.
+  a time, with its tests. It holds Sparks and amounts (`cgt.rs`), the error type, and since 19 October 2026 the wallet
+  (`vault/`), the confirmation it asks through (`confirm.rs`) and the profiles (`profiles.rs`, ADR-099). The Windows
+  launcher re-exports each at its old path, and every test is green.
+  - On Android the core has no keychain: `keyring` has no Android store and would keep a wallet's key in memory. The
+    shell will give the vault a store wrapped by Android's Keystore (L13.3). Until then nothing on the phone makes a
+    wallet.
+  - The test stand-ins (an in-memory keychain, a scripted confirmation) are behind the core's `testing` feature, which
+    only the Windows launcher's tests turn on.
 - **The bridge** (`core/src/bridge.rs`, `core/include/qor_core.h`) is the shell's one way in.
   - The shell sends a JSON request, `{"command", "args"}`, and gets a JSON answer: `{"ok": …}`, or
     `{"error": {"kind", "message"}}` as the Windows interface already reads it.

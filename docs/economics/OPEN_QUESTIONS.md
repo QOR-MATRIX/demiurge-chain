@@ -88,7 +88,8 @@ grant gains a most-per-period the person sets (ADR-097 decision 4).
 ### Precision, settled and recorded elsewhere
 
 **Decided on 17 September 2026: eighteen decimal places**, on the two conditions this item recommended, both met in
-the same change. CGT has eighteen decimals, `1 CGT = 10^18 Sparks`, the Spark is the atomic unit, the stale headroom
+the same change. CGT has eighteen decimals, `1 CGT = 10^18` atomic units (named Sparks then; since ADR-101 the atomic
+unit is the ember, and a Spark is a thousandth of a CGT, a unit of display and entry), the stale headroom
 argument in `denomination.rs` is corrected, and the rule that scaled arithmetic uses the SDK's helpers rather than a
 hand-written `a * b / c` is written into AGENTS.md §5. The record, including the corrected arithmetic and what was
 checked against the pinned release, is [ADR-035](../decisions/ADR-035-eighteen-decimals.md). The existential deposit

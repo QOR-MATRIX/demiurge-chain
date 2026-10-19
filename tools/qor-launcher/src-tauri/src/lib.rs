@@ -29,15 +29,13 @@ pub mod media;
 pub mod mesh;
 pub mod partners;
 pub mod pay;
-pub mod profiles;
+pub use qor_launcher_core::profiles;
 pub mod qontrol;
 pub mod qq;
 pub mod social;
 pub mod translate;
-pub mod vault;
+pub use qor_launcher_core::vault;
 
-use std::future::Future;
-use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -51,34 +49,9 @@ use vault::{AccountView, Vault, VaultStatus};
 
 // ─────────────────────────── host-side confirmation ─────────────────────────
 
-/// What the person at the keyboard is asked to approve.
-///
-/// The host builds it from the values it is about to act on, never from text the
-/// webview supplies, so the prompt describes what will actually happen.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Prompt {
-    pub title: String,
-    pub body: String,
-    /// Label of the approving button. The other button is always "Cancel".
-    pub approve: String,
-}
-
-/// The answer to a [`Prompt`]: `true` only if the person approved.
-pub type Answer<'a> = Pin<Box<dyn Future<Output = bool> + Send + 'a>>;
-
-/// Asks the person at the keyboard to approve an action (roadmap L1.4).
-///
-/// Every signature and every endpoint change goes through one of these. The
-/// launcher's implementation is [`HostDialog`], a native dialog the host draws
-/// and the webview can neither draw, dismiss nor answer. A compromised webview
-/// can therefore ask for a signature, but cannot obtain one unseen.
-///
-/// The one approval that is not a dialog is [`IdentityConsent`] under an open
-/// [`ArrivalGrant`]: straight after the vault opens, it approves the QOR ID
-/// sign-in for the signed-in profile's wallet account (ADR-016, ADR-056, ADR-099).
-pub trait Confirm: Send + Sync {
-    fn confirm<'a>(&'a self, prompt: &'a Prompt) -> Answer<'a>;
-}
+// What the person is asked to approve, and the trait that asks them, are the core's (ADR-104), with the vault that
+// asks through them; kept at their old paths. The launcher's own [`Confirm`] is the native dialog below.
+pub use qor_launcher_core::confirm::{Answer, Confirm, Prompt};
 
 /// The launcher's [`Confirm`]: a native dialog drawn by the host.
 pub(crate) struct HostDialog(pub(crate) tauri::AppHandle);
@@ -2241,8 +2214,6 @@ pub fn run() {
 /// Test support: a [`Confirm`] with a fixed answer that records every prompt.
 #[cfg(test)]
 pub(crate) mod testing {
-    use super::{Answer, Confirm, Prompt};
-
     // The whole test process's log (moved from host::tests so Social's check shares the one logger).
     #[derive(Clone, Default)]
     pub struct Captured(pub std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
@@ -2283,38 +2254,8 @@ pub(crate) mod testing {
         })
     }
 
-    pub struct Scripted {
-        answer: bool,
-        pub asked: parking_lot::Mutex<Vec<Prompt>>,
-    }
-
-    impl Scripted {
-        pub fn approving() -> Self {
-            Self {
-                answer: true,
-                asked: parking_lot::Mutex::new(Vec::new()),
-            }
-        }
-
-        pub fn declining() -> Self {
-            Self {
-                answer: false,
-                asked: parking_lot::Mutex::new(Vec::new()),
-            }
-        }
-
-        pub fn times_asked(&self) -> usize {
-            self.asked.lock().len()
-        }
-    }
-
-    impl Confirm for Scripted {
-        fn confirm<'a>(&'a self, prompt: &'a Prompt) -> Answer<'a> {
-            self.asked.lock().push(prompt.clone());
-            let answer = self.answer;
-            Box::pin(async move { answer })
-        }
-    }
+    // The core's, moved with the vault that its tests confirm through (ADR-104).
+    pub use qor_launcher_core::confirm::testing::Scripted;
 }
 
 #[cfg(test)]

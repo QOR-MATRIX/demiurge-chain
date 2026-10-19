@@ -618,6 +618,14 @@ jobs:
         working-directory: ./tools/qor-launcher/src-tauri
         run: cargo audit
 
+      # The core shared with the Android launcher (ADR-104) has a Cargo.lock of its own, and it is what the Android
+      # build resolves. Since the wallet moved into it (DIRECTION L13.2) it carries sp-core's tree, so it is audited
+      # like the host's. No advisory is ignored here.
+      - name: Audit launcher core dependencies (the Android launcher's lockfile)
+        if: always()
+        working-directory: ./tools/qor-launcher/core
+        run: cargo audit
+
       # libgit2 parses folders people pick and, later, repositories from
       # strangers. The process boundary contains a crash; it does not make the
       # parser safe, so its advisories are watched like the host's.
