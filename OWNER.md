@@ -20,15 +20,14 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 ## Merged tonight
 
-**#48** (ARQADE's 3D app in the launcher), **#49** (ARQADE on phones) and **#50** (the
-launcher on Android, its first step).
+**#48** (ARQADE's 3D app in the launcher), **#49** (ARQADE on phones), **#50** (the
+launcher on Android, its first step) and **#51** (their records).
 
-## Waiting for you to merge, in this order
+## Waiting for you to merge
 
-- **#51**, records only: #50 marked as merged.
 - **#52**, the CI check you decided on tonight: each backdrop must compile and draw,
   rather than reach 20 frames a second on CI's slow renderer. It failed `main` once.
-  Merge it after #51; I then bring it up to date.
+  Brought up to date with `main`; nothing else is waiting.
 
 ## Android, started
 

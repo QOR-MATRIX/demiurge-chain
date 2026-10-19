@@ -868,7 +868,7 @@ the Rust core, app ID `app.qorsync.dev`, Android 9 and later, delivered as a sig
 1. [ ] The toolchain, the bridge and a running APK. The Android toolchain is installed by
    `tools/qor-launcher/shell/android-toolchain.ps1`. `tools/qor-launcher/core/` is the core with its C bridge, and
    `tools/qor-launcher/shell/` is the Qt shell. It builds an arm64 APK that starts and answers through the core.
-   **Built, 18 October 2026, on branch `session/android`, not merged:**
+   **Built, 18 October 2026, and merged (#50, at `15cfa12`):**
    - The toolchain is installed: JDK 21, SDK 36, NDK r27c, Rust's Android targets, the emulator.
    - The core's C bridge is tested.
    - The shell's arm64 and x86_64 APKs build and are debug-signed.
