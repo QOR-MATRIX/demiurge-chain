@@ -862,13 +862,13 @@ L10.2, because finding who holds a root reads the escrow's assignments on chain.
 
 #### L13: The launcher on Android, on Qt (ADR-104)
 
-The owner, 19 October 2026: "I'd like to build a android varient of the QOR Launcher as well". Qt 6 for Android over
+The owner, 18 October 2026: "I'd like to build a android varient of the QOR Launcher as well". Qt 6 for Android over
 the Rust core, app ID `app.qorsync.dev`, Android 9 and later, delivered as a signed APK on GitHub. In this order:
 
 1. [ ] The toolchain, the bridge and a running APK. The Android toolchain is installed by
    `tools/qor-launcher/shell/android-toolchain.ps1`. `tools/qor-launcher/core/` is the core with its C bridge, and
    `tools/qor-launcher/shell/` is the Qt shell. It builds an arm64 APK that starts and answers through the core.
-   **Built, 19 October 2026, on branch `session/android`, not merged:**
+   **Built, 18 October 2026, on branch `session/android`, not merged:**
    - The toolchain is installed: JDK 21, SDK 36, NDK r27c, Rust's Android targets, the emulator.
    - The core's C bridge is tested.
    - The shell's arm64 and x86_64 APKs build and are debug-signed.

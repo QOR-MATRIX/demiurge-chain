@@ -1,6 +1,6 @@
 # ADR-104: The QOR Launcher on Android, on Qt, over the Rust core through a bridge of its own
 
-**Status:** **Accepted**, 19 October 2026, by the owner: "I'd like to build a android varient of the QOR Launcher as
+**Status:** **Accepted**, 18 October 2026, by the owner: "I'd like to build a android varient of the QOR Launcher as
 well". Asked, the owner chose:
 - **Qt for Android now**, over the same Tauri launcher built for Android;
 - a first build holding the wallet, QOR ID and Sparks with **Social, ARQADE, the Library and the Mesh**;

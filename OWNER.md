@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 19 October 2026. One page, rewritten every session.
+For Andrew, 18 October 2026 (evening). One page, rewritten every session.
 
 ## What Demiurge is
 
