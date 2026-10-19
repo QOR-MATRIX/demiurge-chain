@@ -901,6 +901,12 @@ type = "ci-scope"
 change = "The wallet moves from the launcher's Tauri crate into its core (tools/qor-launcher/core, ADR-104, DIRECTION L13.2): the vault (vault/: derive, seal, keychain, hello, mod), the profiles (profiles.rs, ADR-099) and the confirmation they ask through (Prompt, Answer, Confirm, and the tests' Scripted, now core/src/confirm.rs). Their 52 tests move with them, unchanged, from suite launcher to suite launcher_core; two of them are ignored as before (the real keychain's and Windows Hello's). Counted as written, ignored ones included: suite launcher has 270 tests where it had 321 (one added: the content store's folder is the one profiles move), and on Windows 255 pass and 14 are ignored; suite launcher_core has 73 where it had 20 (one added: nothing in the core signs under the Mesh grant), and on Windows 71 pass and 2 are ignored. The existing check that only the Mesh signs under its grant now also holds restoring a grant to the Mesh's settings. CI's security job gains a cargo audit of the core's own Cargo.lock, which the Android build resolves ([ci].quality_gates updated)."
 reason = "A scope change rather than a tightening, because tests leave a suite a criterion reads (alpha.launcher-tests requires every test in suite launcher). None is removed or relaxed: each runs in CI's core step, on every pull request, beside the new ones. The audit of the core's lockfile is a tightening: the Android build ships what that file resolves, and it now carries sp-core's tree. It ignores nothing."
 
+[[change_log]]
+date = "2026-10-19"
+type = "tightening"
+change = "Gate qor-engine: criterion qor-engine.roadmap gains P3.7 to P3.16 (ADR-105: gameplay in logic, the game's interface, input actions, 2D, fixed steps and replay, animation, sound, materials, the Studio's basics and saving), and qor-engine.decisions gains ADR-105. The gate's `means` says the engine makes real games in 3D and in 2D from one runtime. P3.7 was ticked the same day, merged in #55."
+reason = "A tightening: the gate needs ten more roadmap items and one more decision before it is met. ADR-105 defines what the engine must do to make real games, the owner's direction of 2026-10-19, so the engine's gate counts it."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1758,9 +1764,10 @@ weaken."""
 id = "qor-engine"
 name = "QQ / QOR Engine"
 means = """
-A game engine for virtual worlds and experiences on Qt 6 (ADR-083): a \
-native QQ Studio and a QQ Player that runs from the launcher and as \
-WebAssembly in ARQADE, with an agent that designs and builds. QQ is QOR Engine \
+A game engine for virtual worlds and experiences on Qt 6 (ADR-083) that \
+makes real games in 3D and in 2D from one runtime (ADR-105): a native QQ \
+Studio and a QQ Player that runs from the launcher and as WebAssembly in \
+ARQADE, with an agent that designs and builds. QQ is QOR Engine \
 (ADR-081): DRC-369 Cartridges, QOR ID sign-in, Qontrol versioning, and \
 publishing to ARQADE."""
 
@@ -1768,14 +1775,16 @@ publishing to ARQADE."""
   id = "qor-engine.decisions"
   kind = "adr"
   # ADR-082 is the architecture decision accepted under ADR-081's delegation.
-  adrs = ["ADR-046", "ADR-048", "ADR-049", "ADR-050", "ADR-081", "ADR-082", "ADR-083"]
+  adrs = ["ADR-046", "ADR-048", "ADR-049", "ADR-050", "ADR-081", "ADR-082", "ADR-083", "ADR-105"]
 
   [[gates.criteria]]
   id = "qor-engine.roadmap"
   kind = "roadmap"
   # QQ's six items: rewritten from the Godot items by ADR-082 (7 October 2026),
-  # then for the Qt engine by ADR-083 (8 October 2026).
-  items = ["P3.1", "P3.2", "P3.3", "P3.4", "P3.5", "P3.6"]
+  # then for the Qt engine by ADR-083 (8 October 2026). P3.7 to P3.16 since
+  # 2026-10-19 (ADR-105): real games in 3D and 2D.
+  items = ["P3.1", "P3.2", "P3.3", "P3.4", "P3.5", "P3.6", "P3.7", "P3.8", "P3.9", "P3.10",
+           "P3.11", "P3.12", "P3.13", "P3.14", "P3.15", "P3.16"]
 
   [[gates.criteria]]
   id = "qor-engine.depends"

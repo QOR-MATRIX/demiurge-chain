@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 19 October 2026 (evening). One page, rewritten every session.
+For Andrew, 19 October 2026 (night). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -12,9 +12,9 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 The homepage at **qorsync.dev**; **Devnet** — *the test chain on servers* — on runtime 9;
 **QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** — *the gaming
-website*. Launcher 0.1.14 is the tester download. `main` is green; three pull requests wait for you.
+website*, now with free play and no Energy. Launcher 0.1.14 is the tester download.
 
-## Done this session: three pull requests for you to merge
+## Done this session, and merged by you
 
 1. **#56: the wallet moved into the core** — *the Rust part both launchers share*: the next
    Android step (L13.2). Windows unchanged: every test passes, and the phone app still builds.
@@ -28,7 +28,12 @@ website*. Launcher 0.1.14 is the tester download. `main` is green; three pull re
    *Orb Run*, a small game made only of a scene and a script. Next: on-screen menus and
    scores, button mapping, then 2D.
 
-They merge in any order without conflicts. #56 also carries these notes.
+QOR ID redeployed with its cleaned-up database on its own.
+
+**Also built since:** QQ's game interface (P3.8): titles, scores, bars, buttons and pause
+screens drawn over the game, in our own typefaces, still for anyone who turns animations off.
+Orb Run now opens on a title and pauses properly. It is pull request **#57**, waiting for
+you to merge beside these notes.
 
 ## Toward a worldwide beta: what only you can do
 
