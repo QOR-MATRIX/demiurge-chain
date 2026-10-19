@@ -19,6 +19,12 @@ qt_add_qml_module(qqruntime
         Sound.qml
         Behaviour.qml
         Trigger.qml
+        ScreenPart.qml
+        ScreenText.qml
+        ScreenBar.qml
+        ScreenButton.qml
+        ScreenImage.qml
+        ScreenPanel.qml
         Logic.qml
         Game.qml
     SOURCES
@@ -29,11 +35,23 @@ qt_add_qml_module(qqruntime
         gpu.h gpu.cpp
         confinement.h confinement.cpp
         webvoice.h webvoice.cpp
+        look.h look.cpp
+)
+
+# The interface's faces (Look), the homepage's and ARQADE's, under the SIL Open Font License (fonts/*-OFL.txt).
+qt_add_resources(qqruntime "qqfonts"
+    PREFIX "/qq/fonts"
+    BASE fonts
+    FILES
+        fonts/Cinzel.ttf
+        fonts/BarlowSemiCondensed-Regular.ttf
+        fonts/BarlowSemiCondensed-SemiBold.ttf
 )
 
 target_include_directories(qqruntime PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(qqruntime PUBLIC Qt6::Qml Qt6::Quick Qt6::Quick3D PRIVATE Qt6::Network Qt6::Multimedia)
 if(WIN32)
-    # Gamepads, through XInput (xinput1_4.dll, part of Windows since 8); the choice of GPU, through DXGI.
-    target_link_libraries(qqruntime PRIVATE xinput dxgi)
+    # Gamepads, through XInput (xinput1_4.dll, part of Windows since 8); the choice of GPU, through DXGI; the system's
+    # animation setting (Look), through user32.
+    target_link_libraries(qqruntime PRIVATE xinput dxgi user32)
 endif()

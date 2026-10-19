@@ -10,6 +10,7 @@ Scene {
     exposure: 1
     bloom: true
     gravity: 9.81
+    screens: "hud"
 
     Sun {
         name: "Sun"
@@ -99,5 +100,65 @@ Scene {
         eulerRotation: Qt.vector3d(0, 0, 0)
         scale: Qt.vector3d(3, 2, 0.5)
         form: "box"
+    }
+
+    ScreenText {
+        name: "Score"
+        screen: "hud"
+        anchor: "top-left"
+        insetX: 32
+        insetY: 32
+        text: "Orbs 0"
+        size: 28
+        colour: "#f3ede1"
+        typeface: "ui"
+    }
+
+    ScreenBar {
+        name: "Health"
+        screen: "hud"
+        anchor: "top-right"
+        insetX: 32
+        insetY: 40
+        width: 240
+        height: 14
+        value: 0.75
+        maximum: 1
+        colour: "#ff6a00"
+    }
+
+    ScreenImage {
+        name: "Mark"
+        screen: "hud"
+        anchor: "bottom-right"
+        insetX: 24
+        insetY: 24
+        width: 64
+        height: 64
+        source: "../mark.png"
+        crisp: true
+    }
+
+    ScreenPanel {
+        name: "Veil"
+        screen: "pause"
+        anchor: "centre"
+        insetX: 0
+        insetY: 0
+        width: 0
+        height: 0
+        colour: "#06070a"
+        shade: 0.6
+    }
+
+    ScreenButton {
+        name: "Resume"
+        screen: "pause"
+        anchor: "centre"
+        insetX: 0
+        insetY: 0
+        width: 0
+        text: "Resume"
+        colour: "#c9a45c"
     }
 }

@@ -430,7 +430,8 @@ QStringList SceneIO::kinds() const
     return {QStringLiteral("Shape"),  QStringLiteral("Lamp"),    QStringLiteral("Prop"),
             QStringLiteral("Sun"),    QStringLiteral("Ground"),  QStringLiteral("Player"),
             QStringLiteral("Emitter"), QStringLiteral("Sound"),  QStringLiteral("Behaviour"),
-            QStringLiteral("Trigger")};
+            QStringLiteral("Trigger"), QStringLiteral("ScreenText"), QStringLiteral("ScreenBar"),
+            QStringLiteral("ScreenButton"), QStringLiteral("ScreenImage"), QStringLiteral("ScreenPanel")};
 }
 
 QVariantList SceneIO::entities(QObject *scene) const

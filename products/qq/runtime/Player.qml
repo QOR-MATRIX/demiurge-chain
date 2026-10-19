@@ -76,7 +76,7 @@ Node {
     }
 
     FrameAnimation {
-        running: player.live && player.physics !== null
+        running: player.live && player.physics !== null && !player.parent.paused
         onTriggered: {
             const body = player.physics
             const dt = Math.min(frameTime, 0.05)

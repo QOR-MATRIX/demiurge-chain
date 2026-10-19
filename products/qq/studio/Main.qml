@@ -499,6 +499,14 @@ ApplicationWindow {
                                 onTriggered: window.add("Player", { position: Qt.vector3d(window.target.x, 0, window.target.z + 3) })
                             }
                             MenuItem { text: qsTr("Particles"); onTriggered: window.add("Emitter", { name: "Particles" }) }
+                            Menu {
+                                title: qsTr("Interface")
+                                MenuItem { text: qsTr("Text"); onTriggered: window.add("ScreenText", { name: "Text" }) }
+                                MenuItem { text: qsTr("Bar"); onTriggered: window.add("ScreenBar", { name: "Bar" }) }
+                                MenuItem { text: qsTr("Button"); onTriggered: window.add("ScreenButton", { name: "Button", anchor: "centre", insetX: 0, insetY: 0 }) }
+                                MenuItem { text: qsTr("Image"); onTriggered: window.add("ScreenImage", { name: "Image" }) }
+                                MenuItem { text: qsTr("Panel"); onTriggered: window.add("ScreenPanel", { name: "Panel" }) }
+                            }
                             MenuItem {
                                 text: qsTr("Trigger")
                                 onTriggered: window.add("Trigger", { position: Qt.vector3d(window.target.x, 1, window.target.z),

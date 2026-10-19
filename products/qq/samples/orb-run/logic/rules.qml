@@ -1,6 +1,9 @@
 // Orb Run's rules: orbs appear around the arena, the player gathers them by walking through, and a boulder rolls at the
 // player now and then. Everything here is QQ's logic API (DIRECTION P3.7): spawn and remove, a Trigger's `entered`,
 // timers on the game's clock, and a push on a dynamic body. Nothing in the engine knows this game.
+//
+// Its interface is the scene's screen parts (P3.8): it opens on its title with the world paused, Play starts it, the
+// score is on the HUD, and Pause and Resume hold and release the world.
 
 import QQ
 
@@ -33,13 +36,27 @@ Logic {
                 return
             score += 1
             orbsOut -= 1
+            const shown = entity("Score")
+            if (shown)
+                shown.text = "ORBS " + score
             remove(orb)
             remove(glow)
             after(1.5, placeOrb)
         })
     }
 
+    function button(name, pressed) {
+        const b = entity(name)
+        if (b)
+            b.clicked.connect(pressed)
+    }
+
     onStarted: {
+        // The title first, the world held still behind it.
+        pause()
+        button("Play", () => { onlyScreen("hud"); resume() })
+        button("Pause", () => { showScreen("pause"); pause() })
+        button("Resume", () => { hideScreen("pause"); resume() })
         placeOrb()
         placeOrb()
         // The boulder rolls at the player every few seconds.

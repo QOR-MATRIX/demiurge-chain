@@ -181,6 +181,19 @@ struct Stage {
     }
 
     qq::Input *input() { return engine.singletonInstance<qq::Input *>("QQ", "Input"); }
+
+    /// What a screen part drew on the World's overlay (P3.8), by the part's name, or null.
+    QQuickItem *drawn(const QString &name) const
+    {
+        auto *overlay = world->property("overlay").value<QQuickItem *>();
+        if (!overlay)
+            return nullptr;
+        for (QQuickItem *child : overlay->childItems()) {
+            if (child->objectName() == name)
+                return child;
+        }
+        return nullptr;
+    }
 };
 
 QString sceneText(const QString &entities, const QString &settings = {})
@@ -795,12 +808,28 @@ private slots:
         QVERIFY(s.entity(QStringLiteral("Orb 1")) && s.entity(QStringLiteral("Orb 1 glow")));
         QCOMPARE(score(), 0);
 
+        // It opens on its title, the world held still behind it (P3.8); Play starts it, and the score is on the HUD.
+        auto centre = [](QQuickItem *item) {
+            return item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint();
+        };
+        QQuickItem *title = s.drawn(QStringLiteral("Title"));
+        QQuickItem *play = s.drawn(QStringLiteral("Play"));
+        QQuickItem *hud = s.drawn(QStringLiteral("Score"));
+        QVERIFY(title && play && hud);
+        QVERIFY(s.runUntil([&] { return s.scene->property("paused").toBool() && title->opacity() > 0.99; }, 3000));
+        QVERIFY(!hud->isVisible());
+        s.window->grabWindow().save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-orb-run-title.png")));
+        QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(play));
+        QVERIFY(s.runUntil([&] { return !s.scene->property("paused").toBool() && !title->isVisible() && hud->isVisible(); },
+                           3000));
+
         // Walk straight ahead into the first orb: gathered, taken away with its glow, and another placed.
         s.run(400);
         QTest::keyPress(s.window.get(), Qt::Key_W);
         const bool gathered = s.runUntil([&] { return score() >= 1; }, 6000);
         QTest::keyRelease(s.window.get(), Qt::Key_W);
         QVERIFY2(gathered, "the player walked through the first orb without gathering it");
+        QCOMPARE(s.entity(QStringLiteral("Score"))->property("text").toString(), QStringLiteral("ORBS 1"));
         QTRY_VERIFY(!s.entity(QStringLiteral("Orb 1")) && !s.entity(QStringLiteral("Orb 1 glow")));
         QVERIFY2(s.runUntil([&] { return s.entity(QStringLiteral("Orb 3")) != nullptr; }, 4000), "no new orb");
         QCOMPARE(logic()->property("orbsOut").toInt(), 2);
@@ -809,6 +838,211 @@ private slots:
         const QVector3D boulder = s.where(QStringLiteral("Boulder"));
         QVERIFY(s.runUntil([&] { return (s.where(QStringLiteral("Boulder")) - boulder).length() > 1.0f; }, 6000));
         s.window->grabWindow().save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-orb-run.png")));
+
+        // Pause holds it all, behind the pause screen; Resume lets it go on.
+        QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(s.drawn(QStringLiteral("Pause"))));
+        QQuickItem *paused = s.drawn(QStringLiteral("Paused"));
+        QVERIFY(s.runUntil([&] { return s.scene->property("paused").toBool() && paused->opacity() > 0.99; }, 3000));
+        s.window->grabWindow().save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-orb-run-paused.png")));
+        QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(s.drawn(QStringLiteral("Resume"))));
+        QVERIFY(s.runUntil([&] { return !s.scene->property("paused").toBool() && !paused->isVisible(); }, 3000));
+    }
+
+    // ── the game's interface (P3.8, ADR-105) ──
+
+    void aScreenDrawsWhatLogicSetsOverTheWorld()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/hud.qml")),
+                  "import QQ\nLogic {\n    onStarted: {\n        entity(\"Score\").text = \"Orbs 3\"\n"
+                  "        entity(\"Health\").value = 2\n    }\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    ScreenText { name: \"Score\"; anchor: \"top-left\"; insetX: 40; insetY: 40; text: \"0\"; "
+                           "size: 48; colour: \"#20ff40\" }\n"
+                           "    ScreenBar { name: \"Health\"; anchor: \"top-right\"; insetX: 40; insetY: 48; width: 400; "
+                           "height: 24; value: 4; maximum: 4; colour: \"#ff2040\" }\n"
+                           "    Behaviour { name: \"Hud\"; source: \"../logic/hud.qml\" }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        QQuickItem *score = s.drawn(QStringLiteral("Score"));
+        QQuickItem *health = s.drawn(QStringLiteral("Health"));
+        QVERIFY(score && health);
+        QObject *scoreText = s.entity(QStringLiteral("Score"))->property("content").value<QObject *>();
+        QVERIFY(s.runUntil([&] { return scoreText->property("text").toString() == QStringLiteral("Orbs 3"); }, 5000));
+
+        // Placed by anchor and inset, in points of a screen 720 tall: the window is 600, so a point is 600/720 pixels.
+        const double unit = s.window->height() / 720.0;
+        QVERIFY2(qAbs(score->x() - 40 * unit) < 1 && qAbs(score->y() - 40 * unit) < 1,
+                 qPrintable(QStringLiteral("score at %1, %2").arg(score->x()).arg(score->y())));
+        QVERIFY2(qAbs(health->x() + health->width() + 40 * unit - s.window->width()) < 1,
+                 qPrintable(QStringLiteral("bar ends at %1").arg(health->x() + health->width())));
+        // Half full: 2 of 4.
+        auto *fill = health->findChild<QQuickItem *>(QStringLiteral("fill"));
+        QVERIFY(fill);
+        QVERIFY(s.runUntil([&] { return qAbs(fill->width() - (health->width() - 2) / 2) < 2; }, 3000));
+
+        // Drawn over the world: the text's green and the bar's red are in the frame where they should be.
+        s.run(300);
+        const QImage frame = s.window->grabWindow();
+        frame.save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-screen.png")));
+        auto count = [&frame](QRect area, auto match) {
+            int n = 0;
+            for (int y = area.top(); y <= area.bottom(); ++y)
+                for (int x = area.left(); x <= area.right(); ++x)
+                    n += match(frame.pixelColor(x, y)) ? 1 : 0;
+            return n;
+        };
+        // The frame is in device pixels; the items are placed in the window's own (a display may be scaled).
+        const qreal dpr = frame.devicePixelRatio();
+        auto device = [dpr](QRectF r) { return QRectF(r.topLeft() * dpr, r.size() * dpr).toRect(); };
+        const QRect textArea = device(score->mapRectToScene(QRectF(0, 0, score->width(), score->height())));
+        const QRect barArea = device(health->mapRectToScene(QRectF(0, 0, health->width(), health->height())));
+        const int green = count(textArea, [](QColor c) { return c.green() > 150 && c.green() > 2 * c.red(); });
+        const int red = count(barArea, [](QColor c) { return c.red() > 150 && c.red() > 2 * c.green(); });
+        QVERIFY2(green > 60, qPrintable(QStringLiteral("%1 green pixels in the text").arg(green)));
+        QVERIFY2(red > 150, qPrintable(QStringLiteral("%1 red pixels in the bar").arg(red)));
+    }
+
+    void screensShowAndHideAndPauseHoldsTheWorld()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/hold.qml")),
+                  "import QQ\nLogic {\n    onStarted: after(0.3, () => pause())\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    ScreenText { name: \"Hud\"; screen: \"hud\"; text: \"HUD\" }\n"
+                           "    ScreenText { name: \"Menu\"; screen: \"pause\"; anchor: \"centre\"; text: \"PAUSED\" }\n"
+                           "    Shape { name: \"Rock\"; position: Qt.vector3d(0, 30, 0); body: \"dynamic\" }\n"
+                           "    Behaviour { name: \"Hold\"; source: \"../logic/hold.qml\" }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        QQuickItem *hud = s.drawn(QStringLiteral("Hud"));
+        QQuickItem *menu = s.drawn(QStringLiteral("Menu"));
+        QVERIFY(hud && menu);
+        QVERIFY(hud->isVisible());
+        QVERIFY(!menu->isVisible());  // the scene starts on "hud" alone
+
+        // Logic pauses the world: the rock and the logic's own clock hold still.
+        QObject *hold = s.entity(QStringLiteral("Hold"));
+        auto elapsed = [hold] {
+            QObject *logic = hold->property("logic").value<QObject *>();
+            return logic ? logic->property("elapsed").toDouble() : 0.0;
+        };
+        QVERIFY(s.runUntil([&] { return s.scene->property("paused").toBool(); }, 5000));
+        s.run(100);
+        const float heldAt = s.where(QStringLiteral("Rock")).y();
+        const double clock = elapsed();
+        s.run(600);
+        QVERIFY2(qAbs(s.where(QStringLiteral("Rock")).y() - heldAt) < 1e-3,
+                 qPrintable(QStringLiteral("rock moved from %1 to %2").arg(heldAt).arg(s.where(QStringLiteral("Rock")).y())));
+        QCOMPARE(elapsed(), clock);
+        QVERIFY2(clock < 0.4, qPrintable(QStringLiteral("paused at %1 s").arg(clock)));
+
+        // The pause screen shown over it; then hidden, and the world goes on.
+        QMetaObject::invokeMethod(s.scene, "showScreen", Q_ARG(QVariant, QStringLiteral("pause")));
+        QVERIFY(s.runUntil([&] { return menu->isVisible() && menu->opacity() > 0.99; }, 2000));
+        QMetaObject::invokeMethod(s.scene, "hideScreen", Q_ARG(QVariant, QStringLiteral("pause")));
+        s.scene->setProperty("paused", false);
+        QVERIFY(s.runUntil([&] { return !menu->isVisible(); }, 2000));
+        QVERIFY(s.runUntil([&] { return s.where(QStringLiteral("Rock")).y() < heldAt - 1; }, 3000));
+        QVERIFY(elapsed() > clock);
+
+        // Only one screen: the title to the game, the game to its end.
+        QMetaObject::invokeMethod(s.scene, "onlyScreen", Q_ARG(QVariant, QStringLiteral("pause")));
+        QVERIFY(s.runUntil([&] { return menu->isVisible() && !hud->isVisible(); }, 2000));
+    }
+
+    void aButtonAnswersOnlyWhileItsScreenIsShownAndTheWorldPlays()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/press.qml")),
+                  "import QQ\nLogic {\n    property int presses: 0\n    onClicked: presses += 1\n}\n");
+        const QString text = sceneText(QStringLiteral(
+            "    ScreenButton { name: \"Go\"; anchor: \"centre\"; insetX: 0; insetY: 0; text: \"Go\" }\n"
+            "    ScreenButton { name: \"Later\"; screen: \"pause\"; anchor: \"centre\"; insetX: 0; insetY: 120; text: \"Later\" }\n"
+            "    Behaviour { name: \"Press\"; source: \"../logic/press.qml\"; target: \"Go\" }\n"));
+        const QUrl file = QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")));
+        auto centre = [](QQuickItem *item) {
+            return item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint();
+        };
+
+        Stage editing;
+        QVERIFY(editing.open(text, false, file));
+        QQuickItem *still = editing.drawn(QStringLiteral("Go"));
+        QVERIFY(still && still->isVisible());
+        QSignalSpy unpressed(editing.entity(QStringLiteral("Go")), SIGNAL(clicked()));
+        QTest::mouseClick(editing.window.get(), Qt::LeftButton, {}, centre(still));
+        QCOMPARE(unpressed.count(), 0);  // while editing, a button is drawn and does nothing
+
+        Stage s;
+        QVERIFY(s.open(text, true, file));
+        QQuickItem *go = s.drawn(QStringLiteral("Go"));
+        QQuickItem *later = s.drawn(QStringLiteral("Later"));
+        QVERIFY(go && later);
+        QVERIFY2(go->height() >= 48 * s.window->height() / 720.0 - 0.5, "a target a finger finds");
+        QObject *press = s.entity(QStringLiteral("Press"));
+        QVERIFY(s.runUntil([press] { return press->property("logic").value<QObject *>() != nullptr; }, 5000));
+        s.run(300);
+        QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(go));
+        QVERIFY(s.runUntil([press] { return press->property("logic").value<QObject *>()->property("presses").toInt() == 1; },
+                           2000));
+
+        // Its screen hidden, a button is not pressed where it would be.
+        QSignalSpy hidden(s.entity(QStringLiteral("Later")), SIGNAL(clicked()));
+        QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(later));
+        s.run(100);
+        QCOMPARE(hidden.count(), 0);
+        QMetaObject::invokeMethod(s.scene, "showScreen", Q_ARG(QVariant, QStringLiteral("pause")));
+        QVERIFY(s.runUntil([later] { return later->opacity() > 0.99; }, 2000));
+        QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(later));
+        QTRY_COMPARE(hidden.count(), 1);
+    }
+
+    void withReducedMotionAScreenAppearsAtOnce()
+    {
+        const QString text = sceneText(QStringLiteral(
+            "    ScreenText { name: \"Note\"; screen: \"note\"; anchor: \"centre\"; text: \"Note\" }\n"));
+        for (const bool reduced : {false, true}) {
+            Stage s;
+            QVERIFY(s.open(text));
+            auto *look = s.engine.singletonInstance<QObject *>("QQ", "Look");
+            QVERIFY(look);
+            look->setProperty("reducedMotion", reduced);
+            QCOMPARE(look->property("fade").toInt(), reduced ? 0 : 180);
+            QQuickItem *note = s.drawn(QStringLiteral("Note"));
+            QVERIFY(note && !note->isVisible());
+            QMetaObject::invokeMethod(s.scene, "showScreen", Q_ARG(QVariant, QStringLiteral("note")));
+            s.run(30);
+            if (reduced)
+                QCOMPARE(note->opacity(), 1.0);
+            else
+                QVERIFY2(note->opacity() < 1.0, qPrintable(QStringLiteral("opacity %1 at once").arg(note->opacity())));
+            QVERIFY(s.runUntil([note] { return note->opacity() > 0.999; }, 1000));
+        }
+    }
+
+    void aScreenImageDrawsAPictureFromTheProjectCrisply()
+    {
+        QTemporaryDir project;
+        QDir(project.path()).mkpath(QStringLiteral("assets"));
+        QVERIFY(QFile::copy(fixture(QStringLiteral("mark.png")), QDir(project.path()).filePath(QStringLiteral("assets/mark.png"))));
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    ScreenImage { name: \"Mark\"; anchor: \"centre\"; insetX: 0; insetY: 0; width: 160; "
+                           "height: 160; source: \"../assets/mark.png\"; crisp: true }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        QObject *mark = s.entity(QStringLiteral("Mark"));
+        QVERIFY(s.runUntil([mark] { return mark->property("ready").toBool(); }, 3000));
+        QObject *image = mark->property("content").value<QObject *>();
+        QCOMPARE(image->property("smooth").toBool(), false);
+        s.run(200);
+        // Its middle is the ember of the mark; a pixel art edge stays hard (gilt, then clear, no blend between).
+        QQuickItem *drawn = s.drawn(QStringLiteral("Mark"));
+        const QImage frame = s.window->grabWindow();
+        const QPoint middle = (drawn->mapToScene(QPointF(drawn->width() / 2, drawn->height() / 2)) * frame.devicePixelRatio())
+                                  .toPoint();
+        const QColor ember = frame.pixelColor(middle);
+        QVERIFY2(ember.red() > 230 && ember.green() > 80 && ember.green() < 130 && ember.blue() < 30,
+                 qPrintable(ember.name()));
     }
 };
 

@@ -32,6 +32,8 @@ Node {
 
     ParticleSystem3D {
         id: system
+        // A paused world's particles hold still (P3.8).
+        paused: emitter.parent !== null && emitter.parent.paused === true
         logging: true
         loggingData.loggingInterval: 250
 
