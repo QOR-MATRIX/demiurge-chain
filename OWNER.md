@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 18 October 2026 (night). One page, rewritten every session.
+For Andrew, 19 October 2026 (early morning). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -14,28 +14,36 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
   *the test chain on servers* — on runtime 9.
 - **QOR ID** — *the one sign-in* — and **Social** — *the chat service* — on Railway.
 - **ARQADE** — *the gaming website* — on Vercel, now made for phones: a tab bar along the
-  bottom, games filling the screen, played by tapping (#49, merged).
-- **Launcher 0.1.14 for testers**, with ARQADE's 3D app inside it (#48, merged):
+  bottom, games filling the screen, played by tapping.
+- **Launcher 0.1.14 for testers**, with ARQADE's 3D app inside it:
   `releases/tag/launcher-v0.1.14`.
 
-## Waiting for you to merge
+## Merged tonight
 
-- **#50, the launcher on Android**, its first step (below), brought up to date with `main`.
+**#48** (ARQADE's 3D app in the launcher), **#49** (ARQADE on phones) and **#50** (the
+launcher on Android, its first step).
+
+## Waiting for you to merge, in this order
+
+- **#51**, records only: #50 marked as merged.
+- **#52**, the CI check you decided on tonight: each backdrop must compile and draw,
+  rather than reach 20 frames a second on CI's slow renderer. It failed `main` once.
+  Merge it after #51; I then bring it up to date.
 
 ## Android, started
 
 Built in Qt — *the toolkit QOR Media uses* — over the same Rust core — *the part that holds
 keys* — as the Windows launcher (ADR-104). It runs on an Android 16 emulator — *a phone simulated
-on this PC*. So far it only shows the core answering and reads amounts in Sparks; the wallet,
-Social, ARQADE, the Library and the Mesh come next.
+on this PC*. So far it only shows the core answering and reads amounts in Sparks. Next (L13.2):
+the rest of the core moves over, then the wallet, its keys in Android's Keystore — *the phone's
+locked key store* — then Social, ARQADE, the Library and the Mesh.
 
 To try it: copy **`QOR-Launcher-Android-0.1.0-test.apk`** from your Desktop to your phone, open
 it, and allow installs from that app when asked.
 
 ## What only you can do
 
-1. **Merge #50** (Android, app ID `app.qorsync.dev`, as you confirmed), and **try ARQADE on
-   your phone** at `qor-arqade-tau.vercel.app`.
+1. **Try both on your phone:** the Android app above, and ARQADE at `qor-arqade-tau.vercel.app`.
 2. **Try ARQADE in 0.1.14:** open it from the menu while signed in. Nobody has yet signed in
    to it through a running launcher.
 3. **Google Search Console** for `qorsync.dev`, and the **GitHub social preview** (`site/og.png`).
