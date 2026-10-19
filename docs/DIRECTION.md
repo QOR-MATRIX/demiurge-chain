@@ -1145,6 +1145,26 @@ P3.2 and on nothing on chain, and run in this order:
    It stays unticked until it is merged.
 8. [ ] **The game's interface.** A **Screen** kind drawn over the world, with text, bars, images and buttons that logic
    sets; title, pause and message screens; the design system's tokens; reduced motion.
+
+   **Built 19 October 2026** (branch `session/qq-interface`, not yet merged):
+   - ADR-105's "Screen kind" is built as five kinds on one base (`ScreenPart`): `ScreenText`, `ScreenBar`,
+     `ScreenButton`, `ScreenImage` and `ScreenPanel`. Each is a plain entity the Studio's inspector and the agent's
+     tools already edit, and each belongs to a named screen (`hud`, `title`, `pause`, …).
+   - They are drawn on the World's overlay, placed by an anchor and insets in points of a screen 720 tall.
+   - The scene's `screens` field names those shown at the start.
+   - Logic has `showScreen`, `hideScreen`, `onlyScreen`, `pause`, `resume` and `onClicked`. A paused world holds
+     physics, logic and its timers, the player and particles still, and its screens still answer.
+   - `Look` carries the interface's style:
+     - Cinzel and Barlow Semi Condensed, the homepage's and ARQADE's faces, carried in the runtime under the SIL Open
+       Font License;
+     - the launcher's inks with ARQADE's gilt;
+     - the system's reduced-motion setting, read from Windows' own animation setting, under which screens appear at
+       once.
+   - Orb Run now opens on its title with the world paused, keeps its score on a HUD, and pauses behind a pause screen.
+   - Evidence, on the owner's PC: `tst_play` passes 23 cases, 5 of them new, with Orb Run's title, HUD and pause
+     screens among them. All eight suites pass in one run of `build.ps1`: 88 cases. Five planted faults were each
+     caught: a button that answers on any screen, physics that ignores a pause, logic that ignores a pause, reduced
+     motion ignored, and a part drawn whatever its screen.
 9. [ ] **Input actions.** Named actions with default bindings for keyboard, mouse, gamepad and touch, rebound by the
    player; the pointer picking what it is over. Move, look, jump and run stay as built-in actions.
 10. [ ] **2D.** `view: "2d"` with whole-number pixel scaling; **Sprite** (images and sheets, frame animation, lit or

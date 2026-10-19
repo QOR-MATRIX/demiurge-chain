@@ -38,7 +38,8 @@ Node {
     }
 
     FrameAnimation {
-        running: behaviour.live && file.object !== null
+        // A paused world's logic holds still too: its clock, its timers and its frames (P3.8).
+        running: behaviour.live && file.object !== null && !behaviour.parent.paused
         onTriggered: {
             // A long frame (a window dragged, a breakpoint) is not a long step: logic never jumps more than 1/20 s.
             // The step moves the clock, runs the timers that are due, then `frame`.
@@ -46,8 +47,8 @@ Node {
         }
     }
 
-    // What happens to the target reaches its logic (P3.7): a contact on its body, and what enters or leaves it when it
-    // is a Trigger. A kind without one of these signals simply never sends it.
+    // What happens to the target reaches its logic (P3.7, P3.8): a contact on its body, what enters or leaves it when it
+    // is a Trigger, and a press when it is a ScreenButton. A kind without one of these signals simply never sends it.
     Connections {
         target: behaviour.live ? behaviour.targetEntity : null
         ignoreUnknownSignals: true
@@ -62,6 +63,10 @@ Node {
         function onExited(other) {
             if (file.object)
                 file.object.exited(other)
+        }
+        function onClicked() {
+            if (file.object)
+                file.object.clicked()
         }
     }
 }

@@ -23,6 +23,11 @@
 //
 // Timers run on the logic's own clock, the one `elapsed` counts and `frame` is given, so they keep time with the game
 // rather than with the wall.
+//
+// The game's interface (P3.8): the screen kinds are entities like any other, so logic sets a ScreenText's `text` or a
+// ScreenBar's `value` through entity(name); it shows and hides whole screens, and pauses the world beneath them.
+//
+//   onClicked: { onlyScreen("hud"); resume() }        // a Behaviour targeting the title's Play button
 
 import QtQml
 import QQ
@@ -52,6 +57,35 @@ QtObject {
     /// Something came into the target, a Trigger, or left it.
     signal entered(QtObject other)
     signal exited(QtObject other)
+
+    /// The target, a ScreenButton, was pressed.
+    signal clicked()
+
+    /// Show a screen by name, hide one, or show one and nothing else (a title to the game, the game to its end).
+    function showScreen(name) {
+        if (scene)
+            scene.showScreen(name)
+    }
+    function hideScreen(name) {
+        if (scene)
+            scene.hideScreen(name)
+    }
+    function onlyScreen(name) {
+        if (scene)
+            scene.onlyScreen(name)
+    }
+
+    /// Hold the world still (physics, logic, the player, particles) while screens still answer; and let it go on.
+    /// While paused, no logic's clock moves, so no timer fires: a pause screen's buttons resume it.
+    function pause() {
+        if (scene)
+            scene.paused = true
+    }
+    function resume() {
+        if (scene)
+            scene.paused = false
+    }
+    readonly property bool paused: scene !== null && scene.paused === true
 
     /// The entity in this scene called `name`, or null.
     function entity(name) {

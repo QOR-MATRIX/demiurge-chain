@@ -98,7 +98,22 @@ View3D {
     }
     onEyeChanged: placeEye()
     onTargetChanged: placeEye()
-    Component.onCompleted: placeEye()
+
+    /// What a scene's interface is drawn on (the screen kinds, P3.8): a layer over the world, filling the view, made as
+    /// the world is, so a screen in any scene shown here finds it (SceneIO::viewOf).
+    property Item overlay: null
+    Component {
+        id: overlayLayer
+        Item {
+            anchors.fill: parent
+            z: 1
+        }
+    }
+
+    Component.onCompleted: {
+        placeEye()
+        overlay = overlayLayer.createObject(world)
+    }
 
     Node {
         id: scene
