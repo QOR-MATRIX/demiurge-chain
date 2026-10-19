@@ -19,8 +19,8 @@ Imported into the Demiurge repository on 4 October 2026 from the arcade checkout
 - Synapse: random memory sequences, keyboard/touch input, eight progressive rounds.
 - Orbital: timed capture arcs, increasing orbital speed, ten locks and three misses.
 - Optional synthesized audio, pause controls, local best scores and completion results.
-- Device-local energy, complimentary refills, session ledger and unbiased Web Crypto collectible draws (0–3, 25% each).
-- Practice Energy storefront: free packages, no cash prices. Paid play will be priced in CGT only (ADR-069).
+- Free play: the browser keeps completed sessions and each world's best score. Since 19 October 2026 (P7.23, ADR-102)
+  there is no Energy, entry cost, collectible draw or token wallet.
 - Browser terminal with history, completion and navigation/game commands.
 - Configurable local game creator, saved draft, source view, sandboxed preview and standalone HTML export.
 - Read-only Demiurge Devnet reader (`lib/chain.ts`, `/api/chain`): standard Substrate JSON-RPC at the fixed `https://rpc.qorsync.dev`, refusing any chain whose genesis is not `0x934e2caa…254a`; returns the finalized and best block numbers, or 503.
@@ -37,12 +37,12 @@ This is a public site on Demiurge Devnet (<https://qor-arqade-tau.vercel.app>). 
 
 - Automated report triage or an operator moderation dashboard; reports are persisted in the reports table. Message reads show up to 60 nondeleted messages from the last seven days; this is a display window, not a data-deletion retention policy.
 - AI model/provider integration. The creator currently uses a local configurable template and says so.
-- Real Energy purchases, payment webhooks, paid entitlements, refunds, and durable server ledger.
-- CGT payouts and prizes. The only CGT that moves is a tip, signed in the player's launcher and confirmed from finalised blocks (`lib/pay-chain.ts`, `lib/tips.ts`). CGT is the only currency; Energy and practice tokens are never convertible to it.
+- Payment webhooks, paid entitlements, refunds, and a durable server ledger. Energy is gone (P7.23), and nothing is sold.
+- CGT payouts and prizes. The only CGT that moves is a tip, signed in the player's launcher and confirmed from finalised blocks (`lib/pay-chain.ts`, `lib/tips.ts`). CGT is the only currency.
 - Final Terms of Service, official promotion rules, operator identity, jurisdiction/age eligibility, purchase-free entry, and approved prize economy.
 - Native installed CLI. The available CLI is a browser command console.
 
-Do not connect client-local scores, energy, reward draws or storage to real value. A live implementation needs server-authoritative game sessions and economy, replay protection, idempotent payments/redemptions, verified QOR sessions, persistent audit records and chain confirmation handling.
+Do not connect client-local scores or storage to real value. A live implementation needs server-authoritative game sessions and economy, replay protection, idempotent payments/redemptions, verified QOR sessions, persistent audit records and chain confirmation handling.
 
 ## Protocol references
 

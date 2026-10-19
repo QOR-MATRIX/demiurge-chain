@@ -641,6 +641,28 @@ jobs:
           fi
           echo "framework/ is retired."
 
+      # The language rule (ADR-008, AGENTS.md section 6) over what people read in the active scope. CGT is
+      # infrastructure for creators to earn from use, so nothing they read speaks of APY, ROI, yield, passive income,
+      # investment or staking rewards. "Yield" is looked for only in copy (HTML, text, TSX, QML): in code it is a verb
+      # and a keyword. The homepage's own check (ADR-100) runs here too.
+      - name: "No financial language in what people read (ADR-008)"
+        if: always()
+        run: |
+          set -e
+          node site/scripts/check-site.mjs
+          scope="site products/arqade/app products/arqade/qt products/arqade/lib products/arqade/sdk tools/qor-launcher/src tools/qor-launcher/src-tauri/src tools/qor-launcher/core/src tools/qor-media products/qq services/social/src services/qor-auth/src"
+          hits=$( { grep -rniE '\b(APY|ROI|passive income|invest(ment|ments|or|ors|ing|ed)?|staking rewards?)\b' $scope \
+                      --include='*.html' --include='*.txt' --include='*.tsx' --include='*.ts' --include='*.qml' \
+                      --include='*.rs' --include='*.cpp' --include='*.h' --exclude-dir=node_modules || true
+                    grep -rniE '\byields?\b' $scope --include='*.html' --include='*.txt' --include='*.tsx' --include='*.qml' \
+                      --exclude-dir=node_modules || true; } )
+          if [ -n "$hits" ]; then
+            echo "::error::Financial language in what people read (ADR-008, AGENTS.md section 6):"
+            echo "$hits"
+            exit 1
+          fi
+          echo "No financial language in the active scope."
+
       # chain/ is audited as a REPORT, not a gate, and that is deliberate.
       #
       # On 2026-09-20 each of its 10 vulnerabilities was measured one by one:

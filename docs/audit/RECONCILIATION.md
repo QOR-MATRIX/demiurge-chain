@@ -1,6 +1,7 @@
 # Reconciliation: the code against the direction
 
-**Status:** The audit was taken on 14 September 2026 and is kept as written.
+**Status:** The audit was taken on 14 September 2026 and is kept as written. §8, a second audit of how CGT is
+handled, was taken on 19 October 2026 and is current.
 
 > **Most of what follows is no longer true, and that is the point of an audit record.** Roughly half its
 > citations point into `framework/`, the custom chain deleted at M3.5 on 20 September 2026, so those
@@ -536,3 +537,55 @@ All findings below are S.
   (`apps/marketing-site/tailwind.config.ts:18-104`; `src/app/globals.css:18-46`).
 
 None of them is a reference for the web surfaces of ADR-011.
+
+## 8. CGT handling, 19 October 2026
+
+A second read-only audit, of how the active scope handles CGT, taken on 19 October 2026 at the owner's direction that
+CGT be developed to the standard of a currency and that compliance is a must. It measured the code against AGENTS.md
+§5 and §6 and ADR-101. Unlike §1 to §7, this section is current.
+
+**Sound:**
+- Every amount is integer embers in `u128`.
+- Every ratio uses the SDK's helpers (`Permill::mul_floor`, `multiply_by_rational_with_rounding`, the Mesh's
+  `serving_cost`).
+- No pallet creates CGT.
+- Amounts cross JSON as decimal strings: no `Serialize` struct in the active Rust code carries a `u128`.
+- Every open value in code is marked as a placeholder.
+- Transactions carry a chain binding, an expiry and a nonce.
+- An ARQ Wallet outcome is paid once.
+- A buyer's `max_price` and `buy_exact` hold the seller to what was shown.
+- ARQADE keeps no balances off chain.
+
+**Fixed the same day (branch `session/cgt-compliance`):**
+
+| Finding | Fix |
+| --- | --- |
+| QOR ID's schema still held migration 005's donation scheme: a trigger setting a "staking rewards" bonus of 2% to 10% and a fee discount of up to 10% by fiat tier, and columns of CGT "distributed" for dollars. Invented values for open questions, in the language §6 rules out. Nothing read it | Migration 024 drops the trigger, its functions and the perk columns, and moves the three tables whole to a schema `retired`, so no record of a payment is lost. Tested against Postgres from the state before it |
+| An agent's spending limit accepted a negative number, and no document said it is not enforced | Refused by the service and by the table (migration 025). The column says it is a whole number of CGT, recorded and not enforced (Q-9), until `pallet-agent-caps` (M5.2) enforces caps in embers |
+| The amount parser stripped every comma, space and underscore, so "1,5" read as 15 CGT and "1.000,50" as 1.0005. It also took a sign: "1.+5" read as 1.05 | A separator is read only between groups of three digits in the whole part. Anything else, a sign included, is refused with a message naming the rule. The core's `format_sparks` takes digits only |
+| ARQADE's website charged 20 Energy to start a game and then drew 0 to 3 tokens at random, whatever the score. That is an entry cost, a draw and a prize in shape, even with no value attached. Its intro said "you may lose more than you could win" | P7.23's removal: no Energy, entry cost, draw or token wallet. Play is free, and the intro and notice say nothing is bought, staked, won or lost |
+| ARQADE's tip panel passed a whole number of CGT through a JavaScript `Number` | `BigInt` |
+| The launcher said a starter grant is the usual first step, and the homepage that test CGT comes from a faucet. Neither exists | Both say test CGT is sent to testers by hand |
+| The language rule was enforced only on the homepage, by a check CI never ran | CI runs that check, and a check over the active scope's user-facing copy (GATES change log) |
+
+**Open, engineering:**
+- **Marking a welcome grant paid (M).** It accepts any well-formed hash, without checking the chain for the sender,
+  the recipient or the amount, and one transfer can settle several grants. It should verify on the finalised chain,
+  and a later migration should make the hash unique, once production is known to hold no duplicates.
+- **ARQ Wallet bookkeeping (S, needs a runtime upgrade).** `owed` and `Held` use `saturating_sub` where the module
+  promises no amount is saturated. The royalties pallet's `unwrap_or(0)` would pay a recipient nothing rather than
+  fail. Both should refuse.
+- **`qor://pay` (M).** The guard against paying one request twice is a file on one device. Before signing, the
+  launcher should look for the request's remark on the finalised chain.
+- **The Mesh's amount form (S).** It parses amounts on its own, takes no Sparks and has no ceiling. It should use the
+  core's `parse_amount` (L11.1).
+
+**Open, the owner's and a lawyer's** (§4.0 of HANDOFF lists them with who unblocks each):
+- **Terms of Service and a privacy policy.** QOR ID, Social and ARQADE are live and hold emails, messages and sessions,
+  and none of the active scope has either.
+- **Deleting and exporting an account.** No route does either for a person, only an admin ban.
+- **Rewards, prizes and chance.** Whether ARQ Wallet prize rounds, ADR-102's Spark rewards for play, backing and the
+  welcome grant are lawful, where, and under which rules (U-15 to U-18).
+- **Identity and access duties.** Which KYC, AML, sanctions screening, geofencing and age gating apply.
+- **A public statement** that devnet balances never carry into any network with value.
+- **Fees and spam** (OPEN-4, U-4), and which transaction records must be kept, which shapes the indexer (M5.4).

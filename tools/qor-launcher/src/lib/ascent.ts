@@ -137,9 +137,9 @@ export function computeAscent(input: AscentInputs): AscentState {
     },
     {
       id: 'funded',
-      name: 'Hold Value',
+      name: 'Hold CGT',
       meaning: 'You are holding CGT.',
-      how: 'Claim the starter grant, or receive CGT from someone.',
+      how: 'Receive CGT from someone: on the devnet, test CGT is sent to testers by hand.',
       done: holding,
     },
     {

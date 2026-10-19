@@ -58,6 +58,23 @@ fn validate_autonomy(autonomy: &str) -> Result<(), AppError> {
     }
 }
 
+/// Validate a spending limit: a whole number of CGT, never negative, and required of a bounded agent.
+///
+/// It is recorded, not enforced: nothing in QOR ID or on chain holds an agent to it yet (Q-9). Enforcement belongs to
+/// `pallet-agent-caps` (M5.2), which will count in embers on chain. Until then a negative limit is refused rather than
+/// stored, so no record suggests a cap that could never mean anything.
+fn validate_spending_limit(autonomy: &str, limit: Option<i64>) -> Result<(), AppError> {
+    match limit {
+        None if autonomy == "bounded" => Err(AppError::ValidationError(
+            "Bounded agents require a spending_limit".into(),
+        )),
+        Some(limit) if limit < 0 => Err(AppError::ValidationError(
+            "spending_limit is a whole number of CGT and cannot be negative".into(),
+        )),
+        _ => Ok(()),
+    }
+}
+
 /// Generate agent DID
 fn generate_agent_did() -> String {
     let random_bytes: [u8; 16] = rand::thread_rng().r#gen();
@@ -115,12 +132,7 @@ pub async fn register_agent(
     validate_capabilities(&req.capabilities)?;
     validate_autonomy(&req.autonomy)?;
 
-    // Bounded agents require spending limit
-    if req.autonomy == "bounded" && req.spending_limit.is_none() {
-        return Err(AppError::ValidationError(
-            "Bounded agents require a spending_limit".into(),
-        ));
-    }
+    validate_spending_limit(&req.autonomy, req.spending_limit)?;
 
     // Only an active human account can control agents. An agent cannot create
     // further agents, which would let delegated authority delegate itself again.
@@ -327,4 +339,25 @@ pub async fn deactivate_agent(
         "status": "inactive",
         "message": "Agent deactivated successfully"
     })))
+}
+
+#[cfg(test)]
+mod spending_limit_tests {
+    use super::validate_spending_limit;
+
+    /// A bounded agent needs a limit; none is ever negative, whatever the autonomy; zero is a limit (spend nothing).
+    #[test]
+    fn a_spending_limit_is_a_whole_number_of_cgt_and_never_negative() {
+        assert!(validate_spending_limit("bounded", None).is_err());
+        assert!(validate_spending_limit("bounded", Some(0)).is_ok());
+        assert!(validate_spending_limit("bounded", Some(250)).is_ok());
+        assert!(validate_spending_limit("supervised", None).is_ok());
+        for autonomy in ["supervised", "bounded", "autonomous", "sovereign"] {
+            assert!(
+                validate_spending_limit(autonomy, Some(-1)).is_err(),
+                "{autonomy}"
+            );
+            assert!(validate_spending_limit(autonomy, Some(i64::MIN)).is_err());
+        }
+    }
 }

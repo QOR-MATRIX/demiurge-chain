@@ -18,7 +18,8 @@ type Tip = { id: string; amount: string; label: string; status: 'waiting' | 'pai
 const cgt = (embers: string) => {
   const whole = embers.length > 18 ? embers.slice(0, -18) : '0';
   const fraction = embers.padStart(19, '0').slice(-18).replace(/0+$/, '');
-  return `${Number(whole).toLocaleString('en-US')}${fraction ? '.' + fraction : ''} CGT`;
+  // BigInt, so no amount passes through a floating-point number on its way to the screen (AGENTS.md section 5).
+  return `${BigInt(whole).toLocaleString('en-US')}${fraction ? '.' + fraction : ''} CGT`;
 };
 
 export function TipPanel() {

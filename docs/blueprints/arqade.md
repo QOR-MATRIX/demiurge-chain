@@ -72,6 +72,10 @@ is read and displayed and never written. Polling, not WebSockets. The creator is
 the browser. `app/api/chain/route.ts` calls the deleted chain's `chain_getBlockNumber` at `https://rpc.demiurge.cloud`.
 The store shows USD prices for Energy and names CRGT and DMRG.
 
+**Since 19 October 2026 (P7.23, ADR-102) the site has no Energy:** no Energy store, no entry cost, no token drawn
+after a run and no token wallet. Play is free, and the browser keeps only completed sessions and each world's best
+score.
+
 Preserve the experience: the layout, games, controls and mobile behaviour. Evolve the branding to **ARQADE, powered by
 Demiurge** across metadata, intro, navigation, wallet, terminal and notices. Keep old links where practical, keep the
 intro skippable, and respect reduced motion. The cinematic styling stays: since ADR-080 (6 October 2026) glow, neon and

@@ -139,7 +139,8 @@ export function Orientation({ onDismiss }: { onDismiss: () => void }) {
         </Explain>
         <Explain term={`Holdings (${token?.symbol ?? 'CGT'})`}>
           The {token?.name ?? 'Creator God Token'} you hold. New accounts start
-          empty. Claiming a starter grant is the usual first step.
+          empty, and there is no starter grant yet: on the devnet, test CGT is sent to
+          testers by hand.
         </Explain>
         <Explain term="Ready, Connect, Forming">
           Whether a system is usable now, needs a server running, or is still being
