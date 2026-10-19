@@ -904,6 +904,43 @@ export const arqade = {
   open: () => call<void>('arqade_open'),
 };
 
+/** Who is playing, as ARQADE's app shows them: written out here, so the app does no arithmetic on money. */
+export interface ArqadePlayer {
+  signed_in: boolean;
+  name: string | null;
+  level: number | null;
+  sparks: string | null;
+  cgt: string | null;
+}
+
+/**
+ * ARQADE's Qt app, docked over the ARQADE screen (ADR-102 decision 1). `open` starts it if it is not running and
+ * answers false when it is not installed, so the screen can offer the website's window instead.
+ */
+export const arqadeApp = {
+  open: () => call<boolean>('arqade_app_open'),
+  place: (rect: { x: number; y: number; w: number; h: number }) => call<void>('arqade_app_place', { rect }),
+  hide: () => call<void>('arqade_app_hide'),
+  theme: (colors: Record<string, string>) => call<void>('arqade_app_theme', { colors }),
+  player: (player: ArqadePlayer) => call<void>('arqade_app_player', { player }),
+  prefs: (prefs: { reduced_motion: boolean }) => call<void>('arqade_app_prefs', { prefs }),
+  /** Told when ARQADE ends, however it ends. Returns how to stop listening. */
+  onExit: (handler: (exit: ProductExit) => void): (() => void) => {
+    let stop: (() => void) | null = null;
+    let stopped = false;
+    listen<ProductExit>('arqade://exited', (event) => handler(event.payload))
+      .then((unlisten) => {
+        if (stopped) unlisten();
+        else stop = unlisten;
+      })
+      .catch(() => {});
+    return () => {
+      stopped = true;
+      stop?.();
+    };
+  },
+};
+
 export const identity = {
   login: (identifier: string, password: string) =>
     call<Session>('qor_login', { identifier, password }),

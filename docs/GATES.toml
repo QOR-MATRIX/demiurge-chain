@@ -858,6 +858,12 @@ type = "tightening"
 change = "check-profiles-view.mjs gains a check that the Vault shows the balance in Sparks too (ADR-101), 25 checks to 26. The Rust suite gains two tests in cgt.rs (amounts typed in CGT or Sparks, precision finer than an ember refused; whole Sparks shown as Sparks, anything finer in full as CGT) and chain/runtime one (a Spark is a thousandth of a CGT)."
 reason = "Tightening: checks and tests added, none removed or relaxed. The planted fault (the CGT figure shown where the Sparks should be) failed the new check, 25 of 26, and passed restored."
 
+[[change_log]]
+date = "2026-10-18"
+type = "tightening"
+change = "The arqade gate gains two criteria for ARQADE's Qt app docked in the launcher (ADR-102, P7.19): arqade.app-tests, thirteen required tests in suite launcher (src-tauri/src/arqade/app.rs: its queue, cleared of what an ended run left, the commands as the app reads them, the sign-in it may ask for and every check on it, the website it may open, where it is found, and nothing of a sign-in in the log), and arqade.view, a tests criterion on a new suite arqade_view (scripts/check-arqade-view.mjs, 17 checks). That check joins npm run check, so CI's launcher job runs fifteen checks, not fourteen ([ci].quality_gates updated). ARQADE's own Qt Test suites (products/arqade/qt, 32 tests) run on the owner's PC through its build.ps1, as QOR Media's and QQ's do, since CI has no licensed Qt; the test that starts the real app is opt-in and not required."
+reason = "Tightening: criteria, a suite and checks added, none removed or relaxed. Three planted faults in the sign-in (the page not checked, the answer passed on wherever it lands, the page logged) each failed a required test, and a fourth (the queue not cleared when ARQADE starts again) failed the opt-in test that starts the real app, which quit at once on a stale command; one in the screen (less motion not passed on) failed the new check, 16 of 17. Restored, all pass."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -903,7 +909,7 @@ quality_gates = [
   "chain/: two validators agree, finalise and catch up. A job of its own, because it needs a release build with the sudo feature: cargo build -p demiurge-node --release --features sudo --locked, then node scripts/check-two-validators.mjs. It fails the run; criterion alpha.multi-validator reads it. Since 2026-09-21 it runs NIGHTLY (03:00 UTC) and on workflow_dispatch, not on every push",
   "services/qor-auth: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test -- --include-ignored, against a migrated Postgres 16 and a Redis 7.4",
   "services/social: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test, against a Postgres 16 (a database per test) and a real WebSocket on a loopback port; its log, SQL and migration checks run with the tests",
-  "tools/qor-launcher: npm ci, frontend build and npm run check, fourteen checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the Library view, the Mesh view, the profiles view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
+  "tools/qor-launcher: npm ci, frontend build and npm run check, fifteen checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the Library view, the Mesh view, the profiles view, the ARQADE view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
   "cargo audit of services/qor-auth, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside the compiled graph (services/qor-auth/.cargo/audit.toml)",
   "cargo audit of services/social, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside Social's compiled graph (services/social/.cargo/audit.toml)",
   "cargo audit of tools/qor-launcher/src-tauri, ignoring only RUSTSEC-2026-0344 while CI confirms ruzstd is outside the compiled graph and still in the lockfile (tools/qor-launcher/src-tauri/.cargo/audit.toml, ADR-089)",
@@ -1013,6 +1019,11 @@ needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH fo
 [suites.profiles_view]
 dir = "tools/qor-launcher"  # Each QOR ID is a profile of its own (ADR-099, launcher 0.1.13). Since 2026-10-18.
 command = "node scripts/check-profiles-view.mjs"
+needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places)"
+
+[suites.arqade_view]
+dir = "tools/qor-launcher"  # ARQADE's Qt app docked in the launcher (ADR-102, P7.19). Since 2026-10-18.
+command = "node scripts/check-arqade-view.mjs"
 needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places)"
 
 [suites.gnosis]
@@ -1851,10 +1862,10 @@ player's own Vault, and a developer SDK with which others publish games."""
   # ADR-069 defines ARQADE; ADR-043 is browser sign-in, which it cannot do
   # without. Both accepted by the owner on 4 October 2026.
   #
-  # Not counted yet, as of 2026-10-06: ADR-076 to ADR-079 (all accepted) here,
-  # and P7.16 to P7.18 in arqade.roadmap below. Counting them adds units, which
-  # is a tightening; it is left to the change that decides to make it, so this
-  # note records the gap rather than closing it.
+  # Not counted yet, as of 2026-10-18: ADR-076 to ADR-079 and ADR-101 to ADR-103
+  # (all accepted) here, and P7.16 to P7.24 in arqade.roadmap below. Counting
+  # them adds units, which is a tightening; it is left to the change that decides
+  # to make it, so this note records the gap rather than closing it.
   [[gates.criteria]]
   id = "arqade.decisions"
   kind = "adr"
@@ -1927,6 +1938,37 @@ player's own Vault, and a developer SDK with which others publish games."""
   id = "arqade.tests"
   kind = "tests"
   suite = "arqade"
+  require = []
+
+  # ARQADE's Qt app on the launcher's side (ADR-102, P7.19; src-tauri/src/arqade/app.rs).
+  # The sign-in checks and the log check each failed against a planted fault first.
+  # The test that starts the real app is opt-in (it needs the owner's Qt build), and
+  # the app's own Qt Test suites run on the owner's PC (products/arqade/qt/build.ps1).
+  [[gates.criteria]]
+  id = "arqade.app-tests"
+  kind = "tests"
+  suite = "launcher"
+  require = [
+    "it_offers_its_three_methods_and_quiets_only_the_wait",
+    "arqade_next_answers_a_command_at_once_and_nothing_after_the_wait",
+    "a_newer_command_of_a_kind_replaces_the_older_and_the_rest_keep_their_order",
+    "commands_are_written_as_the_app_reads_them",
+    "a_player_is_tidied_before_it_is_sent",
+    "a_sign_in_is_handed_to_qor_id_and_its_answer_returned",
+    "only_qor_id_s_own_sign_in_page_is_handed_over",
+    "an_answer_that_does_not_land_on_arqade_is_not_passed_on",
+    "without_a_session_or_a_qor_id_it_says_so",
+    "the_website_opens_in_the_launcher_s_window_or_says_why_not",
+    "arqade_is_found_where_it_is_put",
+    "a_cleared_queue_holds_nothing_from_before",
+    "nothing_of_a_sign_in_reaches_the_log_at_any_level",
+  ]
+
+  # The ARQADE screen, in a real browser against a stand-in host.
+  [[gates.criteria]]
+  id = "arqade.view"
+  kind = "tests"
+  suite = "arqade_view"
   require = []
 
 [[gates]]
