@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 19 October 2026 (morning). One page, rewritten every session.
+For Andrew, 19 October 2026 (evening). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -10,46 +10,43 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 ## Live today (checked this session, from outside)
 
-- **The homepage** at **qorsync.dev**, its download links on launcher 0.1.14. **Devnet** —
-  *the test chain on servers* — on runtime 9.
-- **QOR ID** — *the one sign-in* — and **Social** — *the chat service* — on Railway.
-- **ARQADE** — *the gaming website* — on Vercel, now made for phones: a tab bar along the
-  bottom, games filling the screen, played by tapping.
-- **Launcher 0.1.14 for testers**, with ARQADE's 3D app inside it:
-  `releases/tag/launcher-v0.1.14`.
+The homepage at **qorsync.dev**; **Devnet** — *the test chain on servers* — on runtime 9;
+**QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** — *the gaming
+website*. Launcher 0.1.14 is the tester download. `main` is green; three pull requests wait for you.
 
-## Merged since last night
+## Done this session: three pull requests for you to merge
 
-**#48** (ARQADE's 3D app in the launcher), **#49** (ARQADE on phones), **#50** (the
-launcher on Android, its first step), **#51** (their records) and **#52** (the CI check you
-decided on: each backdrop must compile and draw, not reach 20 frames a second on CI's slow
-renderer). Nothing is waiting for you to merge.
+1. **#56: the wallet moved into the core** — *the Rust part both launchers share*: the next
+   Android step (L13.2). Windows unchanged: every test passes, and the phone app still builds.
+2. **#54: CGT handled like money that matters.** An audit found the chain sound. Fixed:
+   - QOR ID's old donation scheme ("staking" bonuses for dollars) is retired, no records lost.
+   - "1,5" is refused instead of read as 15 CGT.
+   - ARQADE has no Energy: no entry cost, no random token drops.
+   - CI now fails on investment language.
+3. **#55: QQ makes real games** — *QQ is our game engine* (ADR-105): one engine for 3D and 2D.
+   Built: triggers, collisions, rays, spawning, timers, pushes and moving platforms, with
+   *Orb Run*, a small game made only of a scene and a script. Next: on-screen menus and
+   scores, button mapping, then 2D.
 
-## Android, started
+They merge in any order without conflicts. #56 also carries these notes.
 
-Built in Qt — *the toolkit QOR Media uses* — over the same Rust core — *the part that holds
-keys* — as the Windows launcher (ADR-104). It runs on an Android 16 emulator — *a phone simulated
-on this PC*. So far it only shows the core answering and reads amounts in Sparks. Next (L13.2):
-the rest of the core moves over, then the wallet, its keys in Android's Keystore — *the phone's
-locked key store* — then Social, ARQADE, the Library and the Mesh.
+## Toward a worldwide beta: what only you can do
 
-To try it: copy **`QOR-Launcher-Android-0.1.0-test.apk`** from your Desktop to your phone, open
-it, and allow installs from that app when asked.
-
-## What only you can do
-
-1. **Try both on your phone:** the Android app above, and ARQADE at `qor-arqade-tau.vercel.app`.
-2. **Try ARQADE in 0.1.14:** open it from the menu while signed in. Nobody has yet signed in
-   to it through a running launcher.
-3. **Google Search Console** for `qorsync.dev`, and the **GitHub social preview** (`site/og.png`).
-4. **Rule on one gate change** (in #46): ADR-098's check replaced by ADR-099's. A loosening?
-5. **The reward pool's numbers**, at ARQADE's stage 4: the most per run, per player per day,
-   and in total.
-6. **Still open:** godmode's 100,000,000 CGT (I need its address); Social's report rules
-   (L8.7); `social-secrets.txt` on your Desktop; `archive-bZLIQp/`; QQ Studio's update; the last
-   two L1.4 checks; CI for QQ; the welcome-grant payer; an email; the key pasted on 5 October.
+1. **Terms of Service and a privacy policy, with a lawyer.** Three live services hold
+   emails and messages, and none has either. Account deletion and export follow from them.
+2. **The legal opinion** on rewards, prizes, the welcome grant and backing, and on
+   KYC — *identity checks* —, sanctions and age limits, before anything carries value.
+3. **The economic numbers** — *issuance, the genesis split, the decay curve, fee and burn
+   shares* (OPEN-1 to OPEN-4, U-4, U-11). Most of the Beta gate waits on them.
+4. **Code-signing certificates** for Windows and Apple, and an **external security review**.
+5. **Names** for the indexer and explorer, the SDK and the agents' MCP server.
+6. **Still open:** godmode's 100,000,000 CGT (its address); Social's report rules; the
+   Android app on your phone; ARQADE in 0.1.14; the gate change in #46; the reward pool's
+   numbers; Search Console and the GitHub preview image; the welcome-grant payer; the last two
+   L1.4 dialogs; Qt for CI; QQ Studio's update; `social-secrets.txt`; `archive-bZLIQp/`;
+   the email webhook; the key pasted on 5 October.
 
 ## Cost per month
 
-The homepage and ARQADE: Vercel's free plan. GitHub downloads: free. The Mesh, QOR Media,
-ARQADE's app and translation: $0, on each PC. Railway is not yet measured. Neon: free plan.
+The homepage and ARQADE: Vercel's free plan (not for commercial use). GitHub: free. The Mesh,
+QOR Media, ARQADE's app and translation: $0, on each PC. Railway is not yet measured. Neon: free.
