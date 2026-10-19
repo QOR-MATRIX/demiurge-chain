@@ -17,6 +17,8 @@
 //! challenge whose verifier only ARQADE holds, so nothing new travels in an address. Without a session, or if QOR ID
 //! refuses, the window loads QOR ID's page as it would have, and the person signs in there.
 
+pub mod app;
+
 use std::collections::HashSet;
 use std::sync::Arc;
 

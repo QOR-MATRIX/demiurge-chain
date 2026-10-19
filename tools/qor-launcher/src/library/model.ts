@@ -9,6 +9,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 
+import { dockOver as dock } from '../lib/dock';
+
 export type Kind = 'video' | 'audio' | 'picture' | 'document' | 'other';
 
 export interface Item {
@@ -65,42 +67,9 @@ export const media = {
   theme: (colors: Record<string, string>) => invoke<void>('media_theme', { colors }),
 };
 
-const THEME_TOKENS = ['void', 'base', 'surface', 'raised', 'well', 'edge', 'accent', 'accent-bright', 'accent-dim', 'ink', 'ink-body', 'ink-muted', 'ink-faint'];
-
-/** The launcher's theme as `#rrggbb` tokens, read from the page, for QOR Media to wear. */
-function themeTokens(): Record<string, string> {
-  const style = getComputedStyle(document.documentElement);
-  return Object.fromEntries(
-    THEME_TOKENS.map((t): [string, string] => [t, style.getPropertyValue(`--${t}`).trim().toLowerCase()]).filter(([, v]) => /^#[0-9a-f]{6}$/.test(v)),
-  );
-}
-
 /** Keep QOR Media's place in step with `el` while the Library is showing, and hide it when the Library goes. */
 export function dockOver(el: HTMLElement): () => void {
-  let last = '';
-  const send = () => {
-    const r = el.getBoundingClientRect();
-    const d = window.devicePixelRatio || 1;
-    const rect = { x: Math.round(r.left * d), y: Math.round(r.top * d), w: Math.round(r.width * d), h: Math.round(r.height * d) };
-    const key = JSON.stringify(rect);
-    if (key === last || rect.w === 0 || rect.h === 0) return;
-    last = key;
-    void media.place(rect).catch(() => undefined);
-  };
-  const observer = new ResizeObserver(send);
-  observer.observe(el);
-  window.addEventListener('resize', send);
-  send();
-  void media.theme(themeTokens()).catch(() => undefined);
-  // A theme change restyles the page's root: QOR Media follows it.
-  const themed = new MutationObserver(() => void media.theme(themeTokens()).catch(() => undefined));
-  themed.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'data-theme'] });
-  return () => {
-    observer.disconnect();
-    themed.disconnect();
-    window.removeEventListener('resize', send);
-    void media.hide().catch(() => undefined);
-  };
+  return dock(el, media);
 }
 
 /** Call `fn` whenever the host says the index changed. Returns how to stop. */
