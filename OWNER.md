@@ -37,8 +37,7 @@ screens. Rebindable controls (P3.9, #59): any key, mouse or pad button, and touc
 shows its exact colours. Levels are drawn in **Tiled** — *the free level editor most 2D
 games use* — and characters run and jump. **Ember Climb**, a small platformer, proves it.
 ADR-106 — *a recorded decision* — notes two choices: drawn art scales freely, and each map
-layer is one mesh. All tests pass. Not committed yet: say "commit and push" for a pull
-request.
+layer is one mesh. All tests pass. It is pull request **#60**, waiting for you to merge.
 
 ## Toward a worldwide beta: what only you can do
 

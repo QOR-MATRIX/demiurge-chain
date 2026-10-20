@@ -1189,7 +1189,7 @@ P3.2 and on nothing on chain, and run in this order:
     unlit); **TileMap** (instanced, imported from Tiled's JSON); bodies locked to the plane; a kinematic 2D player for
     platform and top-down games. The launcher preview's 2D scenes import as 2D QQ scenes.
 
-    **Built 19 October 2026** (branch `session/qq-2d`, not yet merged), with
+    **Built 19 October 2026** (branch `session/qq-2d`, pull request #60, not yet merged), with
     [ADR-106](decisions/ADR-106-2d-scenes-say-whether-their-art-is-pixel-art.md) amending ADR-105 decisions 1 and 5:
     - **The view.** A 2D scene is the same world through an orthographic camera on the plane z = 0, over a backdrop of
       its sky's colours.

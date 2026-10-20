@@ -3294,8 +3294,8 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        - Five planted faults were each caught.
      - **Next:** P3.10, 2D.
 
-103. **19 October 2026, late night: #59 merged by the owner; P3.10, 2D, built on `session/qq-2d`, with ADR-106, not yet
-     committed.**
+103. **19 October 2026, late night: #59 merged by the owner; P3.10, 2D, built on `session/qq-2d`, with ADR-106,
+     committed as `3b84ee4` and pushed at the owner's word as pull request #60.**
      - **Merged:** #59 (P3.9) at `b483e7a`. P3.9 is ticked in DIRECTION.
      - **P3.10, built** (DIRECTION P3.10 has the whole list):
        - `view: "2d"`, the same world through an orthographic camera, with a backdrop of the sky's colours.
@@ -3323,7 +3323,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        - after the Studio's overlay changed camera, the first change to its handles was not drawn until something asked
          for a frame later;
        - Ember Climb's Again gathered the last ember where the hero stood.
-     - **Next:** commit and push at the owner's word, then P3.11, fixed steps and replay.
+     - **Next:** #60's merge, then P3.11, fixed steps and replay.
 
 ## 5. Traps, so nobody re-learns them
 
