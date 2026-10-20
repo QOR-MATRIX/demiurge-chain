@@ -33,6 +33,8 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 on shapes that keep their size on any wall, with relief; spot lights; **HDR skies** —
 *360° sky images that also light the world*. *Orb Run* has stone walls, a dusk sky and
 spot lights. All tests pass, in the browser too.
+**Built since, kept here until #64 is in: the Studio's editing** (P3.15, first of three
+parts): undo and redo of every edit, duplicate, and snapping to a grid.
 
 ## Toward a worldwide beta: what only you can do
 
