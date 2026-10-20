@@ -61,6 +61,11 @@ World {
     groundHorizon: scene ? scene.groundHorizon : "#2a1a1a"
     groundBottom: scene ? scene.groundBottom : "#07080c"
 
+    /// A seed for this play, in place of the scene's (P3.11: the Player's --seed, a run ARQADE starts); 0 keeps the scene's.
+    property int seed: 0
+    /// What keeps the run (a RunRecord: the Player's --record), or null.
+    property QtObject recorder: null
+
     function restart() {
         if (scene)
             SceneIO.discard(scene)
@@ -72,6 +77,9 @@ World {
             problem = SceneIO.lastError
             return false
         }
+        if (seed !== 0)
+            next.playSeed = seed
+        next.recorder = recorder
         next.playing = true
         problem = ""
         scene = next

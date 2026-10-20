@@ -2,16 +2,22 @@
 // and the forge is lit when the last is taken. A fall into a pit puts the hero back where it began. Everything here is
 // QQ's logic API, over a scene made of QQ's 2D kinds (DIRECTION P3.10): a level drawn in Tiled (TileMap), sprites
 // played from sheets, a Player2D, Triggers spawned here, and the scene's screens. Nothing in the engine knows this game.
+//
+// It keeps its time in steps (P3.11), and its outcome is how many embers were gathered and in how many steps: a run
+// kept with the Player's --record is played again with no window to the same outcome.
 
 import QQ
 
 Logic {
     id: rules
 
-    /// Embers gathered, and the seconds the climb has taken.
+    /// Embers gathered, the steps the climb has taken (60 a second), and whether it is under way.
     property int gathered: 0
-    property real took: 0
+    property int took: 0
     property bool climbing: false
+
+    /// What the run came to, for a replay to match.
+    outcome: ({ gathered: gathered, lit: gathered === spots.length, steps: took })
 
     /// Where the embers wait, at the hero's middle: over the floor and over each platform, a little in front of the level.
     readonly property var spots: [Qt.vector3d(4.5, 2.5, 0.05), Qt.vector3d(7.5, 5.5, 0.05), Qt.vector3d(13.5, 8.5, 0.05),
@@ -55,7 +61,7 @@ Logic {
         climbing = false
         const time = entity("Took")
         if (time)
-            time.text = "Climbed in " + Math.floor(took / 60) + ":" + String(Math.floor(took % 60)).padStart(2, "0")
+            time.text = "Climbed in " + Math.floor(took / 3600) + ":" + String(Math.floor(took / 60) % 60).padStart(2, "0")
         onlyScreen("won")
         pause()
     }
@@ -83,11 +89,11 @@ Logic {
             gathered = 0
             took = 0
             tell()
-            // The hero first, then the embers: placed at once, the last would be gathered where the hero still stands.
+            // The hero back first, so the last ember is not placed where it still stands.
             if (scene.player)
                 scene.player.respawn()
+            placeEmbers()
             climb()
-            after(0.3, placeEmbers)
         })
     }
 
@@ -104,12 +110,12 @@ Logic {
         }
     }
 
-    onFrame: (dt) => {
+    onStep: (dt) => {
         const hero = scene.player
         if (!hero)
             return
         if (climbing)
-            took += dt
+            took += 1
         // Into a pit, and below the level: back to the start.
         if (hero.feet.y < -1)
             hero.respawn()

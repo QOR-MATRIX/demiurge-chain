@@ -18,6 +18,8 @@
 #include <QtQml/qqmlextensionplugin.h>
 #include <QtQuick3D/qquick3dobject.h>
 
+#include "kinematics.h"
+#include "run.h"
 #include "sceneio.h"
 #include "tilemap.h"
 
@@ -541,6 +543,125 @@ private slots:
         QVERIFY(io->adopt(QUrl::fromLocalFile(out.fileName()), QUrl::fromLocalFile(project.path())).isEmpty());
         QVERIFY2(io->lastError().contains(QStringLiteral("outside its folder")), qPrintable(io->lastError()));
         QVERIFY(!QFileInfo::exists(assets.filePath(QStringLiteral("far.tmj"))));
+    }
+
+    // ── steps and runs (P3.11, ADR-105) ──
+
+    void theSameSeedGivesTheSameNumbersEverywhere()
+    {
+        // Pinned against an independent implementation of xoshiro128** seeded by splitmix32 (written in Python for this
+        // check): a change here would make every run kept before it replay differently.
+        qq::Random random;
+        random.reset(42);
+        QCOMPARE(random.next(), 0.6606157208001621);
+        QCOMPARE(random.next(), 0.1117019639532224);
+        QCOMPARE(random.next(), 0.0791056456144914);
+        QCOMPARE(random.drawn(), 3);
+        random.reset(42);
+        QList<int> dice;
+        for (int i = 0; i < 10; ++i)
+            dice << random.between(1, 6);
+        QCOMPARE(dice, (QList<int>{4, 1, 1, 1, 6, 2, 6, 5, 3, 4}));
+        // Another seed, other numbers; never outside [0, 1) or the range asked.
+        random.reset(43);
+        QVERIFY(random.next() != 0.6606157208001621);
+        for (int i = 0; i < 10000; ++i) {
+            const double v = random.next();
+            QVERIFY(v >= 0 && v < 1);
+            const int d = random.between(-3, 3);
+            QVERIFY(d >= -3 && d <= 3);
+        }
+        QVERIFY(qq::Random::freshSeed() > 0);
+    }
+
+    void aBoxIsStoppedByWhatStandsInItsWay()
+    {
+        // A floor from x -10 to 10, its top at y 0, and a wall from x 2 to 3, up to y 5.
+        const QList<qq::Box> solids{{-10, 10, -1, 0, -1, 1}, {2, 3, 0, 5, -1, 1}};
+        // Falling onto the floor: stopped with its foot exactly on the top.
+        qq::Moved m = qq::sweep2D(solids, 0, 0.6, 0, 0.5, 0.5, 0, -0.3);
+        QCOMPARE(m.y, 0.5);
+        QVERIFY(m.down && !m.up && !m.left && !m.right);
+        // Resting on it, touching is not overlapping: it walks along freely.
+        m = qq::sweep2D(solids, 0, 0.5, 0, 0.5, 0.5, 0.4, 0);
+        QCOMPARE(m.x, 0.4);
+        QCOMPARE(m.y, 0.5);
+        QVERIFY(!m.right && !m.down);
+        // Into the wall: stopped with its side on the wall's.
+        m = qq::sweep2D(solids, 1.4, 0.5, 0, 0.5, 0.5, 0.3, 0);
+        QCOMPARE(m.x, 1.5);
+        QVERIFY(m.right);
+        // From the other side, and under a ceiling.
+        m = qq::sweep2D(solids, 3.6, 0.5, 0, 0.5, 0.5, -0.3, 0);
+        QCOMPARE(m.x, 3.5);
+        QVERIFY(m.left);
+        const QList<qq::Box> roof{{-10, 10, 2, 3, -1, 1}};
+        m = qq::sweep2D(roof, 0, 1.4, 0, 0.5, 0.5, 0, 0.2);
+        QCOMPARE(m.y, 1.5);
+        QVERIFY(m.up);
+        // What is at another depth is not in the way.
+        m = qq::sweep2D(solids, 1.4, 0.5, 5, 0.5, 0.5, 0.3, 0);
+        QCOMPARE(m.x, 1.7);
+        QVERIFY(!m.right);
+        // Across first, then down: a box falling past a wall's corner keeps to its side.
+        m = qq::sweep2D(solids, 1.4, 6, 0, 0.5, 0.5, 0.3, -0.6);
+        QCOMPARE(m.x, 1.7);
+        QCOMPARE(m.y, 5.5);
+        QVERIFY(m.down);
+
+        QVERIFY(qq::overlaps({0, 1, 0, 1, 0, 1}, {0.5, 2, 0.5, 2, 0.5, 2}));
+        QVERIFY(!qq::overlaps({0, 1, 0, 1, 0, 1}, {1, 2, 0, 1, 0, 1}));  // touching
+    }
+
+    void aRunIsKeptAndReadBack()
+    {
+        qq::RunRecord run;
+        run.setScene(QStringLiteral("climb"));
+        run.setSeed(7);
+        const QVariantMap still{{QStringLiteral("move"), QVariantList{0.0, 0.0}},
+                                {QStringLiteral("look"), QVariantList{0.0, 0.0}},
+                                {QStringLiteral("held"), QStringList()},
+                                {QStringLiteral("edges"), QVariantList()}};
+        QVariantMap right = still;
+        right[QStringLiteral("move")] = QVariantList{1.0, 0.0};
+        right[QStringLiteral("held")] = QStringList{QStringLiteral("run")};
+        right[QStringLiteral("edges")] = QVariantList{QVariant(QVariantList{QStringLiteral("pressed"), QStringLiteral("run")})};
+        run.capture(0, still, {});
+        run.capture(1, still, {QStringLiteral("Play")});
+        run.capture(2, right, {});
+        QVariantMap holding = right;
+        holding[QStringLiteral("edges")] = QVariantList();
+        run.capture(3, holding, {});
+        run.setOutcome({{QStringLiteral("Rules"), QVariantMap{{QStringLiteral("gathered"), 2}}}});
+        QCOMPARE(run.ticks(), 4);
+
+        // Only what changed is kept, and every tick is given back as it was taken.
+        auto check = [](const qq::RunRecord &r) {
+            QCOMPARE(r.handsAt(0).value(QStringLiteral("move")).toList(), (QVariantList{0.0, 0.0}));
+            QCOMPARE(r.clicksAt(1), QStringList{QStringLiteral("Play")});
+            QCOMPARE(r.handsAt(2).value(QStringLiteral("move")).toList(), (QVariantList{1.0, 0.0}));
+            QCOMPARE(r.handsAt(2).value(QStringLiteral("edges")).toList().size(), 1);
+            QCOMPARE(r.handsAt(3).value(QStringLiteral("held")).toStringList(), QStringList{QStringLiteral("run")});
+            QCOMPARE(r.handsAt(3).value(QStringLiteral("edges")).toList().size(), 0);
+            QCOMPARE(r.handsAt(250).value(QStringLiteral("move")).toList(), (QVariantList{1.0, 0.0}));
+        };
+        check(run);
+        const QByteArray json = run.toJson();
+        QCOMPARE(QJsonDocument::fromJson(json).object().value(QStringLiteral("hands")).toArray().size(), 2);
+
+        qq::RunRecord back;
+        QString why;
+        QVERIFY2(back.fromJson(json, &why), qPrintable(why));
+        QCOMPARE(back.scene(), QStringLiteral("climb"));
+        QCOMPARE(back.seed(), 7);
+        QCOMPARE(back.ticks(), 4);
+        QCOMPARE(back.outcome().value(QStringLiteral("Rules")).toMap().value(QStringLiteral("gathered")).toInt(), 2);
+        check(back);
+        QCOMPARE(back.toJson(), json);
+
+        QVERIFY(!back.fromJson("{\"qqRun\": 2}", &why));
+        QVERIFY2(why.contains(QStringLiteral("format 1")), qPrintable(why));
+        QVERIFY(!back.fromJson("not json", &why));
     }
 };
 

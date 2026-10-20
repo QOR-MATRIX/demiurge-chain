@@ -1,4 +1,6 @@
 #include "sceneio.h"
+#include "kinematics.h"
+#include "run.h"
 #include "tilemap.h"
 
 #include <QColor>
@@ -544,6 +546,99 @@ QSize SceneIO::imageSize(const QUrl &image) const
 QVariantMap SceneIO::readTiledMap(const QUrl &file, const QString &layer) const
 {
     return qq::readTiledMap(file, layer, [this](const QUrl &url) { return !outside(url); });
+}
+
+namespace {
+
+/// An entity's box as QQ measures it (P3.11): never from PhysX's own shapes, only from the entity's fields and, for a
+/// dynamic body, where its body is now.
+Box boxOf(QObject *entity)
+{
+    const QString kind = entity->property("kind").toString();
+    auto around = [](double x, double y, double z, double hx, double hy, double hz) {
+        return Box{x - hx, x + hx, y - hy, y + hy, z - hz, z + hz};
+    };
+    if (kind == QStringLiteral("Player2D")) {
+        return around(entity->property("atX").toDouble(), entity->property("atY").toDouble(),
+                      entity->property("atZ").toDouble(), entity->property("width").toDouble() / 2,
+                      entity->property("height").toDouble() / 2, 0.5);
+    }
+    QVector3D at = entity->property("position").value<QVector3D>();
+    auto *body = entity->property("physics").value<QObject *>();
+    if (body && (entity->property("body").toString() == QStringLiteral("dynamic") || kind == QStringLiteral("Player")))
+        at = body->property("scenePosition").value<QVector3D>();
+    if (kind == QStringLiteral("Player"))
+        return around(at.x(), at.y(), at.z(), 0.3, 0.9, 0.3);  // its capsule: 0.6 across, 1.8 tall
+    const QVector3D scale = entity->property("scale").value<QVector3D>();
+    if (kind == QStringLiteral("Sprite")) {
+        const QVector3D size = entity->property("size").value<QVector3D>();
+        return around(at.x(), at.y(), at.z(), std::abs(size.x() * scale.x()) / 2, std::abs(size.y() * scale.y()) / 2,
+                      0.5);
+    }
+    // A shape or a trigger: a unit across before its scale, turned about the depth axis at most (its box on the plane
+    // grows with the turn); a sphere, a cylinder or a cone is measured by its box.
+    const double turn = double(entity->property("eulerRotation").value<QVector3D>().z()) * std::numbers::pi / 180;
+    const double c = std::abs(std::cos(turn));
+    const double s = std::abs(std::sin(turn));
+    const double hx = std::abs(scale.x()) / 2;
+    const double hy = std::abs(scale.y()) / 2;
+    return around(at.x(), at.y(), at.z(), c * hx + s * hy, s * hx + c * hy, std::abs(scale.z()) / 2);
+}
+
+/// What a 2D mover stands on and runs into in `scene`: solid tile maps, the boxes of static and kinematic shapes and
+/// sprites, and the ground. Never `except`, nor another Player2D, nor anything PhysX moves.
+QList<Box> solidsOf(const QVariantList &entities, QObject *except)
+{
+    QList<Box> solids;
+    for (const QVariant &v : entities) {
+        QObject *e = v.value<QObject *>();
+        if (!e || e == except)
+            continue;
+        const QString kind = e->property("kind").toString();
+        if (kind == QStringLiteral("TileMap")) {
+            if (!e->property("solid").toBool())
+                continue;
+            const QVector3D at = e->property("position").value<QVector3D>();
+            const double tw = e->property("tileWidth").toDouble();
+            const double th = e->property("tileHeight").toDouble();
+            for (const QVariant &r : e->property("map").toMap().value(QStringLiteral("solids")).toList()) {
+                const QVariantList rect = r.toList();
+                const double left = at.x() + rect.value(0).toDouble() * tw;
+                const double top = at.y() - rect.value(1).toDouble() * th;
+                solids.append(Box{left, left + rect.value(2).toDouble() * tw, top - rect.value(3).toDouble() * th, top,
+                                  at.z() - 0.5, at.z() + 0.5});
+            }
+        } else if (kind == QStringLiteral("Shape") || kind == QStringLiteral("Sprite")) {
+            const QString body = e->property("body").toString();
+            if (body == QStringLiteral("static") || body == QStringLiteral("kinematic"))
+                solids.append(boxOf(e));
+        } else if (kind == QStringLiteral("Ground")) {
+            const double half = e->property("extent").toDouble() / 2;
+            solids.append(Box{-half, half, -2, 0, -half, half});
+        }
+    }
+    return solids;
+}
+
+}  // namespace
+
+QVariantMap SceneIO::move2D(QObject *scene, QObject *mover, double x, double y, double z, double halfWidth,
+                            double halfHeight, double dx, double dy) const
+{
+    const Moved m = sweep2D(solidsOf(entities(scene), mover), x, y, z, halfWidth, halfHeight, dx, dy);
+    return {{QStringLiteral("x"), m.x},       {QStringLiteral("y"), m.y},
+            {QStringLiteral("left"), m.left}, {QStringLiteral("right"), m.right},
+            {QStringLiteral("down"), m.down}, {QStringLiteral("up"), m.up}};
+}
+
+bool SceneIO::overlaps(QObject *a, QObject *b) const
+{
+    return a && b && a != b && isEntity(a) && isEntity(b) && qq::overlaps(boxOf(a), boxOf(b));
+}
+
+int SceneIO::freshSeed() const
+{
+    return Random::freshSeed();
 }
 
 QObject *SceneIO::entityOf(QObject *scene, QObject *object) const

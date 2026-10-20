@@ -78,7 +78,8 @@ ScreenPart {
                 enabled: button.active
                 hoverEnabled: true
                 cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                onClicked: button.clicked()
+                // Delivered at the scene's next tick, so a replay clicks it at the same moment (P3.11).
+                onClicked: if (button.parent && button.parent._click) button.parent._click(button); else button.clicked()
                 onPressed: if (button.action !== "") Input.hold(button.action, true)
                 onReleased: if (button.action !== "") Input.hold(button.action, false)
                 onCanceled: if (button.action !== "") Input.hold(button.action, false)

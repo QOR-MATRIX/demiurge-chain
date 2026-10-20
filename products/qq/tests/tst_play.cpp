@@ -11,6 +11,9 @@
 #include <QElapsedTimer>
 #include <QFile>
 #include <QImage>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QPointer>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -34,6 +37,7 @@
 #include <numbers>
 
 #include "input.h"
+#include "run.h"
 #include "sceneio.h"
 
 // Drawn with the GPU the Studio and the Player draw with: chosen before QTEST_MAIN makes the application.
@@ -246,6 +250,60 @@ bool painted(const QColor &c, const QColor &want)
 {
     auto near = [](int got, int wanted) { return qAbs(got - wanted) <= (wanted < 48 ? 6 : 2); };
     return near(c.red(), want.red()) && near(c.green(), want.green()) && near(c.blue(), want.blue());
+}
+
+/// A scene with no window and no world, ticked by hand (P3.11): how a replay plays.
+struct Headless {
+    QQmlEngine engine;
+    QObject *scene = nullptr;
+    qq::SceneIO *io = nullptr;
+
+    bool open(const QString &text, const QUrl &file)
+    {
+        io = engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO");
+        scene = io->loadText(text, file, nullptr);
+        if (!scene) {
+            qWarning() << io->lastError();
+            return false;
+        }
+        scene->setProperty("autoAdvance", false);
+        scene->setProperty("playing", true);
+        return QTest::qWaitFor([this] {
+            QVariant ready;
+            QMetaObject::invokeMethod(scene, "ready", Q_RETURN_ARG(QVariant, ready));
+            return ready.toBool();
+        }, 10000);
+    }
+
+    ~Headless()
+    {
+        if (scene)
+            io->discard(scene);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
+
+    int advance(double seconds)
+    {
+        QVariant ran;
+        QMetaObject::invokeMethod(scene, "advance", Q_RETURN_ARG(QVariant, ran), Q_ARG(QVariant, seconds));
+        return ran.toInt();
+    }
+
+    QObject *logicOf(const QString &behaviour) const
+    {
+        for (const QVariant &e : io->entities(scene)) {
+            if (e.value<QObject *>()->property("name").toString() == behaviour)
+                return e.value<QObject *>()->property("logic").value<QObject *>();
+        }
+        return nullptr;
+    }
+};
+
+QVariantMap outcomeOf(QObject *scene)
+{
+    QVariant text;
+    QMetaObject::invokeMethod(scene, "outcomeText", Q_RETURN_ARG(QVariant, text));
+    return QJsonDocument::fromJson(text.toString().toUtf8()).object().toVariantMap();
 }
 
 QString sceneText(const QString &entities, const QString &settings = {})
@@ -553,7 +611,7 @@ private slots:
     {
         QTemporaryDir project;
         const QString logic = QDir(project.path()).filePath(QStringLiteral("logic/turn.qml"));
-        writeFile(logic, "import QQ\nLogic {\n    onFrame: (dt) => target.eulerRotation.y += 90 * dt\n}\n");
+        writeFile(logic, "import QQ\nLogic {\n    onStep: (dt) => target.eulerRotation.y += 90 * dt\n}\n");
         const QString text = sceneText(QStringLiteral(
             "    Shape { name: \"Box\"; position: Qt.vector3d(0, 1, 0); body: \"none\" }\n"
             "    Behaviour { name: \"Turner\"; source: \"../logic/turn.qml\"; target: \"Box\" }\n"));
@@ -563,7 +621,7 @@ private slots:
         QObject *turner = s.entity(QStringLiteral("Turner"));
         auto turned = [box] { return box->property("eulerRotation").value<QVector3D>().y(); };
 
-        // Measured by the logic's own clock, which is what it is given each frame.
+        // Measured by the logic's own clock, which is what it is given each step.
         auto elapsed = [turner] { return turner->property("logic").value<QObject *>()->property("elapsed").toDouble(); };
         QVERIFY(s.runUntil([&] { return elapsed() >= 0.8; }, 5000));
         QCOMPARE(turner->property("builds").toInt(), 1);
@@ -572,7 +630,7 @@ private slots:
                  qPrintable(QStringLiteral("turned %1 in %2 s").arg(turned()).arg(elapsed())));
 
         // Saved again, turning the other way and glowing: picked up while playing, the box left where it was.
-        writeFile(logic, "import QQ\nLogic {\n    onFrame: (dt) => {\n        target.eulerRotation.y -= 180 * dt\n"
+        writeFile(logic, "import QQ\nLogic {\n    onStep: (dt) => {\n        target.eulerRotation.y -= 180 * dt\n"
                          "        target.emissivePower = 6\n    }\n}\n");
         QVERIFY2(s.runUntil([turner] { return turner->property("builds").toInt() == 2; }, 4000), "not rebuilt");
         const float atReload = turned();
@@ -585,7 +643,7 @@ private slots:
         QCOMPARE(box->property("emissivePower").toDouble(), 6.0);
 
         // Saved broken: said why, and the logic that ran keeps running.
-        writeFile(logic, "import QQ\nLogic {\n    onFrame: (dt) => target.eulerRotation.y -=\n");
+        writeFile(logic, "import QQ\nLogic {\n    onStep: (dt) => target.eulerRotation.y -=\n");
         QVERIFY2(s.runUntil([turner] { return !turner->property("error").toString().isEmpty(); }, 4000), "no error");
         QVERIFY2(turner->property("error").toString().contains(QStringLiteral("turn.qml")),
                  qPrintable(turner->property("error").toString()));
@@ -921,8 +979,12 @@ private slots:
             QCOMPARE(editing.io->write(editing.scene, url), text);
         }
 
+        // Played and kept (P3.11): its first part is replayed at the end, with no window.
+        qq::RunRecord run;
         Stage s;
-        QVERIFY(s.open(text, true, url));
+        QVERIFY(s.open(text, false, url));
+        s.scene->setProperty("recorder", QVariant::fromValue(static_cast<QObject *>(&run)));
+        s.scene->setProperty("playing", true);
         s.flat(16, 12, QVector3D(8, 6, 0));
         QObject *rules = s.entity(QStringLiteral("Rules"));
         auto logic = [rules] { return rules->property("logic").value<QObject *>(); };
@@ -991,6 +1053,12 @@ private slots:
         QTest::keyClick(s.window.get(), Qt::Key_P);
         QVERIFY(s.runUntil([&] { return !s.scene->property("paused").toBool() && !paused->isVisible(); }, 3000));
 
+        // The run so far is what the keyboard and the mouse did, so it is kept here: what follows places the hero by hand.
+        QMetaObject::invokeMethod(s.scene, "finishRecord");
+        s.scene->setProperty("recorder", QVariant());
+        const QVariantMap kept = run.outcome().value(QStringLiteral("Rules")).toMap();
+        QCOMPARE(kept.value(QStringLiteral("gathered")).toInt(), 1);
+
         // Every other ember, the hero put on each in turn: the forge is lit, the time shown, the world held.
         QObject *body = hero->property("physics").value<QObject *>();
         QVERIFY(body);
@@ -998,7 +1066,7 @@ private slots:
             QObject *ember = s.entity(QStringLiteral("Ember %1").arg(i));
             QVERIFY(ember);
             const QVector3D at = ember->property("position").value<QVector3D>();
-            QMetaObject::invokeMethod(body, "teleport", Q_ARG(QVector3D, QVector3D(at.x(), at.y(), 0)));
+            QMetaObject::invokeMethod(hero, "place", Q_ARG(QVariant, QVariant::fromValue(QVector3D(at.x(), at.y(), 0))));
             QVERIFY2(s.runUntil([&] { return gathered() >= i; }, 3000), qPrintable(QStringLiteral("ember %1").arg(i)));
         }
         QQuickItem *lit = s.drawn(QStringLiteral("Lit"));
@@ -1012,6 +1080,214 @@ private slots:
         QCOMPARE(gathered(), 0);
         QVERIFY(s.runUntil([&] { return s.entity(QStringLiteral("Ember 8")) != nullptr; }, 2000));
         QVERIFY(s.runUntil([&] { return feet().x() < 4; }, 2000));
+
+        // The kept run, played again with no window and no physics world: the title's Play, the first ember, the pit and
+        // the pause, to the same outcome.
+        QQmlEngine engine;
+        const QVariantMap again = qq::replayRun(&engine, url, &run);
+        QCOMPARE(again.value(QStringLiteral("problem")).toString(), QString());
+        QVERIFY2(again.value(QStringLiteral("matches")).toBool(),
+                 qPrintable(QJsonDocument(QJsonObject::fromVariantMap(again)).toJson(QJsonDocument::Compact) + " vs "
+                            + QJsonDocument(QJsonObject::fromVariantMap(run.outcome())).toJson(QJsonDocument::Compact)));
+    }
+
+    // ── steps, seeds and replay (P3.11, ADR-105) ──
+
+    void logicStepsSixtyTimesASecondWhateverTheFrameRate()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/clock.qml")),
+                  "import QQ\nLogic {\n    property int stepped: 0\n    property int fired: 0\n    property int frames: 0\n"
+                  "    onStarted: every(0.25, () => fired += 1)\n"
+                  "    onStep: (dt) => stepped += 1\n"
+                  "    onFrame: (dt) => frames += 1\n}\n");
+        const QString text = sceneText(QStringLiteral("    Behaviour { name: \"Clock\"; source: \"../logic/clock.qml\" }\n"));
+        const QUrl file = QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")));
+
+        // Two seconds of play, drawn at 30, 60 and 144 frames a second and at uneven ones: always 120 steps, and the
+        // timer every quarter second fires eight times.
+        const QList<QList<double>> rates{QList<double>(60, 1.0 / 30), QList<double>(120, 1.0 / 60),
+                                         QList<double>(288, 1.0 / 144)};
+        QList<double> uneven;
+        for (int i = 0; i < 100; ++i)
+            uneven << (i % 2 ? 0.031 : 0.009);
+        for (const QList<double> &frames : rates + QList<QList<double>>{uneven}) {
+            Headless h;
+            QVERIFY(h.open(text, file));
+            int ran = 0;
+            for (double frame : frames)
+                ran += h.advance(frame);
+            QObject *clock = h.logicOf(QStringLiteral("Clock"));
+            QVERIFY(clock);
+            QCOMPARE(ran, 120);
+            QCOMPARE(h.scene->property("steps").toInt(), 120);
+            QCOMPARE(clock->property("stepped").toInt(), 120);
+            QCOMPARE(clock->property("fired").toInt(), 8);
+            QCOMPARE(clock->property("elapsed").toDouble(), 2.0);
+            QCOMPARE(clock->property("frames").toInt(), 0);  // no window, no frames drawn
+        }
+
+        // A frame half a second long is at most eight steps: the game slows rather than leaps.
+        Headless h;
+        QVERIFY(h.open(text, file));
+        QCOMPARE(h.advance(0.5), 8);
+        // Paused, the clock still ticks (screens answer) but takes no steps.
+        h.scene->setProperty("paused", true);
+        QCOMPARE(h.advance(0.1), 6);
+        QCOMPARE(h.scene->property("steps").toInt(), 8);
+        QCOMPARE(h.scene->property("ticks").toInt(), 14);
+    }
+
+    void randomNumbersFollowTheSeed()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/dice.qml")),
+                  "import QQ\nLogic {\n    property var rolls: []\n"
+                  "    onStarted: { const r = []; for (let i = 0; i < 10; ++i) r.push(randomInt(1, 6)); rolls = r }\n"
+                  "    outcome: rolls\n}\n");
+        const QUrl file = QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")));
+        auto rollsWith = [&](int seed, int *played = nullptr) {
+            Headless h;
+            const bool opened = h.open(sceneText(QStringLiteral("    Behaviour { name: \"Dice\"; source: \"../logic/dice.qml\" }\n"),
+                                                 QStringLiteral("    seed: %1\n").arg(seed)),
+                                       file);
+            if (!opened)
+                return QVariantList();
+            h.advance(1.0 / 60);
+            if (played)
+                *played = h.scene->property("playSeed").toInt();
+            return h.logicOf(QStringLiteral("Dice"))->property("rolls").toList();
+        };
+        // The same rolls on every machine for seed 42 (tst_scene pins the generator itself).
+        const QVariantList fortyTwo = rollsWith(42);
+        QCOMPARE(fortyTwo, (QVariantList{4, 1, 1, 1, 6, 2, 6, 5, 3, 4}));
+        QCOMPARE(rollsWith(42), fortyTwo);
+        QVERIFY(rollsWith(43) != fortyTwo);
+        // Seed 0 draws a new seed for each play, and says which.
+        int first = 0;
+        int second = 0;
+        rollsWith(0, &first);
+        rollsWith(0, &second);
+        QVERIFY(first > 0 && second > 0 && first != second);
+    }
+
+    void aRunIsRecordedAndReplayedWithNoWindowToTheSameOutcome()
+    {
+        // A small game of chance and skill: three coins at spots chosen by the seed, a hero who runs and jumps for
+        // them on a Tiled level, and a timer. Its outcome is everything a run decides, the hero's exact place among it.
+        FlatProject project;
+        writeFile(QDir(project.dir.path()).filePath(QStringLiteral("logic/coins.qml")),
+                  "import QQ\nLogic {\n    property int coins: 0\n    property int ticksAt: 0\n    property var spots: []\n"
+                  "    onStarted: {\n"
+                  "        const s = []\n"
+                  "        for (let i = 0; i < 3; ++i) {\n"
+                  "            const at = Qt.vector3d(-4 + randomInt(0, 7), 1.5, 0)\n"
+                  "            s.push(at.x)\n"
+                  "            const coin = spawn(\"Trigger\", { name: \"Coin \" + i, position: at, scale: Qt.vector3d(0.5, 0.5, 1) })\n"
+                  "            coin.entered.connect((other) => { if (other && other.kind === \"Player2D\" && !removing(coin)) {\n"
+                  "                coins += 1; remove(coin) } })\n"
+                  "        }\n"
+                  "        spots = s\n"
+                  "        every(0.5, () => ticksAt += 1)\n"
+                  "    }\n"
+                  "    outcome: ({ coins: coins, timer: ticksAt, spots: spots, x: scene.player ? scene.player.atX : 0,\n"
+                  "               y: scene.player ? scene.player.atY : 0, doing: scene.player ? scene.player.activity : \"\" })\n"
+                  "}\n");
+        const QString text = flatText(QStringLiteral(
+            "    TileMap { name: \"Level\"; position: Qt.vector3d(-5, 5, 0); source: \"../assets/level.tmj\" }\n"
+            "    Player2D { name: \"Hero\"; position: Qt.vector3d(-4, 1, 0); jumpHeight: 1.5 }\n"
+            "    Behaviour { name: \"Coins\"; source: \"../logic/coins.qml\" }\n"), QStringLiteral("    seed: 1234\n"));
+        // Kept where a replay reads it, as a game's scene is.
+        writeFile(project.scene().toLocalFile(), text.toUtf8());
+
+        // Played in a window, at whatever rate it draws, with the keyboard, and kept.
+        qq::RunRecord run;
+        {
+            Stage s;
+            QVERIFY(s.open(text, false, project.scene()));
+            s.flat(16, 7, QVector3D(0, 2.5f, 0));
+            s.scene->setProperty("recorder", QVariant::fromValue(static_cast<QObject *>(&run)));
+            s.scene->setProperty("playing", true);
+            QObject *hero = s.entity(QStringLiteral("Hero"));
+            auto feet = [hero] { return hero->property("feet").value<QVector3D>(); };
+            QVERIFY(s.runUntil([&] { return hero->property("grounded").toBool(); }, 4000));
+            QTest::keyPress(s.window.get(), Qt::Key_D);
+            s.run(700);
+            QTest::keyPress(s.window.get(), Qt::Key_Space);
+            s.run(250);
+            QTest::keyRelease(s.window.get(), Qt::Key_Space);
+            s.run(600);
+            QTest::keyRelease(s.window.get(), Qt::Key_D);
+            QTest::keyPress(s.window.get(), Qt::Key_A);
+            s.run(500);
+            QTest::keyRelease(s.window.get(), Qt::Key_A);
+            s.run(300);
+            QVERIFY(feet().x() > -4.5f);
+            QMetaObject::invokeMethod(s.scene, "finishRecord");
+            QCOMPARE(run.seed(), 1234);
+            QVERIFY(run.ticks() > 100);
+            const QVariantMap kept = run.outcome().value(QStringLiteral("Coins")).toMap();
+            QCOMPARE(kept.value(QStringLiteral("spots")).toList().size(), 3);
+            QCOMPARE(kept.value(QStringLiteral("timer")).toInt(), run.ticks() / 30);  // every half second of steps
+            QCOMPARE(kept.value(QStringLiteral("x")).toDouble(), double(hero->property("atX").toDouble()));
+        }
+
+        // Played again with no window and no physics world: the same outcome, to the last bit of the hero's place.
+        QQmlEngine engine;
+        QVariantMap again = qq::replayRun(&engine, project.scene(), &run);
+        QCOMPARE(again.value(QStringLiteral("problem")).toString(), QString());
+        QCOMPARE(again.value(QStringLiteral("ticks")).toInt(), run.ticks());
+        QVERIFY2(again.value(QStringLiteral("matches")).toBool(),
+                 qPrintable(QJsonDocument(QJsonObject::fromVariantMap(again)).toJson(QJsonDocument::Compact) + " vs "
+                            + QJsonDocument(QJsonObject::fromVariantMap(run.outcome())).toJson(QJsonDocument::Compact)));
+        // And once more, read back from the file a run is kept in.
+        qq::RunRecord reread;
+        QVERIFY(reread.fromJson(run.toJson()));
+        QVERIFY(qq::replayRun(&engine, project.scene(), &reread).value(QStringLiteral("matches")).toBool());
+
+        // A run told differently does not reach it: another seed, or hands that never went right.
+        qq::RunRecord otherSeed;
+        QVERIFY(otherSeed.fromJson(run.toJson()));
+        otherSeed.setSeed(4321);
+        QVERIFY(!qq::replayRun(&engine, project.scene(), &otherSeed).value(QStringLiteral("matches")).toBool());
+        QJsonObject edited = QJsonDocument::fromJson(run.toJson()).object();
+        edited.insert(QStringLiteral("hands"), QJsonArray());
+        qq::RunRecord idle;
+        QVERIFY(idle.fromJson(QJsonDocument(edited).toJson()));
+        QVERIFY(!qq::replayRun(&engine, project.scene(), &idle).value(QStringLiteral("matches")).toBool());
+    }
+
+    void aTriggerHearsA2DPlayerByQQsOwnMeasure()
+    {
+        // Replayed, so with no window and no physics world: what reaches the trigger is QQ's kinematics and its own
+        // measure, and nothing of PhysX's. The run: the hero holds right for a second.
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/gate.qml")),
+                  "import QQ\nLogic {\n    property var log: []\n"
+                  "    onEntered: (other) => log = log.concat([\"in \" + other.name])\n"
+                  "    onExited: (other) => log = log.concat([\"out \" + other.name])\n"
+                  "    outcome: ({ log: log, x: entity(\"Hero\").atX, y: entity(\"Hero\").atY,\n"
+                  "               physics: scene.physicsWorld !== null })\n}\n");
+        const QUrl file = QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")));
+        writeFile(file.toLocalFile(), flatText(QStringLiteral(
+                      "    Shape { name: \"Floor\"; position: Qt.vector3d(0, -0.5, 0); scale: Qt.vector3d(40, 1, 2) }\n"
+                      "    Trigger { name: \"Gate\"; position: Qt.vector3d(3, 0.5, 0) }\n"
+                      "    Player2D { name: \"Hero\"; position: Qt.vector3d(0, 0, 0); speed: 5 }\n"
+                      "    Behaviour { name: \"Gate log\"; source: \"../logic/gate.qml\"; target: \"Gate\" }\n")).toUtf8());
+        qq::RunRecord run;
+        run.setSeed(1);
+        run.capture(0, {{QStringLiteral("move"), QVariantList{1.0, 0.0}}, {QStringLiteral("look"), QVariantList{0.0, 0.0}},
+                        {QStringLiteral("held"), QStringList()}, {QStringLiteral("edges"), QVariantList()}}, {});
+        run.setTicks(60);
+        QQmlEngine engine;
+        const QVariantMap result = qq::replayRun(&engine, file, &run);
+        QCOMPARE(result.value(QStringLiteral("problem")).toString(), QString());
+        const QVariantMap gate = result.value(QStringLiteral("outcome")).toMap().value(QStringLiteral("Gate log")).toMap();
+        // At 5 units a second for 60 steps: in through the gate (2.5 to 3.5) and out the far side, standing on the floor.
+        QCOMPARE(gate.value(QStringLiteral("log")).toStringList(), (QStringList{QStringLiteral("in Hero"), QStringLiteral("out Hero")}));
+        QCOMPARE(gate.value(QStringLiteral("x")).toDouble(), 5.0);
+        QCOMPARE(gate.value(QStringLiteral("y")).toDouble(), 0.5);
+        QCOMPARE(gate.value(QStringLiteral("physics")).toBool(), false);  // no physics world was made
     }
 
     // ── the game's interface (P3.8, ADR-105) ──
@@ -1232,28 +1508,35 @@ private slots:
         QObject *logged = s.entity(QStringLiteral("Log"));
         QVERIFY(s.runUntil([logged] { return logged->property("logic").value<QObject *>() != nullptr; }, 5000));
         auto log = [logged] { return logged->property("logic").value<QObject *>()->property("log").toString(); };
-        auto clear = [logged] { logged->property("logic").value<QObject *>()->setProperty("log", QString()); };
+
+        // Presses reach logic at the next tick of the game's clock (P3.11): wait for them, then let a few more ticks
+        // pass, so what should not have arrived has had its chance.
+        auto heard = [&](const QString &want) {
+            s.runUntil([&] { return log() == want; }, 1000);
+            s.run(60);
+            return log() == want;
+        };        auto clear = [logged] { logged->property("logic").value<QObject *>()->setProperty("log", QString()); };
         s.run(200);
         clear();
 
         // The keyboard: held while the key is.
         QTest::keyPress(s.window.get(), Qt::Key_F);
-        QCOMPARE(log(), QStringLiteral("+fire;"));
+        QVERIFY2(heard(QStringLiteral("+fire;")), qPrintable(log()));
         QVERIFY(input->held(QStringLiteral("fire")));
         QTest::keyRelease(s.window.get(), Qt::Key_F);
-        QCOMPARE(log(), QStringLiteral("+fire;-fire;"));
+        QVERIFY2(heard(QStringLiteral("+fire;-fire;")), qPrintable(log()));
         QVERIFY(!input->held(QStringLiteral("fire")));
 
         // The mouse, away from any button.
         clear();
         QTest::mouseClick(s.window.get(), Qt::RightButton, {}, QPoint(200, 120));
-        QCOMPARE(log(), QStringLiteral("+fire;-fire;"));
+        QVERIFY2(heard(QStringLiteral("+fire;-fire;")), qPrintable(log()));
 
         // The pad: X.
         clear();
         input->gamepadButtons({QStringLiteral("X")});
         input->gamepadButtons({});
-        QCOMPARE(log(), QStringLiteral("+fire;-fire;"));
+        QVERIFY2(heard(QStringLiteral("+fire;-fire;")), qPrintable(log()));
 
         // A finger on a button that holds an action: the touch control.
         clear();
@@ -1263,13 +1546,13 @@ private slots:
         QTest::mousePress(s.window.get(), Qt::LeftButton, {}, centre);
         QVERIFY(input->held(QStringLiteral("boost")));
         QTest::mouseRelease(s.window.get(), Qt::LeftButton, {}, centre);
-        QCOMPARE(log(), QStringLiteral("+boost;-boost;"));
+        QVERIFY2(heard(QStringLiteral("+boost;-boost;")), qPrintable(log()));
 
         // Jump and run are actions too, built in with their old bindings.
         clear();
         QTest::keyPress(s.window.get(), Qt::Key_Space);
         QTest::keyRelease(s.window.get(), Qt::Key_Space);
-        QCOMPARE(log(), QStringLiteral("+jump;-jump;"));
+        QVERIFY2(heard(QStringLiteral("+jump;-jump;")), qPrintable(log()));
         QCOMPARE(input->describe(QStringLiteral("run")), QStringLiteral("Shift / Pad LS / Pad LB / Pad RB"));
         QCOMPARE(input->describe(QStringLiteral("fire")), QStringLiteral("F / Mouse Right / Pad X"));
     }
@@ -1292,6 +1575,13 @@ private slots:
         QObject *logic = logged->property("logic").value<QObject *>();
         auto log = [logic] { return logic->property("log").toString(); };
 
+        // Presses reach logic at the next tick of the game's clock (P3.11): wait for them, then let a few more ticks
+        // pass, so what should not have arrived has had its chance.
+        auto heard = [&](const QString &want) {
+            s.runUntil([&] { return log() == want; }, 1000);
+            s.run(60);
+            return log() == want;
+        };
         // Asked from logic, as a controls screen would: the next key the player presses is the binding, and that press
         // does nothing else.
         QMetaObject::invokeMethod(logic, "rebind", Q_ARG(QVariant, QStringLiteral("fire")));
@@ -1299,23 +1589,23 @@ private slots:
         QTest::keyPress(s.window.get(), Qt::Key_G);
         QTest::keyRelease(s.window.get(), Qt::Key_G);
         QCOMPARE(input->listening(), QString());
-        QCOMPARE(log(), QString());
+        QVERIFY2(heard(QString()), qPrintable(log()));
         QCOMPARE(input->describe(QStringLiteral("fire")), QStringLiteral("G / Pad X"));
         QTest::keyPress(s.window.get(), Qt::Key_F);
         QTest::keyRelease(s.window.get(), Qt::Key_F);
-        QCOMPARE(log(), QString());  // the old key no longer fires
+        QVERIFY2(heard(QString()), qPrintable(log()));  // the old key no longer fires
         QTest::keyPress(s.window.get(), Qt::Key_G);
         QTest::keyRelease(s.window.get(), Qt::Key_G);
-        QCOMPARE(log(), QStringLiteral("+fire;"));
+        QVERIFY2(heard(QStringLiteral("+fire;")), qPrintable(log()));
 
         // The pad the same way: Y, held while it is named, counts for nothing until it is let go.
         input->listen(QStringLiteral("fire"));
         input->gamepadButtons({QStringLiteral("Y")});
         QCOMPARE(input->describe(QStringLiteral("fire")), QStringLiteral("G / Pad Y"));
-        QCOMPARE(log(), QStringLiteral("+fire;"));
+        QVERIFY2(heard(QStringLiteral("+fire;")), qPrintable(log()));
         input->gamepadButtons({});
         input->gamepadButtons({QStringLiteral("Y")});
-        QCOMPARE(log(), QStringLiteral("+fire;+fire;"));
+        QVERIFY2(heard(QStringLiteral("+fire;+fire;")), qPrintable(log()));
         input->gamepadButtons({});
 
         // A built-in one too: jump on J, and Space no longer.

@@ -25,11 +25,15 @@ Node {
     readonly property QtObject logic: file.object
     readonly property string error: file.error
     readonly property int builds: file.builds
+    /// Whether play can tick (P3.11): its logic is built, or could not be, or there is none.
+    readonly property bool ready: !live || file.object !== null || file.error !== "" || String(source) === ""
 
     readonly property QtObject targetEntity: live && target !== "" && parent
                                              ? SceneIO.entities(parent).find(e => e.name === behaviour.target) ?? null
                                              : null
 
+    // Said where it can be read, in the Player as in the Studio: a game whose logic does not build plays without it.
+    onErrorChanged: if (error !== "") console.warn("QQ logic: " + name + ": " + error)
     LogicFile {
         id: file
         active: behaviour.live
@@ -37,14 +41,22 @@ Node {
         properties: ({ target: behaviour.targetEntity, scene: behaviour.parent })
     }
 
+    // Steps come from the scene's clock (Scene.tick, P3.11): the logic's clock, its timers and onStep. A paused world
+    // has no steps, so its logic holds still (P3.8).
+    function _stepLogic(dt) {
+        if (file.object)
+            file.object._step(dt)
+    }
+    // Presses and releases come from the tick too, the same in play and in a replay.
+    function _hear(kind, action) {
+        if (file.object)
+            file.object._hear(kind, action)
+    }
+
+    // Frames, for what is only looked at: not in a paused world, and never more than 1/20 s at once.
     FrameAnimation {
-        // A paused world's logic holds still too: its clock, its timers and its frames (P3.8).
-        running: behaviour.live && file.object !== null && !behaviour.parent.paused
-        onTriggered: {
-            // A long frame (a window dragged, a breakpoint) is not a long step: logic never jumps more than 1/20 s.
-            // The step moves the clock, runs the timers that are due, then `frame`.
-            file.object._step(Math.min(frameTime, 0.05))
-        }
+        running: behaviour.live && file.object !== null && !behaviour.parent.paused && !behaviour.parent.replaying
+        onTriggered: file.object._frame(Math.min(frameTime, 0.05))
     }
 
     // What happens to the target reaches its logic (P3.7, P3.8): a contact on its body, what enters or leaves it when it

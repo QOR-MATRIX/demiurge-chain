@@ -172,6 +172,8 @@ Input *Input::create(QQmlEngine *, QJSEngine *)
 
 QVector2D Input::move() const
 {
+    if (m_replaying)
+        return m_replayMove;
     auto held = [this](int a, int b = 0) { return m_keys.contains(a) || (b && m_keys.contains(b)) ? 1.0f : 0.0f; };
     const QVector2D keys(held(Qt::Key_D) - held(Qt::Key_A), held(Qt::Key_W, Qt::Key_Up) - held(Qt::Key_S, Qt::Key_Down));
     return clampedToOne(keys + withDeadZone(m_padLeft));
@@ -179,6 +181,8 @@ QVector2D Input::move() const
 
 QVector2D Input::look() const
 {
+    if (m_replaying)
+        return m_replayLook;
     const float turn = (m_keys.contains(Qt::Key_Right) ? 1.0f : 0.0f) - (m_keys.contains(Qt::Key_Left) ? 1.0f : 0.0f);
     return clampedToOne(QVector2D(turn, 0) + withDeadZone(m_padRight));
 }
@@ -286,7 +290,49 @@ void Input::forget(const QString &name)
 
 bool Input::held(const QString &name) const
 {
-    return m_down.contains(name);
+    return m_replaying ? m_replayHeld.contains(name) : m_down.contains(name);
+}
+
+QVariantMap Input::takeStep()
+{
+    const QVector2D m = move();
+    const QVector2D l = look();
+    QStringList down(m_down.cbegin(), m_down.cend());
+    down.sort();
+    const QVariantMap step{{QStringLiteral("move"), QVariantList{double(m.x()), double(m.y())}},
+                           {QStringLiteral("look"), QVariantList{double(l.x()), double(l.y())}},
+                           {QStringLiteral("held"), down},
+                           {QStringLiteral("edges"), m_edges}};
+    m_edges.clear();
+    return step;
+}
+
+void Input::replayHands(const QVariantMap &hands)
+{
+    const QVariantList m = hands.value(QStringLiteral("move")).toList();
+    const QVariantList l = hands.value(QStringLiteral("look")).toList();
+    m_replayMove = QVector2D(m.value(0).toFloat(), m.value(1).toFloat());
+    m_replayLook = QVector2D(l.value(0).toFloat(), l.value(1).toFloat());
+    const QStringList held = hands.value(QStringLiteral("held")).toStringList();
+    m_replayHeld = QSet<QString>(held.cbegin(), held.cend());
+    if (!m_replaying) {
+        m_replaying = true;
+        emit replayingChanged();
+    }
+    emit changed();
+}
+
+void Input::endReplay()
+{
+    m_replayMove = {};
+    m_replayLook = {};
+    m_replayHeld.clear();
+    m_edges.clear();
+    if (m_replaying) {
+        m_replaying = false;
+        emit replayingChanged();
+    }
+    emit changed();
 }
 
 void Input::hold(const QString &name, bool down)
@@ -365,21 +411,33 @@ void Input::settle()
     QStringList came(down.cbegin(), down.cend());
     went.sort();
     came.sort();
+    // Kept for the next tick as well as announced: a press and its release between two ticks still reach logic. Only
+    // the most recent are kept, so hands left untaken while nothing plays cannot grow without end.
+    auto keep = [this](const char *what, const QString &action) {
+        m_edges.append(QVariant(QVariantList{QString::fromLatin1(what), action}));
+        if (m_edges.size() > 256)
+            m_edges.removeFirst();
+    };
     for (const QString &a : std::as_const(went)) {
-        if (!down.contains(a))
+        if (!down.contains(a)) {
+            keep("released", a);
             emit released(a);
+        }
     }
     for (const QString &a : std::as_const(came)) {
-        if (!before.contains(a))
+        if (!before.contains(a)) {
+            keep("pressed", a);
             emit pressed(a);
+        }
     }
     emit changed();
 }
 
 bool Input::eventFilter(QObject *watched, QEvent *event)
 {
-    // Only as they reach a window: from there a press goes on to the item with focus, and would be seen twice.
-    if (!watched->isWindowType())
+    // Only as they reach a window: from there a press goes on to the item with focus, and would be seen twice. While a
+    // replay plays, the hands are its, and no device is read.
+    if (!watched->isWindowType() || m_replaying)
         return QObject::eventFilter(watched, event);
     switch (event->type()) {
     case QEvent::KeyPress:
@@ -450,7 +508,7 @@ bool Input::eventFilter(QObject *watched, QEvent *event)
 void Input::pollGamepad()
 {
 #ifdef Q_OS_WIN
-    if (!m_readsHardware)
+    if (!m_readsHardware || m_replaying)
         return;
     if (m_padIndex < 0) {
         if (m_padIdlePolls++ % idlePollsBetweenScans != 0)

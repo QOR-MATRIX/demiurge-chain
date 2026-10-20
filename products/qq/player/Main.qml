@@ -10,6 +10,9 @@ Window {
 
     /// The scene file to play.
     required property url scene
+    /// A seed for the run in place of the scene's (--seed), or 0; and what keeps the run (--record), or null (P3.11).
+    property int seed: 0
+    property QtObject recorder: null
 
     width: 1280
     height: 720
@@ -27,7 +30,12 @@ Window {
         objectName: "game"
         anchors.fill: parent
         file: window.scene
+        seed: window.seed
+        recorder: window.recorder
     }
+
+    /// The game's scene playing, for the Player's own code (a record's end).
+    readonly property QtObject playing: game.scene
 
     function release() { game.release() }
 

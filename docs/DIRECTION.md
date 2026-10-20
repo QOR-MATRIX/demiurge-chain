@@ -1185,11 +1185,11 @@ P3.2 and on nothing on chain, and run in this order:
      - All eight suites pass in one run: 91 cases.
      - Five planted faults were each caught: a press never announced, the naming press also firing, a finger
        holding nothing, picking ignoring the pointer, and every event read twice.
-10. [ ] **2D.** `view: "2d"` with whole-number pixel scaling; **Sprite** (images and sheets, frame animation, lit or
+10. [x] **2D.** `view: "2d"` with whole-number pixel scaling; **Sprite** (images and sheets, frame animation, lit or
     unlit); **TileMap** (instanced, imported from Tiled's JSON); bodies locked to the plane; a kinematic 2D player for
     platform and top-down games. The launcher preview's 2D scenes import as 2D QQ scenes.
 
-    **Built 19 October 2026** (branch `session/qq-2d`, pull request #60, not yet merged), with
+    **Done 19 October 2026, merged (#60, at `6b58167`; CI passed every job on it, run 39357583640),** with
     [ADR-106](decisions/ADR-106-2d-scenes-say-whether-their-art-is-pixel-art.md) amending ADR-105 decisions 1 and 5:
     - **The view.** A 2D scene is the same world through an orthographic camera on the plane z = 0, over a backdrop of
       its sky's colours.
@@ -1244,6 +1244,51 @@ P3.2 and on nothing on chain, and run in this order:
 11. [ ] **Fixed steps and replay.** Logic at 60 steps a second whatever the frame rate; seeded random numbers; a run's
     inputs recorded and replayed with no window to the same outcome. A rewarded outcome never depends on PhysX
     (ADR-102 decision 5).
+
+    **Built 19 October 2026** (branch `session/qq-steps`, pull request #61, not yet merged):
+    - **The clock.** A playing scene moves in ticks of 1/60 s, whatever the frame rate.
+      - Each frame's time is paid in whole ticks, at most eight a frame: beyond that the game slows rather than leaps.
+      - Each tick takes the player's hands (`Input.takeStep`: move, look, the actions held, and every press and release
+        since the tick before) and the screen buttons clicked.
+      - Then, unless the world is paused, it steps: 2D players move, triggers hear them, and logic steps.
+      - What logic removes during a tick is gone when the tick ends.
+      - Paused, ticks go on without steps, so screens still answer.
+    - **Logic** has `onStep` for gameplay, timers counted in steps, `random()` and `randomInt()` from the scene's
+      `seed` (a new field; 0 draws a new seed each play), `overlaps()` by QQ's own boxes, and an `outcome`. `onFrame`
+      stays, for what is only looked at. Presses, releases and clicks reach logic at the next tick, never between.
+    - **The numbers** come from xoshiro128\*\*, seeded by splitmix32, in whole numbers: the same seed gives the same
+      numbers on every machine, pinned against an independent implementation.
+    - **QQ's own kinematics** (`kinematics.h`): boxes swept against boxes, in doubles.
+      - Player2D now moves by them rather than by PhysX's character controller, against solid tile maps, static and
+        kinematic shapes and sprites, and the ground.
+      - A kinematic body follows it, so PhysX's bodies still feel it.
+      - Triggers hear it by QQ's own measure.
+      - It is drawn between steps, so it moves smoothly at any frame rate.
+      - The build turns off fused multiply-add on GCC and Clang, so their arithmetic is MSVC's.
+    - **Runs.** A `RunRecord` keeps a run's seed and what each tick took, keeping only what changed. `replayRun` plays
+      it again with no window and no physics world, as fast as it goes, and says whether it reaches the outcome kept.
+      - A replay never runs PhysX, so an outcome it reproduces cannot depend on PhysX: ADR-105 decision 6 holds by
+        construction.
+      - The Player gains `--seed`, `--record` (with `--ticks`) and `--replay`. A replay exits 0 when it matches and 4
+        when it does not.
+    - **Ember Climb** runs on steps, and its outcome (embers gathered, steps taken) replays. The Studio's starter logic
+      and the agent's instructions use `onStep`.
+    - **Not part of a replay:** the 3D Player, still PhysX's character controller (QQ's own 3D kinematics are later
+      work); PhysX contacts; `pointing()` and `ray()`. An outcome that must replay keeps to these limits and to plain
+      arithmetic, since `Math.sin` and its kin come from each system's library.
+    - **Evidence, on the owner's PC:**
+      - All eight suites pass in one run of `build.ps1`: 117 cases.
+      - `tst_play` passes 36 cases, the new ones among them:
+        - 120 steps for two seconds drawn at 30, 60, 144 and uneven frame rates, eight a long frame, none paused;
+        - the same dice for the same seed;
+        - a run played with the keyboard on a Tiled level, replayed with no window to the same outcome, the hero's
+          place to the last bit, and not with another seed or idle hands;
+        - Ember Climb's first part replayed;
+        - a trigger hearing a 2D player with no physics world.
+      - `tst_scene` pins the generator, checks the kinematics and reads a run back.
+      - `tst_player` keeps a run with the real Player and replays it (exit 0); with another seed it does not match
+        (exit 4).
+      - Seven planted faults were each caught.
 12. [ ] **Animation.** glTF skeletal and morph playback, tweens on any field, and a state machine.
 13. [ ] **Sound.** One-shots from logic, music, and volume groups, panned in a browser where it can be.
 14. [ ] **Materials.** Images on shapes, spot lights and HDR skies.

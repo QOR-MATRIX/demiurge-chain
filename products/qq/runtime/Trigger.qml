@@ -25,9 +25,12 @@ Node {
     /// The volume play made, or null.
     property Node physics: null
 
-    /// An entity came in, or left (null for something that is not an entity).
+    /// An entity came in, or left (null for something that is not an entity). A 2D player is heard by QQ's own measure
+    /// at each step (Scene.tick, P3.11), the same in a replay; anything else, by PhysX.
     signal entered(QtObject other)
     signal exited(QtObject other)
+    /// The 2D players inside now, as QQ measures them. Not a field.
+    property var _qqInside: []
 
     /// How many bodies are inside now.
     readonly property int inside: physics ? physics.collisionCount : 0
