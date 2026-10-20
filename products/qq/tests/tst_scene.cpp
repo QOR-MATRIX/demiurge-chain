@@ -8,6 +8,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -832,6 +833,50 @@ private slots:
         QCOMPARE(adopted, QUrl::fromLocalFile(QDir(other.path()).filePath(QStringLiteral("prefabs/corner-lamp.qml"))));
         delete street;
         delete scene;
+    }
+
+    void aProjectListsItsAssetsByKindAndLogicIsCheckedByLine()
+    {
+        // The Studio's asset browser and logic editor (P3.15): what a project's assets/ holds that a scene can use, by
+        // kind, sorted, a model's buffer not among them; logic built where its file is, each error by its line.
+        QTemporaryDir project;
+        const QDir root(project.path());
+        auto touch = [&root](const QString &path, const QByteArray &bytes = "x") {
+            root.mkpath(QFileInfo(root.filePath(path)).absolutePath());
+            QFile f(root.filePath(path));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write(bytes);
+        };
+        for (const char *path : {"assets/orb.gltf", "assets/orb.bin", "assets/pictures/stone.png", "assets/beep.wav",
+                                 "assets/dusk.hdr", "assets/level.tmj", "assets/notes.txt"})
+            touch(QLatin1String(path));
+        QStringList seen;
+        for (const QVariant &a : io->project(QUrl::fromLocalFile(project.path())).value(QStringLiteral("assets")).toList()) {
+            const QVariantMap m = a.toMap();
+            seen << m.value(QStringLiteral("path")).toString() + QLatin1Char('=') + m.value(QStringLiteral("kind")).toString();
+            QCOMPARE(m.value(QStringLiteral("url")).toUrl(), QUrl::fromLocalFile(root.filePath(m.value(QStringLiteral("path")).toString())));
+        }
+        QCOMPARE(seen, (QStringList{QStringLiteral("assets/beep.wav=sound"), QStringLiteral("assets/dusk.hdr=sky"),
+                                    QStringLiteral("assets/level.tmj=map"), QStringLiteral("assets/orb.gltf=model"),
+                                    QStringLiteral("assets/pictures/stone.png=picture")}));
+
+        // Logic that builds has no errors; logic that does not, its errors by line.
+        const QUrl file = QUrl::fromLocalFile(root.filePath(QStringLiteral("logic/spin.qml")));
+        QVERIFY(io->checkLogic(QStringLiteral("import QQ\nLogic {\n    onStep: (dt) => {}\n}\n"), file).isEmpty());
+        const QVariantList problems = io->checkLogic(QStringLiteral("import QQ\nLogic {\n    onStep: (dt) => {\n}\n"), file);
+        QVERIFY(!problems.isEmpty());
+        QCOMPARE(problems.first().toMap().value(QStringLiteral("line")).toInt(), 5);
+        QVERIFY(!problems.first().toMap().value(QStringLiteral("message")).toString().isEmpty());
+        // An unknown type is an error too, where it is written.
+        const QVariantList unknown = io->checkLogic(QStringLiteral("import QQ\nLogic {\n    Dragon {}\n}\n"), file);
+        QCOMPARE(unknown.size(), 1);
+        QCOMPARE(unknown.first().toMap().value(QStringLiteral("line")).toInt(), 3);
+
+        // A text file read whole; one that is not there is nothing, and said.
+        touch(QStringLiteral("logic/spin.qml"), "import QQ\nLogic {}\n");
+        QCOMPARE(io->readText(file).toString(), QStringLiteral("import QQ\nLogic {}\n"));
+        QVERIFY(!io->readText(QUrl::fromLocalFile(root.filePath(QStringLiteral("logic/none.qml")))).isValid());
+        QVERIFY(io->lastError().contains(QStringLiteral("could not be read")));
     }
 
     // ── sound (P3.13, ADR-105) ──

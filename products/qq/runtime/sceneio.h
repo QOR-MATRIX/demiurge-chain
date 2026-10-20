@@ -151,8 +151,17 @@ public:
 
     /// A project folder as the Studio shows it: { "name", "repository": whether it is a Qontrol (git) repository,
     /// "scenes": the names of scenes/<name>.qml, sorted, "logic": the names of logic/<name>.qml, sorted, "prefabs": the
-    /// names of prefabs/<name>.qml, sorted }.
+    /// names of prefabs/<name>.qml, sorted, "assets": what is in assets/ (and its folders) that a scene can use, each
+    /// { "path": "assets/x.png", "kind": "model", "picture", "sound", "sky" or "map", "url" }, sorted by path }.
     Q_INVOKABLE QVariantMap project(const QUrl &folder) const;
+
+    /// A text file's text (a logic file the Studio's editor opens, P3.15), or undefined with `lastError` set: one that
+    /// cannot be read, or, confined, is outside the game's package.
+    Q_INVOKABLE QVariant readText(const QUrl &file);
+
+    /// Whether `text` builds as QML where `file` would be (a logic file being written, P3.15): every error, as
+    /// { "line", "column", "message" }, in order; none if it builds. Nothing is made and nothing is run.
+    Q_INVOKABLE QVariantList checkLogic(const QString &text, const QUrl &file);
 
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
     QString lastError() const { return m_lastError; }

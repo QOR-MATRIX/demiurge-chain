@@ -33,7 +33,8 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 
 **For your merge: groups and prefabs, pull request #66** (P3.15, second of three parts) —
 *a group saved once and placed many times*. **Built, to follow one at a time:** the
-Studio's tools, and **saving** — *a game keeps scores and settings between plays*.
+Studio's tools (the project's files, a logic editor, F3 statistics), and **saving** —
+*a game keeps scores and settings between plays*.
 
 ## Toward a worldwide beta: what only you can do
 

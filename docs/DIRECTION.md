@@ -1471,6 +1471,28 @@ P3.2 and on nothing on chain, and run in this order:
         package check takes a prefab.
       - `build.ps1 -Web` plays the playground in headless Chrome with no problem on the page (first frame 7.1 s, 318 frames a second, 12.06 MB brotli): kinematic and static bodies made the new way, from the world place.
       - Ten planted faults were each caught: the entity list not walking into groups, a prefab's parts written into the scene, a group not passing on that the scene plays, a body made inside its group, kinematics measuring only the entity's own place, a prefab's logic finding its target in the scene first, moving between groups not keeping the world place, a click on a prefab's part picking the part, logic unable to remove what is in a group or a prefab, and an unpacked prefab kept as a new file. Two did not fail at first: the crate's rest on the deck was checked as it fell past (it is now checked again after a wait), and logic's refusal to remove a part did no harm in Orb Run's walk (logic now removes a part directly in the prefab case).
+
+    **Part three, the Studio's tools, built 20 October 2026** (branch `session/qq-studio-tools`, on #66's head, part two;
+    kept back until #66 is merged):
+    - **The project's files** under the scene list (`studio/ProjectPanel.qml`): scenes, prefabs and logic, and the
+      assets a scene can use, listed by kind from `assets/` and its folders (`SceneIO.project`'s `assets`: models,
+      pictures shown as themselves, sounds, skies, maps), with a filter. A click uses a file as its kind says: a scene
+      opened, a prefab placed, a logic file opened in the editor, a model, a sound or a map added, a picture put on the
+      selection (or added as a sprite in a 2D scene), a sky made the scene's.
+    - **The logic editor** under the world (`studio/LogicEditor.qml`, `LogicHighlighter` in C++): lines numbered and
+      coloured; the text built as QML where its file is after half a second of quiet (`SceneIO.checkLogic`), and what
+      does not build listed by line, a click going there; saved whole with its button, or Ctrl+S while it has the keys
+      (the scene is saved otherwise), so a playing scene picks it up at once. A Behaviour's **Edit logic** opens its
+      file; the creator's own editor is still a click away (Open outside).
+    - **Statistics** (F3, or Stats; `studio/StatsOverlay.qml`): frames a second and a frame's time, draw calls and the
+      graphics API (Qt's render statistics), entities and bodies; and in play every body drawn as its collider (the
+      scene's `debugPhysics`, Qt Quick 3D Physics' own drawing).
+    - **Evidence, on the owner's PC:**
+      - All eight suites pass in one run of `build.ps1`: 146 cases.
+      - `tst_scene` 27 cases, 1 new; `tst_studio` 18, 3 new.
+      - `build.ps1 -Web` plays the playground in headless Chrome with no problem on the page: first frame 7.1 s; 217 frames a second in that run and 315 measured again straight after (a run's frame rate varies with what else the machine is doing).
+      - Eight planted faults were each caught: assets in folders under `assets/` not listed, logic never found wanting, a model from the list added as a sound, Ctrl+S saving the scene while the logic has the keys, a saved file still shown unsaved, colliders not drawn in play, draw calls not counted, and the filter ignored.
+      - The Studio looked at with the project's files, the editor open and the statistics showing.
 16. [ ] **Saving.** One small store per game, the one the lockdown allows.
 
 #### P4: GNOSIS (P4.1 depends on nothing)

@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
+#include <QFileInfo>
 #include <QMouseEvent>
 #include <QPointingDevice>
 #include <QQmlApplicationEngine>
@@ -726,6 +727,131 @@ private slots:
         QMetaObject::invokeMethod(s.entity(QStringLiteral("Stand 2")), "part", Q_RETURN_ARG(QVariant, second),
                                   Q_ARG(QVariant, QStringLiteral("Plinth")));
         QCOMPARE(second.value<QObject *>()->property("colour").value<QColor>(), QColor(QStringLiteral("#ff6a00")));
+    }
+
+    void theProjectsFilesAreListedAndUsedByAClick()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        const QDir root(s.project.path());
+        root.mkpath(QStringLiteral("assets"));
+        for (const char *name : {"orb.gltf", "checker.png", "chime.wav", "sky.hdr"})
+            QVERIFY(QFile::copy(fixture(QLatin1String(name)), root.filePath(QStringLiteral("assets/") + QLatin1String(name))));
+        s.call("chooseProject", QUrl::fromLocalFile(s.project.path()));
+        s.settle(2);
+        QObject *panel = s.window->findChild<QObject *>(QStringLiteral("projectPanel"));
+        QVERIFY(panel);
+        auto file = [&](const QString &kind) {
+            for (const QVariant &f : panel->property("files").toList())
+                if (f.toMap().value(QStringLiteral("kind")).toString() == kind)
+                    return f;
+            return QVariant();
+        };
+        QVERIFY(file(QStringLiteral("model")).isValid() && file(QStringLiteral("picture")).isValid()
+                && file(QStringLiteral("sound")).isValid() && file(QStringLiteral("sky")).isValid());
+
+        // A click on the model in the list adds it as a Prop.
+        auto *list = s.window->findChild<QQuickItem *>(QStringLiteral("assetList"));
+        QVERIFY(list);
+        const QVariantList shown = panel->property("shown").toList();
+        int row = -1;
+        for (int i = 0; i < shown.size(); ++i)
+            if (shown.at(i).toMap().value(QStringLiteral("kind")).toString() == QStringLiteral("model"))
+                row = i;
+        QVERIFY(row >= 0);
+        QQuickItem *item = nullptr;
+        QMetaObject::invokeMethod(list, "itemAtIndex", Q_RETURN_ARG(QQuickItem *, item), Q_ARG(int, row));
+        QVERIFY(item);
+        QTest::mouseClick(s.window, Qt::LeftButton, {}, item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
+        s.settle(2);
+        QObject *orb = s.entity(QStringLiteral("orb"));
+        QVERIFY(orb);
+        QCOMPARE(orb->property("kind").toString(), QStringLiteral("Prop"));
+        QCOMPARE(orb->property("source").toUrl(), QUrl::fromLocalFile(root.filePath(QStringLiteral("assets/orb.gltf"))));
+
+        // The picture on the selected plinth; the sky the scene's; the sound a Sound.
+        s.window->setProperty("selection", QVariant::fromValue(s.entity(QStringLiteral("Plinth"))));
+        QVERIFY(s.call("useFile", file(QStringLiteral("picture"))).value<QObject *>());
+        QCOMPARE(s.entity(QStringLiteral("Plinth"))->property("image").toUrl(),
+                 QUrl::fromLocalFile(root.filePath(QStringLiteral("assets/checker.png"))));
+        s.call("useFile", file(QStringLiteral("sky")));
+        QCOMPARE(s.scene()->property("sky").toUrl(), QUrl::fromLocalFile(root.filePath(QStringLiteral("assets/sky.hdr"))));
+        s.call("useFile", file(QStringLiteral("sound")));
+        QCOMPARE(s.entity(QStringLiteral("chime"))->property("kind").toString(), QStringLiteral("Sound"));
+        // The filter narrows the list by name.
+        s.window->findChild<QObject *>(QStringLiteral("assetFilter"))->setProperty("text", QStringLiteral("chec"));
+        QCOMPARE(panel->property("shown").toList().size(), 1);
+    }
+
+    void logicIsWrittenInTheStudioAndCheckedByLine()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        QObject *behaviour = s.call("addBehaviour").value<QObject *>();
+        QVERIFY(behaviour);
+        s.window->setProperty("selection", QVariant::fromValue(behaviour));
+        s.settle(2);
+        s.click("editLogicButton");
+        s.settle(2);
+        QObject *editor = s.window->findChild<QObject *>(QStringLiteral("logicEditor"));
+        QCOMPARE(editor->property("name").toString(), QStringLiteral("behaviour"));
+        const QString path = QDir(s.project.path()).filePath(QStringLiteral("logic/behaviour.qml"));
+        QCOMPARE(editor->property("text").toString(), readAll(path));
+        QObject *code = s.window->findChild<QObject *>(QStringLiteral("logicText"));
+        QObject *status = s.window->findChild<QObject *>(QStringLiteral("logicStatus"));
+        QCOMPARE(status->property("text").toString(), QStringLiteral("Builds"));
+
+        // A closing brace taken away: after a moment's quiet, said to be wrong, by its line.
+        const QString good = editor->property("text").toString();
+        QString broken = good;
+        broken.chop(2);  // the last "}\n"
+        code->setProperty("text", broken);
+        QTRY_VERIFY(editor->property("problems").toList().size() > 0);
+        QVERIFY(status->property("text").toString().contains(QStringLiteral("problem")));
+        QVERIFY(editor->property("dirty").toBool());
+
+        // Mended, and saved with Ctrl+S while it has the keys: the file is written, the scene is not.
+        const QString mended = good + QStringLiteral("// changed in the Studio\n");
+        code->setProperty("text", mended);
+        QMetaObject::invokeMethod(code, "forceActiveFocus");
+        s.settle(1);
+        const QUrl sceneFile = s.window->property("sceneFile").toUrl();
+        QTest::keyClick(s.window, Qt::Key_S, Qt::ControlModifier);
+        s.settle(2);
+        QCOMPARE(readAll(path), mended);
+        QVERIFY(!editor->property("dirty").toBool());
+        QTRY_COMPARE(status->property("text").toString(), QStringLiteral("Builds"));
+        QVERIFY(!QFileInfo::exists(sceneFile.toLocalFile()));
+    }
+
+    void f3ShowsWhatTheWorldCostsAndCollidersInPlay()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        s.call("add", QStringLiteral("Shape"), QVariantMap{{QStringLiteral("name"), QStringLiteral("Crate")},
+                                                           {QStringLiteral("body"), QStringLiteral("dynamic")},
+                                                           {QStringLiteral("position"), QVector3D(1, 3, 0)}});
+        QTest::keyClick(s.window, Qt::Key_F3);
+        s.settle(4);
+        auto *overlay = s.window->findChild<QQuickItem *>(QStringLiteral("statsOverlay"));
+        QVERIFY(overlay && overlay->isVisible());
+        QObject *frames = s.window->findChild<QObject *>(QStringLiteral("statsFrames"));
+        QTRY_VERIFY(frames->property("text").toString().contains(QStringLiteral("fps")));
+        QObject *draws = s.window->findChild<QObject *>(QStringLiteral("statsDraws"));
+        QTRY_VERIFY(!draws->property("text").toString().startsWith(QStringLiteral("0 draw")));
+        // In play, every body drawn as its collider, and counted.
+        QVERIFY(s.call("play").toBool());
+        QTRY_VERIFY(s.playScene() && s.playScene()->property("physicsWorld").value<QObject *>());
+        QObject *physics = s.playScene()->property("physicsWorld").value<QObject *>();
+        QTRY_VERIFY(physics->property("forceDebugDraw").toBool());
+        QObject *counted = s.window->findChild<QObject *>(QStringLiteral("statsScene"));
+        QTRY_VERIFY(!counted->property("text").toString().contains(QStringLiteral(" 0 bodies")));
+        // F3 again: gone, and the colliders with it.
+        QTest::keyClick(s.window, Qt::Key_F3);
+        s.settle(2);
+        QVERIFY(!overlay->isVisible());
+        QVERIFY(!physics->property("forceDebugDraw").toBool());
+        QVERIFY(s.call("stop").toBool());
     }
 
     void aNewBehaviourIsWrittenIntoTheProjectAndNeverOverAFile()
