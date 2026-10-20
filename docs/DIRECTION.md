@@ -1367,7 +1367,7 @@ P3.2 and on nothing on chain, and run in this order:
 14. [ ] **Materials.** Images on shapes, spot lights and HDR skies.
 
     **Built 19 October 2026** (branch `session/qq-materials`, on `main` at `6e37363` since #63's merge, whose tree it was
-    built and checked on; not yet committed):
+    built and checked on; pull request #64, not yet merged):
     - **Pictures on shapes.** A Shape gains `image`, `imageSize`, `normalMap` and `crisp`; the Ground gains `image` and
       `imageSize`.
       - A picture lies one copy every `imageSize` units on every face, whatever the shape's size, so a long wall has as

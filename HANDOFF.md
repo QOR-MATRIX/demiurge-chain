@@ -3,7 +3,7 @@
 **Current state, 20 October 2026.** The code is the public repository `QOR-MATRIX/demiurge-chain` (ADR-063, ADR-064).
 `main` is at `6e37363`, the merge of #63 (P3.13, sound), merged by the owner (§4 item 107). CI passed every job on it
 (run 39399914355). Pull requests #1 to #63 are merged; P3.14, materials, and the records of #63's merge are on
-`session/qq-materials`, on that merge, not committed. Work goes on a `session/*` branch and reaches `main` by pull
+`session/qq-materials`, on that merge, committed as `7e7408f` and pushed at the owner's word as pull request #64. Work goes on a `session/*` branch and reaches `main` by pull
 request. `origin` is the private archive, not the current tree. Live, devnet-only and with test CGT: Demiurge Devnet
 (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`), Social, ARQADE (`https://qor-arqade-tau.vercel.app`)
 and the homepage (`https://qorsync.dev`). §1 has the detail.
@@ -3435,7 +3435,8 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        - a relief turned by Qt's normal matrix lost most of its tilt on a stretched shape (a 3 by 0.2 face kept a
          fifteenth of it): the pictures are laid in the shape's own units, so the normal is only turned;
        - bloom's whole-frame bleed washed an HDR sky out to white.
-     - **Next:** P3.14's pull request at the owner's word; then P3.15, the Studio's basics.
+     - **Committed** as `7e7408f` and pushed at the owner's word as pull request #64.
+     - **Next:** #64's merge; then P3.15, the Studio's basics, in parts.
 
 ## 5. Traps, so nobody re-learns them
 
@@ -4234,7 +4235,7 @@ container named here.*
 ## 7. Repository state
 
 - **Now (20 October 2026): `main` on `QOR-MATRIX/demiurge-chain` is at `6e37363`**, the merge of #63; pull requests
-  #1 to #63 are merged. P3.14 is on `session/qq-materials`, on that merge, not committed (§4 item 107). Each pull request targets `main`; work that needs an unmerged one waits for its merge.
+  #1 to #63 are merged. P3.14 is pull request #64, from `session/qq-materials`, on that merge (§4 item 107). Each pull request targets `main`; work that needs an unmerged one waits for its merge.
 - **Earlier (10 October 2026): the public repository `QOR-MATRIX/demiurge-chain`** (ADR-064, remote `matrix`), whose
   `main` is at `0583835` (PR #19, P3.1; PRs #1 to #20 are merged). Work goes on a `session/*` branch and reaches `main`
   by pull request. `origin` is the private archive and is not the current tree, and the local branch `main` follows
