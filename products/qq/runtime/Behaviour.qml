@@ -28,9 +28,25 @@ Node {
     /// Whether play can tick (P3.11): its logic is built, or could not be, or there is none.
     readonly property bool ready: !live || file.object !== null || file.error !== "" || String(source) === ""
 
-    readonly property QtObject targetEntity: live && target !== "" && parent
-                                             ? SceneIO.entities(parent).find(e => e.name === behaviour.target) ?? null
-                                             : null
+    readonly property QtObject targetEntity: live && target !== "" && parent ? _find(target) : null
+
+    /// The entity called `name`: in a prefab, among its own parts first (P3.15), so each one placed drives its own; then
+    /// the scene's own entities, then any prefab's part.
+    function _find(name) {
+        for (let p = parent; p; p = p.parent) {
+            if (p.kind === "Prefab") {
+                const own = SceneIO.everyEntity(p).find(e => e.name === name)
+                if (own)
+                    return own
+                break
+            }
+        }
+        const scene = SceneIO.sceneOf(behaviour)
+        if (!scene)
+            return null
+        return SceneIO.entities(scene).find(e => e.name === name) ?? SceneIO.everyEntity(scene).find(e => e.name === name)
+               ?? null
+    }
 
     // Said where it can be read, in the Player as in the Studio: a game whose logic does not build plays without it.
     onErrorChanged: if (error !== "") console.warn("QQ logic: " + name + ": " + error)

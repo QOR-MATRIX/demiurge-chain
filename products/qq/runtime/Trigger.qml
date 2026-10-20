@@ -8,6 +8,7 @@
 import QtQuick
 import QtQuick3D
 import QtQuick3D.Physics
+import QQ
 
 Node {
     id: trigger
@@ -38,7 +39,8 @@ Node {
     function makeBody() {
         if (!live || physics)
             return
-        const made = volume.createObject(parent, { position: trigger.position, rotation: trigger.rotation })
+        // At the scene's top, following where the trigger is in the world: moved by logic, or with its group (P3.15).
+        const made = volume.createObject(SceneIO.sceneOf(trigger) ?? parent)
         made.collisionShapes = [(form === "sphere" ? ball : box).createObject(made)]
         physics = made
     }
@@ -49,17 +51,19 @@ Node {
         id: volume
         TriggerBody {
             readonly property QtObject entity: trigger
+            position: trigger.scenePosition
+            rotation: trigger.sceneRotation
             onBodyEntered: (body) => trigger.entered(body && body.entity !== undefined ? body.entity : null)
             onBodyExited: (body) => trigger.exited(body && body.entity !== undefined ? body.entity : null)
         }
     }
     Component {
         id: box
-        BoxShape { extents: trigger.scale }
+        BoxShape { extents: trigger.sceneScale }
     }
     Component {
         id: ball
-        SphereShape { diameter: Math.max(trigger.scale.x, trigger.scale.y, trigger.scale.z) }
+        SphereShape { diameter: Math.max(trigger.sceneScale.x, trigger.sceneScale.y, trigger.sceneScale.z) }
     }
 
     // The faint volume the editor shows. Qt's built-in meshes are a hundred units across, and a QQ unit is one.

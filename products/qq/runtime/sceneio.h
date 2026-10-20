@@ -79,18 +79,41 @@ public:
 
     /// The kinds an entity can be: "Shape", "Lamp", "Prop", "Sun", "Ground", "Player", "Emitter", "Sound", "Behaviour",
     /// "Trigger", the screen kinds "ScreenText", "ScreenBar", "ScreenButton", "ScreenImage", "ScreenPanel",
-    /// "InputAction", the 2D kinds "Sprite", "TileMap" and "Player2D", "Music" (P3.13) and "Spotlight" (P3.14).
+    /// "InputAction", the 2D kinds "Sprite", "TileMap" and "Player2D", "Music" (P3.13), "Spotlight" (P3.14), and
+    /// "Group" and "Prefab" (P3.15).
     Q_INVOKABLE QStringList kinds() const;
 
-    /// The scene's entities, in file order.
+    /// The scene's entities, in file order, those in groups among them (after their group): what the file holds. Not
+    /// a prefab's parts, which come from its own file.
     Q_INVOKABLE QVariantList entities(QObject *scene) const;
+    /// Every entity that plays in the scene: its entities and, after each prefab, the parts it is made of.
+    Q_INVOKABLE QVariantList everyEntity(QObject *scene) const;
+    /// The scene an entity is in (up through its groups and prefabs), or null.
+    Q_INVOKABLE QObject *sceneOf(QObject *entity) const;
+    /// Whether an entity of `kind` can be in a group (P3.15): anything placed, but a player, the ground, the sun, a tile
+    /// map, and what has no place in the world (logic, music, actions, the interface).
+    Q_INVOKABLE bool nestable(const QString &kind) const;
 
-    /// Add an entity of `kind` to the scene, with `properties` set; it, or null with `lastError` set.
-    Q_INVOKABLE QObject *add(QObject *scene, const QString &kind, const QVariantMap &properties = {});
+    /// Add an entity of `kind` to the scene, with `properties` set, or to a group of it (`into`); it, or null with
+    /// `lastError` set.
+    Q_INVOKABLE QObject *add(QObject *scene, const QString &kind, const QVariantMap &properties = {},
+                             QObject *into = nullptr);
 
-    /// Take an entity out of its scene and delete it, with the body play made for it (its `physics`), which sits beside
-    /// it in the scene. False if it is not an entity of a scene.
+    /// Take an entity out of its scene and delete it, with what is in it, and the bodies play made for them (their
+    /// `physics`), which sit at the scene's top. False if it is not an entity of a scene.
     Q_INVOKABLE bool remove(QObject *entity);
+
+    /// Put an entity in a group of its scene, or back at the scene's top (`into` the scene), where it is in the world
+    /// staying where it is. False, with `lastError`, if it cannot be: its kind is not nestable, or the group is in it.
+    Q_INVOKABLE bool reparent(QObject *entity, QObject *into);
+
+    // ── Prefabs (P3.15): a group kept in a file of its own, prefabs/<name>.qml, and placed as often as wanted ──
+
+    /// Build the prefab file `file` (whose root is a Group) as `prefab`'s parts: the root, or null with `lastError` set.
+    Q_INVOKABLE QObject *instantiate(QObject *prefab, const QUrl &file);
+    /// Write `group` as prefabs/<name>.qml in `project`, at the origin, whole or not at all: its URL, or an empty URL with
+    /// `lastError` set. Never over a file that is there unless `replace`.
+    Q_INVOKABLE QUrl writePrefab(QObject *group, const QUrl &project, const QString &name, bool replace = false);
 
     // ── Play: what logic asks of the world (P3.7) ──
 
@@ -99,7 +122,7 @@ public:
     Q_INVOKABLE QObject *viewOf(QObject *scene) const;
 
     /// The entity of `scene` that `object` belongs to: a model drawn for it, a body play made for it, or the entity
-    /// itself. Null for anything else.
+    /// itself; the innermost, so a shape in a group is the shape and a part of a prefab the part. Null for anything else.
     Q_INVOKABLE QObject *entityOf(QObject *scene, QObject *object) const;
 
     /// An image's size in pixels, read from its header (a Sprite sizes itself by it, P3.10), or 0 by 0 if it cannot be
@@ -127,7 +150,8 @@ public:
     Q_INVOKABLE void discard(QObject *scene);
 
     /// A project folder as the Studio shows it: { "name", "repository": whether it is a Qontrol (git) repository,
-    /// "scenes": the names of scenes/<name>.qml, sorted, "logic": the names of logic/<name>.qml, sorted }.
+    /// "scenes": the names of scenes/<name>.qml, sorted, "logic": the names of logic/<name>.qml, sorted, "prefabs": the
+    /// names of prefabs/<name>.qml, sorted }.
     Q_INVOKABLE QVariantMap project(const QUrl &folder) const;
 
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)

@@ -165,12 +165,12 @@ Node {
 
     /// Whether play can tick: every Behaviour's logic is built (or could not be), and every model has loaded (or failed).
     function ready() {
-        return SceneIO.entities(root).every(e => (e.kind !== "Behaviour" && e.kind !== "Prop") || e.ready)
+        return SceneIO.everyEntity(root).every(e => (e.kind !== "Behaviour" && e.kind !== "Prop") || e.ready)
     }
 
     /// Every Behaviour whose logic could not be built, as "name: why".
     function logicErrors() {
-        return SceneIO.entities(root).filter(e => e.kind === "Behaviour" && e.error !== "").map(e => e.name + ": " + e.error)
+        return SceneIO.everyEntity(root).filter(e => e.kind === "Behaviour" && e.error !== "").map(e => e.name + ": " + e.error)
     }
 
     /// Owe `seconds` more and pay what is owed in whole ticks, eight at most: how many ticks ran.
@@ -207,7 +207,7 @@ Node {
         ticks += 1
         _ticking = true
         try {
-            let list = SceneIO.entities(root)
+            let list = SceneIO.everyEntity(root)
             for (const clicked of clicks) {
                 const button = list.find(e => e.kind === "ScreenButton" && e.name === clicked)
                 if (button)
@@ -220,7 +220,7 @@ Node {
             if (!paused) {
                 steps += 1
                 const dt = 1 / stepRate
-                list = SceneIO.entities(root)
+                list = SceneIO.everyEntity(root)
                 for (const e of list)
                     if (e._stepMove)
                         e._stepMove(dt)

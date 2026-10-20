@@ -32,6 +32,8 @@ qt_add_qml_module(qqruntime
         Music.qml
         Voices.qml
         Spotlight.qml
+        Group.qml
+        Prefab.qml
         Logic.qml
         Game.qml
     RESOURCES

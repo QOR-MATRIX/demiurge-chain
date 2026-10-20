@@ -33,11 +33,12 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 spot lights, and **HDR skies** — *360° sky images that also light the world*.
 
 **For your merge: the Studio's editing, pull request #65** (P3.15, first of three parts):
-undo and redo of every edit, duplicate, and snapping to a grid. The other two parts,
-groups and prefabs and the Studio's tools, are built and follow one at a time. It also
-fixes three **security advisories** — *published flaws in libraries we use* — found this
-week in the code that checks web certificates. One, in a wrapper that holds no certificates
-and is never built, is ignored while CI proves both, as you chose (ADR-107).
+undo and redo of every edit, duplicate, and snapping to a grid. It also fixes three
+**security advisories** — *published flaws in libraries we use* — found this week in the
+code that checks web certificates. One, in a wrapper that holds no certificates and is
+never built, is ignored while CI proves both, as you chose (ADR-107).
+**Built since, to follow #65: groups and prefabs** (P3.15, second part) — *a group saved
+once and placed many times*. *Orb Run*'s orbs are a prefab now.
 
 ## Toward a worldwide beta: what only you can do
 

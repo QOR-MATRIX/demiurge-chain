@@ -200,7 +200,8 @@ ColumnLayout {
         Switch {
             readonly property string field: parent ? parent.field : ""
             text: inspector.labelFor(field)
-            checked: inspector.target ? inspector.target[field] : false
+            // As the selection changes kind, a row can briefly read a field the new one does not have.
+            checked: inspector.target ? inspector.target[field] === true : false
             onToggled: inspector.set(field, checked)
         }
     }

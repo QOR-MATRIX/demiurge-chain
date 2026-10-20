@@ -75,7 +75,7 @@ Node {
     readonly property vector3d eye: lookAt
 
     readonly property QtObject sprite: live && look !== "" && parent
-                                       ? SceneIO.entities(parent).find(e => e.name === player.look) ?? null : null
+                                       ? SceneIO.everyEntity(parent).find(e => e.name === player.look) ?? null : null
 
     /// Put its middle at `centre`, still.
     function place(centre) {

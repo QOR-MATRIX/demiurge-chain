@@ -4,8 +4,9 @@
 // In play it is a body: `static` (the default) stands still and things collide with it, `dynamic` falls, tumbles and is
 // pushed about, with its mass, bounce and friction; `kinematic` goes exactly where logic puts it (its `position` and
 // turn) and pushes dynamic bodies aside, a moving platform or a door; `none` is scenery that nothing touches. The body
-// is made beside the shape, in the scene, at the shape's place and turn and sized by its scale, so nothing it does is
-// scaled twice.
+// is made at the scene's top, at the shape's place and turn in the world and sized by its scale there, so nothing it does
+// is scaled twice, and a shape in a group (P3.15) is a body where it is seen; a kinematic one follows it as its group
+// moves.
 //
 // For logic (P3.7): `contact` as the body meets another, and push(), applyForce(), setVelocity() and setSpin() on a
 // dynamic one.
@@ -102,10 +103,8 @@ Node {
     function makeBody() {
         if (!live || physics || (body !== "static" && body !== "dynamic" && body !== "kinematic"))
             return
-        const made = (body === "dynamic" ? movingBody : body === "kinematic" ? ledBody : standingBody).createObject(parent, {
-            position: shape.position,
-            rotation: shape.rotation
-        })
+        const made = (body === "dynamic" ? movingBody : body === "kinematic" ? ledBody : standingBody)
+            .createObject(SceneIO.sceneOf(shape) ?? parent, { position: shape.scenePosition, rotation: shape.sceneRotation })
         made.collisionShapes = [collider.createObject(made)]
         physics = made
     }
@@ -124,7 +123,7 @@ Node {
     Model {
         id: look
         parent: shape.physics && shape.body === "dynamic" ? shape.physics : shape
-        scale: (parent === shape ? Qt.vector3d(1, 1, 1) : shape.scale).times(0.01)
+        scale: (parent === shape ? Qt.vector3d(1, 1, 1) : shape.sceneScale).times(0.01)
         source: shape.mesh
         pickable: true
         castsShadows: true
@@ -187,18 +186,19 @@ Node {
     Component {
         id: box
         BoxShape {
-            extents: shape.form === "plane" ? Qt.vector3d(shape.scale.x, shape.scale.y, Math.max(0.02, shape.scale.z * 0.02))
-                                            : shape.scale
+            extents: shape.form === "plane" ? Qt.vector3d(shape.sceneScale.x, shape.sceneScale.y,
+                                                          Math.max(0.02, shape.sceneScale.z * 0.02))
+                                            : shape.sceneScale
         }
     }
     Component {
         id: ball
-        SphereShape { diameter: shape.scale.x }
+        SphereShape { diameter: shape.sceneScale.x }
     }
     Component {
         id: hull
         ConvexMeshShape {
-            scale: shape.scale.times(0.01)
+            scale: shape.sceneScale.times(0.01)
             // Raised to stand on its base like Qt's cone. Qt Physics scales a shape's position by the shape's own scale
             // (qphysxactorbody.cpp), so the lift is in the mesh's units: half its hundred.
             position: Qt.vector3d(0, shape.form === "cone" ? 50 : 0, 0)
@@ -208,7 +208,7 @@ Node {
             SphereGeometry { id: sphereMesh; radius: 50; rings: 8; segments: 16; asynchronous: false }
         }
     }
-    readonly property bool evenlyScaled: Math.abs(scale.x - scale.y) < 1e-4 && Math.abs(scale.y - scale.z) < 1e-4
+    readonly property bool evenlyScaled: Math.abs(sceneScale.x - sceneScale.y) < 1e-4 && Math.abs(sceneScale.y - sceneScale.z) < 1e-4
     readonly property Component collider: form === "cube" || form === "plane" ? box
                                         : form === "sphere" && evenlyScaled ? ball
                                         : hull
@@ -250,8 +250,8 @@ Node {
             readonly property QtObject entity: shape
             physicsMaterial: surface
             isKinematic: true
-            kinematicPosition: shape.position
-            kinematicRotation: shape.rotation
+            kinematicPosition: shape.scenePosition
+            kinematicRotation: shape.sceneRotation
             sendContactReports: true
             receiveContactReports: true
             sendTriggerReports: true

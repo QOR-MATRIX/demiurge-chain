@@ -1435,6 +1435,42 @@ P3.2 and on nothing on chain, and run in this order:
         what could be redone, undo forgetting what was last saved, undo losing the selection, saving made a step to
         undo, a copy of a copy named after the copy, turning not snapped, and redo made ambiguous by naming a key the
         platform's redo already has.
+
+    **Part two, the hierarchy and prefabs, built 20 October 2026** (branch `session/qq-hierarchy`, on #65's head; kept
+    back until #65 is merged):
+    - **Groups.** A new kind, `Group`: entities under one place, turn and scale, moved as one, and written inside it in
+      the scene's file. What is placed can be in a group (shapes, lamps, spot lights, models, emitters, sounds,
+      triggers, sprites, groups, prefabs, behaviours); players, the ground, the sun, tile maps and what has no place stay
+      at the scene's top. A group passes the scene's state on to what is in it (playing, paused, a replay, a 2D view).
+      - `SceneIO.entities` walks the tree in file order; logic's `entity`, `spawn` (a third argument puts what it makes
+        in a group) and `remove` (a group goes whole) see it.
+      - Bodies are made at the scene's top from an entity's place in the world; a kinematic one, and a trigger's
+        volume, follow it as its group moves.
+      - QQ's kinematics measure an entity through its groups in doubles, so a replay stays the same everywhere; a
+        group's turn about the depth axis counts.
+    - **Prefabs.** A group kept in a file of its own, `prefabs/<name>.qml` (its root a Group), placed by the new kind
+      `Prefab` (`source`) as often as wanted. The scene keeps where each stands and which file; its parts come from
+      the file, play (bodies, triggers, logic: a Behaviour inside finds its target among its own prefab's parts first),
+      and are found by `part(name)`, but are not the scene's own entities (`SceneIO.everyEntity` lists them for play).
+      Logic places one with `spawn("Prefab", { source, position })`. Saving brings a prefab file into the project's
+      `prefabs/`.
+    - **The Studio**: the list is the tree, indented; Ctrl+G groups the selection where it stands, Ctrl+Shift+G
+      ungroups, and the inspector moves the selection between groups keeping its place. **Keep as prefab** writes a
+      group to `prefabs/` and places a prefab where it stood; **Add → Prefab…** places another; **Unpack** turns a
+      prefab into a group of its parts to change them, and keeping it back writes over its file and makes the scene's
+      other prefabs of it again. A click on a prefab's part picks the prefab.
+    - **The agent**: `entity_add` takes a `group`, and `scene_read` says which group each entity is in.
+    - **Orb Run**: its orbs are a prefab (`prefabs/orb.qml`) placed by logic, and its walls a group.
+    - **The lockdown**: a prefab file is found through `SceneIO.resolvedUrl` like any other, so a confined game makes
+      nothing of one outside its package.
+    - **Found and fixed on the way:** the QQ README's table of the runtime had been split over two lines since P3.13,
+      so the table showed broken; a switch in the inspector read a field the newly selected kind lacked.
+    - **Evidence, on the owner's PC:**
+      - All eight suites pass in one run of `build.ps1`: 142 cases.
+      - `tst_scene` 26 cases, 3 new; `tst_play` 46, 2 new and Orb Run's changed; `tst_studio` 15, 1 new; the lockdown's
+        package check takes a prefab.
+      - `build.ps1 -Web` plays the playground in headless Chrome with no problem on the page (first frame 7.1 s, 318 frames a second, 12.06 MB brotli): kinematic and static bodies made the new way, from the world place.
+      - Ten planted faults were each caught: the entity list not walking into groups, a prefab's parts written into the scene, a group not passing on that the scene plays, a body made inside its group, kinematics measuring only the entity's own place, a prefab's logic finding its target in the scene first, moving between groups not keeping the world place, a click on a prefab's part picking the part, logic unable to remove what is in a group or a prefab, and an unpacked prefab kept as a new file. Two did not fail at first: the crate's rest on the deck was checked as it fell past (it is now checked again after a wait), and logic's refusal to remove a part did no harm in Orb Run's walk (logic now removes a part directly in the prefab case).
 16. [ ] **Saving.** One small store per game, the one the lockdown allows.
 
 #### P4: GNOSIS (P4.1 depends on nothing)

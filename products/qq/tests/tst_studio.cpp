@@ -624,6 +624,110 @@ private slots:
         QVERIFY2(factor > 1.05 && std::abs(factor * 10 - std::round(factor * 10)) < 1e-4, qPrintable(QString::number(factor)));
     }
 
+    void theSceneIsATreeOfGroupsAndAGroupIsKeptAsAPrefab()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        auto *io = s.engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO");
+        auto key = [&](Qt::Key k, Qt::KeyboardModifiers m) {
+            QTest::keyClick(s.window, k, m);
+            s.settle(2);
+        };
+        QObject *plinth = s.entity(QStringLiteral("Plinth"));
+        const QVector3D at = plinth->property("scenePosition").value<QVector3D>();
+
+        // Ctrl+G: the plinth in a new group, where it stood, and the list a tree.
+        s.window->setProperty("selection", QVariant::fromValue(plinth));
+        key(Qt::Key_G, Qt::ControlModifier);
+        QObject *group = s.entity(QStringLiteral("Group"));
+        QVERIFY(group);
+        QCOMPARE(s.selection(), group);
+        QCOMPARE(plinth->parent(), group);
+        QCOMPARE(plinth->property("scenePosition").value<QVector3D>(), at);
+        QVariant depth;
+        QMetaObject::invokeMethod(s.window, "depthOf", Q_RETURN_ARG(QVariant, depth), Q_ARG(QVariant, QVariant::fromValue(plinth)));
+        QCOMPARE(depth.toInt(), 1);
+        // The group moved, the plinth goes with it.
+        group->setProperty("position", group->property("position").value<QVector3D>() + QVector3D(2, 0, 0));
+        QCOMPARE(plinth->property("scenePosition").value<QVector3D>(), at + QVector3D(2, 0, 0));
+        s.call("refresh");
+
+        // Out to the scene's top by the inspector's choice, where it is; and back in.
+        s.window->setProperty("selection", QVariant::fromValue(plinth));
+        QVERIFY(s.call("moveSelectionInto", QVariant::fromValue<QObject *>(nullptr)).toBool());
+        QCOMPARE(plinth->parent(), s.scene());
+        QCOMPARE(plinth->property("position").value<QVector3D>(), at + QVector3D(2, 0, 0));
+        QVERIFY(s.call("moveSelectionInto", QVariant::fromValue(group)).toBool());
+        QCOMPARE(plinth->parent(), group);
+
+        // Ctrl+Shift+G: the group's contents out of it, where they stand, and the group gone; undone, it is back.
+        s.window->setProperty("selection", QVariant::fromValue(group));
+        key(Qt::Key_G, Qt::ControlModifier | Qt::ShiftModifier);
+        QVERIFY(!s.entity(QStringLiteral("Group")));
+        QCOMPARE(s.entity(QStringLiteral("Plinth"))->parent(), s.scene());
+        key(Qt::Key_Z, Qt::ControlModifier);
+        QVERIFY(s.entity(QStringLiteral("Group")));
+        QCOMPARE(s.entity(QStringLiteral("Plinth"))->parent(), s.entity(QStringLiteral("Group")));
+
+        // Kept as a prefab: written to prefabs/, and a prefab of it placed where the group stood.
+        group = s.entity(QStringLiteral("Group"));
+        group->setProperty("name", QStringLiteral("Stand"));
+        s.window->setProperty("selection", QVariant::fromValue(group));
+        s.click("prefabButton");
+        s.settle(2);
+        const QString file = QDir(s.project.path()).filePath(QStringLiteral("prefabs/stand.qml"));
+        QVERIFY(QFileInfo::exists(file));
+        QVERIFY(readAll(file).startsWith(QStringLiteral("import QQ\n\nGroup {\n    name: \"Stand\"\n")));
+        QObject *stand = s.entity(QStringLiteral("Stand"));
+        QVERIFY(stand);
+        QCOMPARE(stand->property("kind").toString(), QStringLiteral("Prefab"));
+        QCOMPARE(stand->property("position").value<QVector3D>(), at + QVector3D(2, 0, 0));
+        // Its parts are its file's: not the scene's own entities, so not in the list, and a click on one picks it.
+        QVERIFY(!s.entity(QStringLiteral("Plinth")));
+        QVariant part;
+        QMetaObject::invokeMethod(stand, "part", Q_RETURN_ARG(QVariant, part), Q_ARG(QVariant, QStringLiteral("Plinth")));
+        QObject *made = part.value<QObject *>();
+        QVERIFY(made);
+        QCOMPARE(made->property("scenePosition").value<QVector3D>(), at + QVector3D(2, 0, 0));
+        s.window->setProperty("selection", QVariant());
+        s.settle(4);
+        QTest::mouseClick(s.window, Qt::LeftButton, {}, s.onScreen("world", made->property("scenePosition").value<QVector3D>()).toPoint());
+        s.settle(2);
+        QCOMPARE(s.selection(), stand);
+
+        // Saved, the scene keeps the prefab, not its parts; placed again, it is a second.
+        QVERIFY(s.call("saveScene").toBool());
+        const QString saved = readAll(s.window->property("sceneFile").toUrl().toLocalFile());
+        QVERIFY(saved.contains(QStringLiteral("        source: \"../prefabs/stand.qml\"\n")));
+        QVERIFY(!saved.contains(QStringLiteral("\"Plinth\"")));
+        QVERIFY(s.call("add", QStringLiteral("Prefab"),
+                       QVariantMap{{QStringLiteral("name"), QStringLiteral("Stand")},
+                                   {QStringLiteral("source"), QUrl::fromLocalFile(file)}}).value<QObject *>());
+        QVERIFY(s.entity(QStringLiteral("Stand 2")));
+        QCOMPARE(io->everyEntity(s.scene()).size() - io->entities(s.scene()).size(), 4);  // two parts each: a root and a plinth
+
+        // Unpacked, the first is a group of its parts where it stood, to change; kept back, it is written over its file
+        // and the second, made again from it, has the change too.
+        s.window->setProperty("selection", QVariant::fromValue(s.entity(QStringLiteral("Stand"))));
+        s.click("unpackButton");
+        s.settle(2);
+        QObject *unpacked = s.entity(QStringLiteral("Stand"));
+        QCOMPARE(unpacked->property("kind").toString(), QStringLiteral("Group"));
+        QObject *plinthAgain = s.entity(QStringLiteral("Plinth"));
+        QVERIFY(plinthAgain);
+        QCOMPARE(plinthAgain->property("scenePosition").value<QVector3D>(), at + QVector3D(2, 0, 0));
+        plinthAgain->setProperty("colour", QColor(QStringLiteral("#ff6a00")));
+        s.window->setProperty("selection", QVariant::fromValue(unpacked));
+        s.click("prefabButton");
+        s.settle(2);
+        QVERIFY(readAll(file).contains(QStringLiteral("colour: \"#ff6a00\"")));
+        QVERIFY(!QFileInfo::exists(QDir(s.project.path()).filePath(QStringLiteral("prefabs/stand-2.qml"))));
+        QVariant second;
+        QMetaObject::invokeMethod(s.entity(QStringLiteral("Stand 2")), "part", Q_RETURN_ARG(QVariant, second),
+                                  Q_ARG(QVariant, QStringLiteral("Plinth")));
+        QCOMPARE(second.value<QObject *>()->property("colour").value<QColor>(), QColor(QStringLiteral("#ff6a00")));
+    }
+
     void aNewBehaviourIsWrittenIntoTheProjectAndNeverOverAFile()
     {
         Studio s;

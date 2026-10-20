@@ -40,11 +40,14 @@ QString readAll(const QString &path)
     return f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll()) : QString();
 }
 
+/// The entity called `name`, anywhere in the scene (in groups too, P3.15).
 QObject *entityNamed(QObject *scene, const QString &name)
 {
     for (QQuick3DObject *child : qobject_cast<QQuick3DObject *>(scene)->childItems()) {
-        if (child->property("name").toString() == name)
+        if (!child->property("kind").toString().isEmpty() && child->property("name").toString() == name)
             return child;
+        if (QObject *inside = entityNamed(child, name))
+            return inside;
     }
     return nullptr;
 }
@@ -109,7 +112,8 @@ private slots:
                                      QStringLiteral("ScreenImage"), QStringLiteral("ScreenPanel"),
                                      QStringLiteral("ScreenButton"), QStringLiteral("InputAction"),
                                      QStringLiteral("Sprite"), QStringLiteral("TileMap"), QStringLiteral("Player2D"),
-                                     QStringLiteral("Music"), QStringLiteral("Spotlight")}));
+                                     QStringLiteral("Music"), QStringLiteral("Spotlight"), QStringLiteral("Group"),
+                                     QStringLiteral("Prefab")}));
         // Every kind there is.
         QStringList sorted = kinds;
         sorted.sort();
@@ -227,9 +231,9 @@ private slots:
         for (const QVariant &e : io->entities(copy))
             live += e.value<QObject *>()->property("live").toBool() ? 1 : 0;
         // The ground, the shape, the model (its clip plays), the player, the sound, the behaviour, the trigger, the five
-        // screen parts, the action, the sprite, the tile map, the 2D player, the music and the spotlight (its mark hidden);
-        // the rest are the same in play.
-        QCOMPARE(live, 18);
+        // screen parts, the action, the sprite, the tile map, the 2D player, the music, the spotlight (its mark hidden),
+        // and the group, the shape in it and the prefab (P3.15); the rest are the same in play.
+        QCOMPARE(live, 21);
         for (const QVariant &e : io->entities(scene))
             QVERIFY(!e.value<QObject *>()->property("live").toBool());
         // The copy is the scene, and the scene is as it was; `playing` is not part of either's file.
@@ -313,14 +317,14 @@ private slots:
         const QUrl url = QUrl::fromLocalFile(fixture(QStringLiteral("scenes/sample.qml")));
         QObject *scene = io->load(url, nullptr);
         QVERIFY(scene);
-        QCOMPARE(io->entities(scene).size(), 21);
+        QCOMPARE(io->entities(scene).size(), 24);  // the group's shape among them, not the prefab's parts
 
         QObject *crystal = io->add(scene, QStringLiteral("Shape"),
                                    {{QStringLiteral("name"), QStringLiteral("Crystal")},
                                     {QStringLiteral("form"), QStringLiteral("cone")},
                                     {QStringLiteral("position"), QVector3D(2, 0.5f, -1)}});
         QVERIFY2(crystal, qPrintable(io->lastError()));
-        QCOMPARE(io->entities(scene).size(), 22);
+        QCOMPARE(io->entities(scene).size(), 25);
         const QString text = io->write(scene, url);
         QVERIFY2(text.endsWith(QStringLiteral("    Shape {\n        name: \"Crystal\"\n        position: Qt.vector3d(2, 0.5, -1)\n")
                                + QStringLiteral("        eulerRotation: Qt.vector3d(0, 0, 0)\n        scale: Qt.vector3d(1, 1, 1)\n")
@@ -339,7 +343,7 @@ private slots:
         QVERIFY(io->remove(crystal));
         QVERIFY(!io->remove(scene));
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-        QCOMPARE(io->entities(scene).size(), 21);
+        QCOMPARE(io->entities(scene).size(), 24);
         QCOMPARE(io->write(scene, url), readAll(url.toLocalFile()));
         delete scene;
     }
@@ -667,6 +671,167 @@ private slots:
         QVERIFY(!back.fromJson("{\"qqRun\": 2}", &why));
         QVERIFY2(why.contains(QStringLiteral("format 1")), qPrintable(why));
         QVERIFY(!back.fromJson("not json", &why));
+    }
+
+    // ── groups and prefabs (P3.15) ──
+
+    void groupsNestEntitiesAndTheFileKeepsThem()
+    {
+        QTemporaryDir dir;
+        const QUrl url = QUrl::fromLocalFile(QDir(dir.path()).filePath(QStringLiteral("scenes/nest.qml")));
+        QObject *scene = io->loadText(QStringLiteral(
+            "import QQ\nScene {\n    name: \"nest\"\n"
+            "    Group {\n        name: \"Post\"\n        position: Qt.vector3d(5, 0, 0)\n"
+            "        Shape { name: \"Pole\"; position: Qt.vector3d(1, 0, 0); scale: Qt.vector3d(0.2, 3, 0.2) }\n"
+            "        Group { name: \"Top\"; position: Qt.vector3d(0, 3, 0)\n"
+            "            Lamp { name: \"Light\" }\n        }\n    }\n"
+            "    Shape { name: \"Floor\" }\n}\n"), url, nullptr);
+        QVERIFY2(scene, qPrintable(io->lastError()));
+        // Kept by the file: written inside its group, and read back the same bytes.
+        const QString text = io->write(scene, url);
+        QVERIFY(text.contains(QStringLiteral("    Group {\n        name: \"Post\"\n")));
+        QVERIFY(text.contains(QStringLiteral("\n        Shape {\n            name: \"Pole\"\n")));
+        QVERIFY(text.contains(QStringLiteral("\n            Lamp {\n                name: \"Light\"\n")));
+        QObject *again = io->loadText(text, url, nullptr);
+        QCOMPARE(io->write(again, url), text);
+        delete again;
+
+        // Listed in file order, each after its group; the scene found from inside.
+        QStringList names;
+        for (const QVariant &e : io->entities(scene))
+            names << e.value<QObject *>()->property("name").toString();
+        QCOMPARE(names, (QStringList{QStringLiteral("Post"), QStringLiteral("Pole"), QStringLiteral("Top"),
+                                     QStringLiteral("Light"), QStringLiteral("Floor")}));
+        QObject *light = entityNamed(scene, QStringLiteral("Light"));
+        QCOMPARE(io->sceneOf(light), scene);
+        QCOMPARE(light->property("scenePosition").value<QVector3D>(), QVector3D(5, 3, 0));
+
+        // Added into a group; a player cannot be.
+        QObject *post = entityNamed(scene, QStringLiteral("Post"));
+        QObject *sign = io->add(scene, QStringLiteral("Shape"), {{QStringLiteral("name"), QStringLiteral("Sign")}}, post);
+        QVERIFY2(sign, qPrintable(io->lastError()));
+        QCOMPARE(qobject_cast<QQuick3DObject *>(sign)->parentItem(), qobject_cast<QQuick3DObject *>(post));
+        QVERIFY(!io->add(scene, QStringLiteral("Player"), {}, post));
+        QVERIFY(io->lastError().contains(QStringLiteral("cannot be in a group")));
+
+        // Moved between groups where it is in the world: out to the scene, and into the top.
+        QObject *pole = entityNamed(scene, QStringLiteral("Pole"));
+        QVERIFY(io->reparent(pole, scene));
+        QCOMPARE(pole->property("position").value<QVector3D>(), QVector3D(6, 0, 0));
+        QObject *top = entityNamed(scene, QStringLiteral("Top"));
+        QVERIFY(io->reparent(pole, top));
+        QCOMPARE(pole->property("position").value<QVector3D>(), QVector3D(1, -3, 0));
+        QCOMPARE(pole->property("scenePosition").value<QVector3D>(), QVector3D(6, 0, 0));
+        // A group cannot go into what is in it.
+        QVERIFY(!io->reparent(post, top));
+
+        // Removed, a group takes what is in it.
+        QVERIFY(io->remove(post));
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        names.clear();
+        for (const QVariant &e : io->entities(scene))
+            names << e.value<QObject *>()->property("name").toString();
+        QCOMPARE(names, QStringList{QStringLiteral("Floor")});
+        delete scene;
+    }
+
+    void kinematicsMeasureThroughGroupsInDoubles()
+    {
+        // A wall in a group moved 5 along and turned a quarter about the depth axis: its box, 1 by 2 in the group, is 2
+        // by 1 in the world, at (5, 1): a 2D mover from the left stops against it, and an overlap is measured there.
+        QObject *scene = io->loadText(QStringLiteral(
+            "import QQ\nScene {\n    name: \"walls\"\n    view: \"2d\"\n"
+            "    Group {\n        name: \"Turned\"\n        position: Qt.vector3d(5, 1, 0)\n"
+            "        eulerRotation: Qt.vector3d(0, 0, 90)\n"
+            "        Shape { name: \"Wall\"; scale: Qt.vector3d(1, 2, 1) }\n"
+            "        Trigger { name: \"Zone\"; position: Qt.vector3d(0, -3, 0) }\n    }\n"
+            "    Trigger { name: \"Probe\"; position: Qt.vector3d(8, 1, 0) }\n}\n"),
+            QUrl::fromLocalFile(QStringLiteral("/tmp/walls.qml")), nullptr);
+        QVERIFY2(scene, qPrintable(io->lastError()));
+        QObject *probe = entityNamed(scene, QStringLiteral("Probe"));
+        // A step of 4 (a mover's steps are small: this is where it ends that is measured).
+        const QVariantMap moved = io->move2D(scene, probe, 0, 1, 0, 0.5, 0.25, 4, 0);
+        // The wall's left side is at 5 - 1 = 4; the mover, half a unit wide, stops at 3.5.
+        QCOMPARE(moved.value(QStringLiteral("x")).toDouble(), 3.5);
+        QVERIFY(moved.value(QStringLiteral("right")).toBool());
+        // The zone, 3 below the group's middle before its turn, is 3 to the right after it: at (8, 1), over the probe.
+        QVERIFY(io->overlaps(entityNamed(scene, QStringLiteral("Zone")), probe));
+        delete scene;
+    }
+
+    void aPrefabIsMadeFromItsFileAndNeverWrittenIntoTheScene()
+    {
+        QTemporaryDir project;
+        const QDir root(project.path());
+        root.mkpath(QStringLiteral("prefabs"));
+        root.mkpath(QStringLiteral("scenes"));
+        const QString prefab = QStringLiteral(
+            "import QQ\n\nGroup {\n    name: \"Lamp post\"\n    position: Qt.vector3d(0, 0, 0)\n"
+            "    eulerRotation: Qt.vector3d(0, 0, 0)\n    scale: Qt.vector3d(1, 1, 1)\n\n"
+            "    Shape { name: \"Pole\"; scale: Qt.vector3d(0.2, 3, 0.2) }\n    Lamp { name: \"Light\"; position: Qt.vector3d(0, 3, 0) }\n}\n");
+        {
+            QFile f(root.filePath(QStringLiteral("prefabs/lamp-post.qml")));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write(prefab.toUtf8());
+        }
+        const QUrl url = QUrl::fromLocalFile(root.filePath(QStringLiteral("scenes/street.qml")));
+        QObject *scene = io->loadText(QStringLiteral(
+            "import QQ\nScene {\n    name: \"street\"\n"
+            "    Prefab { name: \"West\"; source: \"../prefabs/lamp-post.qml\"; position: Qt.vector3d(-4, 0, 0) }\n"
+            "    Prefab { name: \"East\"; source: \"../prefabs/lamp-post.qml\"; position: Qt.vector3d(4, 0, 0) }\n}\n"),
+            url, nullptr);
+        QVERIFY2(scene, qPrintable(io->lastError()));
+        // The scene's own entities are the two prefabs; each is made of the file's parts, where it stands.
+        QCOMPARE(io->entities(scene).size(), 2);
+        QCOMPARE(io->everyEntity(scene).size(), 8);  // each prefab, its root group, the pole and the light
+        QObject *east = entityNamed(scene, QStringLiteral("East"));
+        QCOMPARE(east->property("error").toString(), QString());
+        QVariant light;
+        QMetaObject::invokeMethod(east, "part", Q_RETURN_ARG(QVariant, light), Q_ARG(QVariant, QStringLiteral("Light")));
+        QVERIFY(light.value<QObject *>());
+        QCOMPARE(light.value<QObject *>()->property("scenePosition").value<QVector3D>(), QVector3D(4, 3, 0));
+        // Written, the scene keeps where each stands and its file; never their parts.
+        const QString text = io->write(scene, url);
+        QVERIFY(text.contains(QStringLiteral("        source: \"../prefabs/lamp-post.qml\"\n")));
+        QVERIFY(!text.contains(QStringLiteral("Pole")));
+        QVERIFY(!text.contains(QStringLiteral("Lamp {")));
+        // A project lists its prefabs.
+        QCOMPARE(io->project(QUrl::fromLocalFile(project.path())).value(QStringLiteral("prefabs")).toStringList(),
+                 QStringList{QStringLiteral("lamp-post")});
+
+        // A file whose root is not a Group is no prefab, and says so.
+        {
+            QFile f(root.filePath(QStringLiteral("prefabs/not.qml")));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write("import QQ\nShape { name: \"Lonely\" }\n");
+        }
+        QObject *bad = io->add(scene, QStringLiteral("Prefab"), {{QStringLiteral("source"), QStringLiteral("../prefabs/not.qml")}});
+        QVERIFY(bad);
+        QVERIFY2(bad->property("error").toString().contains(QStringLiteral("root is not a Group")),
+                 qPrintable(bad->property("error").toString()));
+
+        // A group written as a prefab: at the origin, the same bytes as the file a person would keep; never over one.
+        QObject *street = io->loadText(QStringLiteral(
+            "import QQ\nScene {\n    name: \"street\"\n"
+            "    Group {\n        name: \"Lamp post\"\n        position: Qt.vector3d(7, 0, 2)\n"
+            "        Shape { name: \"Pole\"; scale: Qt.vector3d(0.2, 3, 0.2) }\n"
+            "        Lamp { name: \"Light\"; position: Qt.vector3d(0, 3, 0) }\n    }\n}\n"), url, nullptr);
+        QObject *group = entityNamed(street, QStringLiteral("Lamp post"));
+        QVERIFY(io->writePrefab(group, QUrl::fromLocalFile(project.path()), QStringLiteral("Lamp post")).isEmpty());
+        QVERIFY(io->lastError().contains(QStringLiteral("there already")));
+        const QUrl written = io->writePrefab(group, QUrl::fromLocalFile(project.path()), QStringLiteral("Corner Lamp"));
+        QCOMPARE(written, QUrl::fromLocalFile(root.filePath(QStringLiteral("prefabs/corner-lamp.qml"))));
+        const QString kept = readAll(written.toLocalFile());
+        QVERIFY(kept.startsWith(QStringLiteral("import QQ\n\nGroup {\n    name: \"Lamp post\"\n    position: Qt.vector3d(0, 0, 0)\n")));
+        QVERIFY(kept.contains(QStringLiteral("        name: \"Pole\"\n")));
+        QCOMPARE(group->property("position").value<QVector3D>(), QVector3D(7, 0, 2));  // the group itself stays put
+
+        // Brought into another project, a prefab goes into its prefabs/ folder.
+        QTemporaryDir other;
+        const QUrl adopted = io->adopt(written, QUrl::fromLocalFile(other.path()));
+        QCOMPARE(adopted, QUrl::fromLocalFile(QDir(other.path()).filePath(QStringLiteral("prefabs/corner-lamp.qml"))));
+        delete street;
+        delete scene;
     }
 
     // ── sound (P3.13, ADR-105) ──

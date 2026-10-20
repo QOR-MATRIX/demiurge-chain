@@ -96,6 +96,13 @@ it; the QQ Player plays a scene on its own, natively and in a browser.
   **Duplicate** (Ctrl+D) puts a copy beside the selection, every field the same but its name. **Snapping** (the
   toolbar's choice: off, one art pixel, 0.1, 0.25, 0.5 or 1 unit) moves a handle along that grid, turns by 15 degrees
   and scales by tenths.
+  **The scene's tree (P3.15, second part, built 20 October 2026):** a **Group** holds entities under one place, turn
+  and scale, moved as one and written inside it in the file; the list is the tree, indented; **Ctrl+G** puts the
+  selection in a new group where it stands, **Ctrl+Shift+G** takes a group's contents out, and the inspector's "In
+  group" moves the selection between groups, keeping where it is in the world. **Keep as prefab** writes a group to
+  `prefabs/<name>.qml` and places a **Prefab** of it where the group stood; **Add → Prefab…** places another. A
+  prefab's parts come from its file, so the scene keeps only where each prefab stands and which file it is, a change to
+  the file reaches every one the next time the scene opens or plays, and a click on a part picks the prefab.
 - **The files:** a scene is `scenes/<name>.qml` in the project, in one canonical layout: read and written back it is
   the same bytes, and one changed value is one changed line in Projects. Models and sounds are copied into `assets/`
   and logic into `logic/`, so the project is whole on its own; a Tiled map brings its tileset and image, and one whose
@@ -130,8 +137,7 @@ description with no human edit, made by whoever runs it with their own key.
 
 | Path | What it is |
 | --- | --- |
-| `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, `Trigger` (a volume that hears what enters and leaves it, P3.7), the screen kinds `ScreenText`, `ScreenBar`, `ScreenButton`, `ScreenImage` and `ScreenPanel` (the game's interface, drawn over the world on the World's overlay, each in a named screen; built on `ScreenPart`, P3.8), `Music` (a scene's music, fading from track to track, P3.13), `Spotlight` (a cone of light, P3.14), `InputAction` (an action a player can take, with its keys, mouse buttons and pad buttons, P3.9), the 2D kinds `Sprite`, `TileMap` and `Player2D` (P3.10), and `Logic` (what a logic file is, with the gameplay API of P3.7: `onStarted`, `onContact`, `onEntered`, `onExited`, `ray`, `spawn`, `remove`, `after`, `every`, `cancel`; and for the interface, P3.8, `onClicked`, `showScreen`, `hideScreen`, `onlyScreen`, `pause` and `resume`; and for actions, P3.9, `onPressed`, `onReleased`, `held`, `rebind`, `bindingOf` and `pointing`; and for steps and runs, P3.11, `onStep`, `steps`, `random`, `randomInt`, `overlaps` and `outcome`; and for animation, P3.12, `tween` and `machine`; and for sound, P3.13, `play`, `setVolume` and `volumeOf`). `Look` is the interface's style: the faces Cinzel and Barlow Semi Condensed (carried in `runtime/fonts/`, under the SIL Open Font License), the launcher's inks and ARQADE's gilt, and the system's reduced-motion setting. In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `tilemap` (Tiled's maps read, their solid tiles merged into colliders, and `TileGeometry`, a layer as one mesh), `kinematics` (QQ's own: boxes swept against boxes, P3.11), `run` (`Random`, seeded and the same everywhere; `RunRecord`, a run kept; `replayRun`, a run played again with no window), `clips` (a glTF model's animations, taken from Qt's own wall-clock playing and posed on the game's steps, P3.12),
-`Mixer` (the volume groups, and a sound file's length, P3.13), `shaders/surface.vert` and `surface.frag` (a Shape's pictured surface, P3.14), `SoftDot` (the particles' sprite, made in memory) `gpu` (draw with the faster of two GPUs), `Confinement` (what a game may reach in the Player, ADR-087) and `WebVoice` (a sound in a browser, on the page's Web Audio and panned, so a game never needs Qt Multimedia's QML) |
+| `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, `Trigger` (a volume that hears what enters and leaves it, P3.7), the screen kinds `ScreenText`, `ScreenBar`, `ScreenButton`, `ScreenImage` and `ScreenPanel` (the game's interface, drawn over the world on the World's overlay, each in a named screen; built on `ScreenPart`, P3.8), `Music` (a scene's music, fading from track to track, P3.13), `Spotlight` (a cone of light, P3.14), `Group` and `Prefab` (entities kept together, and a group kept in a file of its own and placed as often as wanted, P3.15), `InputAction` (an action a player can take, with its keys, mouse buttons and pad buttons, P3.9), the 2D kinds `Sprite`, `TileMap` and `Player2D` (P3.10), and `Logic` (what a logic file is, with the gameplay API of P3.7: `onStarted`, `onContact`, `onEntered`, `onExited`, `ray`, `spawn`, `remove`, `after`, `every`, `cancel`; and for the interface, P3.8, `onClicked`, `showScreen`, `hideScreen`, `onlyScreen`, `pause` and `resume`; and for actions, P3.9, `onPressed`, `onReleased`, `held`, `rebind`, `bindingOf` and `pointing`; and for steps and runs, P3.11, `onStep`, `steps`, `random`, `randomInt`, `overlaps` and `outcome`; and for animation, P3.12, `tween` and `machine`; and for sound, P3.13, `play`, `setVolume` and `volumeOf`; and since P3.15 `spawn` places a prefab, or puts what it makes in a group, and `remove` takes a group or a prefab away whole). `Look` is the interface's style: the faces Cinzel and Barlow Semi Condensed (carried in `runtime/fonts/`, under the SIL Open Font License), the launcher's inks and ARQADE's gilt, and the system's reduced-motion setting. In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `tilemap` (Tiled's maps read, their solid tiles merged into colliders, and `TileGeometry`, a layer as one mesh), `kinematics` (QQ's own: boxes swept against boxes, P3.11), `run` (`Random`, seeded and the same everywhere; `RunRecord`, a run kept; `replayRun`, a run played again with no window), `clips` (a glTF model's animations, taken from Qt's own wall-clock playing and posed on the game's steps, P3.12), `Mixer` (the volume groups, and a sound file's length, P3.13), `shaders/surface.vert` and `surface.frag` (a Shape's pictured surface, P3.14), `SoftDot` (the particles' sprite, made in memory) `gpu` (draw with the faster of two GPUs), `Confinement` (what a game may reach in the Player, ADR-087) and `WebVoice` (a sound in a browser, on the page's Web Audio and panned, so a game never needs Qt Multimedia's QML) |
 | `studio/` | QQ Studio. `qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>] [--launcher-channel <name>]`; `LauncherLink`, its side of the QOR host protocol (publishing through the launcher that started it, ADR-088) |
 | `agent/` | The agent's side of the Studio (P3.3): `McpServer` (MCP's JSON-RPC, served on a local pipe only this user can open), `StudioTools` (the fourteen tools, working the Studio's own window functions, and `StudioLog`, what the Studio has said), `DesignLoop` (a description designed, built, played and judged by Claude through those tools; ADR-085), `keychain` (the provider's key in Windows Credential Manager) and `qq-mcp` (the program an MCP client starts, relaying its standard input and output to the running Studio) |
 | `player/` | The QQ Player. `qq-player [scene.qml] [--capture <frame.png>] [--measure <result.json>] [--seed <n>] [--record <run.json> [--ticks <n>]] [--replay <run.json>]` (a replay has no window and exits 0 when it reaches the outcome kept, 4 when it does not); its playground (a small game with everything P3.2 plays) bundled inside it; `measure-web.mjs`, which plays the browser build in a headless browser and measures it |
@@ -221,7 +227,12 @@ drew about 12 frames a second.
   implementation, a box stopped by what stands in its way (touching is not overlapping), and a run kept and read back.
   **Since P3.13, 23 cases (28 checks):** a sound file's length read from its header, and read again when the file is
   replaced; the Mixer's levels held to 0 to 1, multiplied by the master's, and reset; a browser voice's pan held to all
-  left and all right.
+  left and all right. **Since P3.15, 26 cases (31 checks):** groups nested two deep written inside each other and read
+  back the same bytes, listed each after its group, added into, moved out and in keeping their place in the world,
+  refused for a player, never into themselves, and removed with what is in them; QQ's kinematics measuring a wall
+  through a moved group turned a quarter about the depth axis, in doubles; and a prefab made of its file where it
+  stands, never written into the scene, its part found by name, refused when its file's root is not a Group, a group
+  written as one at the origin and never over a file, and a prefab brought into a project's `prefabs/`.
 - **`tst_studio`** (10 cases, the real window): a new Studio opens a lit scene in its project; a click on the model
   selects it and a click on the sky selects nothing; dragging the X handle moves along X only; dragging the centre
   handle scales evenly and leaves the position alone; saving writes a canonical scene and carries the model into the
@@ -238,7 +249,11 @@ drew about 12 frames a second.
   no further, and done again with Ctrl+Y, Ctrl+Shift+Z and the Redo button, the selection kept by name and an edit after
   an undo leaving nothing to redo; a duplicate beside its original, every field the same and apart from it, a copy of
   a copy the third, a model's file carried, and undone; and with snapping, a handle landing on the grid, turning by 15
-  degrees and scaling by tenths.
+  degrees and scaling by tenths. **Since its second part, 15 cases:** a selection grouped with Ctrl+G where it stood,
+  moved with its group, out and back in by the inspector's choice, ungrouped with Ctrl+Shift+G and that undone; a group
+  kept as a prefab, placed where it stood, its part not in the list and picked as the prefab, saved without its parts,
+  and placed again; and unpacked, changed and kept back over its own file, the other prefab of it made again with the
+  change.
 
   Eight planted faults were each caught: quick edits of one field never merged, an edit after an undo keeping what
   could be redone, undo forgetting what was last saved, undo losing the selection, saving made a step to undo, a copy
@@ -333,6 +348,17 @@ drew about 12 frames a second.
   **Since P3.14,** Orb Run's case also checks its looks: stone walls with their relief, a slate floor, two spot lights
   and a dusk sky, each from its own `assets/`.
 
+  **Since P3.15, 46 cases:** a group carrying a kinematic deck, the crate on it and a trigger, raised by logic a
+  little each frame; and a prefab of a trigger and its logic placed twice and once more by logic, each counting only
+  what passes through its own trigger, its parts not the scene's own, and the third removed whole. Orb Run's orbs are
+  a prefab placed by logic and its walls a group.
+
+  Ten planted faults were each caught, by these and by `tst_scene` and `tst_studio`: the entity list not walking into
+  groups, a prefab's parts written into the scene, a group not passing on that the scene plays, a body made inside its
+  group, kinematics measuring only the entity's own place, a prefab's logic finding its target in the scene first,
+  moving between groups not keeping the world place, a click on a prefab's part picking the part, logic unable to
+  remove what is in a group or a prefab, and an unpacked prefab kept as a new file.
+
   Eight planted faults were each caught: one-shots deaf to their group's level, a one-shot never put away, music
   never letting its old track go, music deaf to its group's level, logic sounding in a replay, a browser panning to the
   wrong side, the Studio's Stop keeping a play's levels (by `tst_studio`), and a replaced file keeping its old length
@@ -346,7 +372,7 @@ drew about 12 frames a second.
   a file and a web address, with nothing handed to the system; and (P3.10) a picture measured, a map read, or a
   map's tileset read from outside the package, each refused, while a game's own map and sheet play; and (P3.14) a
   shape's picture and relief, a sky, a model and a sound named from outside the package are nothing, while a picture
-  inside comes as named. **Proven to fail** by four planted faults, each caught by
+  inside comes as named; and (P3.15) a prefab from outside is made of nothing. **Proven to fail** by four planted faults, each caught by
   its own check: no URL interceptor; no network policy; `SceneIO` left unconfined; every module allowed.
 - **`tst_publish`** (9 cases; P3.4, ADR-088), against a stand-in launcher speaking the QOR host protocol: the hello
   carries the token and the Studio's id; Publish asks for the commit and then the publish, with the project, and
@@ -438,6 +464,13 @@ the web has no audio, so in a browser sound is QQ's own, on the page's Web Audio
   costs its decoded size in memory. Volume levels last while the game runs; keeping a player's settings between plays
   comes with saving (P3.16). A one-shot's length is read only from a WAV file's header, so another format is put away
   after ten seconds, whatever its length.
+- **Groups and prefabs, as built in P3.15:** a static body in a group is made where its shape stands when play
+  starts, and stays there if the group moves: a platform that moves is kinematic, and moved a little each step or frame
+  (a kinematic body moved in jumps pushes what rests on it violently, as PhysX does). A group's turn about anything but
+  the depth axis is not part of QQ's kinematics. A prefab's parts are found by its `part(name)`; logic's `entity(name)`
+  looks at the scene's own first. A prefab brought in from another project comes alone, without the files it names. A
+  prefab is changed by unpacking it in a scene and keeping it back; the Studio does not open a prefab's file on its
+  own.
 - **Undo, as built in P3.15:** it covers the scene that is open, back to when it was opened; opening another starts
   afresh. A logic file's text and the files saving brought into the project are not taken back with it.
 - **Materials, as built in P3.14:** a shape's picture is projected along its three axes, so on a sphere, cylinder or
