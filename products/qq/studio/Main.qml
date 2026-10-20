@@ -118,6 +118,11 @@ ApplicationWindow {
         sceneFile = file
         sceneName = name
         savedText = saved ? SceneIO.write(next, file) : ""
+        // A 2D scene opens framed as its game starts: its view's height, the origin at its foot.
+        if (next.view === "2d") {
+            distance = Math.max(1.5, Math.min(80, next.viewHeight))
+            target = Qt.vector3d(0, next.viewHeight / 2, 0)
+        }
         refresh()
         return true
     }
@@ -194,7 +199,7 @@ ApplicationWindow {
         if (!show(SceneIO.loadText(result.qml, fileFor(name), stage), fileFor(name), name, false))
             return
         say(qsTr("Imported %1 entities.").arg(result.imported)
-            + (result.skipped.length ? " " + qsTr("Not yet in 3D: %1.").arg(result.skipped.join("; ")) : ""))
+            + (result.skipped.length ? " " + qsTr("Not brought in: %1.").arg(result.skipped.join("; ")) : ""))
     }
 
     function add(kind, properties) {
@@ -507,6 +512,16 @@ ApplicationWindow {
                                 MenuItem { text: qsTr("Image"); onTriggered: window.add("ScreenImage", { name: "Image" }) }
                                 MenuItem { text: qsTr("Panel"); onTriggered: window.add("ScreenPanel", { name: "Panel" }) }
                             }
+                            Menu {
+                                title: qsTr("2D")
+                                MenuItem { text: qsTr("Sprite"); onTriggered: window.add("Sprite", { name: "Sprite", position: Qt.vector3d(window.target.x, window.target.y, 0) }) }
+                                MenuItem { text: qsTr("Tile map"); onTriggered: window.add("TileMap", { name: "Tiles", position: Qt.vector3d(window.target.x, window.target.y, 0) }) }
+                                MenuItem {
+                                    text: qsTr("Player")
+                                    enabled: !window.entityList.some(e => e.kind === "Player" || e.kind === "Player2D")
+                                    onTriggered: window.add("Player2D", { position: Qt.vector3d(window.target.x, window.target.y, 0) })
+                                }
+                            }
                             MenuItem { text: qsTr("Action"); onTriggered: window.add("InputAction", { name: "action", keys: "E", pad: "X" }) }
                             MenuItem {
                                 text: qsTr("Trigger")
@@ -603,7 +618,10 @@ ApplicationWindow {
                 id: world
                 objectName: "world"
                 anchors.fill: parent
-                target: window.follow ? window.follow.lookAt : window.target
+                target: !window.follow ? window.target
+                      : flat ? window.playScene.keptInView(window.follow.lookAt, width / (2 * magnification),
+                                                           height / (2 * magnification))
+                      : window.follow.lookAt
                 // In play with a player, the eye follows it; otherwise it orbits as in editing.
                 eye: window.follow ? window.follow.eye : window.orbitEye
                 exposure: window.scene ? window.scene.exposure : 1
@@ -613,6 +631,13 @@ ApplicationWindow {
                 skyHorizon: window.scene ? window.scene.skyHorizon : "#c7623a"
                 groundHorizon: window.scene ? window.scene.groundHorizon : "#2a1a1a"
                 groundBottom: window.scene ? window.scene.groundBottom : "#07080c"
+                // A 2D scene is edited flat (P3.10): panned by a drag, zoomed by the wheel to `distance` units tall, in
+                // the look it plays in; in play it is scaled as the Player scales it.
+                flat: window.scene ? window.scene.view === "2d" : false
+                pixelsPerUnit: window.scene ? window.scene.pixelsPerUnit : 16
+                viewHeight: window.playing && window.scene ? window.scene.viewHeight : window.distance
+                pixelArt: window.scene ? window.scene.pixelArt : true
+                freeZoom: !window.playing
 
                 Node { id: stage; visible: !window.playing }
                 Node { id: playStage }
@@ -627,7 +652,15 @@ ApplicationWindow {
                     backgroundMode: SceneEnvironment.Transparent
                     antialiasingMode: SceneEnvironment.MSAA
                 }
-                camera: overlayCamera
+                camera: world.flat ? overlayFlatCamera : overlayCamera
+                OrthographicCamera {
+                    id: overlayFlatCamera
+                    position: world.activeCamera.position
+                    horizontalMagnification: world.magnification
+                    verticalMagnification: world.magnification
+                    clipNear: 1
+                    clipFar: 4000
+                }
                 PerspectiveCamera {
                     id: overlayCamera
                     position: world.viewCamera.position
@@ -640,7 +673,20 @@ ApplicationWindow {
                     id: gizmo
                     objectName: "gizmo"
                     target: window.playing ? null : window.selection
-                    eye: world.viewCamera.position
+                    flat: world.flat
+                    // Flat, the handles keep the size they would have at the view's height away.
+                    eye: world.flat ? position.plus(Qt.vector3d(0, 0, world.viewHeight)) : world.activeCamera.position
+                }
+                // After this view changes camera (flat or not), the first change to its handles was not drawn: found in
+                // P3.10's checks, and drawn once anything asked for a frame later. So it asks, just after its camera
+                // changes and just after its handles move, show, hide or change size.
+                function repaint() { Qt.callLater(() => overlay.update()) }
+                onCameraChanged: repaint()
+                Connections {
+                    target: gizmo
+                    function onScenePositionChanged() { overlay.repaint() }
+                    function onVisibleChanged() { overlay.repaint() }
+                    function onSizeChanged() { overlay.repaint() }
                 }
             }
 
@@ -661,6 +707,7 @@ ApplicationWindow {
                 property vector3d startScale
                 property real startYaw
                 property real startPitch
+                property vector3d startTarget
                 property point lastTranslation
 
                 onActiveChanged: {
@@ -676,6 +723,7 @@ ApplicationWindow {
                         } else {
                             startYaw = window.yaw
                             startPitch = window.pitch
+                            startTarget = window.target
                         }
                     } else if (handle >= 0) {
                         handle = -1
@@ -689,6 +737,12 @@ ApplicationWindow {
                         lastTranslation = Qt.point(translation.x, translation.y)
                         return
                     }
+                    if (handle < 0 && world.flat) {
+                        // Flat, a drag pans: the world follows the pointer.
+                        window.target = startTarget.minus(Qt.vector3d(translation.x / world.magnification,
+                                                                      -translation.y / world.magnification, 0))
+                        return
+                    }
                     if (handle < 0) {
                         window.yaw = startYaw - translation.x * 0.3
                         window.pitch = Math.max(-5, Math.min(85, startPitch + translation.y * 0.3))
@@ -697,6 +751,11 @@ ApplicationWindow {
                     if (handle === 4) {
                         // Even scaling: right grows, left shrinks, by the same factor on every axis.
                         window.selection.scale = startScale.times(Math.exp(translation.x * 0.01))
+                        return
+                    }
+                    if (handle === 3 && world.flat) {
+                        window.selection.eulerRotation = Qt.vector3d(startRotation.x, startRotation.y,
+                                                                     startRotation.z - translation.x * 0.5)
                         return
                     }
                     if (handle === 3) {
@@ -727,7 +786,10 @@ ApplicationWindow {
                 anchors.left: parent.left
                 anchors.bottom: parent.bottom
                 anchors.margins: 14
-                text: !window.playing ? qsTr("Click to select · drag a handle to move · drag to orbit · scroll to zoom · F frames the selection · F5 plays")
+                text: !window.playing && world.flat ? qsTr("Click to select · drag a handle to move · drag to pan · scroll to zoom · F frames the selection · F5 plays")
+                    : !window.playing ? qsTr("Click to select · drag a handle to move · drag to orbit · scroll to zoom · F frames the selection · F5 plays")
+                    : window.follow && world.flat && window.follow.style === "top-down" ? qsTr("WASD or the left stick to move · Shift to run · Esc stops")
+                    : window.follow && world.flat ? qsTr("A and D or the left stick to move · Space or A to jump · Shift to run · Esc stops")
                     : window.follow ? qsTr("WASD or the left stick to move · Space or A to jump · Shift to run · drag, the arrows or the right stick to look · Esc stops")
                     : qsTr("Drag to orbit · scroll to zoom · Esc stops · add a Player to walk the world")
                 opacity: 0.45

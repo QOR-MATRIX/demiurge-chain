@@ -16,6 +16,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 #include <QVector3D>
+#include <QWheelEvent>
 #include <QtQml/qqmlextensionplugin.h>
 
 #include "gpu.h"
@@ -318,6 +319,60 @@ private slots:
                      && notice.contains(QStringLiteral("motion")),
                  qPrintable(notice));
         QCOMPARE(s.window->property("sceneName").toString(), QStringLiteral("first-light"));
+    }
+
+    void aTwoDimensionalSceneIsEditedFlat()
+    {
+        // P3.10: a 2D scene opens framed as its game starts, is panned by a drag and zoomed by the wheel, and its handles
+        // move things on the plane.
+        Studio s;
+        QVERIFY(s.open());
+        s.call("importScene", QUrl::fromLocalFile(fixture(QStringLiteral("first-light.qq.json"))));
+        auto *world = s.window->findChild<QQuickItem *>(QStringLiteral("world"));
+        QTRY_VERIFY(world->property("flat").toBool());
+        QCOMPARE(world->property("viewHeight").toDouble(), 5.4);
+        s.settle();
+        QObject *core = s.entity(QStringLiteral("Core"));
+        const QVector3D corePlace = core->property("scenePosition").value<QVector3D>();
+        // The core is the middle of the preview, so it is the middle of the view.
+        const QPointF middle = world->mapToScene(QPointF(world->width() / 2, world->height() / 2));
+        QPointF seen = s.onScreen("world", corePlace);
+        QVERIFY2((seen - middle).manhattanLength() < 2, qPrintable(QStringLiteral("at %1, %2").arg(seen.x()).arg(seen.y())));
+
+        // The handles see it where the world does, and there is no depth arrow.
+        s.window->setProperty("selection", QVariant::fromValue(core));
+        s.settle();
+        QVERIFY((s.onScreen("overlay", corePlace) - seen).manhattanLength() < 1.5);
+        QObject *gizmo = s.window->findChild<QObject *>(QStringLiteral("gizmo"));
+        QCOMPARE(gizmo->property("flat").toBool(), true);
+        const double handle = gizmo->property("size").toDouble();
+        const QPointF from = s.onScreen("overlay", corePlace + QVector3D(float(handle * 0.6), 0, 0));
+        const QPointF to = from + (s.onScreen("overlay", corePlace + QVector3D(1, 0, 0)) - s.onScreen("overlay", corePlace));
+        s.drag(from, to);
+        const QVector3D moved = core->property("position").value<QVector3D>();
+        QVERIFY2(qAbs(moved.x() - corePlace.x() - 1.0f) < 0.1f, qPrintable(QStringLiteral("x moved %1").arg(moved.x() - corePlace.x())));
+        QCOMPARE(moved.y(), corePlace.y());
+        QCOMPARE(moved.z(), 0.0f);
+
+        // A drag on nothing pans: what was under the pointer stays under it.
+        s.window->setProperty("selection", QVariant());
+        s.settle();
+        const QVector3D place = core->property("scenePosition").value<QVector3D>();
+        seen = s.onScreen("world", place);
+        s.drag(middle + QPointF(-200, -120), middle + QPointF(-80, -60));
+        const QPointF panned = s.onScreen("world", place) - seen;
+        QVERIFY2(qAbs(panned.x() - 120) < 2 && qAbs(panned.y() - 60) < 2,
+                 qPrintable(QStringLiteral("moved %1, %2").arg(panned.x()).arg(panned.y())));
+
+        // Scrolling forward shows fewer units, larger.
+        const double tall = world->property("viewHeight").toDouble();
+        QWheelEvent wheel(middle, s.window->mapToGlobal(middle), QPoint(), QPoint(0, 240), Qt::NoButton, Qt::NoModifier,
+                          Qt::NoScrollPhase, false);
+        QGuiApplication::sendEvent(s.window, &wheel);
+        s.settle();
+        QVERIFY2(world->property("viewHeight").toDouble() < tall * 0.85,
+                 qPrintable(QStringLiteral("%1 to %2").arg(tall).arg(world->property("viewHeight").toDouble())));
+        QCOMPARE(world->property("magnification").toDouble(), world->height() / world->property("viewHeight").toDouble());
     }
 
     void playThenStopLeavesTheSceneExactlyAsItWas()

@@ -3,7 +3,9 @@
 // its particles, sound and logic.
 //
 // With a player in the scene the eye follows it, and a drag looks around; without one the eye orbits the scene, a drag
-// turns it and scrolling comes closer. `restart()` plays the scene again from its file.
+// turns it and scrolling comes closer. A 2D scene is seen flat (P3.10; pixel art pixel for pixel, ADR-106), its eye on
+// the player and stopped at the level's edges, or with no player on the scene from the ground up. `restart()` plays the
+// scene again from its file.
 
 import QtQuick
 import QtQuick3D
@@ -39,7 +41,16 @@ World {
         middle.x + distance * Math.cos(pitch * Math.PI / 180) * Math.sin(yaw * Math.PI / 180),
         middle.y + distance * Math.sin(pitch * Math.PI / 180),
         middle.z + distance * Math.cos(pitch * Math.PI / 180) * Math.cos(yaw * Math.PI / 180))
-    target: follow ? follow.lookAt : middle
+    // Flat, the eye on the player stops at the level's edges (Scene.keptInView); with no player, it looks from the
+    // ground up.
+    target: follow ? (flat ? scene.keptInView(follow.lookAt, width / (2 * magnification), height / (2 * magnification))
+                           : follow.lookAt)
+                   : flat ? Qt.vector3d(0, viewHeight / 2, 0) : middle
+
+    flat: scene ? scene.view === "2d" : false
+    pixelsPerUnit: scene ? scene.pixelsPerUnit : 16
+    viewHeight: scene ? scene.viewHeight : 12
+    pixelArt: scene ? scene.pixelArt : true
 
     hearing: true
     exposure: scene ? scene.exposure : 1
@@ -88,6 +99,7 @@ World {
 
     DragHandler {
         target: null
+        enabled: !game.flat || game.follow !== null
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         property point last
         property real startYaw
@@ -109,7 +121,7 @@ World {
     }
 
     WheelHandler {
-        enabled: !game.follow
+        enabled: !game.follow && !game.flat
         onWheel: (event) => game.distance = Math.max(1.5, Math.min(80, game.distance * Math.pow(0.9, event.angleDelta.y / 120)))
     }
 }

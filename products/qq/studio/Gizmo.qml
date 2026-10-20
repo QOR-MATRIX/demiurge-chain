@@ -3,7 +3,8 @@
 // are always on top and never part of the scene; they keep one size on screen however far the eye is.
 //
 // Each handle's model carries `axis`: 0, 1, 2 to move along X, Y, Z, 3 to turn about Y, and 4 to scale. The Studio
-// reads it from what a press lands on.
+// reads it from what a press lands on. On a flat (2D) scene there is no depth arrow, since it would point at the eye,
+// and the knob turns about the depth axis instead.
 
 import QtQuick
 import QtQuick3D
@@ -13,6 +14,7 @@ Node {
 
     property QtObject target: null
     property vector3d eye: Qt.vector3d(0, 0, 10)
+    property bool flat: false
 
     // Handles for what a file keeps: an entity with no place (a sun, the ground, a behaviour) has none, and one that
     // keeps no turn or scale has no knob or cube.
@@ -47,7 +49,7 @@ Node {
 
     Arrow { axis: 0; colour: "#ff4d5e"; eulerRotation: Qt.vector3d(0, 0, -90) }
     Arrow { axis: 1; colour: "#6cf07f" }
-    Arrow { axis: 2; colour: "#4da3ff"; eulerRotation: Qt.vector3d(90, 0, 0) }
+    Arrow { axis: 2; colour: "#4da3ff"; eulerRotation: Qt.vector3d(90, 0, 0); visible: !gizmo.flat }
 
     Model {
         readonly property int axis: 3

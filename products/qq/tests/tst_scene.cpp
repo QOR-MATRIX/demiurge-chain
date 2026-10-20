@@ -3,10 +3,14 @@
 // A scene file is canonical QML: read and written back it is the same bytes, and one changed value is one changed line,
 // so Projects shows a creator's change as what it is. These cases drive SceneIO through a real QML engine with the
 // runtime module "QQ", against the fixtures: tests/fixtures/scenes/sample.qml (every entity type, written by hand in
-// the canonical layout) and tests/fixtures/first-light.qq.json (the 2D preview's starter scene).
+// the canonical layout), tests/fixtures/first-light.qq.json (the 2D preview's starter scene), and the 2D fixtures that
+// tests/fixtures/make_2d.py writes (a Tiled map, its tileset and a sheet of sprite frames, P3.10).
 
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QQmlEngine>
 #include <QTemporaryDir>
 #include <QTest>
@@ -15,6 +19,7 @@
 #include <QtQuick3D/qquick3dobject.h>
 
 #include "sceneio.h"
+#include "tilemap.h"
 
 Q_IMPORT_QML_PLUGIN(QQPlugin)
 
@@ -98,7 +103,8 @@ private slots:
                                      QStringLiteral("Emitter"), QStringLiteral("Sound"), QStringLiteral("Behaviour"),
                                      QStringLiteral("Trigger"), QStringLiteral("ScreenText"), QStringLiteral("ScreenBar"),
                                      QStringLiteral("ScreenImage"), QStringLiteral("ScreenPanel"),
-                                     QStringLiteral("ScreenButton"), QStringLiteral("InputAction")}));
+                                     QStringLiteral("ScreenButton"), QStringLiteral("InputAction"),
+                                     QStringLiteral("Sprite"), QStringLiteral("TileMap"), QStringLiteral("Player2D")}));
         // Every kind there is.
         QStringList sorted = kinds;
         sorted.sort();
@@ -215,9 +221,9 @@ private slots:
         int live = 0;
         for (const QVariant &e : io->entities(copy))
             live += e.value<QObject *>()->property("live").toBool() ? 1 : 0;
-        // The ground, the shape, the player, the sound, the behaviour, the trigger, the five screen parts and the action;
-        // the rest are the same in play.
-        QCOMPARE(live, 12);
+        // The ground, the shape, the player, the sound, the behaviour, the trigger, the five screen parts, the action, the
+        // sprite, the tile map and the 2D player; the rest are the same in play.
+        QCOMPARE(live, 15);
         for (const QVariant &e : io->entities(scene))
             QVERIFY(!e.value<QObject *>()->property("live").toBool());
         // The copy is the scene, and the scene is as it was; `playing` is not part of either's file.
@@ -254,6 +260,12 @@ private slots:
         QObject *scene = io->loadText(qml, QUrl(), nullptr);
         QVERIFY2(scene, qPrintable(io->lastError()));
         QCOMPARE(io->write(scene), qml);  // canonical
+        // Still a 2D scene (P3.10): flat, 100 pixels to a unit, the view its height of 540 pixels, its backdrop its own.
+        QCOMPARE(scene->property("view").toString(), QStringLiteral("2d"));
+        QCOMPARE(scene->property("pixelsPerUnit").toDouble(), 100.0);
+        QCOMPARE(scene->property("viewHeight").toDouble(), 5.4);
+        QCOMPARE(scene->property("pixelArt").toBool(), false);
+        QCOMPARE(scene->property("skyTop").value<QColor>(), QColor(QStringLiteral("#07080c")));
         QObject *core = entityNamed(scene, QStringLiteral("Core"));
         QVERIFY(core);
         QCOMPARE(core->property("form").toString(), QStringLiteral("sphere"));
@@ -295,14 +307,14 @@ private slots:
         const QUrl url = QUrl::fromLocalFile(fixture(QStringLiteral("scenes/sample.qml")));
         QObject *scene = io->load(url, nullptr);
         QVERIFY(scene);
-        QCOMPARE(io->entities(scene).size(), 16);
+        QCOMPARE(io->entities(scene).size(), 19);
 
         QObject *crystal = io->add(scene, QStringLiteral("Shape"),
                                    {{QStringLiteral("name"), QStringLiteral("Crystal")},
                                     {QStringLiteral("form"), QStringLiteral("cone")},
                                     {QStringLiteral("position"), QVector3D(2, 0.5f, -1)}});
         QVERIFY2(crystal, qPrintable(io->lastError()));
-        QCOMPARE(io->entities(scene).size(), 17);
+        QCOMPARE(io->entities(scene).size(), 20);
         const QString text = io->write(scene, url);
         QVERIFY2(text.endsWith(QStringLiteral("    Shape {\n        name: \"Crystal\"\n        position: Qt.vector3d(2, 0.5, -1)\n")
                                + QStringLiteral("        eulerRotation: Qt.vector3d(0, 0, 0)\n        scale: Qt.vector3d(1, 1, 1)\n")
@@ -320,7 +332,7 @@ private slots:
         QVERIFY(io->remove(crystal));
         QVERIFY(!io->remove(scene));
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-        QCOMPARE(io->entities(scene).size(), 16);
+        QCOMPARE(io->entities(scene).size(), 19);
         QCOMPARE(io->write(scene, url), readAll(url.toLocalFile()));
         delete scene;
     }
@@ -362,6 +374,173 @@ private slots:
         const QVariantMap result = io->importQqJson(QUrl::fromLocalFile(f.fileName()));
         QVERIFY(result.value(QStringLiteral("error")).toString().contains(QStringLiteral("format 1")));
         QVERIFY(result.value(QStringLiteral("qml")).toString().isEmpty());
+    }
+
+    // ── 2D (P3.10, ADR-105) ──
+
+    void aTiledMapIsReadWithItsTilesetAndItsSolidsMerged()
+    {
+        const QUrl level = QUrl::fromLocalFile(fixture(QStringLiteral("level.tmj")));
+        QVariantMap map = io->readTiledMap(level);
+        QCOMPARE(map.value(QStringLiteral("error")).toString(), QString());
+        QCOMPARE(map.value(QStringLiteral("width")).toInt(), 10);
+        QCOMPARE(map.value(QStringLiteral("height")).toInt(), 5);
+        QCOMPARE(map.value(QStringLiteral("tileWidth")).toInt(), 16);
+        // The tileset is the external one beside the map, and its image is beside that.
+        QCOMPARE(map.value(QStringLiteral("image")).toUrl(), QUrl::fromLocalFile(fixture(QStringLiteral("tiles.png"))));
+        QCOMPARE(map.value(QStringLiteral("imageWidth")).toInt(), 32);
+        QCOMPARE(map.value(QStringLiteral("tileColumns")).toInt(), 2);
+        QCOMPARE(map.value(QStringLiteral("tileCount")).toInt(), 4);
+        QCOMPARE(map.value(QStringLiteral("firstGid")).toInt(), 1);
+        const QVariantList gids = map.value(QStringLiteral("gids")).toList();
+        QCOMPARE(gids.size(), 50);
+        QCOMPARE(gids.at(9).toLongLong(), 3);                       // the wall's top
+        QCOMPARE(gids.at(44).toLongLong(), qint64(0x80000002u));    // the mirrored green, its flag kept
+        // The wall, the ledge and the floor: three colliders for sixteen tiles.
+        const QVariantList solids = map.value(QStringLiteral("solids")).toList();
+        QCOMPARE(solids, (QVariantList{QVariant(QVariantList{9, 0, 1, 4}), QVariant(QVariantList{5, 1, 2, 1}),
+                                        QVariant(QVariantList{0, 4, 10, 1})}));
+
+        // Another layer, by its name.
+        map = io->readTiledMap(level, QStringLiteral("decor"));
+        QCOMPARE(map.value(QStringLiteral("solids")).toList(), (QVariantList{QVariant(QVariantList{2, 2, 1, 1})}));
+        map = io->readTiledMap(level, QStringLiteral("clouds"));
+        QVERIFY2(map.value(QStringLiteral("error")).toString().contains(QStringLiteral("no tile layer called clouds")),
+                 qPrintable(map.value(QStringLiteral("error")).toString()));
+
+        // The image's size, for a sprite's.
+        QCOMPARE(io->imageSize(QUrl::fromLocalFile(fixture(QStringLiteral("sheet.png")))), QSize(32, 16));
+        QCOMPARE(io->imageSize(QUrl::fromLocalFile(fixture(QStringLiteral("no-such.png")))), QSize());
+    }
+
+    void aMapSavedAsBase64WithItsTilesetInsideReadsTheSame()
+    {
+        // Tiled's other common way: tiles as zlib-compressed Base64, the tileset kept in the map.
+        QFile f(fixture(QStringLiteral("level.tmj")));
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QJsonObject json = QJsonDocument::fromJson(f.readAll()).object();
+        QJsonArray layers = json.value(QStringLiteral("layers")).toArray();
+        QJsonObject ground = layers.at(0).toObject();
+        QByteArray bytes;
+        for (const QJsonValue &v : ground.value(QStringLiteral("data")).toArray()) {
+            const auto gid = quint32(v.toDouble());
+            for (int i = 0; i < 4; ++i)
+                bytes.append(char((gid >> (8 * i)) & 0xff));
+        }
+        // qCompress puts the size first; Tiled's stream is the zlib stream alone.
+        ground.insert(QStringLiteral("data"), QString::fromLatin1(qCompress(bytes).mid(4).toBase64()));
+        ground.insert(QStringLiteral("encoding"), QStringLiteral("base64"));
+        ground.insert(QStringLiteral("compression"), QStringLiteral("zlib"));
+        layers.replace(0, ground);
+        json.insert(QStringLiteral("layers"), layers);
+        json.insert(QStringLiteral("tilesets"), QJsonArray{QJsonObject{
+            {QStringLiteral("firstgid"), 1}, {QStringLiteral("columns"), 2}, {QStringLiteral("image"), QStringLiteral("art/tiles.png")},
+            {QStringLiteral("imagewidth"), 32}, {QStringLiteral("imageheight"), 32}, {QStringLiteral("tilecount"), 4},
+            {QStringLiteral("tilewidth"), 16}, {QStringLiteral("tileheight"), 16}}});
+        QTemporaryDir dir;
+        QVERIFY(QDir(dir.path()).mkpath(QStringLiteral("art")));
+        QVERIFY(QFile::copy(fixture(QStringLiteral("tiles.png")), QDir(dir.path()).filePath(QStringLiteral("art/tiles.png"))));
+        QFile out(QDir(dir.path()).filePath(QStringLiteral("packed.tmj")));
+        QVERIFY(out.open(QIODevice::WriteOnly));
+        out.write(QJsonDocument(json).toJson());
+        out.close();
+
+        const QVariantMap plain = io->readTiledMap(QUrl::fromLocalFile(fixture(QStringLiteral("level.tmj"))));
+        const QVariantMap packed = io->readTiledMap(QUrl::fromLocalFile(out.fileName()));
+        QCOMPARE(packed.value(QStringLiteral("error")).toString(), QString());
+        QCOMPARE(packed.value(QStringLiteral("gids")), plain.value(QStringLiteral("gids")));
+        QCOMPARE(packed.value(QStringLiteral("solids")), plain.value(QStringLiteral("solids")));
+        QCOMPARE(packed.value(QStringLiteral("image")).toUrl(),
+                 QUrl::fromLocalFile(QDir(dir.path()).filePath(QStringLiteral("art/tiles.png"))));
+        QCOMPARE(qq::tiledMapNeeds(out.fileName()), QStringList{QStringLiteral("art/tiles.png")});
+    }
+
+    void whatAMapCannotBeIsRefusedWithAReason_data()
+    {
+        QTest::addColumn<QByteArray>("change");
+        QTest::addColumn<QString>("reason");
+        QTest::newRow("infinite") << QByteArray("\"infinite\": true") << QStringLiteral("Infinite maps");
+        QTest::newRow("isometric") << QByteArray("\"orientation\": \"isometric\"") << QStringLiteral("orthogonal");
+        QTest::newRow("zstd") << QByteArray("\"compression\": \"zstd\"") << QStringLiteral("zstd");
+        QTest::newRow("short") << QByteArray("\"width\": 11") << QStringLiteral("room for 55");
+        QTest::newRow("no tileset") << QByteArray("\"tilesets\": []") << QStringLiteral("no tileset");
+        QTest::newRow("images") << QByteArray("\"tilesets\": [{\"firstgid\": 1, \"tiles\": []}]")
+                                << QStringLiteral("collection of images");
+    }
+
+    void whatAMapCannotBeIsRefusedWithAReason()
+    {
+        QFETCH(QByteArray, change);
+        QFETCH(QString, reason);
+        QFile f(fixture(QStringLiteral("level.tmj")));
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QJsonObject json = QJsonDocument::fromJson(f.readAll()).object();
+        const QJsonObject patch = QJsonDocument::fromJson("{" + change + "}").object();
+        QVERIFY(!patch.isEmpty());
+        for (auto it = patch.begin(); it != patch.end(); ++it) {
+            if (it.key() == QStringLiteral("compression")) {
+                QJsonArray layers = json.value(QStringLiteral("layers")).toArray();
+                QJsonObject ground = layers.at(0).toObject();
+                ground.insert(QStringLiteral("encoding"), QStringLiteral("base64"));
+                ground.insert(QStringLiteral("data"), QStringLiteral("AAAA"));
+                ground.insert(it.key(), it.value());
+                layers.replace(0, ground);
+                json.insert(QStringLiteral("layers"), layers);
+            } else {
+                json.insert(it.key(), it.value());
+            }
+        }
+        QTemporaryDir dir;
+        QFile out(QDir(dir.path()).filePath(QStringLiteral("bad.tmj")));
+        QVERIFY(out.open(QIODevice::WriteOnly));
+        out.write(QJsonDocument(json).toJson());
+        out.close();
+        const QString error = io->readTiledMap(QUrl::fromLocalFile(out.fileName())).value(QStringLiteral("error")).toString();
+        QVERIFY2(error.contains(reason), qPrintable(error));
+    }
+
+    void solidTilesBecomeTheFewestRectangles()
+    {
+        // A U: each side is a run joined down the rows, and its foot is one run.
+        //   x . . x
+        //   x . . x
+        //   x x x x
+        const QList<int> grid{1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1};
+        QCOMPARE(qq::mergedSolids(grid, 4, 3),
+                 (QList<QList<int>>{{0, 0, 1, 2}, {3, 0, 1, 2}, {0, 2, 4, 1}}));
+        QCOMPARE(qq::mergedSolids(QList<int>(6, 0), 3, 2), QList<QList<int>>{});
+        QCOMPARE(qq::mergedSolids(QList<int>(6, 1), 3, 2), (QList<QList<int>>{{0, 0, 3, 2}}));
+    }
+
+    void aMapAdoptedIntoAProjectBringsItsTilesetAndImage()
+    {
+        QTemporaryDir project;
+        const QUrl adopted = io->adopt(QUrl::fromLocalFile(fixture(QStringLiteral("level.tmj"))),
+                                       QUrl::fromLocalFile(project.path()));
+        QVERIFY2(!adopted.isEmpty(), qPrintable(io->lastError()));
+        const QDir assets(QDir(project.path()).filePath(QStringLiteral("assets")));
+        QVERIFY(QFileInfo::exists(assets.filePath(QStringLiteral("tiles.tsj"))));
+        QVERIFY(QFileInfo::exists(assets.filePath(QStringLiteral("tiles.png"))));
+        const QVariantMap map = io->readTiledMap(adopted);
+        QCOMPARE(map.value(QStringLiteral("error")).toString(), QString());
+        QCOMPARE(map.value(QStringLiteral("image")).toUrl(), QUrl::fromLocalFile(assets.filePath(QStringLiteral("tiles.png"))));
+
+        // A map whose tileset is outside its folder could not keep that path, so it is refused, and nothing is copied.
+        QTemporaryDir elsewhere;
+        const QDir root(elsewhere.path());
+        QVERIFY(root.mkpath(QStringLiteral("maps")));
+        QVERIFY(QFile::copy(fixture(QStringLiteral("tiles.tsj")), root.filePath(QStringLiteral("tiles.tsj"))));
+        QFile f(fixture(QStringLiteral("level.tmj")));
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QByteArray text = f.readAll();
+        text.replace("\"tiles.tsj\"", "\"../tiles.tsj\"");
+        QFile out(root.filePath(QStringLiteral("maps/far.tmj")));
+        QVERIFY(out.open(QIODevice::WriteOnly));
+        out.write(text);
+        out.close();
+        QVERIFY(io->adopt(QUrl::fromLocalFile(out.fileName()), QUrl::fromLocalFile(project.path())).isEmpty());
+        QVERIFY2(io->lastError().contains(QStringLiteral("outside its folder")), qPrintable(io->lastError()));
+        QVERIFY(!QFileInfo::exists(assets.filePath(QStringLiteral("far.tmj"))));
     }
 };
 

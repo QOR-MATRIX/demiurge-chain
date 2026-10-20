@@ -11,6 +11,10 @@ Scene {
     bloom: true
     gravity: 9.81
     screens: "hud"
+    view: "3d"
+    pixelsPerUnit: 16
+    viewHeight: 12
+    pixelArt: true
 
     Sun {
         name: "Sun"
@@ -167,5 +171,51 @@ Scene {
         name: "fire"
         keys: "F, Mouse Left"
         pad: "X, RT"
+    }
+
+    Sprite {
+        name: "Runner"
+        position: Qt.vector3d(-3, 0.25, 2)
+        eulerRotation: Qt.vector3d(0, 0, 0)
+        scale: Qt.vector3d(1, 1, 1)
+        source: "../sheet.png"
+        columns: 4
+        rows: 2
+        frame: 4
+        first: 4
+        count: 4
+        fps: 8
+        colour: "#ffffff"
+        lit: false
+        crisp: true
+        flip: false
+        body: "none"
+        turns: false
+        mass: 1
+        bounce: 0.1
+        friction: 0.6
+    }
+
+    TileMap {
+        name: "Level"
+        position: Qt.vector3d(4, 3, -4)
+        source: "../level.tmj"
+        layer: "ground"
+        solid: true
+        bounds: false
+        lit: false
+        colour: "#ffffff"
+    }
+
+    Player2D {
+        name: "Hero"
+        position: Qt.vector3d(-4, 0, 3)
+        style: "platform"
+        width: 0.75
+        height: 1
+        speed: 5
+        jumpHeight: 3
+        colour: "#ff6a00"
+        look: "Runner"
     }
 }

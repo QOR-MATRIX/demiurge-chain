@@ -12,6 +12,7 @@
 #pragma once
 
 #include <QObject>
+#include <QSize>
 #include <QString>
 #include <QUrl>
 #include <QVariantMap>
@@ -75,8 +76,8 @@ public:
     // ── Editing: what the Studio's panels do, and what the agent's tools will do (P3.3) ──
 
     /// The kinds an entity can be: "Shape", "Lamp", "Prop", "Sun", "Ground", "Player", "Emitter", "Sound", "Behaviour",
-    /// "Trigger", the screen kinds "ScreenText", "ScreenBar", "ScreenButton", "ScreenImage", "ScreenPanel", and
-    /// "InputAction".
+    /// "Trigger", the screen kinds "ScreenText", "ScreenBar", "ScreenButton", "ScreenImage", "ScreenPanel",
+    /// "InputAction", and the 2D kinds "Sprite", "TileMap" and "Player2D".
     Q_INVOKABLE QStringList kinds() const;
 
     /// The scene's entities, in file order.
@@ -98,6 +99,13 @@ public:
     /// The entity of `scene` that `object` belongs to: a model drawn for it, a body play made for it, or the entity
     /// itself. Null for anything else.
     Q_INVOKABLE QObject *entityOf(QObject *scene, QObject *object) const;
+
+    /// An image's size in pixels, read from its header (a Sprite sizes itself by it, P3.10), or 0 by 0 if it cannot be
+    /// read or is outside a confined game's package.
+    Q_INVOKABLE QSize imageSize(const QUrl &image) const;
+
+    /// A map drawn in Tiled (a TileMap reads it, P3.10): readTiledMap() in tilemap.h, held to a confined game's package.
+    Q_INVOKABLE QVariantMap readTiledMap(const QUrl &file, const QString &layer = {}) const;
 
     /// Put a whole scene away (the Studio, opening another or stopping play). Its physics bodies are destroyed at once,
     /// before their world; everything else when control returns to the event loop.

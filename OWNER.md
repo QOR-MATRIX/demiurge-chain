@@ -31,9 +31,13 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 QOR ID redeployed with its cleaned-up database on its own.
 
 **Merged since:** QQ's game interface (P3.8, #57): titles, scores, bars, buttons and pause
-screens over the game, in our own typefaces. **Built since:** controls a player can rebind
-(P3.9): any key, mouse or pad button, and on-screen buttons for touch. Orb Run pauses on P
-or the pad's Start. It is pull request **#59**, waiting for you to merge.
+screens. Rebindable controls (P3.9, #59): any key, mouse or pad button, and touch buttons.
+
+**Built since: QQ makes 2D games** (P3.10). Pixel art stays sharp at any window size and
+shows its exact colours. Levels are drawn in **Tiled** — *the free level editor most 2D
+games use* — and characters run and jump. **Ember Climb**, a small platformer, proves it.
+ADR-106 — *a recorded decision* — notes two choices: drawn art scales freely, and each map
+layer is one mesh. All tests pass. It is pull request **#60**, waiting for you to merge.
 
 ## Toward a worldwide beta: what only you can do
 

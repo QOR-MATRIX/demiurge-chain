@@ -4,7 +4,8 @@
 // for each frame drawn, so time here is time on the screen. What is checked is where things end up (a crate at rest on
 // the ground, a player who walked four metres forward), what the player's hands did (keys sent to the window, a
 // gamepad's state), what was drawn (particles counted by their colour in the frame), and what a logic file does
-// before and after it is saved again while the world plays.
+// before and after it is saved again while the world plays. A 2D world (P3.10) is checked pixel for pixel against the
+// colours tests/fixtures/make_2d.py paints.
 
 #include <QDir>
 #include <QElapsedTimer>
@@ -16,6 +17,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QSaveFile>
+#include <QSet>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -182,6 +184,24 @@ struct Stage {
 
     qq::Input *input() { return engine.singletonInstance<qq::Input *>("QQ", "Input"); }
 
+    /// Seen flat, as a Game sees a 2D scene: `ppu` pixels of art to a unit, at least `viewHeight` units tall, centred
+    /// on `target`.
+    void flat(double ppu, double viewHeight, const QVector3D &target)
+    {
+        world->setProperty("pixelsPerUnit", ppu);
+        world->setProperty("viewHeight", viewHeight);
+        world->setProperty("target", target);
+        world->setProperty("flat", true);
+    }
+
+    /// Where a point of the world is in a grabbed frame, in its device pixels.
+    QPoint devicePixel(const QVector3D &at, const QImage &frame) const
+    {
+        QVector3D onScreen;
+        QMetaObject::invokeMethod(world, "mapFrom3DScene", Q_RETURN_ARG(QVector3D, onScreen), Q_ARG(QVector3D, at));
+        return QPoint(qRound(onScreen.x() * frame.devicePixelRatio()), qRound(onScreen.y() * frame.devicePixelRatio()));
+    }
+
     /// What a screen part drew on the World's overlay (P3.8), by the part's name, or null.
     QQuickItem *drawn(const QString &name) const
     {
@@ -195,6 +215,38 @@ struct Stage {
         return nullptr;
     }
 };
+
+/// A 2D scene's text: flat, 16 pixels to a unit, no ground (seen edge on, it would be a line across the view).
+QString flatText(const QString &entities, const QString &settings = {})
+{
+    return QStringLiteral("import QQ\nScene {\n    name: \"play\"\n    view: \"2d\"\n    pixelsPerUnit: 16\n%1    Sun {}\n%2}\n")
+        .arg(settings, entities);
+}
+
+/// A project folder with the 2D fixtures in its assets/, and where its scene goes.
+struct FlatProject {
+    QTemporaryDir dir;
+    FlatProject()
+    {
+        QDir(dir.path()).mkpath(QStringLiteral("assets"));
+        for (const char *name : {"level.tmj", "tiles.tsj", "tiles.png", "sheet.png"})
+            QFile::copy(fixture(QLatin1String(name)), QDir(dir.path()).filePath(QStringLiteral("assets/") + QLatin1String(name)));
+    }
+    QUrl scene() const { return QUrl::fromLocalFile(QDir(dir.path()).filePath(QStringLiteral("scenes/play.qml"))); }
+};
+
+/// The colours make_2d.py paints: the sheet's eight frames, and the tileset's four tiles.
+const QColor frameColours[] = {QColor(200, 40, 40), QColor(40, 200, 40), QColor(40, 40, 200), QColor(200, 200, 40),
+                               QColor(200, 40, 200), QColor(40, 200, 200), QColor(240, 120, 20), QColor(120, 20, 240)};
+const QColor tileColours[] = {QColor(192, 48, 40), QColor(48, 160, 80), QColor(48, 80, 192), QColor(224, 192, 64)};
+
+/// Whether `c` is `want` as painted, give or take rounding: two levels, or six in a dark channel, which the renderer
+/// holds with fewer steps.
+bool painted(const QColor &c, const QColor &want)
+{
+    auto near = [](int got, int wanted) { return qAbs(got - wanted) <= (wanted < 48 ? 6 : 2); };
+    return near(c.red(), want.red()) && near(c.green(), want.green()) && near(c.blue(), want.blue());
+}
 
 QString sceneText(const QString &entities, const QString &settings = {})
 {
@@ -854,6 +906,114 @@ private slots:
         QVERIFY(s.runUntil([&] { return !s.scene->property("paused").toBool() && !paused->isVisible(); }, 3000));
     }
 
+    void theEmberClimbSampleIsA2DGameMadeOfKindsAndLogic()
+    {
+        const QString path = QDir(QStringLiteral(QQ_SAMPLES)).filePath(QStringLiteral("ember-climb/scenes/ember-climb.qml"));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QString text = QString::fromUtf8(file.readAll());
+        const QUrl url = QUrl::fromLocalFile(path);
+
+        // Kept as the Studio keeps a scene: written back, it is the same bytes.
+        {
+            Stage editing;
+            QVERIFY(editing.open(text, false, url));
+            QCOMPARE(editing.io->write(editing.scene, url), text);
+        }
+
+        Stage s;
+        QVERIFY(s.open(text, true, url));
+        s.flat(16, 12, QVector3D(8, 6, 0));
+        QObject *rules = s.entity(QStringLiteral("Rules"));
+        auto logic = [rules] { return rules->property("logic").value<QObject *>(); };
+        auto gathered = [&] { return logic() ? logic()->property("gathered").toInt() : -1; };
+        // Its level is drawn from Tiled, both layers, and the solid one stands.
+        QCOMPARE(s.entity(QStringLiteral("Level"))->property("error").toString(), QString());
+        QVERIFY(s.entity(QStringLiteral("Level"))->property("count").toInt() > 100);
+        QVERIFY(s.entity(QStringLiteral("Wall"))->property("count").toInt() > 400);
+        QVERIFY2(s.runUntil([&] { return s.entity(QStringLiteral("Ember 8")) != nullptr; }, 5000),
+                 qPrintable(rules->property("error").toString()));
+        QCOMPARE(s.entity(QStringLiteral("Embers"))->property("text").toString(), QStringLiteral("EMBERS 0 / 8"));
+
+        // The eye stops at the level's edges: at the start, a view 20 by 12 units has its left and foot on the level's.
+        auto keptInView = [&s](const QVector3D &point, double halfWidth, double halfHeight) {
+            QVariant kept;
+            QMetaObject::invokeMethod(s.scene, "keptInView", Q_RETURN_ARG(QVariant, kept),
+                                      Q_ARG(QVariant, QVariant::fromValue(point)), Q_ARG(QVariant, halfWidth),
+                                      Q_ARG(QVariant, halfHeight));
+            return kept.value<QVector3D>();
+        };
+        QCOMPARE(keptInView(QVector3D(2.5f, 2.5f, 0), 10, 6), QVector3D(10, 6, 0));
+        QCOMPARE(keptInView(QVector3D(24, 8, 0), 10, 6), QVector3D(24, 8, 0));
+        // A view wider than the level is centred on it.
+        QCOMPARE(keptInView(QVector3D(2.5f, 2.5f, 0), 30, 6), QVector3D(24, 6, 0));
+
+        // It opens on its title, the world held still; Play starts the climb.
+        auto centre = [](QQuickItem *item) {
+            return item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint();
+        };
+        QQuickItem *title = s.drawn(QStringLiteral("Title"));
+        QQuickItem *play = s.drawn(QStringLiteral("Play"));
+        QQuickItem *hud = s.drawn(QStringLiteral("Embers"));
+        QVERIFY(title && play && hud);
+        QVERIFY(s.runUntil([&] { return s.scene->property("paused").toBool() && title->opacity() > 0.99; }, 3000));
+        s.window->grabWindow().save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-ember-climb-title.png")));
+        QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(play));
+        QVERIFY(s.runUntil([&] { return !s.scene->property("paused").toBool() && !title->isVisible() && hud->isVisible(); },
+                           3000));
+
+        // Run right: through the first ember (gathered, and gone), the hero's look running...
+        QObject *hero = s.entity(QStringLiteral("Hero"));
+        QObject *look = s.entity(QStringLiteral("Hero look"));
+        auto feet = [hero] { return hero->property("feet").value<QVector3D>(); };
+        QVERIFY(s.runUntil([&] { return qAbs(feet().y() - 2) < 0.05f; }, 3000));
+        QTest::keyPress(s.window.get(), Qt::Key_D);
+        QVERIFY(s.runUntil([&] { return look->property("first").toInt() == 4; }, 2000));  // the running frames
+        const bool took = s.runUntil([&] { return gathered() == 1; }, 4000);
+        QVERIFY2(took, "the hero ran through the first ember without gathering it");
+        QCOMPARE(s.entity(QStringLiteral("Embers"))->property("text").toString(), QStringLiteral("EMBERS 1 / 8"));
+        QTRY_VERIFY(!s.entity(QStringLiteral("Ember 1")) && !s.entity(QStringLiteral("Ember 1 glow")));
+        s.flat(16, 12, hero->property("lookAt").value<QVector3D>());
+        s.window->grabWindow().save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-ember-climb.png")));
+        // ...and on, into the first pit, and back to the start.
+        bool wentFar = false;
+        const bool back = s.runUntil([&] {
+            wentFar = wentFar || feet().x() > 10;
+            return wentFar && feet().x() < 4;
+        }, 8000);
+        QTest::keyRelease(s.window.get(), Qt::Key_D);
+        QVERIFY2(back, qPrintable(QStringLiteral("at %1, %2").arg(feet().x()).arg(feet().y())));
+
+        // P pauses and P goes on (its action, P3.9).
+        QQuickItem *paused = s.drawn(QStringLiteral("Paused"));
+        QTest::keyClick(s.window.get(), Qt::Key_P);
+        QVERIFY(s.runUntil([&] { return s.scene->property("paused").toBool() && paused->isVisible(); }, 3000));
+        QTest::keyClick(s.window.get(), Qt::Key_P);
+        QVERIFY(s.runUntil([&] { return !s.scene->property("paused").toBool() && !paused->isVisible(); }, 3000));
+
+        // Every other ember, the hero put on each in turn: the forge is lit, the time shown, the world held.
+        QObject *body = hero->property("physics").value<QObject *>();
+        QVERIFY(body);
+        for (int i = 2; i <= 8 && gathered() < 8; ++i) {
+            QObject *ember = s.entity(QStringLiteral("Ember %1").arg(i));
+            QVERIFY(ember);
+            const QVector3D at = ember->property("position").value<QVector3D>();
+            QMetaObject::invokeMethod(body, "teleport", Q_ARG(QVector3D, QVector3D(at.x(), at.y(), 0)));
+            QVERIFY2(s.runUntil([&] { return gathered() >= i; }, 3000), qPrintable(QStringLiteral("ember %1").arg(i)));
+        }
+        QQuickItem *lit = s.drawn(QStringLiteral("Lit"));
+        QVERIFY(s.runUntil([&] { return s.scene->property("paused").toBool() && lit->opacity() > 0.99; }, 3000));
+        QVERIFY(s.entity(QStringLiteral("Took"))->property("text").toString().startsWith(QStringLiteral("Climbed in 0:")));
+        s.window->grabWindow().save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-ember-climb-won.png")));
+
+        // Again: the embers back, none gathered, the hero at the start, climbing.
+        QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(s.drawn(QStringLiteral("Again"))));
+        QVERIFY(s.runUntil([&] { return !s.scene->property("paused").toBool() && hud->isVisible() && !lit->isVisible(); }, 3000));
+        QCOMPARE(gathered(), 0);
+        QVERIFY(s.runUntil([&] { return s.entity(QStringLiteral("Ember 8")) != nullptr; }, 2000));
+        QVERIFY(s.runUntil([&] { return feet().x() < 4; }, 2000));
+    }
+
     // ── the game's interface (P3.8, ADR-105) ──
 
     void aScreenDrawsWhatLogicSetsOverTheWorld()
@@ -1197,6 +1357,224 @@ private slots:
         QVERIFY2(s.runUntil([&] { return over() == QStringLiteral("nothing"); }, 2000), qPrintable(over()));
         QTest::mouseMove(s.window.get(), QPoint(s.window->width() / 2, s.window->height() - 8));  // the ground
         QVERIFY2(s.runUntil([&] { return over() == QStringLiteral("Ground"); }, 2000), qPrintable(over()));
+    }
+
+    // ── 2D (P3.10, ADR-105) ──
+
+    void aCrispSpriteIsDrawnPixelForPixelAtAWholeZoom()
+    {
+        FlatProject project;
+        Stage s;
+        QVERIFY(s.open(flatText(QStringLiteral(
+                           "    Sprite { name: \"Frame\"; source: \"../assets/sheet.png\"; columns: 4; rows: 2; frame: 5 }\n")),
+                       true, project.scene()));
+        s.flat(16, 12, QVector3D(0, 0, 0));
+        QObject *sprite = s.entity(QStringLiteral("Frame"));
+        // An 8-pixel frame, at 16 pixels to a unit: half a unit across.
+        QCOMPARE(sprite->property("size").value<QVector3D>(), QVector3D(0.5f, 0.5f, 1));
+        s.run(300);
+        const int zoom = s.world->property("zoom").toInt();
+        QVERIFY(zoom >= 1);
+        const QImage frame = s.window->grabWindow();
+        QCOMPARE(qRound(s.world->property("magnification").toDouble() * frame.devicePixelRatio()), 16 * zoom);
+
+        // Every art pixel is a square of `zoom` device pixels, its edges sharp: the white block at the frame's top-left
+        // is two art pixels each way, then the frame's colour. Frame 5 is on the sheet's second row: a sheet read
+        // upside down would show frame 1.
+        const QPoint corner = s.devicePixel(QVector3D(-0.25f, 0.25f, 0), frame);
+        auto at = [&](int x, int y) { return frame.pixelColor(corner + QPoint(x, y)); };
+        const QColor colour = frameColours[5];
+        QVERIFY2(painted(at(0, 0), Qt::white), qPrintable(at(0, 0).name()));
+        QVERIFY2(painted(at(2 * zoom - 1, 2 * zoom - 1), Qt::white), qPrintable(at(2 * zoom - 1, 2 * zoom - 1).name()));
+        QVERIFY2(painted(at(2 * zoom, 0), colour), qPrintable(at(2 * zoom, 0).name()));
+        QVERIFY2(painted(at(0, 2 * zoom), colour), qPrintable(at(0, 2 * zoom).name()));
+        QVERIFY2(painted(at(8 * zoom - 1, 8 * zoom - 1), colour), qPrintable(at(8 * zoom - 1, 8 * zoom - 1).name()));
+        // And nothing of it past its edges.
+        for (const QPoint &outside : {QPoint(-1, 4 * zoom), QPoint(8 * zoom, 4 * zoom), QPoint(4 * zoom, -1), QPoint(4 * zoom, 8 * zoom)})
+            QVERIFY2(!painted(at(outside.x(), outside.y()), colour), qPrintable(at(outside.x(), outside.y()).name()));
+
+        // Flipped, it faces the other way: the white block is at the top-right.
+        sprite->setProperty("flip", true);
+        s.run(150);
+        const QImage flipped = s.window->grabWindow();
+        QVERIFY(painted(flipped.pixelColor(corner + QPoint(8 * zoom - 1, 0)), Qt::white));
+        QVERIFY(painted(flipped.pixelColor(corner), colour));
+    }
+
+    void aSheetPlaysItsFramesAndHoldsWhenTheWorldPauses()
+    {
+        FlatProject project;
+        Stage s;
+        QVERIFY(s.open(flatText(QStringLiteral(
+                           "    Sprite { name: \"Runner\"; source: \"../assets/sheet.png\"; columns: 4; rows: 2; "
+                           "first: 4; count: 4; fps: 6 }\n")),
+                       true, project.scene()));
+        s.flat(16, 12, QVector3D(0, 0, 0));
+        QObject *runner = s.entity(QStringLiteral("Runner"));
+        // It plays the four frames of the second row, from the first of them, and no others.
+        QSet<int> seen;
+        QElapsedTimer t;
+        t.start();
+        while (t.elapsed() < 1200) {
+            seen.insert(runner->property("frame").toInt());
+            s.window->update();
+            QTest::qWait(8);
+        }
+        QCOMPARE(seen, (QSet<int>{4, 5, 6, 7}));
+        // What is drawn is the frame it is on (read either side of the grab, so a frame turning over is not checked).
+        bool checked = false;
+        for (int attempt = 0; attempt < 10 && !checked; ++attempt) {
+            const int before = runner->property("frame").toInt();
+            const QImage frame = s.window->grabWindow();
+            if (runner->property("frame").toInt() != before)
+                continue;
+            const QColor middle = frame.pixelColor(s.devicePixel(QVector3D(0.1f, -0.1f, 0), frame));
+            QVERIFY2(painted(middle, frameColours[before]), qPrintable(QStringLiteral("frame %1 drawn as %2").arg(before).arg(middle.name())));
+            checked = true;
+        }
+        QVERIFY(checked);
+        // Paused, the frames hold.
+        s.scene->setProperty("paused", true);
+        const int held = runner->property("frame").toInt();
+        s.run(600);
+        QCOMPARE(runner->property("frame").toInt(), held);
+    }
+
+    void aTiledLevelIsDrawnTileForTileAndStoodOn()
+    {
+        FlatProject project;
+        Stage s;
+        // The map's top-left at (-5, 5): ten units across and five down, its floor's top at y 1.
+        QVERIFY(s.open(flatText(QStringLiteral(
+                           "    TileMap { name: \"Level\"; position: Qt.vector3d(-5, 5, 0); source: \"../assets/level.tmj\" }\n"
+                           "    Player2D { name: \"Hero\"; position: Qt.vector3d(-3, 2, 0); jumpHeight: 1.5 }\n")),
+                       true, project.scene()));
+        s.flat(16, 7, QVector3D(0, 2.5f, 0));
+        QObject *level = s.entity(QStringLiteral("Level"));
+        QCOMPARE(level->property("error").toString(), QString());
+        QCOMPARE(level->property("count").toInt(), 16);
+        QVERIFY(level->property("physics").value<QObject *>());
+        QCOMPARE(level->property("extent").toSizeF(), QSizeF(10, 5));
+        s.run(300);
+
+        // Tile for tile, as painted, each with its white corner where Tiled put it.
+        const int zoom = s.world->property("zoom").toInt();
+        const QImage frame = s.window->grabWindow();
+        auto tile = [&](int column, int row) { return s.devicePixel(QVector3D(-5.0f + column, 5.0f - row, 0), frame); };
+        auto at = [&](const QPoint &p) { return frame.pixelColor(p); };
+        const QPoint floor = tile(0, 4);
+        QVERIFY2(painted(at(floor), Qt::white), qPrintable(at(floor).name()));
+        QVERIFY2(painted(at(floor + QPoint(zoom, zoom)), tileColours[0]), qPrintable(at(floor + QPoint(zoom, zoom)).name()));
+        QVERIFY(painted(at(tile(3, 4) + QPoint(8 * zoom, 8 * zoom)), tileColours[1]));
+        // The mirrored green tile has its corner at the top-right.
+        const QPoint mirrored = tile(4, 4);
+        QVERIFY2(painted(at(mirrored + QPoint(16 * zoom - 1, 0)), Qt::white), qPrintable(at(mirrored + QPoint(16 * zoom - 1, 0)).name()));
+        QVERIFY2(painted(at(mirrored), tileColours[1]), qPrintable(at(mirrored).name()));
+        QVERIFY(painted(at(tile(9, 0) + QPoint(8 * zoom, 8 * zoom)), tileColours[2]));  // the wall
+        QVERIFY(painted(at(tile(5, 1) + QPoint(8 * zoom, 8 * zoom)), tileColours[3]));  // the ledge
+        // Only the first layer: the decor layer's blue tile is not drawn.
+        QVERIFY(!painted(at(tile(2, 2) + QPoint(8 * zoom, 8 * zoom)), tileColours[2]));
+
+        // The hero falls to the floor...
+        QObject *hero = s.entity(QStringLiteral("Hero"));
+        QCOMPARE(s.scene->property("player").value<QObject *>(), hero);
+        auto feet = [hero] { return hero->property("feet").value<QVector3D>(); };
+        // ...and stands on it to within half an art pixel (a thirty-second of a unit), not floating above it.
+        QVERIFY2(s.runUntil([&] { return qAbs(feet().y() - 1) < 0.03f && hero->property("activity").toString() == QStringLiteral("idle"); }, 4000),
+                 qPrintable(QStringLiteral("feet at %1, %2").arg(feet().y()).arg(hero->property("activity").toString())));
+        // ...runs right under the ledge to the wall, and stops against it.
+        QTest::keyPress(s.window.get(), Qt::Key_D);
+        QVERIFY(s.runUntil([&] { return hero->property("activity").toString() == QStringLiteral("run"); }, 1000));
+        s.run(2200);
+        QTest::keyRelease(s.window.get(), Qt::Key_D);
+        s.run(200);
+        QVERIFY2(qAbs(feet().x() - 3.625f) < 0.15f, qPrintable(QStringLiteral("stopped at %1").arg(feet().x())));
+        QVERIFY2(qAbs(feet().y() - 1) < 0.03f, qPrintable(QStringLiteral("feet at %1").arg(feet().y())));
+        QCOMPARE(hero->property("facingLeft").toBool(), false);
+        QCOMPARE(feet().z(), 0.0f);
+
+        // A jump of a unit and a half, and down again.
+        float highest = feet().y();
+        bool rose = false;
+        QTest::keyPress(s.window.get(), Qt::Key_Space);
+        QElapsedTimer t;
+        t.start();
+        while (t.elapsed() < 900) {
+            highest = qMax(highest, feet().y());
+            rose = rose || hero->property("activity").toString() == QStringLiteral("jump");
+            s.window->update();
+            QTest::qWait(8);
+        }
+        QTest::keyRelease(s.window.get(), Qt::Key_Space);
+        QVERIFY(rose);
+        QVERIFY2(highest > 2.2f && highest < 2.8f, qPrintable(QStringLiteral("jumped to %1").arg(highest)));
+        QVERIFY(s.runUntil([&] { return qAbs(feet().y() - 1) < 0.1f; }, 2000));
+
+        // Left: it turns to face that way.
+        QTest::keyPress(s.window.get(), Qt::Key_A);
+        s.run(300);
+        QTest::keyRelease(s.window.get(), Qt::Key_A);
+        QCOMPARE(hero->property("facingLeft").toBool(), true);
+    }
+
+    void aTopDownPlayerMovesAcrossThePlaneAndCarriesItsLook()
+    {
+        FlatProject project;
+        Stage s;
+        QVERIFY(s.open(flatText(QStringLiteral(
+                           "    Sprite { name: \"Look\"; source: \"../assets/sheet.png\"; columns: 4; rows: 2 }\n"
+                           "    Player2D { name: \"Hero\"; style: \"top-down\"; position: Qt.vector3d(0, 0, 0); look: \"Look\" }\n")),
+                       true, project.scene()));
+        s.flat(16, 12, QVector3D(0, 0, 0));
+        QObject *hero = s.entity(QStringLiteral("Hero"));
+        QObject *look = s.entity(QStringLiteral("Look"));
+        auto feet = [hero] { return hero->property("feet").value<QVector3D>(); };
+        s.run(500);
+        // No gravity: it stays where it was put.
+        QVERIFY2(qAbs(feet().y()) < 0.05f, qPrintable(QStringLiteral("drifted to %1").arg(feet().y())));
+
+        // W moves it up the screen, D to the right, each at its speed.
+        QVector3D from = feet();
+        QTest::keyPress(s.window.get(), Qt::Key_W);
+        s.run(1000);
+        QTest::keyRelease(s.window.get(), Qt::Key_W);
+        s.run(150);
+        const float up = feet().y() - from.y();
+        QVERIFY2(up > 3.5f && up < 6.0f, qPrintable(QStringLiteral("went up %1").arg(up)));
+        QVERIFY(qAbs(feet().x() - from.x()) < 0.1f);
+        from = feet();
+        QTest::keyPress(s.window.get(), Qt::Key_D);
+        s.run(600);
+        QTest::keyRelease(s.window.get(), Qt::Key_D);
+        s.run(150);
+        QVERIFY(feet().x() - from.x() > 2.0f);
+        QVERIFY(qAbs(feet().y() - from.y()) < 0.1f);
+
+        // The look goes where it goes, its foot at its feet.
+        const QVector3D carried = look->property("position").value<QVector3D>();
+        QVERIFY2((carried - (feet() + QVector3D(0, 0.25f, 0))).length() < 0.05f,
+                 qPrintable(QStringLiteral("look at %1, %2").arg(carried.x()).arg(carried.y())));
+    }
+
+    void aDynamicBodyInA2DSceneStaysOnThePlane()
+    {
+        Stage s;
+        QVERIFY(s.open(flatText(QStringLiteral(
+            "    Shape { name: \"Floor\"; position: Qt.vector3d(0, -0.5, 0); scale: Qt.vector3d(20, 1, 4) }\n"
+            "    Shape { name: \"Crate\"; position: Qt.vector3d(0, 3, 0); eulerRotation: Qt.vector3d(0, 0, 30); "
+            "body: \"dynamic\" }\n"))));
+        s.flat(16, 12, QVector3D(0, 1, 0));
+        QObject *crate = s.entity(QStringLiteral("Crate"));
+        QVERIFY(s.runUntil([&s] { return s.where(QStringLiteral("Crate")).y() < 2.5f; }, 5000));
+        // Pushed into the depth and spun about every axis: it moves only on the plane and turns only about the depth axis.
+        QVERIFY(QMetaObject::invokeMethod(crate, "push", Q_ARG(QVariant, QVariant::fromValue(QVector3D(2, 0, 8)))));
+        s.run(1500);
+        const QVector3D at = s.where(QStringLiteral("Crate"));
+        QVERIFY2(qAbs(at.z()) < 0.01f, qPrintable(QStringLiteral("moved to z %1").arg(at.z())));
+        QVERIFY(at.x() > 0.2f);
+        const QVector3D turned = crate->property("physics").value<QObject *>()->property("eulerRotation").value<QVector3D>();
+        QVERIFY2(qAbs(turned.x()) < 0.5f && qAbs(turned.y()) < 0.5f,
+                 qPrintable(QStringLiteral("turned %1, %2, %3").arg(turned.x()).arg(turned.y()).arg(turned.z())));
     }
 };
 
