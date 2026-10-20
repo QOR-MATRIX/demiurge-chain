@@ -29,12 +29,12 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
    (#63): music that fades between tracks, volume groups, side-to-side sound in a
    browser. *Orb Run* and *Ember Climb* prove it.
 
-**For your merge: materials, pull request #64** (P3.14): pictures
-on shapes that keep their size on any wall, with relief; spot lights; **HDR skies** —
-*360° sky images that also light the world*. *Orb Run* has stone walls, a dusk sky and
-spot lights. All tests pass, in the browser too.
-**Built since, kept here until #64 is in: the Studio's editing** (P3.15, first of three
-parts): undo and redo of every edit, duplicate, and snapping to a grid.
+**Merged too: materials** (#64): pictures on shapes that keep their size on any wall,
+spot lights, and **HDR skies** — *360° sky images that also light the world*.
+
+**For your merge: the Studio's editing, pull request #65** (P3.15, first of three parts):
+undo and redo of every edit, duplicate, and snapping to a grid. The other two parts,
+groups and prefabs and the Studio's tools, are built and follow one at a time.
 
 ## Toward a worldwide beta: what only you can do
 

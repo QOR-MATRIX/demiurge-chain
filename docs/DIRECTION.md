@@ -1364,10 +1364,10 @@ P3.2 and on nothing on chain, and run in this order:
       - Eight planted faults were each caught: one-shots deaf to their group's level, a one-shot never put away,
         music never letting its old track go, music deaf to its group's level, logic sounding in a replay, a browser
         panning to the wrong side, the Studio's Stop keeping a play's levels, and a replaced file keeping its old length.
-14. [ ] **Materials.** Images on shapes, spot lights and HDR skies.
+14. [x] **Materials.** Images on shapes, spot lights and HDR skies.
 
-    **Built 19 October 2026** (branch `session/qq-materials`, on `main` at `6e37363` since #63's merge, whose tree it was
-    built and checked on; pull request #64, not yet merged):
+    **Done 19 October 2026, merged 20 October (#64, at `f6d230a`; CI passed every job on its head, on a rerun, and on the
+    merge, runs 39422156020 and 39432677902):**
     - **Pictures on shapes.** A Shape gains `image`, `imageSize`, `normalMap` and `crisp`; the Ground gains `image` and
       `imageSize`.
       - A picture lies one copy every `imageSize` units on every face, whatever the shape's size, so a long wall has as
@@ -1414,8 +1414,8 @@ P3.2 and on nothing on chain, and run in this order:
     Built in three parts, each its own pull request: editing (undo and redo, duplicate, snapping); the hierarchy with
     parenting and prefabs; and the asset browser, the logic editor and the statistics overlay.
 
-    **Part one, editing, built 20 October 2026** (branch `session/qq-studio-edit`, on #64's head, since its records
-    follow #64's; committed, and kept back from a pull request until #64 is merged):
+    **Part one, editing, built 20 October 2026** (branch `session/qq-studio-edit`, on `main` at `f6d230a` since #64's merge,
+    whose tree it was built and checked on; pull request #65, not yet merged):
     - **Undo and redo** (Ctrl+Z; Ctrl+Y or Ctrl+Shift+Z; toolbar buttons). Each step is the scene's canonical text after
       an edit (`studio/History.qml`, up to 200), noted wherever an edit ends (the window's `refresh()`), so every edit
       is covered whatever made it: a field in the inspector, a handle let go, an entity added, duplicated or deleted, a
