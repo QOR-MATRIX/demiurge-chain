@@ -62,6 +62,9 @@ Scene {
         eulerRotation: Qt.vector3d(0, 0, 0)
         scale: Qt.vector3d(1, 1, 1)
         source: "../orb.gltf"
+        clip: ""
+        clipSpeed: 1
+        clipLoops: true
     }
 
     Player {

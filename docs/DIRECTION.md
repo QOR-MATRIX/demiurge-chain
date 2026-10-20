@@ -1241,11 +1241,12 @@ P3.2 and on nothing on chain, and run in this order:
       - the Studio's handles were not drawn after the view went flat;
       - Again in Ember Climb gathered the last ember where the hero stood.
     - **Not yet read from Tiled:** object layers, tile animations, one-way platforms and slopes.
-11. [ ] **Fixed steps and replay.** Logic at 60 steps a second whatever the frame rate; seeded random numbers; a run's
+11. [x] **Fixed steps and replay.** Logic at 60 steps a second whatever the frame rate; seeded random numbers; a run's
     inputs recorded and replayed with no window to the same outcome. A rewarded outcome never depends on PhysX
     (ADR-102 decision 5).
 
-    **Built 19 October 2026** (branch `session/qq-steps`, pull request #61, not yet merged):
+    **Done 19 October 2026, merged (#61, at `6b03027`; CI passed every job on its head and on the merge, runs
+    39361627242 and 39363830555):**
     - **The clock.** A playing scene moves in ticks of 1/60 s, whatever the frame rate.
       - Each frame's time is paid in whole ticks, at most eight a frame: beyond that the game slows rather than leaps.
       - Each tick takes the player's hands (`Input.takeStep`: move, look, the actions held, and every press and release
@@ -1290,6 +1291,38 @@ P3.2 and on nothing on chain, and run in this order:
         (exit 4).
       - Seven planted faults were each caught.
 12. [ ] **Animation.** glTF skeletal and morph playback, tweens on any field, and a state machine.
+
+    **Built 19 October 2026** (branch `session/qq-animation`, pull request #62, not yet merged):
+    - **glTF clips.** A Prop plays its file's animations, skeletal and morph alike, by name: `clip`, `clipSpeed`
+      (backwards too) and `clipLoops`. `clips` lists them, `clipTime` and `clipDone` say where it is, and `part(name)`
+      finds a joint or a mesh.
+      - Qt's runtime loader makes each animation a Timeline and plays the first on the wall clock. `Clips` (C++) stops
+        that and poses the chosen clip at the game's time instead: once each step, exactly, so logic reading a joint
+        reads the same in play and in a replay; and once each drawn frame, between steps, so it moves smoothly.
+      - Changing clips puts back what the last one moved, which a switched-off Timeline does not do.
+      - Play waits for models to load before its first tick, so no clip's steps depend on how fast a file loads.
+    - **Tweens.** `tween(entity, field, to, seconds, easing, done)` eases a number, a vector or a colour field over
+      whole steps, with nine easings. A new tween on the same field takes over, `cancel()` stops one, `done` runs on
+      the step it arrives, and an entity removed takes its tweens with it.
+    - **State machines.** `machine({ start, <state>: { enter, step, exit, on } })` steps with its logic and gives
+      `state`, `previous`, `time` and `steps` in the state, `go()` and `send()`.
+    - **Orb Run** gains two lanterns, an animated glTF model written by `make_lantern.py` (a skinned pole whose head
+      sways, and a core that breathes by a morph target), which flare as each orb is taken. Its orbs grow in and
+      shrink away by tweens, its score swells, and its boulder is a state machine.
+    - **Evidence, on the owner's PC:**
+      - All eight suites pass in one run of `build.ps1`: 121 cases.
+      - `tst_play` passes 40 cases, 4 new:
+        - a rig (`make_rig.py`) bent and puffed step by step, by its joint's angle, its morph weight and the pixels
+          drawn; looped, paused, sped up, and put back at rest;
+        - a joint read by logic in a replay with no window;
+        - tweens of a vector, a colour and a number at their exact steps, a take-over and a cancel;
+        - a machine's enters, steps, exits and events.
+        Orb Run's case checks its lanterns and its tweens.
+      - Six planted faults were each caught: what a clip moved not put back, a clip running on while paused, a tween's
+        start following its field, a tween counted in the wrong steps, a machine never leaving a state, and steps that
+        do not pose the model.
+      - A seventh, Qt's own timeline left running, was not caught: each step and each frame poses the model over it.
+        Looking into why found that a replay, which draws no frames, never posed the model at all; each step now does.
 13. [ ] **Sound.** One-shots from logic, music, and volume groups, panned in a browser where it can be.
 14. [ ] **Materials.** Images on shapes, spot lights and HDR skies.
 15. [ ] **The Studio's basics.** Undo and redo, duplicate, snapping, a hierarchy with parenting and prefabs, an asset

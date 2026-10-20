@@ -16,8 +16,9 @@
 // Play moves in ticks of 1/60 s, whatever the frame rate (P3.11, ADR-105 decision 6). A frame's time is owed and paid
 // in whole ticks, at most eight a frame: beyond that the game slows rather than leaps. Each tick takes the player's
 // hands (Input.takeStep) and the screen buttons clicked, delivers the clicks and every press and release, and then,
-// unless the world is paused, steps: 2D players move by QQ's own kinematics, triggers hear them, and logic steps (its
-// timers, onStep). What logic removes during a tick is gone when it ends. A run is its seed and what each tick took, so
+// unless the world is paused, steps: 2D players move by QQ's own kinematics, triggers hear them, models' clips move on
+// (P3.12), and logic steps (its timers, tweens and state machines, then onStep). What logic removes during a tick is
+// gone when it ends. A run is its seed and what each tick took, so
 // a RunRecord keeps it and a replay, with no window and no physics world, reaches the same outcome (run.h).
 
 import QtQml
@@ -149,9 +150,9 @@ Node {
         }
     }
 
-    /// Whether play can tick: every Behaviour's logic is built (or could not be).
+    /// Whether play can tick: every Behaviour's logic is built (or could not be), and every model has loaded (or failed).
     function ready() {
-        return SceneIO.entities(root).every(e => e.kind !== "Behaviour" || e.ready)
+        return SceneIO.entities(root).every(e => (e.kind !== "Behaviour" && e.kind !== "Prop") || e.ready)
     }
 
     /// Every Behaviour whose logic could not be built, as "name: why".
@@ -211,6 +212,9 @@ Node {
                     if (e._stepMove)
                         e._stepMove(dt)
                 _stepTriggers(list)
+                for (const e of list)
+                    if (e._stepAnimate)
+                        e._stepAnimate(dt)
                 for (const e of list)
                     if (e._stepLogic)
                         e._stepLogic(dt)

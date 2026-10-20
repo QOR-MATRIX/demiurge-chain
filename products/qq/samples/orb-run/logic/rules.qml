@@ -4,6 +4,10 @@
 //
 // Its interface is the scene's screen parts (P3.8): it opens on its title with the world paused, Play starts it, the
 // score is on the HUD, and Pause and Resume hold and release the world.
+//
+// Its motion (P3.12): orbs grow in with a spring and shrink away when taken, the score swells as it counts, the arena's
+// lanterns (an animated glTF model, assets/lantern.gltf) flare as each orb is taken and then go back to swaying, and the
+// boulder is a state machine: resting, then rolled at the player, then resting again.
 
 import QQ
 
@@ -25,11 +29,12 @@ Logic {
         placed += 1
         const name = "Orb " + placed
         const glow = spawn("Shape", { name: name + " glow", form: "sphere", body: "none", position: at,
-                                      scale: Qt.vector3d(0.6, 0.6, 0.6), colour: "#ffd27a", emissive: "#ffb340",
+                                      scale: Qt.vector3d(0.05, 0.05, 0.05), colour: "#ffd27a", emissive: "#ffb340",
                                       emissivePower: 4, roughness: 0.2 })
         const orb = spawn("Trigger", { name: name, form: "sphere", position: at, scale: Qt.vector3d(1.4, 1.4, 1.4) })
         if (!glow || !orb)
             return
+        tween(glow, "scale", Qt.vector3d(0.6, 0.6, 0.6), 0.45, "outBack")
         orbsOut += 1
         orb.entered.connect((other) => {
             if (!other || other.kind !== "Player" || removing(orb))
@@ -37,13 +42,51 @@ Logic {
             score += 1
             orbsOut -= 1
             const shown = entity("Score")
-            if (shown)
+            if (shown) {
                 shown.text = "ORBS " + score
+                tween(shown, "size", 44, 0.12, "outQuad", () => tween(shown, "size", 34, 0.25, "inOutQuad"))
+            }
             remove(orb)
-            remove(glow)
+            tween(glow, "scale", Qt.vector3d(0.01, 0.01, 0.01), 0.25, "inCubic", () => remove(glow))
+            flare()
             after(1.5, placeOrb)
         })
     }
+
+    /// The lanterns flare once, then sway again.
+    function flare() {
+        for (const name of ["Lantern west", "Lantern east"]) {
+            const lantern = entity(name)
+            if (!lantern)
+                continue
+            lantern.clipLoops = false
+            lantern.clip = "flare"
+        }
+        after(0.8, () => {
+            for (const name of ["Lantern west", "Lantern east"]) {
+                const lantern = entity(name)
+                if (lantern) {
+                    lantern.clipLoops = true
+                    lantern.clip = "idle"
+                }
+            }
+        })
+    }
+
+    /// The boulder: rests three and a half seconds, is rolled at the player, rolls half a second, and rests again.
+    readonly property var boulder: machine({ start: "resting",
+        resting: { step: () => { if (boulder.time >= 3.5) boulder.go("rolling") } },
+        rolling: {
+            enter: () => {
+                const rock = entity("Boulder")
+                const player = scene ? scene.player : null
+                if (!rock || !player)
+                    return
+                const toward = player.feet.minus(rock.physics ? rock.physics.scenePosition : rock.position)
+                rock.push(Qt.vector3d(toward.x, 0, toward.z).normalized().times(6))
+            },
+            step: () => { if (boulder.time >= 0.5) boulder.go("resting") }
+        } })
 
     function button(name, pressed) {
         const b = entity(name)
@@ -58,15 +101,6 @@ Logic {
         button("Resume", () => { hideScreen("pause"); resume() })
         placeOrb()
         placeOrb()
-        // The boulder rolls at the player every few seconds.
-        every(4, () => {
-            const boulder = entity("Boulder")
-            const player = scene ? scene.player : null
-            if (!boulder || !player)
-                return
-            const toward = player.feet.minus(boulder.physics ? boulder.physics.scenePosition : boulder.position)
-            boulder.push(Qt.vector3d(toward.x, 0, toward.z).normalized().times(6))
-        })
     }
 
     // Pause: P, the pad's Start, or the Pause button under a finger (its action), and again to go on (P3.9).

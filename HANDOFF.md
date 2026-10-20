@@ -3326,7 +3326,8 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
      - **Next:** #60's merge, then P3.11, fixed steps and replay.
 
 104. **19 October 2026, late night: #60 merged by the owner; P3.11, fixed steps and replay, built on `session/qq-steps`,
-     committed as `93b0bf4` and pushed at the owner's word as pull request #61.**
+     committed as `93b0bf4` and pushed at the owner's word as pull request #61. CI passed every job on it (run
+     39361627242).**
      - **Merged:** #60 (P3.10) at `6b58167`. CI passed every job on it (run 39357583640). P3.10 is ticked in DIRECTION.
      - **P3.11, built** (DIRECTION P3.11 has the whole list):
        - **The clock.** Play moves in ticks of 1/60 s whatever the frame rate. Each tick takes the hands and the clicks,
@@ -3349,7 +3350,36 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        empty outcome is never counted as a match.
      - **Next:** #61's merge, then P3.12, animation.
 
+105. **19 October 2026, late night: #61 merged by the owner at `6b03027` (CI passed every job on the merge, run
+     39363830555), and P3.11 ticked; P3.12, animation, built
+     on `session/qq-animation`, committed as `07cc295` and pushed at the owner's word as pull request #62.** It was built on #61's head, since it needs P3.11's clock, and moved
+     onto `main` once #61 was merged (`main`'s tree is #61's head's, so its suites' run stands).
+     - **Built** (DIRECTION P3.12 has the whole list):
+       - a Prop's glTF clips, skeletal and morph, on the game's steps (`Clips` in C++ takes them from Qt's wall clock);
+       - tweens on any number, vector or colour field;
+       - state machines;
+       - Orb Run's animated lanterns (`make_lantern.py`), tweens and boulder machine.
+     - **Evidence, on the owner's PC:**
+       - All eight suites pass in one run of `build.ps1`: 121 cases.
+       - `tst_play` has 40 cases, 4 new.
+       - Six planted faults were each caught, and a seventh's miss led to a fix (below).
+     - **Found on the way, fixed:**
+       - a Timeline switched off leaves what it moved where it was, so changing clips left joints bent;
+       - a vector or colour read from a field is a live reference, so a tween's start followed the field;
+       - a machine made in a property's binding reassigned a list the binding read, and ran again;
+       - a replay draws no frames, so its models were never posed: each step now poses them.
+     - **Next:** #62's merge; then P3.13, sound.
+
 ## 5. Traps, so nobody re-learns them
+
+**QQ's animation (P3.12)**
+- **A Qt Quick Timeline switched off does not put back what it moved.** `Clips` keeps each animated property's value
+  from before any clip and restores it.
+- **A vector or a colour read from a QML property is a live reference, not a copy.** Copy it (`Qt.vector3d(v.x, v.y,
+  v.z)`) before writing the property, or the copy moves too.
+- **A binding that reassigns a list it also reads runs again** (a binding loop). Append in place (`push`) when a helper
+  is called from a property's binding.
+- **Qt's runtime loader times keyframes in milliseconds** (`assimpimporter_rt.cpp`: 1000 / ticks a second).
 
 **QQ's clock (P3.11)**
 - **Presses reach logic at the next tick, not at once.** A check that presses a key and reads logic straight away sees
