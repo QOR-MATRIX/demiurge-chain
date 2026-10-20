@@ -129,6 +129,13 @@ Node {
 
     Random { id: rng }
 
+    /// The sounds logic plays once (Logic.play, P3.13). Not an entity.
+    readonly property QtObject _voices: voices
+    Voices {
+        id: voices
+        scene: root
+    }
+
     onPlayingChanged: {
         if (!playing)
             return

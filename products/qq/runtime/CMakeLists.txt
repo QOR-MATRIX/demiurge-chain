@@ -29,6 +29,8 @@ qt_add_qml_module(qqruntime
         Sprite.qml
         TileMap.qml
         Player2D.qml
+        Music.qml
+        Voices.qml
         Logic.qml
         Game.qml
     SOURCES
@@ -44,6 +46,7 @@ qt_add_qml_module(qqruntime
         kinematics.h kinematics.cpp
         run.h run.cpp
         clips.h clips.cpp
+        mixer.h mixer.cpp
 )
 
 # The interface's faces (Look), the homepage's and ARQADE's, under the SIL Open Font License (fonts/*-OFL.txt).

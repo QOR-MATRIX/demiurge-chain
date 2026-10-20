@@ -47,6 +47,13 @@
 //
 //   tween(entity("Door"), "position", Qt.vector3d(0, 3, 0), 1.5, "outCubic", () => showScreen("won"))
 //
+// Sound (P3.13): play() sounds a file once, where something happened or everywhere alike; a scene's Music fades from one
+// track to the next when its `source` changes; and every sound is in a volume group whose level logic sets, so an
+// options screen's buttons turn the music down and leave the effects alone:
+//
+//   play("../assets/coin.wav", { at: target.position, group: "effects" })
+//   setVolume("music", 0.4)
+//
 // A state machine keeps what something is doing (idle, chasing, stunned), with what happens on entering a state, on
 // each step in it and on leaving it, how long it has been in it, and events that move it on:
 //
@@ -131,6 +138,22 @@ QtObject {
     function randomInt(low, high) {
         return scene ? scene.random.between(low, high) : low
     }
+    /// Play a sound file once (P3.13), kept relative to the scene file: `options` { at (a place in the world, heard from
+    /// there; or none, heard everywhere alike), volume (1), group ("effects"), reach (25 metres) }. The voice, or null:
+    /// a replay has no ears, so there it plays nothing.
+    function play(source, options) {
+        if (!scene || scene.replaying || !scene._voices)
+            return null
+        return scene._voices.oneShot(SceneIO.resolvedUrl(scene, source), options ?? {})
+    }
+    /// A volume group's level, from 0 to 1 ("master", "music", "effects", "voice", "ui", or any a game names), and set it.
+    function volumeOf(group) {
+        return Mixer.level(group)
+    }
+    function setVolume(group, level) {
+        Mixer.setLevel(group, level)
+    }
+
     /// Whether two entities' boxes overlap, as QQ measures them (never PhysX), so a replay measures the same.
     function overlaps(a, b) {
         return SceneIO.overlaps(a, b)

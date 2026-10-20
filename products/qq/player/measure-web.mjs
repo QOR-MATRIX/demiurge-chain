@@ -166,6 +166,8 @@ const browser = spawn(
       ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']
       : ['--enable-gpu', '--ignore-gpu-blocklist', '--force_high_performance_gpu']),
     '--window-size=1280,720',
+    // Sound without a click first: a person's first touch or key starts a page's audio, and here there is no person.
+    '--autoplay-policy=no-user-gesture-required',
     '--no-first-run',
     '--no-default-browser-check',
     `--remote-debugging-port=${port}`,
@@ -255,6 +257,16 @@ try {
   const end = Date.now() + 120000;
   while (!measured && Date.now() < end) await sleep(250);
 
+  // The page's sound (P3.13): QQ's voices on the page's own Web Audio, each a gain and a stereo panner. The playground's
+  // chime is one: decoded, and panned by where it is from the eye.
+  const audio = await evaluate(`(() => {
+    const a = globalThis.qqAudio;
+    if (!a) return null;
+    return { state: a.ctx ? a.ctx.state : 'none',
+             voices: [...a.voices.values()].map((v) => ({ decoded: !!v.buffer, panner: !!v.panner,
+                                                         volume: v.volume, pan: v.pan })) };
+  })()`);
+
   // What the page shows, measured or not: a failure is easier to read with a picture of it.
   const shot = Buffer.from((await send('Page.captureScreenshot', { format: 'png' })).result.data, 'base64');
   if (frameFile) writeFileSync(frameFile, shot);
@@ -269,6 +281,7 @@ try {
       renderer,
       measured,
       frameColours,
+      audio,
       problems,
     }),
   );
@@ -278,6 +291,8 @@ try {
   } else if (measured.problem) fail(`the scene could not play: ${measured.problem}`);
   else if (measured.unloaded?.length) fail(`models did not load: ${measured.unloaded.join(' | ')}`);
   else if (frameColours <= 200) fail(`the page shows ${frameColours} colours, not a world`);
+  else if (!audio || !audio.voices.some((v) => v.decoded && v.panner))
+    fail(`no sound on the page's Web Audio, decoded and panned: ${JSON.stringify(audio)}`);
   ws.close();
 } catch (e) {
   fail(e.message);

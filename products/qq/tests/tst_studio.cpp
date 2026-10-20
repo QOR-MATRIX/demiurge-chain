@@ -20,6 +20,7 @@
 #include <QtQml/qqmlextensionplugin.h>
 
 #include "gpu.h"
+#include "mixer.h"
 
 #include "sceneio.h"
 
@@ -430,7 +431,11 @@ private slots:
         const double tilted = player->property("pitch").toDouble() - pitch;
         QVERIFY2(tilted > 5 && tilted < 11, qPrintable(QStringLiteral("tilted %1").arg(tilted)));
 
-        // Esc: the copy is gone, and the scene, its unsaved state and the selection are as they were.
+        // The game turns its music down (as its options screen would, P3.13).
+        auto *mixer = s.engine.singletonInstance<qq::Mixer *>("QQ", "Mixer");
+        mixer->setLevel(QStringLiteral("music"), 0.25);
+
+        // Esc: the copy is gone, and the scene, its unsaved state, the selection and the levels are as they were.
         QTest::keyClick(s.window, Qt::Key_Escape);
         QTRY_VERIFY(!s.window->property("playing").toBool());
         QVERIFY(!s.playScene());
@@ -438,6 +443,7 @@ private slots:
         QCOMPARE(s.window->property("dirty").toBool(), dirtyBefore);
         QCOMPARE(int(s.entities().size()), countBefore);
         QCOMPARE(s.selection(), crate);
+        QCOMPARE(mixer->level(QStringLiteral("music")), 1.0);
         QVERIFY(s.window->property("notice").toString().contains(QStringLiteral("as it was")));
 
         // And plays again from the same start.
