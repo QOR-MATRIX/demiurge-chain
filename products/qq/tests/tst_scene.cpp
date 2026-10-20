@@ -223,9 +223,9 @@ private slots:
         int live = 0;
         for (const QVariant &e : io->entities(copy))
             live += e.value<QObject *>()->property("live").toBool() ? 1 : 0;
-        // The ground, the shape, the player, the sound, the behaviour, the trigger, the five screen parts, the action, the
-        // sprite, the tile map and the 2D player; the rest are the same in play.
-        QCOMPARE(live, 15);
+        // The ground, the shape, the model (its clip plays), the player, the sound, the behaviour, the trigger, the five
+        // screen parts, the action, the sprite, the tile map and the 2D player; the rest are the same in play.
+        QCOMPARE(live, 16);
         for (const QVariant &e : io->entities(scene))
             QVERIFY(!e.value<QObject *>()->property("live").toBool());
         // The copy is the scene, and the scene is as it was; `playing` is not part of either's file.

@@ -43,6 +43,7 @@ qt_add_qml_module(qqruntime
         tilemap.h tilemap.cpp
         kinematics.h kinematics.cpp
         run.h run.cpp
+        clips.h clips.cpp
 )
 
 # The interface's faces (Look), the homepage's and ARQADE's, under the SIL Open Font License (fonts/*-OFL.txt).

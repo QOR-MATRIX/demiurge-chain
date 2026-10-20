@@ -15,6 +15,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QPointer>
+#include <QQmlListReference>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -940,8 +941,17 @@ private slots:
         QTest::keyRelease(s.window.get(), Qt::Key_W);
         QVERIFY2(gathered, "the player walked through the first orb without gathering it");
         QCOMPARE(s.entity(QStringLiteral("Score"))->property("text").toString(), QStringLiteral("ORBS 1"));
+        // Its lanterns, an animated glTF model, flare as the orb is taken and then sway again (P3.12).
+        QObject *lantern = s.entity(QStringLiteral("Lantern west"));
+        QCOMPARE(lantern->property("status").toInt(), 1);
+        QCOMPARE(lantern->property("clips").toStringList(), (QStringList{QStringLiteral("idle"), QStringLiteral("flare")}));
+        QCOMPARE(lantern->property("clip").toString(), QStringLiteral("flare"));
+        QVERIFY(s.runUntil([&] { return lantern->property("clip").toString() == QStringLiteral("idle"); }, 3000));
         QTRY_VERIFY(!s.entity(QStringLiteral("Orb 1")) && !s.entity(QStringLiteral("Orb 1 glow")));
         QVERIFY2(s.runUntil([&] { return s.entity(QStringLiteral("Orb 3")) != nullptr; }, 4000), "no new orb");
+        // A new orb grows in to its full size.
+        QObject *grown = s.entity(QStringLiteral("Orb 3 glow"));
+        QVERIFY(s.runUntil([&] { return qAbs(grown->property("scale").value<QVector3D>().x() - 0.6f) < 1e-4f; }, 3000));
         QCOMPARE(logic()->property("orbsOut").toInt(), 2);
 
         // The boulder is rolled at the player.
@@ -1288,6 +1298,235 @@ private slots:
         QCOMPARE(gate.value(QStringLiteral("x")).toDouble(), 5.0);
         QCOMPARE(gate.value(QStringLiteral("y")).toDouble(), 0.5);
         QCOMPARE(gate.value(QStringLiteral("physics")).toBool(), false);  // no physics world was made
+    }
+
+    // ── animation (P3.12, ADR-105) ──
+
+    void aModelPlaysItsGltfClipsOnTheGamesClock()
+    {
+        // tests/fixtures/rig.gltf (make_rig.py): a bar skinned to Root and Tip, which "bend" turns 90 degrees at 1 s and
+        // back at 2 s, and a box whose morph target "puff" doubles it over 1 s.
+        QTemporaryDir project;
+        QDir(project.path()).mkpath(QStringLiteral("assets"));
+        QVERIFY(QFile::copy(fixture(QStringLiteral("rig.gltf")), QDir(project.path()).filePath(QStringLiteral("assets/rig.gltf"))));
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    Shape { name: \"Wall\"; position: Qt.vector3d(0, 1, -2); scale: Qt.vector3d(10, 6, 0.2); "
+                           "colour: \"#101418\"; body: \"none\" }\n"
+                           "    Prop { name: \"Rig\"; source: \"../assets/rig.gltf\" }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        s.world->setProperty("eye", QVector3D(0.5f, 1, 5));
+        s.world->setProperty("target", QVector3D(0.5f, 1, 0));
+        s.scene->setProperty("autoAdvance", false);  // the clock is ticked by hand here, step by step
+        QObject *rig = s.entity(QStringLiteral("Rig"));
+        QVERIFY(s.runUntil([rig] { return rig->property("status").toInt() == 1; }, 5000));
+        QCOMPARE(rig->property("clips").toStringList(), (QStringList{QStringLiteral("bend"), QStringLiteral("puff")}));
+        auto part = [rig](const QString &name) {
+            QVariant found;
+            QMetaObject::invokeMethod(rig, "part", Q_RETURN_ARG(QVariant, found), Q_ARG(QVariant, name));
+            return found.value<QObject *>();
+        };
+        auto ticks = [&s](int n) {
+            for (int i = 0; i < n; ++i)
+                QMetaObject::invokeMethod(s.scene, "tick");
+            s.run(80);  // a few frames, so the pose is drawn
+        };
+        QObject *tip = part(QStringLiteral("Tip"));
+        QVERIFY(tip);
+        auto turned = [tip] { return tip->property("eulerRotation").value<QVector3D>().z(); };
+        // The model is drawn bright in front of a dark wall: a point is the model's when it is bright.
+        auto ember = [&s](const QImage &frame, const QVector3D &at) {
+            const QColor c = frame.pixelColor(s.devicePixel(at, frame));
+            return c.red() + c.green() + c.blue() > 3 * 120;
+        };
+
+        // At rest the bar stands upright: its upper half is drawn above the joint, nothing to its left.
+        QImage frame = s.window->grabWindow();
+        frame.save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-rig-rest.png")));
+        QVERIFY(ember(frame, QVector3D(0, 1.7f, 0)));
+        QVERIFY(!ember(frame, QVector3D(-0.7f, 1, 0)));
+
+        // "bend", a step at a time: 45 degrees at half a second, 90 at one, and the upper half drawn to the left.
+        rig->setProperty("clip", QStringLiteral("bend"));
+        QCOMPARE(rig->property("clipLength").toDouble(), 2.0);
+        ticks(30);
+        QVERIFY2(qAbs(turned() - 45) < 1, qPrintable(QString::number(turned())));
+        ticks(30);
+        QVERIFY2(qAbs(turned() - 90) < 1, qPrintable(QString::number(turned())));
+        frame = s.window->grabWindow();
+        QVERIFY(ember(frame, QVector3D(-0.7f, 1, 0)));
+        QVERIFY(!ember(frame, QVector3D(0, 1.7f, 0)));
+        // Looping: two and a half seconds in is half a second in.
+        ticks(90);
+        QVERIFY2(qAbs(rig->property("clipTime").toDouble() - 0.5) < 1e-6, qPrintable(rig->property("clipTime").toString()));
+        QVERIFY(qAbs(turned() - 45) < 1);
+        // Paused, it holds; twice as fast, twice as far.
+        s.scene->setProperty("paused", true);
+        ticks(30);
+        QVERIFY(qAbs(rig->property("clipTime").toDouble() - 0.5) < 1e-6);
+        s.scene->setProperty("paused", false);
+        rig->setProperty("clipSpeed", 2.0);
+        ticks(15);
+        QVERIFY(qAbs(rig->property("clipTime").toDouble() - 1.0) < 1e-6);
+        QVERIFY(qAbs(turned() - 90) < 1);
+
+        // "puff", once: its morph weight rises to 1 and holds, and the box is drawn twice as big.
+        QObject *puff = part(QStringLiteral("Puff"));
+        QVERIFY(puff);
+        auto weight = [puff] {
+            QQmlListReference targets(puff, "morphTargets");
+            return targets.count() > 0 ? targets.at(0)->property("weight").toDouble() : -1.0;
+        };
+        rig->setProperty("clipSpeed", 1.0);
+        rig->setProperty("clipLoops", false);
+        rig->setProperty("clip", QStringLiteral("puff"));
+        QVERIFY(qAbs(turned()) < 1);  // "bend" let go: the bar upright again
+        auto gilt = [&s](const QImage &f, const QVector3D &at) {
+            const QColor c = f.pixelColor(s.devicePixel(at, f));
+            return c.red() + c.green() + c.blue() > 3 * 120;
+        };
+        frame = s.window->grabWindow();
+        QVERIFY(!gilt(frame, QVector3D(1.95f, 1, 0.5f)));
+        ticks(30);
+        QVERIFY2(qAbs(weight() - 0.5) < 0.02, qPrintable(QString::number(weight())));
+        QCOMPARE(rig->property("clipDone").toBool(), false);
+        ticks(60);
+        QVERIFY2(qAbs(weight() - 1) < 1e-3, qPrintable(QString::number(weight())));
+        QCOMPARE(rig->property("clipDone").toBool(), true);
+        frame = s.window->grabWindow();
+        QVERIFY(gilt(frame, QVector3D(1.95f, 1, 0.5f)));
+        s.window->grabWindow().save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-rig.png")));
+    }
+
+    void aClipPosesItsJointsOnEachStepInAReplay()
+    {
+        // Replayed, so with no window and no frames drawn: logic reading a joint in its step reads where the clip has
+        // put it on that step, as it would in play.
+        QTemporaryDir project;
+        const QDir root(project.path());
+        root.mkpath(QStringLiteral("assets"));
+        QVERIFY(QFile::copy(fixture(QStringLiteral("rig.gltf")), root.filePath(QStringLiteral("assets/rig.gltf"))));
+        writeFile(root.filePath(QStringLiteral("logic/watch.qml")),
+                  "import QQ\nLogic {\n    property real at30: -1\n    property real at60: -1\n"
+                  "    onStep: (dt) => {\n"
+                  "        const tip = entity(\"Rig\").part(\"Tip\")\n"
+                  "        if (steps === 30) at30 = tip.eulerRotation.z\n"
+                  "        if (steps === 60) at60 = tip.eulerRotation.z\n"
+                  "    }\n"
+                  "    outcome: ({ at30: at30, at60: at60 })\n}\n");
+        const QUrl file = QUrl::fromLocalFile(root.filePath(QStringLiteral("scenes/play.qml")));
+        writeFile(file.toLocalFile(), sceneText(QStringLiteral(
+                      "    Prop { name: \"Rig\"; source: \"../assets/rig.gltf\"; clip: \"bend\" }\n"
+                      "    Behaviour { name: \"Watch\"; source: \"../logic/watch.qml\" }\n")).toUtf8());
+        qq::RunRecord run;
+        run.setSeed(1);
+        run.setTicks(60);
+        QQmlEngine engine;
+        const QVariantMap result = qq::replayRun(&engine, file, &run);
+        QCOMPARE(result.value(QStringLiteral("problem")).toString(), QString());
+        const QVariantMap watch = result.value(QStringLiteral("outcome")).toMap().value(QStringLiteral("Watch")).toMap();
+        QVERIFY2(qAbs(watch.value(QStringLiteral("at30")).toDouble() - 45) < 1, qPrintable(watch.value(QStringLiteral("at30")).toString()));
+        QVERIFY2(qAbs(watch.value(QStringLiteral("at60")).toDouble() - 90) < 1, qPrintable(watch.value(QStringLiteral("at60")).toString()));
+    }
+
+    void aTweenEasesAnyFieldOnTheGamesClock()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/ease.qml")),
+                  "import QQ\nLogic {\n    property var log: []\n    property int stopped: 0\n"
+                  "    onStarted: {\n"
+                  "        const box = entity(\"Box\")\n"
+                  "        tween(box, \"position\", Qt.vector3d(6, 1, 0), 1, \"linear\", () => log = log.concat([\"arrived \" + steps]))\n"
+                  "        tween(box, \"colour\", \"#000000\", 0.5, \"outCubic\")\n"
+                  "        tween(box, \"metalness\", 1, 0.5, \"inQuad\")\n"
+                  "        log = log.concat([\"nothing \" + tween(box, \"nothing\", 1, 1)])\n"
+                  "        const crate = entity(\"Crate\")\n"
+                  "        tween(crate, \"position\", Qt.vector3d(10, 1, 0), 1, \"linear\", () => log = log.concat([\"crate first\"]))\n"
+                  "        after(0.5, () => tween(crate, \"position\", Qt.vector3d(-2, 1, 0), 0.5, \"outBack\"))\n"
+                  "        stopped = tween(entity(\"Ball\"), \"position\", Qt.vector3d(0, 5, 0), 1)\n"
+                  "        after(0.25, () => cancel(stopped))\n"
+                  "    }\n"
+                  "    outcome: log\n}\n");
+        Headless h;
+        QVERIFY(h.open(sceneText(QStringLiteral(
+                           "    Shape { name: \"Box\"; position: Qt.vector3d(0, 1, 0); colour: \"#ffffff\"; body: \"none\" }\n"
+                           "    Shape { name: \"Crate\"; position: Qt.vector3d(0, 1, 0); body: \"none\" }\n"
+                           "    Shape { name: \"Ball\"; position: Qt.vector3d(0, 1, 0); body: \"none\" }\n"
+                           "    Behaviour { name: \"Ease\"; source: \"../logic/ease.qml\" }\n")),
+                       QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        QObject *box = h.io->entities(h.scene).value(2).value<QObject *>();
+        QObject *crate = h.io->entities(h.scene).value(3).value<QObject *>();
+        QObject *ball = h.io->entities(h.scene).value(4).value<QObject *>();
+        QCOMPARE(box->property("name").toString(), QStringLiteral("Box"));
+        auto ticks = [&h](int n) {
+            for (int i = 0; i < n; ++i)
+                QMetaObject::invokeMethod(h.scene, "tick");
+        };
+        // Half way through each, on the step it should be: linear half way, outCubic seven eighths, inQuad a quarter.
+        ticks(15);
+        QCOMPARE(box->property("position").value<QVector3D>().x(), 1.5f);
+        QVERIFY(qAbs(box->property("colour").value<QColor>().redF() - 0.125) < 0.01);
+        QVERIFY(qAbs(box->property("metalness").toDouble() - 0.25) < 1e-6);
+        // The ball's tween is cancelled here, where it is.
+        const float ballAt = ball->property("position").value<QVector3D>().y();
+        QVERIFY(ballAt > 1 && ballAt < 5);
+        ticks(15);
+        QCOMPARE(box->property("position").value<QVector3D>().x(), 3.0f);
+        QCOMPARE(box->property("colour").value<QColor>(), QColor(Qt::black));
+        QCOMPARE(box->property("metalness").toDouble(), 1.0);
+        QCOMPARE(ball->property("position").value<QVector3D>().y(), ballAt);
+        ticks(30);
+        // Arrived on its sixtieth step; the crate's second tween took over from its first, which never arrived.
+        QCOMPARE(box->property("position").value<QVector3D>(), QVector3D(6, 1, 0));
+        QVERIFY(qAbs(crate->property("position").value<QVector3D>().x() + 2) < 1e-5);
+        QObject *ease = h.logicOf(QStringLiteral("Ease"));
+        QCOMPARE(ease->property("log").toStringList(), (QStringList{QStringLiteral("nothing 0"), QStringLiteral("arrived 60")}));
+    }
+
+    void aStateMachineEntersStepsAndLeavesItsStates()
+    {
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/door.qml")),
+                  "import QQ\nLogic {\n    property var log: []\n"
+                  "    readonly property var door: machine({ start: \"shut\",\n"
+                  "        shut: { enter: () => log = log.concat([\"enter shut\"]), exit: () => log = log.concat([\"exit shut\"]),\n"
+                  "                on: { knock: \"opening\" } },\n"
+                  "        opening: { enter: () => log = log.concat([\"enter opening\"]),\n"
+                  "                   step: (dt) => { if (door.steps >= 30) door.go(\"open\") } },\n"
+                  "        open: { enter: () => log = log.concat([\"enter open after \" + door.previous]),\n"
+                  "                on: { slam: () => \"shut\" } } })\n"
+                  "    onStarted: after(0.25, () => { const knocked = door.send(\"knock\"); log = log.concat([\"knock \" + knocked]) })\n"
+                  "    function slam() { return door.send(\"slam\") }\n"
+                  "    function nowhere() { return door.go(\"nowhere\") }\n"
+                  "    outcome: ({ state: door.state, log: log })\n}\n");
+        Headless h;
+        QVERIFY(h.open(sceneText(QStringLiteral("    Behaviour { name: \"Door\"; source: \"../logic/door.qml\" }\n")),
+                       QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        QObject *door = h.logicOf(QStringLiteral("Door"));
+        auto ticks = [&h](int n) {
+            for (int i = 0; i < n; ++i)
+                QMetaObject::invokeMethod(h.scene, "tick");
+        };
+        auto state = [door] { return door->property("door").toMap().value(QStringLiteral("state")).toString(); };
+        ticks(14);
+        QCOMPARE(state(), QStringLiteral("shut"));
+        ticks(1);  // the knock, a quarter of a second in
+        QCOMPARE(state(), QStringLiteral("opening"));
+        ticks(28);
+        QCOMPARE(state(), QStringLiteral("opening"));
+        ticks(1);  // thirty steps in the state, the knock's own among them
+        QCOMPARE(state(), QStringLiteral("open"));
+        QVariant answer;
+        QMetaObject::invokeMethod(door, "slam", Q_RETURN_ARG(QVariant, answer));
+        QCOMPARE(answer.toBool(), true);
+        QCOMPARE(state(), QStringLiteral("shut"));
+        QMetaObject::invokeMethod(door, "nowhere", Q_RETURN_ARG(QVariant, answer));
+        QCOMPARE(answer.toBool(), false);
+        QCOMPARE(state(), QStringLiteral("shut"));
+        QCOMPARE(door->property("log").toStringList(),
+                 (QStringList{QStringLiteral("enter shut"), QStringLiteral("exit shut"), QStringLiteral("enter opening"),
+                              QStringLiteral("knock true"), QStringLiteral("enter open after opening"),
+                              QStringLiteral("enter shut")}));
     }
 
     // ── the game's interface (P3.8, ADR-105) ──

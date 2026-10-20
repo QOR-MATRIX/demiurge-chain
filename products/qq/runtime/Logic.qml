@@ -41,6 +41,18 @@
 //
 // held(name) says whether one is held now, rebind(name) takes the player's next press as its binding (a controls
 // screen), and pointing() is the entity under the pointer.
+//
+// Animation (P3.12): a Prop plays its glTF clips (`clip`), and any field of any entity can be eased to a new value over
+// a time, on the game's steps, with a callback when it arrives:
+//
+//   tween(entity("Door"), "position", Qt.vector3d(0, 3, 0), 1.5, "outCubic", () => showScreen("won"))
+//
+// A state machine keeps what something is doing (idle, chasing, stunned), with what happens on entering a state, on
+// each step in it and on leaving it, how long it has been in it, and events that move it on:
+//
+//   readonly property var guard: machine({ start: "watch",
+//       watch: { step: () => { if (sees()) guard.go("chase") } },
+//       chase: { enter: () => target.clip = "run", on: { lost: "watch" } } })
 
 import QtQml
 import QQ
@@ -204,9 +216,86 @@ QtObject {
         return _addTimer(seconds, seconds, callback)
     }
 
-    /// Stop a timer that after() or every() started.
+    /// Stop a timer that after() or every() started, or a tween.
     function cancel(id) {
         logic._timers = logic._timers.filter(t => t.id !== id)
+        logic._tweens = logic._tweens.filter(t => t.id !== id)
+    }
+
+    /// Ease `entity`'s `field` from where it is to `to` over `seconds` of play (to the nearest step), with an easing:
+    /// linear, inQuad, outQuad, inOutQuad, inCubic, outCubic, inOutCubic, outBack or outBounce. A number, a vector or a
+    /// colour. `done` is called on the step it arrives. A new tween on the same field takes over from the old. Its id,
+    /// for cancel(); 0 if the field cannot be eased.
+    function tween(entity, field, to, seconds, easing, done) {
+        const now = entity ? entity[field] : undefined
+        const form = typeof now === "number" ? "number"
+                   : now !== null && now !== undefined && now.z !== undefined && now.x !== undefined ? "vector"
+                   : now !== null && now !== undefined && now.r !== undefined && now.a !== undefined ? "colour"
+                   : ""
+        if (form === "") {
+            console.warn("QQ logic: tween(): " + (entity ? entity.name : "nothing") + " has no " + field + " to ease")
+            return 0
+        }
+        // A copy of where it starts: a vector or a colour read from a field follows the field as it changes.
+        const from = form === "vector" ? Qt.vector3d(now.x, now.y, now.z)
+                   : form === "colour" ? Qt.rgba(now.r, now.g, now.b, now.a) : now
+        if (form === "colour" && typeof to === "string")
+            to = Qt.lighter(to, 1)  // "#ff6a00" as a colour
+        const ease = logic._easings[easing ?? "linear"]
+        if (!ease) {
+            console.warn("QQ logic: tween(): no easing called " + easing)
+            return 0
+        }
+        logic._tweens = logic._tweens.filter(t => !(t.entity === entity && t.field === field))
+        const id = ++logic._timerCount
+        logic._tweens = logic._tweens.concat([{ id: id, entity: entity, field: field, form: form, from: from, to: to,
+                                                steps: Math.max(1, Math.round(seconds * 60)), at: 0, ease: ease,
+                                                done: typeof done === "function" ? done : null }])
+        return id
+    }
+
+    /// A state machine (see the top of this file): `spec` names the states, each with any of enter(), step(dt), exit()
+    /// and `on` (events to states), and `start` the first, entered on the logic's first step (or by go() before then).
+    /// It steps with this logic: { state, previous, time and steps (in the state), go(name), send(event), is(name) }.
+    function machine(spec) {
+        const m = {
+            spec: spec,
+            state: "",
+            previous: "",
+            time: 0,
+            steps: 0,
+            _leaving: false,
+            is(name) { return m.state === name },
+            go(name) {
+                if (!m.spec[name] || m._leaving) {
+                    if (!m.spec[name])
+                        console.warn("QQ logic: a machine has no state called " + name)
+                    return false
+                }
+                const from = m.spec[m.state]
+                if (from && from.exit) {
+                    m._leaving = true
+                    try { from.exit() } finally { m._leaving = false }
+                }
+                m.previous = m.state
+                m.state = name
+                m.time = 0
+                m.steps = 0
+                if (m.spec[name].enter)
+                    m.spec[name].enter()
+                return true
+            },
+            send(event) {
+                const here = m.spec[m.state]
+                const next = here && here.on ? here.on[event] : undefined
+                const name = typeof next === "function" ? next() : next
+                return name ? m.go(name) : false
+            }
+        }
+        // Added in place, not by assigning a new list: a machine is made in a property's binding, which would otherwise
+        // read and write the same list and run again.
+        logic._machines.push(m)
+        return m
     }
 
     /// The first entity a ray meets, from `from` along `direction`, within `distance` metres (all of it if left out):
@@ -235,6 +324,75 @@ QtObject {
 
     property var _timers: []
     property int _timerCount: 0
+    property var _tweens: []
+    property var _machines: []
+    readonly property var _easings: ({
+        linear: t => t,
+        inQuad: t => t * t,
+        outQuad: t => t * (2 - t),
+        inOutQuad: t => t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t),
+        inCubic: t => t * t * t,
+        outCubic: t => 1 - (1 - t) * (1 - t) * (1 - t),
+        inOutCubic: t => t < 0.5 ? 4 * t * t * t : 1 - 4 * (1 - t) * (1 - t) * (1 - t),
+        outBack: t => 1 + 2.70158 * (t - 1) * (t - 1) * (t - 1) + 1.70158 * (t - 1) * (t - 1),
+        outBounce: t => t < 1 / 2.75 ? 7.5625 * t * t
+                      : t < 2 / 2.75 ? 7.5625 * (t - 1.5 / 2.75) * (t - 1.5 / 2.75) + 0.75
+                      : t < 2.5 / 2.75 ? 7.5625 * (t - 2.25 / 2.75) * (t - 2.25 / 2.75) + 0.9375
+                      : 7.5625 * (t - 2.625 / 2.75) * (t - 2.625 / 2.75) + 0.984375
+    })
+
+    function _tweenStep() {
+        if (logic._tweens.length === 0)
+            return
+        const arrived = []
+        for (const t of logic._tweens.slice()) {
+            if (!t.entity || !t.entity.parent) {
+                logic._tweens = logic._tweens.filter(k => k !== t)  // gone from the game
+                continue
+            }
+            t.at += 1
+            const e = t.ease(Math.min(1, t.at / t.steps))
+            const a = t.from
+            const b = t.to
+            t.entity[t.field] = t.form === "number" ? a + (b - a) * e
+                              : t.form === "vector" ? Qt.vector3d(a.x + (b.x - a.x) * e, a.y + (b.y - a.y) * e,
+                                                                  a.z + (b.z - a.z) * e)
+                              : Qt.rgba(a.r + (b.r - a.r) * e, a.g + (b.g - a.g) * e, a.b + (b.b - a.b) * e,
+                                        a.a + (b.a - a.a) * e)
+            if (t.at >= t.steps) {
+                logic._tweens = logic._tweens.filter(k => k !== t)
+                if (t.done)
+                    arrived.push(t.done)
+            }
+        }
+        for (const done of arrived) {
+            try {
+                done()
+            } catch (error) {
+                console.error("QQ logic: a tween's callback failed: " + error)
+            }
+        }
+    }
+
+    function _machineStep(dt) {
+        for (const m of logic._machines) {
+            if (m.state === "") {
+                if (m.spec.start)
+                    m.go(m.spec.start)
+                continue
+            }
+            m.time += dt
+            m.steps += 1
+            const here = m.spec[m.state]
+            if (here && here.step) {
+                try {
+                    here.step(dt)
+                } catch (error) {
+                    console.error("QQ logic: a machine's step failed: " + error)
+                }
+            }
+        }
+    }
     property var _removing: []
     property bool _begun: false
 
@@ -276,6 +434,8 @@ QtObject {
                 console.error("QQ logic: a timer failed: " + error)
             }
         }
+        _tweenStep()
+        _machineStep(dt)
         step(dt)
     }
 

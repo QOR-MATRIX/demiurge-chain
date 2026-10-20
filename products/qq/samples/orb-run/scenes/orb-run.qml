@@ -116,6 +116,28 @@ Scene {
         friction: 0.8
     }
 
+    Prop {
+        name: "Lantern west"
+        position: Qt.vector3d(-9, 0, -9)
+        eulerRotation: Qt.vector3d(0, 0, 0)
+        scale: Qt.vector3d(1, 1, 1)
+        source: "../assets/lantern.gltf"
+        clip: "idle"
+        clipSpeed: 1
+        clipLoops: true
+    }
+
+    Prop {
+        name: "Lantern east"
+        position: Qt.vector3d(9, 0, -9)
+        eulerRotation: Qt.vector3d(0, 0, 0)
+        scale: Qt.vector3d(1, 1, 1)
+        source: "../assets/lantern.gltf"
+        clip: "idle"
+        clipSpeed: 0.9
+        clipLoops: true
+    }
+
     Player {
         name: "Player"
         position: Qt.vector3d(0, 0, 6)

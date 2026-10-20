@@ -16,28 +16,20 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 
 ## Done this session, and merged by you
 
-1. **#56: the wallet moved into the core** — *the Rust part both launchers share*: the next
-   Android step (L13.2). Windows unchanged: every test passes, and the phone app still builds.
-2. **#54: CGT handled like money that matters.** An audit found the chain sound. Fixed:
-   - QOR ID's old donation scheme ("staking" bonuses for dollars) is retired, no records lost.
-   - "1,5" is refused instead of read as 15 CGT.
-   - ARQADE has no Energy: no entry cost, no random token drops.
-   - CI now fails on investment language.
-3. **#55: QQ makes real games** — *QQ is our game engine* (ADR-105): one engine for 3D and 2D.
-   Built: triggers, collisions, rays, spawning, timers, pushes and moving platforms, with
-   *Orb Run*, a small game made only of a scene and a script. Next: on-screen menus and
-   scores, button mapping, then 2D.
+1. **#56: the wallet moved into the core** — *the Rust part both launchers share* (L13.2).
+2. **#54: CGT handled like money that matters.** The chain's audit came out sound. QOR ID's
+   old donation scheme is retired (no records lost), "1,5" is refused instead of read as 15
+   CGT, ARQADE has no Energy, and CI fails on investment language. QOR ID redeployed.
+3. **QQ makes real games** — *QQ is our game engine* (ADR-105). Merged: gameplay, triggers
+   and timers (#55); menus, scores and pause screens (#57); rebindable controls (#59); 2D
+   with sharp pixel art and levels from **Tiled** — *the free level editor* (#60); and
+   **fair, repeatable play** (#61): 60 steps a second on any screen, seeded random numbers,
+   and a run that **replays** with no window to the same result — what later lets a
+   server check a score before anything is rewarded. *Orb Run* and *Ember Climb* prove it.
 
-QOR ID redeployed with its cleaned-up database on its own.
-
-**Merged since:** QQ's game interface (P3.8, #57); rebindable controls (P3.9, #59); and
-2D games (P3.10, #60): sharp pixel art, levels from **Tiled** — *the free level editor* —
-and *Ember Climb*, a small platformer.
-
-**Built since: fair, repeatable play** (P3.11). Games now run 60 steps a second on any
-screen; random numbers follow a seed; and a played run can be **replayed** with no window
-to the exact same result. That is what later lets a server check a score before anything
-is rewarded. All tests pass. It is pull request **#61**, waiting for you to merge.
+**Built since: animation** (P3.12). Models' own animations play — limbs bending, shapes
+swelling — and anything can glide to a new place, size or colour. *Orb Run* has swaying
+lanterns that flare when you take an orb. All tests pass. Say "commit and push" for it.
 
 ## Toward a worldwide beta: what only you can do
 
