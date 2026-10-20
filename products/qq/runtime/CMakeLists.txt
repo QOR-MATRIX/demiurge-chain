@@ -41,6 +41,8 @@ qt_add_qml_module(qqruntime
         webvoice.h webvoice.cpp
         look.h look.cpp
         tilemap.h tilemap.cpp
+        kinematics.h kinematics.cpp
+        run.h run.cpp
 )
 
 # The interface's faces (Look), the homepage's and ARQADE's, under the SIL Open Font License (fonts/*-OFL.txt).
@@ -54,6 +56,11 @@ qt_add_resources(qqruntime "qqfonts"
 )
 
 target_include_directories(qqruntime PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+# QQ's own kinematics and random numbers (P3.11) must give the same results on every machine: no multiply-add fused
+# where the source has two operations. MSVC does not fuse them under its default /fp:precise; GCC and Clang may.
+if(NOT MSVC)
+    target_compile_options(qqruntime PRIVATE -ffp-contract=off)
+endif()
 target_link_libraries(qqruntime PUBLIC Qt6::Qml Qt6::Quick Qt6::Quick3D PRIVATE Qt6::Network Qt6::Multimedia)
 if(WIN32)
     # Gamepads, through XInput (xinput1_4.dll, part of Windows since 8); the choice of GPU, through DXGI; the system's

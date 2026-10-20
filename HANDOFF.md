@@ -3325,7 +3325,41 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        - Ember Climb's Again gathered the last ember where the hero stood.
      - **Next:** #60's merge, then P3.11, fixed steps and replay.
 
+104. **19 October 2026, late night: #60 merged by the owner; P3.11, fixed steps and replay, built on `session/qq-steps`,
+     not yet committed.**
+     - **Merged:** #60 (P3.10) at `6b58167`. CI passed every job on it (run 39357583640). P3.10 is ticked in DIRECTION.
+     - **P3.11, built** (DIRECTION P3.11 has the whole list):
+       - **The clock.** Play moves in ticks of 1/60 s whatever the frame rate. Each tick takes the hands and the clicks,
+         then steps.
+       - **Logic** has `onStep`, timers in steps, `random()` and `randomInt()` from the scene's new `seed` field,
+         `overlaps()` and `outcome`.
+       - **QQ's own kinematics** move Player2D, and triggers hear it without PhysX.
+       - **`RunRecord` and `replayRun`** keep a run and play it again with no window and no physics world. The Player
+         has `--seed`, `--record`, `--ticks` and `--replay`.
+     - **A behaviour change:** presses, releases and screen-button clicks reach logic at the next tick (within 1/60 s),
+       never between ticks, so a replay sees them at the same moment. Gameplay moves from `onFrame` to `onStep` in
+       the Studio's starter logic, the agent's instructions, Ember Climb and the spin fixture.
+     - **Evidence, on the owner's PC:**
+       - All eight suites pass in one run of `build.ps1`: 117 cases.
+       - `tst_play` has 36 cases, 4 new and Ember Climb's extended.
+       - Seven planted faults were each caught.
+     - **Found on the way, fixed:** the Player's first check used `throws` as a logic property, which QML keeps for
+       itself. The logic never built, the game played without it, and the replay matched an empty outcome with an empty
+       outcome. A Behaviour now says why its logic does not build, and a replay refuses such a game (exit 3), so an
+       empty outcome is never counted as a match.
+     - **Next:** commit and push at the owner's word, then P3.12, animation.
+
 ## 5. Traps, so nobody re-learns them
+
+**QQ's clock (P3.11)**
+- **Presses reach logic at the next tick, not at once.** A check that presses a key and reads logic straight away sees
+  nothing yet. Let ticks pass first (`tst_play`'s `heard()`), and let a few more pass before saying something did *not*
+  arrive.
+- **Gameplay goes in `onStep`.** `onFrame` comes once a drawn frame, and never runs in a replay, which has no window.
+- **`throws` (and QML's other reserved words) cannot name a property in a logic file.** The file does not build; the
+  Behaviour now says so in the log (`QQ logic: <name>: …`), and a replay of such a game is refused.
+- **What logic removes during a tick goes when the tick ends** (`Scene._doom`), not at `Qt.callLater`: several ticks
+  can run in one frame, and a replay must remove it at the same moment.
 
 **QQ's 2D (P3.10)**
 - **Bloom brightens every colour, not only the brightest.** `ExtendedSceneEnvironment`'s glow drew a painted `#28c8c8`

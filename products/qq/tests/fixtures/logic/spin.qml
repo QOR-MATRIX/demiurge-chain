@@ -4,5 +4,5 @@ import QQ
 
 Logic {
     property real speed: 90  // degrees a second
-    onFrame: (dt) => target.eulerRotation.y += speed * dt
+    onStep: (dt) => target.eulerRotation.y += speed * dt
 }

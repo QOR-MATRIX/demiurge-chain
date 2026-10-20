@@ -30,14 +30,14 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 
 QOR ID redeployed with its cleaned-up database on its own.
 
-**Merged since:** QQ's game interface (P3.8, #57): titles, scores, bars, buttons and pause
-screens. Rebindable controls (P3.9, #59): any key, mouse or pad button, and touch buttons.
+**Merged since:** QQ's game interface (P3.8, #57); rebindable controls (P3.9, #59); and
+2D games (P3.10, #60): sharp pixel art, levels from **Tiled** — *the free level editor* —
+and *Ember Climb*, a small platformer.
 
-**Built since: QQ makes 2D games** (P3.10). Pixel art stays sharp at any window size and
-shows its exact colours. Levels are drawn in **Tiled** — *the free level editor most 2D
-games use* — and characters run and jump. **Ember Climb**, a small platformer, proves it.
-ADR-106 — *a recorded decision* — notes two choices: drawn art scales freely, and each map
-layer is one mesh. All tests pass. It is pull request **#60**, waiting for you to merge.
+**Built since: fair, repeatable play** (P3.11). Games now run 60 steps a second on any
+screen; random numbers follow a seed; and a played run can be **replayed** with no window
+to the exact same result. That is what later lets a server check a score before anything
+is rewarded. All tests pass. Not committed yet: say "commit and push" for a pull request.
 
 ## Toward a worldwide beta: what only you can do
 

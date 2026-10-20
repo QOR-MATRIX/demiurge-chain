@@ -300,9 +300,10 @@ ApplicationWindow {
     }
 
     readonly property string logicTemplate: '// Game logic: runs while the scene plays, and is rebuilt each time this file is saved.\n'
-        + '// `target` is the entity this drives, `scene` the scene, `elapsed` the seconds since it was built; `Input` has\n'
-        + '// move, look, jump and run.\n\nimport QQ\n\nLogic {\n    property real speed: 90  // degrees a second\n\n'
-        + '    onFrame: (dt) => {\n        if (target)\n            target.eulerRotation.y += speed * dt\n    }\n}\n'
+        + '// `target` is the entity this drives, `scene` the scene, `elapsed` the seconds of play since it was built;\n'
+        + '// `Input` has move, look, jump and run. onStep comes 60 times a second, whatever the frame rate.\n\n'
+        + 'import QQ\n\nLogic {\n    property real speed: 90  // degrees a second\n\n'
+        + '    onStep: (dt) => {\n        if (target)\n            target.eulerRotation.y += speed * dt\n    }\n}\n'
 
     /// Save the scene, then ask the launcher to commit the project and publish it as its Cartridge (P3.4).
     function publish() {

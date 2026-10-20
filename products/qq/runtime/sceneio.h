@@ -107,6 +107,19 @@ public:
     /// A map drawn in Tiled (a TileMap reads it, P3.10): readTiledMap() in tilemap.h, held to a confined game's package.
     Q_INVOKABLE QVariantMap readTiledMap(const QUrl &file, const QString &layer = {}) const;
 
+    // ── QQ's own kinematics and the run (P3.11): the same on every machine, and never PhysX ──
+
+    /// Move a box `halfWidth` by `halfHeight` about (x, y), at depth z, by (dx, dy) among what stands in `scene`: solid
+    /// tile maps, static and kinematic shapes and sprites, and the ground; `mover` itself is not in its own way. Across
+    /// first, then up or down: { x, y, left, right, down, up }, each side true where it met something (kinematics.h).
+    Q_INVOKABLE QVariantMap move2D(QObject *scene, QObject *mover, double x, double y, double z, double halfWidth,
+                                   double halfHeight, double dx, double dy) const;
+    /// Whether two entities' boxes overlap, as QQ measures them (not PhysX): a Player2D its figure, a sprite its frame, a
+    /// shape or a trigger its scale, the player its capsule's box. Touching is not overlapping.
+    Q_INVOKABLE bool overlaps(QObject *a, QObject *b) const;
+    /// A seed for a run that names none: never 0.
+    Q_INVOKABLE int freshSeed() const;
+
     /// Put a whole scene away (the Studio, opening another or stopping play). Its physics bodies are destroyed at once,
     /// before their world; everything else when control returns to the event loop.
     Q_INVOKABLE void discard(QObject *scene);

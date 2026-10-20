@@ -15,6 +15,7 @@ Scene {
     pixelsPerUnit: 16
     viewHeight: 12
     pixelArt: true
+    seed: 0
 
     Sun {
         name: "Sun"

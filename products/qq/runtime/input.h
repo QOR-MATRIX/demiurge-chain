@@ -17,6 +17,10 @@
 //
 // The keyboard is read from the whole application, except while a text field has focus, so typing a name never walks
 // the player. A gamepad is read through XInput on Windows; anywhere else only keyboard and mouse.
+//
+// Steps (P3.11): a playing scene takes the hands once a tick (takeStep): move, look, the actions held, and every press
+// and release since the tick before, in order. That is what its logic and its player are given, so a run can be kept
+// and played again (run.h). A replay gives the hands back (replayHands) and the devices are not read until it ends.
 
 #pragma once
 
@@ -25,6 +29,8 @@
 #include <QPointF>
 #include <QSet>
 #include <QStringList>
+#include <QVariantList>
+#include <QVariantMap>
 #include <QVector2D>
 #include <QtQml/qqmlregistration.h>
 
@@ -55,6 +61,8 @@ class Input : public QObject
     Q_PROPERTY(QPointF pointer READ pointer NOTIFY pointerChanged)
     /// The action waiting for a binding (listen()), or empty.
     Q_PROPERTY(QString listening READ listening NOTIFY listeningChanged)
+    /// Whether the hands are a replay's (replayHands), and the devices are not read.
+    Q_PROPERTY(bool replaying READ replaying NOTIFY replayingChanged)
 
 public:
     explicit Input(QObject *parent = nullptr);
@@ -71,6 +79,7 @@ public:
     void setReadsHardware(bool reads);
     QPointF pointer() const { return m_pointerAt; }
     QString listening() const { return m_listening; }
+    bool replaying() const { return m_replaying; }
 
     /// The pointer moved by `delta` pixels while looking (a drag in the viewport).
     Q_INVOKABLE void pointerMoved(QPointF delta);
@@ -106,6 +115,16 @@ public:
     /// The actions there are, by name.
     Q_INVOKABLE QStringList actions() const;
 
+    // ── steps (P3.11) ──
+
+    /// The hands for one tick: { move: [x, y], look: [x, y], held: [names, sorted], edges: [["pressed", name] or
+    /// ["released", name], in the order they came] }. The edges are those since the last call, which it clears.
+    Q_INVOKABLE QVariantMap takeStep();
+    /// Play `hands` (as takeStep gave them) as the player's own: move, look and held come from them, and no device is
+    /// read, until endReplay().
+    Q_INVOKABLE void replayHands(const QVariantMap &hands);
+    Q_INVOKABLE void endReplay();
+
     /// A key as a binding names it ("E", "Space", "Shift", "F1"), or empty for one that cannot be bound.
     static QString keyName(int key);
     /// A binding's key, or 0 if the name is not a key.
@@ -117,6 +136,7 @@ signals:
     void readsHardwareChanged();
     void pointerChanged();
     void listeningChanged();
+    void replayingChanged();
     /// An action became held, or stopped being held.
     void pressed(const QString &action);
     void released(const QString &action);
@@ -157,6 +177,12 @@ private:
     int m_padIdlePolls = 0;
     bool m_readsHardware = true;
     QTimer *m_poll = nullptr;
+    /// Presses and releases since the last takeStep(), in order.
+    QVariantList m_edges;
+    bool m_replaying = false;
+    QVector2D m_replayMove;
+    QVector2D m_replayLook;
+    QSet<QString> m_replayHeld;
 };
 
 /// A stick reading with its dead zone taken out: zero inside `dead`, rising smoothly to full at the rim.

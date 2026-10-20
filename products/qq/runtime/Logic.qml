@@ -6,11 +6,16 @@
 //
 //   Logic {
 //       property real speed: 90          // degrees a second
-//       onFrame: (dt) => target.eulerRotation.y += speed * dt
+//       onStep: (dt) => target.eulerRotation.y += speed * dt
 //   }
 //
-// `target` is the entity the Behaviour names, `scene` the scene playing, `elapsed` the seconds since this logic was
-// built. `Input` (move, look, jump, run) is there for any logic that reads the player's hands.
+// `target` is the entity the Behaviour names, `scene` the scene playing, `elapsed` the seconds of play since this logic
+// was built. `Input` (move, look, jump, run) is there for any logic that reads the player's hands.
+//
+// Steps (P3.11, ADR-105 decision 6): the game moves in steps of 1/60 s, whatever the frame rate. `onStep` is where
+// gameplay goes; `onFrame` comes once a drawn frame, for what is only looked at. Timers keep step time, `random()` and
+// `randomInt()` draw from the scene's seed, and `overlaps()` measures with QQ's own boxes, so a run can be played again
+// with no window and reach the same `outcome`: whatever a logic file sets there is what a replay must match.
 //
 // Gameplay (DIRECTION P3.7, ADR-105): what the target touches and what enters it, rays, making and removing entities,
 // and timers, all from here, so a game is a scene and its logic and never a change to the engine.
@@ -21,8 +26,8 @@
 //       onStarted: every(2, () => spawn("Shape", { form: "sphere", body: "dynamic", position: Qt.vector3d(0, 6, 0) }))
 //   }
 //
-// Timers run on the logic's own clock, the one `elapsed` counts and `frame` is given, so they keep time with the game
-// rather than with the wall.
+// Timers run on the logic's own clock, the one `elapsed` counts in steps, so they keep time with the game rather than
+// with the wall.
 //
 // The game's interface (P3.8): the screen kinds are entities like any other, so logic sets a ScreenText's `text` or a
 // ScreenBar's `value` through entity(name); it shows and hides whole screens, and pauses the world beneath them.
@@ -47,14 +52,23 @@ QtObject {
     property QtObject target: null
     property QtObject scene: null
 
-    /// Seconds since this logic was built.
+    /// Seconds of play since this logic was built: its steps over 60.
     property real elapsed: 0
+    /// Steps since this logic was built.
+    property int steps: 0
 
-    /// Once, before the first frame: where a game sets itself up (its timers, its first entities). A logic file imports
+    /// What this run came to, for whatever keeps score (P3.11): a number, a string or a small object, set by the logic
+    /// file. A replay of the run must reach the same.
+    property var outcome
+
+    /// Once, before the first step: where a game sets itself up (its timers, its first entities). A logic file imports
     /// only QQ, so this, not Component.onCompleted, is where it begins. Again after each rebuild.
     signal started()
 
-    /// Once a frame while the world plays, with the seconds since the last frame.
+    /// Every step of the game, 60 a second whatever the frame rate, with the step's length (1/60 s): where gameplay goes.
+    signal step(real dt)
+
+    /// Once a drawn frame while the world plays, with the seconds since the last: for what is only looked at.
     signal frame(real dt)
 
     /// The target's body touched another entity's (null for something that is not an entity), at `point`, pushed
@@ -97,10 +111,17 @@ QtObject {
                ? { entity: entity, point: hit.scenePosition, normal: hit.sceneNormal, distance: hit.distance } : null
     }
 
-    property Connections _actions: Connections {
-        target: Input
-        function onPressed(action) { logic.pressed(action) }
-        function onReleased(action) { logic.released(action) }
+    /// A number from 0 up to 1, from the scene's seed: the same seed gives the same numbers, in the same order.
+    function random() {
+        return scene ? scene.random.next() : 0
+    }
+    /// A whole number from `low` to `high`, both included, from the scene's seed.
+    function randomInt(low, high) {
+        return scene ? scene.random.between(low, high) : low
+    }
+    /// Whether two entities' boxes overlap, as QQ measures them (never PhysX), so a replay measures the same.
+    function overlaps(a, b) {
+        return SceneIO.overlaps(a, b)
     }
 
     /// Show a screen by name, hide one, or show one and nothing else (a title to the game, the game to its end).
@@ -151,10 +172,16 @@ QtObject {
         if (!entity || !scene || entity.parent !== scene || removing(entity))
             return false
         logic._removing = logic._removing.concat([entity])
-        Qt.callLater(() => {
-            logic._removing = logic._removing.filter(e => e !== entity)
-            SceneIO.remove(entity)
-        })
+        // In a step it goes as the step ends, so a replay removes it at the same moment; otherwise once control returns.
+        if (scene._ticking) {
+            scene._doom(entity)
+            Qt.callLater(() => logic._removing = logic._removing.filter(e => e !== entity))
+        } else {
+            Qt.callLater(() => {
+                logic._removing = logic._removing.filter(e => e !== entity)
+                SceneIO.remove(entity)
+            })
+        }
         return true
     }
 
@@ -163,7 +190,7 @@ QtObject {
         return logic._removing.indexOf(entity) >= 0
     }
 
-    /// Call `callback` once, `seconds` from now on the logic's clock. Its id, for cancel().
+    /// Call `callback` once, `seconds` from now on the logic's clock (to the nearest step). Its id, for cancel().
     function after(seconds, callback) {
         return _addTimer(seconds, 0, callback)
     }
@@ -204,7 +231,7 @@ QtObject {
 
     default property list<QtObject> data
 
-    // ── run by the Behaviour, once a frame ──
+    // ── run by the Behaviour: a step from the scene's clock, a frame from the display ──
 
     property var _timers: []
     property int _timerCount: 0
@@ -216,22 +243,25 @@ QtObject {
             console.warn("QQ logic: a timer needs a function to call")
             return 0
         }
+        // In whole steps, so a timer falls on the same step in play and in a replay.
         const id = ++logic._timerCount
-        logic._timers = logic._timers.concat([{ id: id, due: logic.elapsed + Math.max(0, seconds), repeat: repeat,
+        logic._timers = logic._timers.concat([{ id: id, due: logic.steps + Math.max(0, Math.round(seconds * 60)),
+                                                repeat: repeat > 0 ? Math.max(1, Math.round(repeat * 60)) : 0,
                                                 callback: callback }])
         return id
     }
 
-    /// Advance the clock by `dt`, call every timer that is due, in the order they fall due, then `frame`. A repeating
-    /// timer fires at most once a step and catches up over the next ones. A timer that throws is reported, and the rest
-    /// still run.
+    /// One step of the game: the clock moves, every timer that is due runs, in the order they fall due, then `step`. A
+    /// repeating timer fires at most once a step and catches up over the next ones. A timer that throws is reported, and
+    /// the rest still run.
     function _step(dt) {
         if (!logic._begun) {
             logic._begun = true
             started()
         }
-        logic.elapsed += dt
-        const now = logic.elapsed
+        logic.steps += 1
+        logic.elapsed = logic.steps / 60
+        const now = logic.steps
         const due = logic._timers.filter(t => t.due <= now).sort((a, b) => a.due - b.due || a.id - b.id)
         for (const t of due) {
             if (!logic._timers.some(k => k.id === t.id))
@@ -246,6 +276,20 @@ QtObject {
                 console.error("QQ logic: a timer failed: " + error)
             }
         }
-        frame(dt)
+        step(dt)
+    }
+
+    /// A drawn frame, once the logic has begun.
+    function _frame(dt) {
+        if (logic._begun)
+            frame(dt)
+    }
+
+    /// A press or release, from the scene's tick.
+    function _hear(kind, action) {
+        if (kind === "pressed")
+            pressed(action)
+        else
+            released(action)
     }
 }

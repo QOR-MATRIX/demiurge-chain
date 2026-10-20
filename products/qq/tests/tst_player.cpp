@@ -1,4 +1,5 @@
-// Does the QQ Player play a game on its own, and say how quickly it started? (DIRECTION P3.2)
+// Does the QQ Player play a game on its own, and say how quickly it started? (DIRECTION P3.2) And does it keep a run and
+// play it again with no window to the same outcome? (DIRECTION P3.11)
 //
 // The real executable, started as a person or the launcher starts it: it must play its bundled playground and a scene
 // file from disk, report its first frame and frame rate, and show a frame that is the game (sky, ground, lit shapes and
@@ -126,6 +127,57 @@ private slots:
                 colours.insert(image.pixel(x, y));
         }
         QVERIFY2(colours.size() > 40, qPrintable(QString::number(colours.size())));
+    }
+
+    void aRunIsRecordedAndReplayedByThePlayer()
+    {
+        // P3.11, the real executable: a run kept with --record, its seed given with --seed and its length with --ticks,
+        // then played again with --replay and no window. The game: a sum of dice thrown every half second.
+        QTemporaryDir project;
+        const QDir root(project.path());
+        root.mkpath(QStringLiteral("scenes"));
+        root.mkpath(QStringLiteral("logic"));
+        QFile logic(root.filePath(QStringLiteral("logic/dice.qml")));
+        QVERIFY(logic.open(QIODevice::WriteOnly));
+        logic.write("import QQ\nLogic {\n    property int sum: 0\n    property int rolls: 0\n"
+                    "    onStarted: every(0.5, () => { sum += randomInt(1, 6); rolls += 1 })\n"
+                    "    outcome: ({ sum: sum, rolls: rolls })\n}\n");
+        logic.close();
+        QFile scene(root.filePath(QStringLiteral("scenes/dice.qml")));
+        QVERIFY(scene.open(QIODevice::WriteOnly));
+        scene.write("import QQ\nScene {\n    name: \"dice\"\n    Sun {}\n    Ground {}\n"
+                    "    Behaviour { name: \"Dice\"; source: \"../logic/dice.qml\" }\n}\n");
+        scene.close();
+
+        const QString kept = root.filePath(QStringLiteral("run.json"));
+        QCOMPARE(runPlayer({scene.fileName(), QStringLiteral("--seed"), QStringLiteral("7"), QStringLiteral("--record"), kept,
+                            QStringLiteral("--ticks"), QStringLiteral("240")}),
+                 0);
+        const QJsonObject run = readJson(kept);
+        QCOMPARE(run.value(QStringLiteral("seed")).toInt(), 7);
+        QCOMPARE(run.value(QStringLiteral("ticks")).toInt(), 240);
+        const QJsonObject dice = run.value(QStringLiteral("outcome")).toObject().value(QStringLiteral("Dice")).toObject();
+        QCOMPARE(dice.value(QStringLiteral("rolls")).toInt(), 8);  // four seconds, a throw each half second
+        QVERIFY(dice.value(QStringLiteral("sum")).toInt() >= 8);
+
+        // Played again, with no window: the same outcome (exit 0). Told another seed, it does not reach it (exit 4).
+        QCOMPARE(runPlayer({scene.fileName(), QStringLiteral("--replay"), kept}), 0);
+        QJsonObject other = run;
+        other.insert(QStringLiteral("seed"), 8);
+        const QString changed = root.filePath(QStringLiteral("other.json"));
+        QFile out(changed);
+        QVERIFY(out.open(QIODevice::WriteOnly));
+        out.write(QJsonDocument(other).toJson());
+        out.close();
+        QCOMPARE(runPlayer({scene.fileName(), QStringLiteral("--replay"), changed}), 4);
+        // And a file that is not a run is said (exit 3).
+        QCOMPARE(runPlayer({scene.fileName(), QStringLiteral("--replay"), scene.fileName()}), 3);
+        // So is a game whose logic no longer builds ("throws" is a word QML keeps for itself): it would replay to an
+        // empty outcome, which is no match for anything.
+        QVERIFY(logic.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        logic.write("import QQ\nLogic {\n    property int throws: 0\n}\n");
+        logic.close();
+        QCOMPARE(runPlayer({scene.fileName(), QStringLiteral("--replay"), kept}), 3);
     }
 
     void aSceneThatIsNotThereIsSaidNotHidden()
