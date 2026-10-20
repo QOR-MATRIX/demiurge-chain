@@ -1290,9 +1290,10 @@ P3.2 and on nothing on chain, and run in this order:
       - `tst_player` keeps a run with the real Player and replays it (exit 0); with another seed it does not match
         (exit 4).
       - Seven planted faults were each caught.
-12. [ ] **Animation.** glTF skeletal and morph playback, tweens on any field, and a state machine.
+12. [x] **Animation.** glTF skeletal and morph playback, tweens on any field, and a state machine.
 
-    **Built 19 October 2026** (branch `session/qq-animation`, pull request #62, not yet merged):
+    **Done 19 October 2026, merged (#62, at `dd5a29d`; CI passed every job on its head and on the merge, runs
+    39368661482 and 39370514734):**
     - **glTF clips.** A Prop plays its file's animations, skeletal and morph alike, by name: `clip`, `clipSpeed`
       (backwards too) and `clipLoops`. `clips` lists them, `clipTime` and `clipDone` say where it is, and `part(name)`
       finds a joint or a mesh.
@@ -1324,6 +1325,44 @@ P3.2 and on nothing on chain, and run in this order:
       - A seventh, Qt's own timeline left running, was not caught: each step and each frame poses the model over it.
         Looking into why found that a replay, which draws no frames, never posed the model at all; each step now does.
 13. [ ] **Sound.** One-shots from logic, music, and volume groups, panned in a browser where it can be.
+
+    **Built 19 October 2026** (branch `session/qq-sound`, not yet a pull request):
+    - **One-shots.** Logic's `play(source, { at, volume, group, reach })` plays a file once: placed in the world where
+      logic says, or heard everywhere alike. It is put away when it has played through, measured from the file's
+      header, since Qt's spatial sounds do not say when they have finished. A scene keeps its one-shots out of its
+      tree, so nothing of them is written to its file.
+    - **Music.** A new kind, `Music`: a track heard everywhere from when play starts, and on through a pause. Logic
+      changes it by setting `source`, and the old track fades out on one voice as the new one fades in on the other,
+      over `fade` seconds, after which the old one is let go.
+    - **Volume groups.** `Mixer` keeps a level for each group, master among them. Every sound is in one (`effects`
+      unless named otherwise, `music` for music), and what is heard is its own volume times its group's level and the
+      master level, changed at once. Logic has `setVolume` and `volumeOf`. The Studio's Stop puts every level back, as
+      it puts back everything else a play changed.
+    - **In a browser.** `WebVoice` is now the page's own Web Audio: each file decoded once and kept for the next voice
+      that plays it, then played through a gain and a stereo panner. Sounds and placed one-shots are quieter with
+      distance from the eye and panned to the side of it they are on; music is heard alike on both sides. The page's
+      first touch or key starts its audio, as browsers require.
+    - **A replay makes no sound.** There `play()` returns nothing, so what it returns must not decide an outcome.
+    - **Orb Run** has music, the title's giving way to the arena's when play starts; a chime where an orb is taken; a
+      rumble where the boulder is rolled; and a switch on its pause screen that turns the music group off and on. Its
+      sounds are written by `make_sounds.py`, standard library only, the same bytes each time.
+    - **Evidence, on the owner's PC:**
+      - All eight suites pass in one run of `build.ps1`: 126 cases.
+      - `tst_play` passes 44 cases, 4 new:
+        - a one-shot placed where logic said and one heard everywhere, at their groups' levels as they change, put
+          away once played through;
+        - music fading from one track to the next and letting the first go;
+        - as a browser hears it, a sound on the eye's right panned right and one on its left panned left, quieter with
+          distance, a sound ahead in the middle, and a one-shot the same;
+        - no sound in a replay.
+        Orb Run's case checks its music, its chime and rumble, and its music switch.
+      - `tst_scene` reads a sound file's length, again when the file is replaced, and checks the Mixer's levels;
+        `tst_studio` checks that Stop puts them back.
+      - In headless Chrome (`build.ps1 -Web`), the playground's sound plays on the page's Web Audio, decoded and
+        through a stereo panner, the audio running.
+      - Eight planted faults were each caught: one-shots deaf to their group's level, a one-shot never put away,
+        music never letting its old track go, music deaf to its group's level, logic sounding in a replay, a browser
+        panning to the wrong side, the Studio's Stop keeping a play's levels, and a replaced file keeping its old length.
 14. [ ] **Materials.** Images on shapes, spot lights and HDR skies.
 15. [ ] **The Studio's basics.** Undo and redo, duplicate, snapping, a hierarchy with parenting and prefabs, an asset
     browser, a logic editor, and a statistics overlay with physics shown.

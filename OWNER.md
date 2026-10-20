@@ -22,14 +22,17 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
    CGT, ARQADE has no Energy, and CI fails on investment language. QOR ID redeployed.
 3. **QQ makes real games** — *QQ is our game engine* (ADR-105). Merged: gameplay, triggers
    and timers (#55); menus, scores and pause screens (#57); rebindable controls (#59); 2D
-   with sharp pixel art and levels from **Tiled** — *the free level editor* (#60); and
+   with sharp pixel art and levels from **Tiled** — *the free level editor* (#60);
    **fair, repeatable play** (#61): 60 steps a second on any screen, seeded random numbers,
    and a run that **replays** with no window to the same result — what later lets a
-   server check a score before anything is rewarded. *Orb Run* and *Ember Climb* prove it.
+   server check a score before anything is rewarded; and **animation** (#62): models'
+   own animations, smooth glides and state machines. *Orb Run* and *Ember Climb* prove it.
 
-**Built since: animation** (P3.12). Models' own animations play — limbs bending, shapes
-swelling — and anything can glide to a new place, size or colour. *Orb Run* has swaying
-lanterns that flare when you take an orb. All tests pass. It is pull request **#62**.
+**Built since: sound** (P3.13). A game plays a sound once where something happens, has
+music that fades from one track to the next, and has volume groups, so a player can turn
+the music down and keep the effects. In a browser, sounds now come from the side they are
+on. *Orb Run* has music, a chime, a rumble and a music switch. All tests pass. Not yet
+committed: say "commit and push" for a pull request.
 
 ## Toward a worldwide beta: what only you can do
 

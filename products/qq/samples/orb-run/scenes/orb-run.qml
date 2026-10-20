@@ -153,6 +153,15 @@ Scene {
         target: ""
     }
 
+    Music {
+        name: "Music"
+        source: "../assets/title.wav"
+        volume: 0.6
+        fade: 1.2
+        loops: true
+        group: "music"
+    }
+
     ScreenText {
         name: "Score"
         screen: "hud"
@@ -270,6 +279,18 @@ Scene {
         width: 0
         text: "Resume"
         colour: "#c9a45c"
+        action: ""
+    }
+
+    ScreenButton {
+        name: "Music switch"
+        screen: "pause"
+        anchor: "centre"
+        insetX: 0
+        insetY: 110
+        width: 0
+        text: "Music: on"
+        colour: "#9ba2ad"
         action: ""
     }
 

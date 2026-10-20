@@ -15,8 +15,8 @@ it; the QQ Player plays a scene on its own, natively and in a browser.
   the arrows, Space, Shift), the mouse (a drag looks around) and a gamepad (XInput: sticks past a dead zone, A, the
   shoulders), read as one set of intentions (`Input`: move, look, jump, run) so every game works with every device and
   the agent can play one too; **particles** (`Emitter`: soft points of light that rise, spread and fade); **sound**
-  (`Sound`: placed in the world, louder nearer, panned, silent beyond its reach, heard through the camera; in a browser
-  not panned, below); and **logic** (`Behaviour` names a `logic/<name>.qml` file whose root is a `Logic`; it runs only
+  (`Sound`: placed in the world, louder nearer, panned, silent beyond its reach, heard through the camera, in a browser
+  too); and **logic** (`Behaviour` names a `logic/<name>.qml` file whose root is a `Logic`; it runs only
   in play and is rebuilt each time the file is saved, without stopping the world).
 - **2D (P3.10, built 19 October 2026; ADR-105, ADR-106):** a scene with `view: "2d"` is the same world seen flat,
   through an orthographic camera on the plane z = 0, over a backdrop of its sky's colours. **Pixel art** (`pixelArt`, on
@@ -50,6 +50,19 @@ it; the QQ Player plays a scene on its own, natively and in a browser.
     with nine easings.
   - **State machines** (`machine({ start, <state>: { enter, step, exit, on } })`) keep what something is doing, how
     long it has been at it, and the events that move it on.
+- **Sound (P3.13, built 19 October 2026; ADR-105):**
+  - **One-shots from logic** (`play(source, { at, volume, group, reach })`): a coin or a hit heard once, placed in the
+    world where logic says or heard everywhere alike, and put away when it has played through.
+  - **Music** (`Music`): a track heard everywhere from when play starts, and on through a pause, as a menu's would be.
+    Logic changes it by setting `source`, and the old track fades out as the new one fades in, over `fade` seconds.
+  - **Volume groups** (`Mixer`): every sound is in one (`effects` unless named otherwise, `music` for music), and what
+    is heard is its own volume times its group's level and the master level. Logic sets and reads them (`setVolume`,
+    `volumeOf`), so a game's options screen turns the music down and leaves the effects alone. The Studio's Stop puts
+    them back.
+  - **In a browser** every sound is QQ's own voice on the page's Web Audio, each file decoded once. A placed one is
+    quieter with distance from the eye and panned to the side of it it is on. The page's first touch or key starts its
+    audio, as browsers require.
+  - **A replay makes no sound.** There `play()` returns nothing, so what it returns must not decide an outcome.
 - **The Studio:** the scene's entities in a list, the selected one's fields in an inspector (built from what each type
   declares), click to select in the viewport, handles to move along an axis, turn about the vertical or scale evenly,
   orbit and zoom, add (cube, sphere, cylinder, cone, lamp, model, player, emitter, sound, behaviour, the screen kinds,
@@ -92,13 +105,14 @@ description with no human edit, made by whoever runs it with their own key.
 
 | Path | What it is |
 | --- | --- |
-| `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, `Trigger` (a volume that hears what enters and leaves it, P3.7), the screen kinds `ScreenText`, `ScreenBar`, `ScreenButton`, `ScreenImage` and `ScreenPanel` (the game's interface, drawn over the world on the World's overlay, each in a named screen; built on `ScreenPart`, P3.8), `InputAction` (an action a player can take, with its keys, mouse buttons and pad buttons, P3.9), the 2D kinds `Sprite`, `TileMap` and `Player2D` (P3.10), and `Logic` (what a logic file is, with the gameplay API of P3.7: `onStarted`, `onContact`, `onEntered`, `onExited`, `ray`, `spawn`, `remove`, `after`, `every`, `cancel`; and for the interface, P3.8, `onClicked`, `showScreen`, `hideScreen`, `onlyScreen`, `pause` and `resume`; and for actions, P3.9, `onPressed`, `onReleased`, `held`, `rebind`, `bindingOf` and `pointing`; and for steps and runs, P3.11, `onStep`, `steps`, `random`, `randomInt`, `overlaps` and `outcome`; and for animation, P3.12, `tween` and `machine`). `Look` is the interface's style: the faces Cinzel and Barlow Semi Condensed (carried in `runtime/fonts/`, under the SIL Open Font License), the launcher's inks and ARQADE's gilt, and the system's reduced-motion setting. In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `tilemap` (Tiled's maps read, their solid tiles merged into colliders, and `TileGeometry`, a layer as one mesh), `kinematics` (QQ's own: boxes swept against boxes, P3.11), `run` (`Random`, seeded and the same everywhere; `RunRecord`, a run kept; `replayRun`, a run played again with no window), `clips` (a glTF model's animations, taken from Qt's own wall-clock playing and posed on the game's steps, P3.12), `SoftDot` (the particles' sprite, made in memory) `gpu` (draw with the faster of two GPUs), `Confinement` (what a game may reach in the Player, ADR-087) and `WebVoice` (a sound in a browser, so a game never needs Qt Multimedia's QML) |
+| `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, `Trigger` (a volume that hears what enters and leaves it, P3.7), the screen kinds `ScreenText`, `ScreenBar`, `ScreenButton`, `ScreenImage` and `ScreenPanel` (the game's interface, drawn over the world on the World's overlay, each in a named screen; built on `ScreenPart`, P3.8), `Music` (a scene's music, fading from track to track, P3.13), `InputAction` (an action a player can take, with its keys, mouse buttons and pad buttons, P3.9), the 2D kinds `Sprite`, `TileMap` and `Player2D` (P3.10), and `Logic` (what a logic file is, with the gameplay API of P3.7: `onStarted`, `onContact`, `onEntered`, `onExited`, `ray`, `spawn`, `remove`, `after`, `every`, `cancel`; and for the interface, P3.8, `onClicked`, `showScreen`, `hideScreen`, `onlyScreen`, `pause` and `resume`; and for actions, P3.9, `onPressed`, `onReleased`, `held`, `rebind`, `bindingOf` and `pointing`; and for steps and runs, P3.11, `onStep`, `steps`, `random`, `randomInt`, `overlaps` and `outcome`; and for animation, P3.12, `tween` and `machine`; and for sound, P3.13, `play`, `setVolume` and `volumeOf`). `Look` is the interface's style: the faces Cinzel and Barlow Semi Condensed (carried in `runtime/fonts/`, under the SIL Open Font License), the launcher's inks and ARQADE's gilt, and the system's reduced-motion setting. In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `tilemap` (Tiled's maps read, their solid tiles merged into colliders, and `TileGeometry`, a layer as one mesh), `kinematics` (QQ's own: boxes swept against boxes, P3.11), `run` (`Random`, seeded and the same everywhere; `RunRecord`, a run kept; `replayRun`, a run played again with no window), `clips` (a glTF model's animations, taken from Qt's own wall-clock playing and posed on the game's steps, P3.12),
+`Mixer` (the volume groups, and a sound file's length, P3.13), `SoftDot` (the particles' sprite, made in memory) `gpu` (draw with the faster of two GPUs), `Confinement` (what a game may reach in the Player, ADR-087) and `WebVoice` (a sound in a browser, on the page's Web Audio and panned, so a game never needs Qt Multimedia's QML) |
 | `studio/` | QQ Studio. `qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>] [--launcher-channel <name>]`; `LauncherLink`, its side of the QOR host protocol (publishing through the launcher that started it, ADR-088) |
 | `agent/` | The agent's side of the Studio (P3.3): `McpServer` (MCP's JSON-RPC, served on a local pipe only this user can open), `StudioTools` (the fourteen tools, working the Studio's own window functions, and `StudioLog`, what the Studio has said), `DesignLoop` (a description designed, built, played and judged by Claude through those tools; ADR-085), `keychain` (the provider's key in Windows Credential Manager) and `qq-mcp` (the program an MCP client starts, relaying its standard input and output to the running Studio) |
 | `player/` | The QQ Player. `qq-player [scene.qml] [--capture <frame.png>] [--measure <result.json>] [--seed <n>] [--record <run.json> [--ticks <n>]] [--replay <run.json>]` (a replay has no window and exits 0 when it reaches the outcome kept, 4 when it does not); its playground (a small game with everything P3.2 plays) bundled inside it; `measure-web.mjs`, which plays the browser build in a headless browser and measures it |
 | `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks, drags and keys), `tst_play` (physics, the player, input, particles, sound, logic and gameplay in logic, 2D pixel for pixel, in real frames, and the Orb Run and Ember Climb samples played), `tst_player` (the real Player executable), `tst_lockdown` (what a game's logic may reach in the Player, ADR-087), `tst_publish` (publishing through a stand-in launcher, P3.4), `tst_agent` (the tools over MCP, in the real Studio and through the real `qq-mcp`) |
 | `tests/fixtures/` | `orb.gltf` (written by `make_orb.py`), `chime.wav` (written by `make_chime.py`), `logic/spin.qml`, `scenes/sample.qml` (every entity type, canonical), `first-light.qq.json` (the 2D preview's starter scene), and the 2D fixtures `make_2d.py` writes: `tiles.png`, `tiles.tsj`, `level.tmj` (a Tiled map with a mirrored tile and two layers) and `sheet.png` (eight frames), and `rig.gltf` (written by `make_rig.py`: a bar skinned to two joints that "bend" turns, and a box whose morph target "puff" doubles) |
-| `samples/` | Games made only from kinds and logic files, each proving a step of P3 and played by the suites (ADR-105): `orb-run/` for P3.7 to P3.9 and P3.12, and `ember-climb/`, a pixel-art platformer, for P3.10 and P3.11 ([`samples/README.md`](samples/README.md)) |
+| `samples/` | Games made only from kinds and logic files, each proving a step of P3 and played by the suites (ADR-105): `orb-run/` for P3.7 to P3.9, P3.12 and P3.13, and `ember-climb/`, a pixel-art platformer, for P3.10 and P3.11 ([`samples/README.md`](samples/README.md)) |
 | `build.ps1` | Builds with the owner's Qt, MSVC 2022 and Ninja and runs every test; `-Deploy` makes a self-contained Studio; `-Web` builds the Player for the browser and measures it |
 
 ## Build, test, deploy
@@ -164,6 +178,9 @@ drew about 12 frames a second.
   fewest rectangles; and a map adopted into a project brings its tileset and image, while one whose tileset is outside
   its folder is refused with nothing copied. **Since P3.11, 22 cases (27 checks):** the seeded numbers pinned against an independent
   implementation, a box stopped by what stands in its way (touching is not overlapping), and a run kept and read back.
+  **Since P3.13, 23 cases (28 checks):** a sound file's length read from its header, and read again when the file is
+  replaced; the Mixer's levels held to 0 to 1, multiplied by the master's, and reset; a browser voice's pan held to all
+  left and all right.
 - **`tst_studio`** (10 cases, the real window): a new Studio opens a lit scene in its project; a click on the model
   selects it and a click on the sky selects nothing; dragging the X handle moves along X only; dragging the centre
   handle scales evenly and leaves the position alone; saving writes a canonical scene and carries the model into the
@@ -173,7 +190,8 @@ drew about 12 frames a second.
   turns the player and tilts the eye, Esc leaves the scene, its unsaved state and the selection exactly as they were,
   and Play starts again from the same place; a new behaviour is written into the project and never over a file.
   **Since P3.10, 11 cases:** a 2D scene opens framed as it plays, its handles see what the world sees, its X handle moves
-  along X on the plane, a drag on nothing pans with the pointer, and the wheel shows fewer units, larger.
+  along X on the plane, a drag on nothing pans with the pointer, and the wheel shows fewer units, larger. **Since
+  P3.13:** Stop puts back the volume levels a play set.
 - **`tst_play`** (11 cases, real frames): a dynamic shape falls and comes to rest on the ground; a static one holds
   what lands on it and one with no body lets it through; a cylinder and a cone collide as their shapes; a fall takes
   the time the scene's gravity says; the player walks, runs, turns and jumps at the keyboard, with the camera behind
@@ -251,6 +269,19 @@ drew about 12 frames a second.
   Six planted faults were each caught: a clip's joints not put back, a clip running on while paused, a tween's start
   following its field, a tween in the wrong steps, a machine never leaving a state, and steps that do not pose the
   model.
+  **Since P3.13, 44 cases:**
+  - a one-shot placed where logic said and one heard everywhere, at their groups' levels as they change, both put
+    away once played through;
+  - music fading from one track to the next, the first let go when it has, and both when play stops;
+  - as a browser hears it, a sound on the eye's right panned right and one on its left panned left, quieter with
+    distance, one ahead in the middle, and a one-shot the same;
+  - no sound in a replay;
+  - Orb Run's music changing when play starts, its chime and rumble, and its music switch.
+
+  Eight planted faults were each caught: one-shots deaf to their group's level, a one-shot never put away, music
+  never letting its old track go, music deaf to its group's level, logic sounding in a replay, a browser panning to the
+  wrong side, the Studio's Stop keeping a play's levels (by `tst_studio`), and a replaced file keeping its old length
+  (by `tst_scene`).
 - **`tst_lockdown`** (7 cases, 12 checks with the imports' five; ADR-087): a game that keeps to its own files (logic
   importing Quick 3D Physics, a model from its `assets/`) plays with nothing refused; imports of `QtQuick.LocalStorage`,
   `QtCore`, `QtQuick.Dialogs` and `Qt.labs.settings` refused with the module named (and `QtMultimedia` an expected
@@ -284,7 +315,8 @@ drew about 12 frames a second.
   `tst_studio`, "turned 0").
 - **In a browser:** `build.ps1 -Web` (`player/measure-web.mjs`) serves the build cross-origin isolated, plays it in
   headless Chrome, reads the Player's measurement, captures the first frame and fails unless it is the game, with every
-  model loaded and no error on the page or in any of its workers.
+  model loaded and no error on the page or in any of its workers; and (P3.13) unless the playground's sound is on the
+  page's Web Audio, decoded and through a stereo panner.
 - **`tst_agent`** (15 cases, one of them run only when asked): the protocol alone (a version agreed, or the server's newest; instructions given; not
   JSON, a batch, an unknown method or tool each answered with its JSON-RPC error; a notification not answered; a
   tool's failure a result with its id); in the real Studio, through the protocol: every tool listed with a name and
@@ -325,7 +357,7 @@ against the entity's own file; across drives there is no relative path, and a ba
 scheme `x`; a lambda counting `frameSwapped` must not take the window as its context while capturing a local (the
 signal is queued from the render thread, and a late one writes into a stack frame that has gone); Qt for WebAssembly's
 single-threaded kit has no Qt Multimedia, and in the threaded one Qt's spatial audio makes its sound on a worker, where
-the web has no audio, so in a browser `Sound` is a plain sound effect.
+the web has no audio, so in a browser sound is QQ's own, on the page's Web Audio (`WebVoice`).
 
 ## Known limits
 
@@ -343,8 +375,12 @@ the web has no audio, so in a browser `Sound` is a plain sound effect.
   differ in their last bits. An outcome that must replay elsewhere keeps to plain arithmetic, `random()` and
   QQ's own kinematics.
 
-- **In a browser, sounds are not panned.** Their volume follows the distance from the scene's player (full within a
-  metre, halving with each doubling, none beyond `reach`); a scene with no player hears them at their own volume.
+- **Sound, as built in P3.13:** natively Qt's spatial audio places a sound around the listener; in a browser it is
+  panned between left and right only, with its volume following the distance from the eye (full within a metre,
+  halving with each doubling, none beyond `reach`). A browser decodes each file whole before it plays, so a long track
+  costs its decoded size in memory. Volume levels last while the game runs; keeping a player's settings between plays
+  comes with saving (P3.16). A one-shot's length is read only from a WAV file's header, so another format is put away
+  after ten seconds, whatever its length.
 - **Logic is code, and the Player locks it down** (ADR-087). In the Studio a creator's logic has the engine's full
   reach, as it should. In the QQ Player, natively and in a browser, every game is confined (`runtime/confinement.h`):
   it loads QML and files only from its own package and Qt's and QQ's module folders, imports only an allowed list of

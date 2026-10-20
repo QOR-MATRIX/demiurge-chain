@@ -8,6 +8,9 @@
 // Its motion (P3.12): orbs grow in with a spring and shrink away when taken, the score swells as it counts, the arena's
 // lanterns (an animated glTF model, assets/lantern.gltf) flare as each orb is taken and then go back to swaying, and the
 // boulder is a state machine: resting, then rolled at the player, then resting again.
+//
+// Its sound (P3.13): the title's music, giving way to the arena's when play starts; a chime where an orb is taken and a
+// rumble where the boulder is rolled; and the pause screen turns the music off and on again (its volume group).
 
 import QQ
 
@@ -47,6 +50,7 @@ Logic {
                 tween(shown, "size", 44, 0.12, "outQuad", () => tween(shown, "size", 34, 0.25, "inOutQuad"))
             }
             remove(orb)
+            play("../assets/chime.wav", { at: glow.position })
             tween(glow, "scale", Qt.vector3d(0.01, 0.01, 0.01), 0.25, "inCubic", () => remove(glow))
             flare()
             after(1.5, placeOrb)
@@ -82,8 +86,10 @@ Logic {
                 const player = scene ? scene.player : null
                 if (!rock || !player)
                     return
-                const toward = player.feet.minus(rock.physics ? rock.physics.scenePosition : rock.position)
+                const from = rock.physics ? rock.physics.scenePosition : rock.position
+                const toward = player.feet.minus(from)
                 rock.push(Qt.vector3d(toward.x, 0, toward.z).normalized().times(6))
+                play("../assets/rumble.wav", { at: from, volume: 0.9 })
             },
             step: () => { if (boulder.time >= 0.5) boulder.go("resting") }
         } })
@@ -97,8 +103,19 @@ Logic {
     onStarted: {
         // The title first, the world held still behind it.
         pause()
-        button("Play", () => { onlyScreen("hud"); resume() })
+        button("Play", () => {
+            onlyScreen("hud")
+            resume()
+            const music = entity("Music")
+            if (music)
+                music.source = "../assets/arena.wav"  // the title's track fades out as this one fades in
+        })
         button("Resume", () => { hideScreen("pause"); resume() })
+        button("Music switch", () => {
+            const on = volumeOf("music") > 0
+            setVolume("music", on ? 0 : 1)
+            entity("Music switch").text = on ? "Music: off" : "Music: on"
+        })
         placeOrb()
         placeOrb()
     }

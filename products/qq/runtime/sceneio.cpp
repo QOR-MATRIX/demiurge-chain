@@ -455,7 +455,8 @@ QStringList SceneIO::kinds() const
             QStringLiteral("Emitter"), QStringLiteral("Sound"),  QStringLiteral("Behaviour"),
             QStringLiteral("Trigger"), QStringLiteral("ScreenText"), QStringLiteral("ScreenBar"),
             QStringLiteral("ScreenButton"), QStringLiteral("ScreenImage"), QStringLiteral("ScreenPanel"),
-            QStringLiteral("InputAction"), QStringLiteral("Sprite"), QStringLiteral("TileMap"), QStringLiteral("Player2D")};
+            QStringLiteral("InputAction"), QStringLiteral("Sprite"), QStringLiteral("TileMap"), QStringLiteral("Player2D"),
+            QStringLiteral("Music")};
 }
 
 QVariantList SceneIO::entities(QObject *scene) const

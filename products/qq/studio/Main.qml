@@ -211,7 +211,7 @@ ApplicationWindow {
         while (entityList.some(e => e.name === name))
             name = base + " " + (++n)
         properties.name = name
-        if (kind !== "Sun" && kind !== "Ground" && kind !== "Behaviour" && properties.position === undefined)
+        if (kind !== "Sun" && kind !== "Ground" && kind !== "Behaviour" && kind !== "Music" && properties.position === undefined)
             properties.position = Qt.vector3d(window.target.x, Math.max(0.5, window.target.y), window.target.z)
         const made = SceneIO.add(scene, kind, properties)
         if (!made) {
@@ -246,6 +246,7 @@ ApplicationWindow {
         playScene = null
         world.hearing = false
         Input.release()
+        Mixer.reset()  // the levels the game set were the play's
         refresh()
         say(qsTr("Stopped. The scene is as it was before play."))
         return true
@@ -530,6 +531,7 @@ ApplicationWindow {
                                                                      scale: Qt.vector3d(2, 2, 2) })
                             }
                             MenuItem { text: qsTr("Sound…"); onTriggered: soundChooser.open() }
+                            MenuItem { text: qsTr("Music…"); onTriggered: musicChooser.open() }
                             MenuItem { text: qsTr("Behaviour"); onTriggered: window.addBehaviour() }
                         }
                     }
@@ -963,6 +965,13 @@ ApplicationWindow {
         nameFilters: [qsTr("Sound (*.wav *.mp3 *.ogg *.flac)")]
         onAccepted: window.add("Sound", { name: String(selectedFile).split("/").pop().replace(/\.[a-z0-9]+$/i, ""),
                                           source: selectedFile })
+    }
+
+    FileDialog {
+        id: musicChooser
+        title: qsTr("Add the scene's music")
+        nameFilters: [qsTr("Sound (*.wav *.mp3 *.ogg *.flac)")]
+        onAccepted: window.add("Music", { name: "Music", source: selectedFile })
     }
 
     FileDialog {

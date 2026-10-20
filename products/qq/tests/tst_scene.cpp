@@ -19,9 +19,11 @@
 #include <QtQuick3D/qquick3dobject.h>
 
 #include "kinematics.h"
+#include "mixer.h"
 #include "run.h"
 #include "sceneio.h"
 #include "tilemap.h"
+#include "webvoice.h"
 
 Q_IMPORT_QML_PLUGIN(QQPlugin)
 
@@ -106,7 +108,8 @@ private slots:
                                      QStringLiteral("Trigger"), QStringLiteral("ScreenText"), QStringLiteral("ScreenBar"),
                                      QStringLiteral("ScreenImage"), QStringLiteral("ScreenPanel"),
                                      QStringLiteral("ScreenButton"), QStringLiteral("InputAction"),
-                                     QStringLiteral("Sprite"), QStringLiteral("TileMap"), QStringLiteral("Player2D")}));
+                                     QStringLiteral("Sprite"), QStringLiteral("TileMap"), QStringLiteral("Player2D"),
+                                     QStringLiteral("Music")}));
         // Every kind there is.
         QStringList sorted = kinds;
         sorted.sort();
@@ -224,8 +227,8 @@ private slots:
         for (const QVariant &e : io->entities(copy))
             live += e.value<QObject *>()->property("live").toBool() ? 1 : 0;
         // The ground, the shape, the model (its clip plays), the player, the sound, the behaviour, the trigger, the five
-        // screen parts, the action, the sprite, the tile map and the 2D player; the rest are the same in play.
-        QCOMPARE(live, 16);
+        // screen parts, the action, the sprite, the tile map, the 2D player and the music; the rest are the same in play.
+        QCOMPARE(live, 17);
         for (const QVariant &e : io->entities(scene))
             QVERIFY(!e.value<QObject *>()->property("live").toBool());
         // The copy is the scene, and the scene is as it was; `playing` is not part of either's file.
@@ -309,14 +312,14 @@ private slots:
         const QUrl url = QUrl::fromLocalFile(fixture(QStringLiteral("scenes/sample.qml")));
         QObject *scene = io->load(url, nullptr);
         QVERIFY(scene);
-        QCOMPARE(io->entities(scene).size(), 19);
+        QCOMPARE(io->entities(scene).size(), 20);
 
         QObject *crystal = io->add(scene, QStringLiteral("Shape"),
                                    {{QStringLiteral("name"), QStringLiteral("Crystal")},
                                     {QStringLiteral("form"), QStringLiteral("cone")},
                                     {QStringLiteral("position"), QVector3D(2, 0.5f, -1)}});
         QVERIFY2(crystal, qPrintable(io->lastError()));
-        QCOMPARE(io->entities(scene).size(), 20);
+        QCOMPARE(io->entities(scene).size(), 21);
         const QString text = io->write(scene, url);
         QVERIFY2(text.endsWith(QStringLiteral("    Shape {\n        name: \"Crystal\"\n        position: Qt.vector3d(2, 0.5, -1)\n")
                                + QStringLiteral("        eulerRotation: Qt.vector3d(0, 0, 0)\n        scale: Qt.vector3d(1, 1, 1)\n")
@@ -334,7 +337,7 @@ private slots:
         QVERIFY(io->remove(crystal));
         QVERIFY(!io->remove(scene));
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-        QCOMPARE(io->entities(scene).size(), 19);
+        QCOMPARE(io->entities(scene).size(), 20);
         QCOMPARE(io->write(scene, url), readAll(url.toLocalFile()));
         delete scene;
     }
@@ -662,6 +665,77 @@ private slots:
         QVERIFY(!back.fromJson("{\"qqRun\": 2}", &why));
         QVERIFY2(why.contains(QStringLiteral("format 1")), qPrintable(why));
         QVERIFY(!back.fromJson("not json", &why));
+    }
+
+    // ── sound (P3.13, ADR-105) ──
+
+    void aSoundFilesLengthAndTheMixersLevelsAreRead()
+    {
+        // chime.wav (make_chime.py) is one second long; what is not a WAV file has no length that can be told.
+        qq::Mixer mixer;
+        QCOMPARE(mixer.lengthOf(QUrl::fromLocalFile(fixture(QStringLiteral("chime.wav")))), 1.0);
+        QCOMPARE(mixer.lengthOf(QUrl::fromLocalFile(fixture(QStringLiteral("orb.gltf")))), 0.0);
+        QCOMPARE(qq::wavLength(QByteArray("RIFF\0\0\0\0WAVE", 12)), 0.0);
+        // A group never set is at 1; levels are held to 0 to 1; what a sound is multiplied by is its group's level
+        // times the master's.
+        QCOMPARE(mixer.level(QStringLiteral("music")), 1.0);
+        mixer.setLevel(QStringLiteral("music"), 0.5);
+        mixer.setLevel(QStringLiteral("master"), 0.5);
+        mixer.setLevel(QStringLiteral("ui"), 2);
+        QCOMPARE(mixer.level(QStringLiteral("ui")), 1.0);
+        QCOMPARE(mixer.gain(QStringLiteral("music")), 0.25);
+        QCOMPARE(mixer.gain(QStringLiteral("effects")), 0.5);
+        QCOMPARE(mixer.gain(QStringLiteral("master")), 0.5);
+        QCOMPARE(mixer.levels().value(QStringLiteral("music")).toDouble(), 0.5);
+        // Reset (the Studio's Stop): every group back at 1.
+        mixer.reset();
+        QCOMPARE(mixer.gain(QStringLiteral("music")), 1.0);
+        QCOMPARE(mixer.levels().size(), 1);
+
+        // A file replaced under the same name is measured again: half a second, then two.
+        const auto wav = [](quint32 bytes) {
+            QByteArray b("RIFF");
+            const auto u32 = [&b](quint32 v) {
+                for (int i = 0; i < 4; ++i)
+                    b.append(char((v >> (8 * i)) & 0xff));
+            };
+            const auto u16 = [&b](quint16 v) {
+                b.append(char(v & 0xff));
+                b.append(char(v >> 8));
+            };
+            u32(36 + bytes);
+            b.append("WAVEfmt ");
+            u32(16);
+            u16(1);     // PCM
+            u16(1);     // one channel
+            u32(1000);  // samples a second
+            u32(1000);  // bytes a second
+            u16(1);
+            u16(8);
+            b.append("data");
+            u32(bytes);
+            b.append(QByteArray(qsizetype(bytes), char(0x80)));
+            return b;
+        };
+        QTemporaryDir dir;
+        const QString path = QDir(dir.path()).filePath(QStringLiteral("hit.wav"));
+        const auto write = [&path](const QByteArray &bytes) {
+            QFile f(path);
+            return f.open(QIODevice::WriteOnly) && f.write(bytes) == bytes.size();
+        };
+        QVERIFY(write(wav(500)));
+        QCOMPARE(mixer.lengthOf(QUrl::fromLocalFile(path)), 0.5);
+        QVERIFY(write(wav(2000)));
+        QCOMPARE(mixer.lengthOf(QUrl::fromLocalFile(path)), 2.0);
+
+        // A browser's voice is panned from all left to all right, and no further.
+        qq::WebVoice voice;
+        voice.setPan(3);
+        QCOMPARE(voice.pan(), 1.0);
+        voice.setPan(-0.25);
+        QCOMPARE(voice.pan(), -0.25);
+        voice.setVolume(-1);
+        QCOMPARE(voice.volume(), 0.0);
     }
 };
 

@@ -94,6 +94,7 @@ Scene {
         volume: 1
         reach: 25
         loops: true
+        group: "effects"
     }
 
     Behaviour {
@@ -221,5 +222,14 @@ Scene {
         jumpHeight: 3
         colour: "#ff6a00"
         look: "Runner"
+    }
+
+    Music {
+        name: "Music"
+        source: "../chime.wav"
+        volume: 0.8
+        fade: 1.5
+        loops: true
+        group: "music"
     }
 }

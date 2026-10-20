@@ -38,6 +38,7 @@
 #include <numbers>
 
 #include "input.h"
+#include "mixer.h"
 #include "run.h"
 #include "sceneio.h"
 
@@ -930,9 +931,22 @@ private slots:
         QVERIFY(s.runUntil([&] { return s.scene->property("paused").toBool() && title->opacity() > 0.99; }, 3000));
         QVERIFY(!hud->isVisible());
         s.window->grabWindow().save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-orb-run-title.png")));
+        // Its music (P3.13): the title's track from the start, while the world is held.
+        QObject *music = s.entity(QStringLiteral("Music"));
+        auto track = [music](int index) {
+            QVariant found;
+            QMetaObject::invokeMethod(music, "voice", Q_RETURN_ARG(QVariant, found), Q_ARG(QVariant, index));
+            QObject *voice = found.value<QObject *>();
+            return voice ? voice->property("source").toUrl().fileName() : QString();  // none: let go
+        };
+        auto current = [music] { return music->property("current").toInt(); };
+        QVERIFY(s.runUntil([&] { return track(current()) == QStringLiteral("title.wav"); }, 3000));
         QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(play));
         QVERIFY(s.runUntil([&] { return !s.scene->property("paused").toBool() && !title->isVisible() && hud->isVisible(); },
                            3000));
+        // Play brings in the arena's track as the title's fades out, and the title's is let go.
+        QCOMPARE(track(current()), QStringLiteral("arena.wav"));
+        QVERIFY(s.runUntil([&] { return track(1 - current()).isEmpty(); }, 4000));
 
         // Walk straight ahead into the first orb: gathered, taken away with its glow, and another placed.
         s.run(400);
@@ -941,6 +955,17 @@ private slots:
         QTest::keyRelease(s.window.get(), Qt::Key_W);
         QVERIFY2(gathered, "the player walked through the first orb without gathering it");
         QCOMPARE(s.entity(QStringLiteral("Score"))->property("text").toString(), QStringLiteral("ORBS 1"));
+        // A chime where the orb was taken (P3.13), put away once it has played through.
+        QObject *voices = s.scene->property("_voices").value<QObject *>();
+        auto sounding = [voices](const QString &file) {
+            for (const QVariant &v : voices->property("active").toList())
+                if (QObject *voice = v.value<QObject *>(); voice && voice->property("source").toUrl().fileName() == file)
+                    return voice;
+            return static_cast<QObject *>(nullptr);
+        };
+        QPointer<QObject> chime = sounding(QStringLiteral("chime.wav"));
+        QVERIFY(chime);
+        QCOMPARE(chime->property("scenePosition").value<QVector3D>(), QVector3D(0, 1, -4));
         // Its lanterns, an animated glTF model, flare as the orb is taken and then sway again (P3.12).
         QObject *lantern = s.entity(QStringLiteral("Lantern west"));
         QCOMPARE(lantern->property("status").toInt(), 1);
@@ -948,15 +973,20 @@ private slots:
         QCOMPARE(lantern->property("clip").toString(), QStringLiteral("flare"));
         QVERIFY(s.runUntil([&] { return lantern->property("clip").toString() == QStringLiteral("idle"); }, 3000));
         QTRY_VERIFY(!s.entity(QStringLiteral("Orb 1")) && !s.entity(QStringLiteral("Orb 1 glow")));
+        QVERIFY(s.runUntil([&] { return !chime; }, 3000));
         QVERIFY2(s.runUntil([&] { return s.entity(QStringLiteral("Orb 3")) != nullptr; }, 4000), "no new orb");
         // A new orb grows in to its full size.
         QObject *grown = s.entity(QStringLiteral("Orb 3 glow"));
         QVERIFY(s.runUntil([&] { return qAbs(grown->property("scale").value<QVector3D>().x() - 0.6f) < 1e-4f; }, 3000));
         QCOMPARE(logic()->property("orbsOut").toInt(), 2);
 
-        // The boulder is rolled at the player.
+        // The boulder is rolled at the player, with a rumble from where it was.
         const QVector3D boulder = s.where(QStringLiteral("Boulder"));
-        QVERIFY(s.runUntil([&] { return (s.where(QStringLiteral("Boulder")) - boulder).length() > 1.0f; }, 6000));
+        bool rumbled = false;
+        QVERIFY(s.runUntil([&] {
+            rumbled = rumbled || sounding(QStringLiteral("rumble.wav"));
+            return rumbled && (s.where(QStringLiteral("Boulder")) - boulder).length() > 1.0f;
+        }, 6000));
         s.window->grabWindow().save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-orb-run.png")));
 
         // Pause holds it all, behind the pause screen; Resume lets it go on.
@@ -964,6 +994,22 @@ private slots:
         QQuickItem *paused = s.drawn(QStringLiteral("Paused"));
         QVERIFY(s.runUntil([&] { return s.scene->property("paused").toBool() && paused->opacity() > 0.99; }, 3000));
         s.window->grabWindow().save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("play-orb-run-paused.png")));
+        // The music plays on through the pause; its switch turns the music group off, and on again.
+        auto *mixer = s.engine.singletonInstance<qq::Mixer *>("QQ", "Mixer");
+        auto level = [&] {
+            QVariant found;
+            QMetaObject::invokeMethod(music, "voice", Q_RETURN_ARG(QVariant, found), Q_ARG(QVariant, current()));
+            return found.value<QObject *>() ? found.value<QObject *>()->property("volume").toDouble() : -1.0;
+        };
+        QVERIFY(qAbs(level() - 0.6) < 1e-6);
+        QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(s.drawn(QStringLiteral("Music switch"))));
+        QVERIFY(s.runUntil([&] { return mixer->level(QStringLiteral("music")) == 0; }, 2000));
+        QCOMPARE(level(), 0.0);
+        QCOMPARE(s.entity(QStringLiteral("Music switch"))->property("text").toString(), QStringLiteral("Music: off"));
+        QCOMPARE(mixer->level(QStringLiteral("effects")), 1.0);
+        QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(s.drawn(QStringLiteral("Music switch"))));
+        QVERIFY(s.runUntil([&] { return mixer->level(QStringLiteral("music")) == 1; }, 2000));
+        QVERIFY(qAbs(level() - 0.6) < 1e-6);
         QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(s.drawn(QStringLiteral("Resume"))));
         QVERIFY(s.runUntil([&] { return !s.scene->property("paused").toBool() && !paused->isVisible(); }, 3000));
 
@@ -1527,6 +1573,174 @@ private slots:
                  (QStringList{QStringLiteral("enter shut"), QStringLiteral("exit shut"), QStringLiteral("enter opening"),
                               QStringLiteral("knock true"), QStringLiteral("enter open after opening"),
                               QStringLiteral("enter shut")}));
+    }
+
+    // ── sound (P3.13, ADR-105) ──
+
+    void logicPlaysASoundOnceWhereItAsks()
+    {
+        QTemporaryDir project;
+        const QDir root(project.path());
+        root.mkpath(QStringLiteral("assets"));
+        QVERIFY(QFile::copy(fixture(QStringLiteral("chime.wav")), root.filePath(QStringLiteral("assets/chime.wav"))));
+        writeFile(root.filePath(QStringLiteral("logic/shots.qml")),
+                  "import QQ\nLogic {\n    property var placed: null\n    property var everywhere: null\n"
+                  "    onStarted: {\n"
+                  "        placed = play(\"../assets/chime.wav\", { at: Qt.vector3d(2, 1, 0), volume: 0.5, reach: 8 })\n"
+                  "        everywhere = play(\"../assets/chime.wav\", { group: \"ui\" })\n"
+                  "    }\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral("    Behaviour { name: \"Shots\"; source: \"../logic/shots.qml\" }\n")),
+                       true, QUrl::fromLocalFile(root.filePath(QStringLiteral("scenes/play.qml")))));
+        QObject *shots = s.entity(QStringLiteral("Shots"));
+        auto logic = [shots] { return shots->property("logic").value<QObject *>(); };
+        QVERIFY(s.runUntil([&] { return logic() && logic()->property("placed").value<QObject *>(); }, 5000));
+        QPointer<QObject> placed = logic()->property("placed").value<QObject *>();
+        QPointer<QObject> everywhere = logic()->property("everywhere").value<QObject *>();
+        QVERIFY(everywhere);
+        // Where logic said, as loud and as far as it said; and one heard everywhere alike, in the ui group.
+        QVERIFY(QString::fromLatin1(placed->metaObject()->className()).contains(QStringLiteral("SpatialSound")));
+        QCOMPARE(placed->property("source").toUrl(), QUrl::fromLocalFile(root.filePath(QStringLiteral("assets/chime.wav"))));
+        QCOMPARE(placed->property("scenePosition").value<QVector3D>(), QVector3D(2, 1, 0));
+        QCOMPARE(placed->property("volume").toDouble(), 0.5);
+        QCOMPARE(placed->property("distanceCutoff").toDouble(), 8.0);
+        QVERIFY(QString::fromLatin1(everywhere->metaObject()->className()).contains(QStringLiteral("AmbientSound")));
+        QCOMPARE(everywhere->property("volume").toDouble(), 1.0);
+        // The groups' levels are heard at once: ui at a half, then everything at a half.
+        auto *mixer = s.engine.singletonInstance<qq::Mixer *>("QQ", "Mixer");
+        mixer->setLevel(QStringLiteral("ui"), 0.5);
+        QCOMPARE(everywhere->property("volume").toDouble(), 0.5);
+        QCOMPARE(placed->property("volume").toDouble(), 0.5);
+        mixer->setLevel(QStringLiteral("master"), 0.5);
+        QCOMPARE(everywhere->property("volume").toDouble(), 0.25);
+        QCOMPARE(placed->property("volume").toDouble(), 0.25);
+        // Put away once the second-long file has played through.
+        QObject *voices = s.scene->property("_voices").value<QObject *>();
+        QCOMPARE(voices->property("active").toList().size(), 2);
+        QVERIFY(s.runUntil([&] { return !placed && !everywhere; }, 3000));
+        QCOMPARE(voices->property("active").toList().size(), 0);
+    }
+
+    void aScenesMusicFadesFromOneTrackToTheNext()
+    {
+        QTemporaryDir project;
+        const QDir root(project.path());
+        root.mkpath(QStringLiteral("assets"));
+        for (const char *name : {"assets/first.wav", "assets/second.wav"})
+            QVERIFY(QFile::copy(fixture(QStringLiteral("chime.wav")), root.filePath(QLatin1String(name))));
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    Music { name: \"Music\"; source: \"../assets/first.wav\"; volume: 0.8; fade: 0.6 }\n")),
+                       true, QUrl::fromLocalFile(root.filePath(QStringLiteral("scenes/play.qml")))));
+        QObject *music = s.entity(QStringLiteral("Music"));
+        auto voice = [music](int index) {
+            QVariant found;
+            QMetaObject::invokeMethod(music, "voice", Q_RETURN_ARG(QVariant, found), Q_ARG(QVariant, index));
+            return found.value<QObject *>();
+        };
+        auto track = [&](int index) { return voice(index) ? voice(index)->property("source").toUrl().fileName() : QStringLiteral("?"); };
+        auto level = [&](int index) { return voice(index) ? voice(index)->property("volume").toDouble() : -1.0; };
+        // One voice, with the track; the other is made only when there is a next one.
+        QVERIFY(s.runUntil([&] { return voice(0) != nullptr; }, 3000));
+        QVERIFY(!voice(1));
+        QCOMPARE(track(0), QStringLiteral("first.wav"));
+        QVERIFY(qAbs(level(0) - 0.8) < 1e-6);  // a voice's volume is a float
+        QCOMPARE(voice(0)->property("loops").toInt(), -1);  // for ever
+        // In the music group: its level is heard.
+        auto *mixer = s.engine.singletonInstance<qq::Mixer *>("QQ", "Mixer");
+        mixer->setLevel(QStringLiteral("music"), 0.5);
+        QVERIFY(qAbs(level(0) - 0.4) < 1e-6);
+        mixer->setLevel(QStringLiteral("music"), 1);
+
+        // The next track: the first fades out as the second fades in, and is let go when it has.
+        music->setProperty("source", QStringLiteral("../assets/second.wav"));
+        QCOMPARE(track(1), QStringLiteral("second.wav"));
+        s.run(250);
+        QVERIFY2(level(0) > 0.05 && level(0) < 0.75, qPrintable(QString::number(level(0))));
+        QVERIFY2(level(1) > 0.05 && level(1) < 0.75, qPrintable(QString::number(level(1))));
+        QVERIFY(s.runUntil([&] { return qAbs(level(1) - 0.8) < 1e-6 && !voice(0); }, 2000));
+        // Stopped, it lets its voices go.
+        s.scene->setProperty("playing", false);
+        QVERIFY(!voice(1));
+    }
+
+    void aSoundIsPannedToTheEyesSideAsABrowserHearsIt()
+    {
+        // As a browser hears them (WebVoice; on this computer only made and measured): a sound on the eye's right is
+        // panned right, one on its left, left; quieter with distance; and a one-shot the same.
+        QTemporaryDir project;
+        const QDir root(project.path());
+        root.mkpath(QStringLiteral("assets"));
+        QVERIFY(QFile::copy(fixture(QStringLiteral("chime.wav")), root.filePath(QStringLiteral("assets/chime.wav"))));
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    Sound { name: \"Right\"; position: Qt.vector3d(4, 1, 0); source: \"../assets/chime.wav\" }\n"
+                           "    Sound { name: \"Left\"; position: Qt.vector3d(-4, 1, 0); source: \"../assets/chime.wav\"; volume: 0.5 }\n")),
+                       false, QUrl::fromLocalFile(root.filePath(QStringLiteral("scenes/play.qml")))));
+        s.world->setProperty("eye", QVector3D(0, 1, 6));
+        s.world->setProperty("target", QVector3D(0, 1, 0));
+        QObject *right = s.entity(QStringLiteral("Right"));
+        QObject *left = s.entity(QStringLiteral("Left"));
+        right->setProperty("web", true);
+        left->setProperty("web", true);
+        s.scene->property("_voices").value<QObject *>()->setProperty("web", true);
+        s.scene->setProperty("playing", true);
+        QVERIFY(s.runUntil([&] { return right->property("playing").value<QObject *>() && left->property("playing").value<QObject *>(); }, 3000));
+        QObject *heardRight = right->property("playing").value<QObject *>();
+        QObject *heardLeft = left->property("playing").value<QObject *>();
+        QVERIFY(QString::fromLatin1(heardRight->metaObject()->className()).contains(QStringLiteral("WebVoice")));
+        // The eye at (0, 1, 6) looking down -z: (4, 1, 0) is to its right, 4/sqrt(52) of the way round.
+        const double side = 4 / std::sqrt(52.0);
+        QVERIFY2(qAbs(heardRight->property("pan").toDouble() - side) < 1e-3, qPrintable(heardRight->property("pan").toString()));
+        QVERIFY2(qAbs(heardLeft->property("pan").toDouble() + side) < 1e-3, qPrintable(heardLeft->property("pan").toString()));
+        QVERIFY(qAbs(heardRight->property("volume").toDouble() - 1 / std::sqrt(52.0)) < 1e-3);
+        QVERIFY(qAbs(heardLeft->property("volume").toDouble() - 0.5 / std::sqrt(52.0)) < 1e-3);
+        // The eye turned to look at the right one: now ahead, so in the middle.
+        s.world->setProperty("target", QVector3D(4, 1, 0));
+        s.run(100);
+        QVERIFY2(qAbs(heardRight->property("pan").toDouble()) < 1e-3, qPrintable(heardRight->property("pan").toString()));
+        // A one-shot on the left, heard as a browser would.
+        s.world->setProperty("target", QVector3D(0, 1, 0));
+        QObject *voices = s.scene->property("_voices").value<QObject *>();
+        QVariant shot;
+        const QVariant chime = QUrl::fromLocalFile(root.filePath(QStringLiteral("assets/chime.wav")));
+        QVariantMap options;
+        options.insert(QStringLiteral("at"), QVariant::fromValue(QVector3D(-3, 1, 6)));
+        QMetaObject::invokeMethod(voices, "oneShot", Q_RETURN_ARG(QVariant, shot), Q_ARG(QVariant, chime),
+                                  Q_ARG(QVariant, QVariant(options)));
+        QObject *oneShot = shot.value<QObject *>();
+        QVERIFY(oneShot);
+        s.run(50);
+        QVERIFY2(oneShot->property("pan").toDouble() < -0.99, qPrintable(oneShot->property("pan").toString()));
+    }
+
+    void noSoundIsMadeInAReplay()
+    {
+        // A replay has no ears: a placed Sound, the Music and a sound logic plays are all silent, and it says so.
+        QTemporaryDir project;
+        const QDir root(project.path());
+        root.mkpath(QStringLiteral("assets"));
+        QVERIFY(QFile::copy(fixture(QStringLiteral("chime.wav")), root.filePath(QStringLiteral("assets/chime.wav"))));
+        writeFile(root.filePath(QStringLiteral("logic/ears.qml")),
+                  "import QQ\nLogic {\n    property bool tried: false\n    property bool silent: false\n"
+                  "    onStarted: { silent = play(\"../assets/chime.wav\") === null; tried = true }\n"
+                  "    outcome: ({ tried: tried, silent: silent, sound: entity(\"Chime\").playing === null,\n"
+                  "               music: entity(\"Music\").voice(0) === null })\n}\n");
+        const QUrl file = QUrl::fromLocalFile(root.filePath(QStringLiteral("scenes/play.qml")));
+        writeFile(file.toLocalFile(), sceneText(QStringLiteral(
+                      "    Sound { name: \"Chime\"; position: Qt.vector3d(1, 1, 0); source: \"../assets/chime.wav\" }\n"
+                      "    Music { name: \"Music\"; source: \"../assets/chime.wav\" }\n"
+                      "    Behaviour { name: \"Ears\"; source: \"../logic/ears.qml\" }\n")).toUtf8());
+        qq::RunRecord run;
+        run.setTicks(10);
+        QQmlEngine engine;
+        const QVariantMap result = qq::replayRun(&engine, file, &run);
+        QCOMPARE(result.value(QStringLiteral("problem")).toString(), QString());
+        const QVariantMap ears = result.value(QStringLiteral("outcome")).toMap().value(QStringLiteral("Ears")).toMap();
+        QCOMPARE(ears.value(QStringLiteral("tried")).toBool(), true);
+        QCOMPARE(ears.value(QStringLiteral("silent")).toBool(), true);
+        QCOMPARE(ears.value(QStringLiteral("sound")).toBool(), true);
+        QCOMPARE(ears.value(QStringLiteral("music")).toBool(), true);
     }
 
     // ── the game's interface (P3.8, ADR-105) ──
