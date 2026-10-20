@@ -6,6 +6,8 @@ Scene {
     skyHorizon: "#c7623a"
     groundHorizon: "#2a1a1a"
     groundBottom: "#07080c"
+    sky: "../assets/dusk.hdr"
+    skyTurn: 0
     skyLight: 0.75
     exposure: 1
     bloom: true
@@ -23,6 +25,8 @@ Scene {
         name: "Ground"
         extent: 60
         colour: "#151821"
+        image: ""
+        imageSize: 1
     }
 
     Shape {
@@ -31,11 +35,15 @@ Scene {
         eulerRotation: Qt.vector3d(0, 15, 0)
         scale: Qt.vector3d(2.4, 0.5, 2.4)
         form: "cube"
-        colour: "#2b3140"
-        metalness: 0.2
-        roughness: 0.6
+        colour: "#ece4d8"
+        metalness: 0
+        roughness: 0.85
         emissive: "#000000"
         emissivePower: 0
+        image: "../assets/stone.png"
+        imageSize: 1.5
+        normalMap: "../assets/stone-normal.png"
+        crisp: false
         body: "static"
         mass: 1
         bounce: 0.2
@@ -56,11 +64,15 @@ Scene {
         eulerRotation: Qt.vector3d(0, 0, 0)
         scale: Qt.vector3d(1.6, 0.4, 1.6)
         form: "cube"
-        colour: "#3a2f45"
+        colour: "#ece4d8"
         metalness: 0
-        roughness: 0.5
+        roughness: 0.85
         emissive: "#000000"
         emissivePower: 0
+        image: "../assets/stone.png"
+        imageSize: 1.5
+        normalMap: "../assets/stone-normal.png"
+        crisp: false
         body: "static"
         mass: 1
         bounce: 0.2
@@ -73,11 +85,15 @@ Scene {
         eulerRotation: Qt.vector3d(0, 0, 0)
         scale: Qt.vector3d(1.6, 1, 1.6)
         form: "cube"
-        colour: "#3a2f45"
+        colour: "#ece4d8"
         metalness: 0
-        roughness: 0.5
+        roughness: 0.85
         emissive: "#000000"
         emissivePower: 0
+        image: "../assets/stone.png"
+        imageSize: 1.5
+        normalMap: "../assets/stone-normal.png"
+        crisp: false
         body: "static"
         mass: 1
         bounce: 0.2
@@ -90,11 +106,15 @@ Scene {
         eulerRotation: Qt.vector3d(0, 0, 0)
         scale: Qt.vector3d(1.6, 1.6, 1.6)
         form: "cube"
-        colour: "#3a2f45"
+        colour: "#ece4d8"
         metalness: 0
-        roughness: 0.5
+        roughness: 0.85
         emissive: "#000000"
         emissivePower: 0
+        image: "../assets/stone.png"
+        imageSize: 1.5
+        normalMap: "../assets/stone-normal.png"
+        crisp: false
         body: "static"
         mass: 1
         bounce: 0.2
@@ -112,6 +132,10 @@ Scene {
         roughness: 0.3
         emissive: "#5ad1ff"
         emissivePower: 3
+        image: ""
+        imageSize: 1
+        normalMap: ""
+        crisp: false
         body: "static"
         mass: 1
         bounce: 0.2
@@ -140,6 +164,10 @@ Scene {
         roughness: 0.45
         emissive: "#000000"
         emissivePower: 0
+        image: ""
+        imageSize: 1
+        normalMap: ""
+        crisp: false
         body: "dynamic"
         mass: 8
         bounce: 0.1
@@ -157,6 +185,10 @@ Scene {
         roughness: 0.45
         emissive: "#000000"
         emissivePower: 0
+        image: ""
+        imageSize: 1
+        normalMap: ""
+        crisp: false
         body: "dynamic"
         mass: 8
         bounce: 0.1
@@ -174,6 +206,10 @@ Scene {
         roughness: 0.45
         emissive: "#000000"
         emissivePower: 0
+        image: ""
+        imageSize: 1
+        normalMap: ""
+        crisp: false
         body: "dynamic"
         mass: 8
         bounce: 0.1
@@ -191,6 +227,10 @@ Scene {
         roughness: 0.15
         emissive: "#000000"
         emissivePower: 0
+        image: ""
+        imageSize: 1
+        normalMap: ""
+        crisp: false
         body: "dynamic"
         mass: 3
         bounce: 0.6
@@ -211,6 +251,17 @@ Scene {
         color: "#5ad1ff"
         brightness: 3
         reach: 6
+    }
+
+    Spotlight {
+        name: "Stage light"
+        position: Qt.vector3d(0, 6, -2)
+        eulerRotation: Qt.vector3d(-72, 0, 0)
+        color: "#ffd9a8"
+        brightness: 3
+        reach: 15
+        cone: 50
+        softness: 0.5
     }
 
     Player {

@@ -1324,9 +1324,10 @@ P3.2 and on nothing on chain, and run in this order:
         do not pose the model.
       - A seventh, Qt's own timeline left running, was not caught: each step and each frame poses the model over it.
         Looking into why found that a replay, which draws no frames, never posed the model at all; each step now does.
-13. [ ] **Sound.** One-shots from logic, music, and volume groups, panned in a browser where it can be.
+13. [x] **Sound.** One-shots from logic, music, and volume groups, panned in a browser where it can be.
 
-    **Built 19 October 2026** (branch `session/qq-sound`, pull request #63, not yet merged):
+    **Done 19 October 2026, merged 20 October (#63, at `6e37363`; CI passed every job on its head and on the merge, runs
+    39376083521 and 39399914355):
     - **One-shots.** Logic's `play(source, { at, volume, group, reach })` plays a file once: placed in the world where
       logic says, or heard everywhere alike. It is put away when it has played through, measured from the file's
       header, since Qt's spatial sounds do not say when they have finished. A scene keeps its one-shots out of its
@@ -1364,6 +1365,49 @@ P3.2 and on nothing on chain, and run in this order:
         music never letting its old track go, music deaf to its group's level, logic sounding in a replay, a browser
         panning to the wrong side, the Studio's Stop keeping a play's levels, and a replaced file keeping its old length.
 14. [ ] **Materials.** Images on shapes, spot lights and HDR skies.
+
+    **Built 19 October 2026** (branch `session/qq-materials`, on `main` at `6e37363` since #63's merge, whose tree it was
+    built and checked on; pull request #64, not yet merged):
+    - **Pictures on shapes.** A Shape gains `image`, `imageSize`, `normalMap` and `crisp`; the Ground gains `image` and
+      `imageSize`.
+      - A picture lies one copy every `imageSize` units on every face, whatever the shape's size, so a long wall has as
+        many bricks as it is long, not a few stretched ones.
+      - It is projected along the shape's own three axes by a small custom material (`runtime/shaders/surface.vert`
+        and `surface.frag`), so it moves and turns with the shape. Qt's own lighting, shadows and sky light shade it,
+        exactly as they shade a plain shape.
+      - `colour` tints it (white shows it as painted); a `normalMap` gives the light fine relief to pick out; `crisp`
+        keeps pixel art's pixels sharp.
+    - **Spot lights.** A new kind, `Spotlight`: a cone of light (`cone`, `softness`) shining down unless turned, falling
+      off with distance, with shadows. The Studio adds one, and shows where it is and which way it points while
+      editing.
+    - **HDR skies.** The Scene gains `sky`, an equirectangular `.hdr` image seen behind everything and lighting it, and
+      `skyTurn`. Under a sky image, bloom glows only from what is brighter than white.
+    - **Saving** brings the scene's own files (its sky) into the project, as it brings its entities'.
+    - **The lockdown** (ADR-087): Qt Quick 3D reads pictures and models itself, past the engine's interceptor, so
+      `SceneIO.resolvedUrl`, through which every file a scene names is found, gives nothing outside a confined game's
+      package.
+    - **Orb Run** gains walls of dressed stone with their relief, a slate floor, two spot lights and an HDR dusk sky
+      whose sun stands where its Sun shines from, written by `make_looks.py`. The playground has stone, a spot light
+      and the sky too, so the browser's check draws them.
+    - **Found and fixed on the way:** the Ground was drawn a hundred times as wide as its solid slab (Qt's built-in
+      rectangle is a hundred units across), so whatever walked off its edge fell through ground that was still drawn.
+    - **Evidence, on the owner's PC:**
+      - All eight suites pass in one run of `build.ps1`: 133 cases.
+      - `tst_world` passes 9 cases, 6 new, each judged by the pixels drawn: a picture counted copy by copy, sharp or
+        blended; a pictured shape lit as a plain one; a relief turning a face to the light; a spot light's pool, moving
+        as it turns; an HDR sky seen, lighting what is under it, turned, and not washed out by bloom; and the ground as
+        wide as its slab.
+      - `tst_lockdown` passes 8 cases: a picture, a relief, a sky, a model and a sound named from outside the package
+        are nothing.
+      - `tst_studio` saves a picture and a sky chosen from outside the project into it; Orb Run's case checks its looks.
+      - `build.ps1 -Web` draws the playground's stone, relief, spot light and dusk sky in headless Chrome (WebGL), with no
+        problem on the page. Its first frame comes at 7.2 s, where P3.13's took 5.7 s: the sky's lighting is prepared
+        and the new shaders made in the browser first.
+      - Eleven planted faults were each caught: pictures laid by the mesh rather than the shape's size, crisp ignored, a
+        picture's colours not made linear, the relief never reaching the light, the relief turned by Qt's normal matrix,
+        a spot light's cone ignored, the sky never turned, the ground drawn a hundred times its size, bloom washing a
+        sky image out, a confined game reading pictures from outside its package (by `tst_lockdown`), and saving
+        bringing in only the entities' files (by `tst_studio`).
 15. [ ] **The Studio's basics.** Undo and redo, duplicate, snapping, a hierarchy with parenting and prefabs, an asset
     browser, a logic editor, and a statistics overlay with physics shown.
 16. [ ] **Saving.** One small store per game, the one the lockdown allows.

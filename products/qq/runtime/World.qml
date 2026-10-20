@@ -34,6 +34,11 @@ View3D {
     property color skyHorizon: "#c7623a"
     property color groundHorizon: "#2a1a1a"
     property color groundBottom: "#07080c"
+    /// Or a sky image (P3.14): an equirectangular HDR file, a whole URL, seen behind everything and lighting it, turned
+    /// `skyTurn` degrees about the vertical. Flat, the backdrop stays the colours.
+    property url sky
+    property real skyTurn: 0
+    readonly property bool skyImage: String(sky) !== ""
 
     default property alias content: scene.data
 
@@ -72,18 +77,11 @@ View3D {
     environment: ExtendedSceneEnvironment {
         // Flat, the camera's rays are parallel and a sky box would be one colour: a 2D world draws its backdrop below.
         backgroundMode: world.flat ? SceneEnvironment.Transparent : SceneEnvironment.SkyBox
-        lightProbe: Texture {
-            textureData: ProceduralSkyTextureData {
-                skyTopColor: world.skyTop
-                skyHorizonColor: world.skyHorizon
-                groundHorizonColor: world.groundHorizon
-                groundBottomColor: world.groundBottom
-                sunLatitude: 18
-                sunLongitude: 210
-            }
-        }
+        lightProbe: world.skyImage ? photographed : made
+        probeOrientation: Qt.vector3d(0, world.skyTurn, 0)
         probeExposure: world.skyLight
-        skyboxBlurAmount: 0.12
+        // A made sky is soft; a sky image is seen as it is.
+        skyboxBlurAmount: world.skyImage ? 0 : 0.12
 
         // Pixel art is shown in the colours it was painted in.
         tonemapMode: world.asPainted ? SceneEnvironment.TonemapModeLinear : SceneEnvironment.TonemapModeFilmic
@@ -93,7 +91,9 @@ View3D {
         glowEnabled: world.bloom && !world.asPainted
         glowStrength: 1.0
         glowIntensity: 0.6
-        glowBloom: 0.35
+        // Bloom bleeds a blur of the whole frame back over it, which a made sky is dim enough to take; a sky image is
+        // bright all over, and would be washed out. It keeps the glow of what is brighter than white (its sun).
+        glowBloom: world.skyImage ? 0 : 0.35
         glowHDRMinimumValue: 1.1
         glowBlendMode: ExtendedSceneEnvironment.GlowBlendMode.Additive
 
@@ -106,6 +106,21 @@ View3D {
         specularAAEnabled: true
         // Nor with the noise added against banding.
         ditheringEnabled: !world.asPainted
+    }
+
+    readonly property Texture made: Texture {
+        textureData: ProceduralSkyTextureData {
+            skyTopColor: world.skyTop
+            skyHorizonColor: world.skyHorizon
+            groundHorizonColor: world.groundHorizon
+            groundBottomColor: world.groundBottom
+            sunLatitude: 18
+            sunLongitude: 210
+        }
+    }
+    readonly property Texture photographed: Texture {
+        source: world.sky
+        mappingMode: Texture.LightProbe
     }
 
     PerspectiveCamera {

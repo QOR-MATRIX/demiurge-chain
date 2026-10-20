@@ -6,6 +6,8 @@ Scene {
     skyHorizon: "#c7623a"
     groundHorizon: "#2a1a1a"
     groundBottom: "#07080c"
+    sky: ""
+    skyTurn: 0
     skyLight: 0.75
     exposure: 1
     bloom: true
@@ -29,6 +31,8 @@ Scene {
         name: "Ground"
         extent: 40
         colour: "#151821"
+        image: ""
+        imageSize: 1
     }
 
     Shape {
@@ -42,6 +46,10 @@ Scene {
         roughness: 0.6
         emissive: "#000000"
         emissivePower: 0
+        image: ""
+        imageSize: 1
+        normalMap: ""
+        crisp: false
         body: "static"
         mass: 1
         bounce: 0.2
@@ -231,5 +239,16 @@ Scene {
         fade: 1.5
         loops: true
         group: "music"
+    }
+
+    Spotlight {
+        name: "Spotlight"
+        position: Qt.vector3d(0, 4, 0)
+        eulerRotation: Qt.vector3d(-90, 0, 0)
+        color: "#fff1dc"
+        brightness: 8
+        reach: 10
+        cone: 40
+        softness: 0.3
     }
 }

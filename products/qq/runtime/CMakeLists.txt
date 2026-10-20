@@ -31,8 +31,13 @@ qt_add_qml_module(qqruntime
         Player2D.qml
         Music.qml
         Voices.qml
+        Spotlight.qml
         Logic.qml
         Game.qml
+    RESOURCES
+        # A Shape's pictured surface (P3.14), beside Shape.qml, which names them relative to itself.
+        shaders/surface.vert
+        shaders/surface.frag
     SOURCES
         sceneio.h sceneio.cpp
         input.h input.cpp

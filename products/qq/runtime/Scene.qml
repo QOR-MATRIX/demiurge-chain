@@ -30,18 +30,24 @@ Node {
     id: root
 
     readonly property string kind: "Scene"
-    readonly property var fields: ["name", "skyTop", "skyHorizon", "groundHorizon", "groundBottom", "skyLight",
-                                   "exposure", "bloom", "gravity", "screens", "view", "pixelsPerUnit", "viewHeight",
-                                   "pixelArt", "seed"]
-    readonly property var ranges: ({ skyLight: [0, 3], exposure: [0.2, 3], gravity: [0, 30], pixelsPerUnit: [1, 512],
-                                     viewHeight: [1, 200], seed: [0, 2147483647] })
+    readonly property var fields: ["name", "skyTop", "skyHorizon", "groundHorizon", "groundBottom", "sky", "skyTurn",
+                                   "skyLight", "exposure", "bloom", "gravity", "screens", "view", "pixelsPerUnit",
+                                   "viewHeight", "pixelArt", "seed"]
+    readonly property var ranges: ({ skyTurn: [-180, 180], skyLight: [0, 3], exposure: [0.2, 3], gravity: [0, 30],
+                                     pixelsPerUnit: [1, 512], viewHeight: [1, 200], seed: [0, 2147483647] })
     readonly property var choices: ({ view: ["3d", "2d"] })
+    readonly property var fileTypes: ({ sky: ["HDR skies (*.hdr)"] })
 
     property string name: "untitled"
     property color skyTop: "#0b1430"
     property color skyHorizon: "#c7623a"
     property color groundHorizon: "#2a1a1a"
     property color groundBottom: "#07080c"
+    /// A sky photographed or rendered all the way round (P3.14): an equirectangular HDR image, kept relative to the scene
+    /// file, that is seen behind everything and lights it, sun and all. Empty, the sky is made from the four colours
+    /// above. `skyTurn` turns it about the vertical, in degrees, to bring its sun round.
+    property url sky
+    property real skyTurn: 0
     property real skyLight: 0.75
     property real exposure: 1.0
     property bool bloom: true

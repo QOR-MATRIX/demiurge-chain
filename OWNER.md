@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 19 October 2026 (late night). One page, rewritten every session.
+For Andrew, 20 October 2026. One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -25,14 +25,14 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
    with sharp pixel art and levels from **Tiled** — *the free level editor* (#60);
    **fair, repeatable play** (#61): 60 steps a second on any screen, seeded random numbers,
    and a run that **replays** with no window to the same result — what later lets a
-   server check a score before anything is rewarded; and **animation** (#62): models'
-   own animations, smooth glides and state machines. *Orb Run* and *Ember Climb* prove it.
+   server check a score before anything is rewarded; **animation** (#62); and **sound**
+   (#63): music that fades between tracks, volume groups, side-to-side sound in a
+   browser. *Orb Run* and *Ember Climb* prove it.
 
-**Built since: sound** (P3.13). A game plays a sound once where something happens, has
-music that fades from one track to the next, and has volume groups, so a player can turn
-the music down and keep the effects. In a browser, sounds now come from the side they are
-on. *Orb Run* has music, a chime, a rumble and a music switch. All tests pass. It is pull
-request **#63**.
+**For your merge: materials, pull request #64** (P3.14): pictures
+on shapes that keep their size on any wall, with relief; spot lights; **HDR skies** —
+*360° sky images that also light the world*. *Orb Run* has stone walls, a dusk sky and
+spot lights. All tests pass, in the browser too.
 
 ## Toward a worldwide beta: what only you can do
 

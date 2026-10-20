@@ -319,7 +319,10 @@ QObject *SceneIO::play(QObject *scene, const QUrl &file, QObject *parent)
 
 QUrl SceneIO::resolvedUrl(QObject *entity, const QUrl &url) const
 {
-    return wholeUrl(entity, url);
+    const QUrl whole = wholeUrl(entity, url);
+    // Every file a scene names is found here before it is loaded, so, confined, none outside the package is: Qt Quick
+    // 3D reads a picture or a model itself, past the engine's interceptor.
+    return outside(whole) ? QUrl() : whole;
 }
 
 QString SceneIO::fieldType(QObject *object, const QString &name) const
@@ -456,7 +459,7 @@ QStringList SceneIO::kinds() const
             QStringLiteral("Trigger"), QStringLiteral("ScreenText"), QStringLiteral("ScreenBar"),
             QStringLiteral("ScreenButton"), QStringLiteral("ScreenImage"), QStringLiteral("ScreenPanel"),
             QStringLiteral("InputAction"), QStringLiteral("Sprite"), QStringLiteral("TileMap"), QStringLiteral("Player2D"),
-            QStringLiteral("Music")};
+            QStringLiteral("Music"), QStringLiteral("Spotlight")};
 }
 
 QVariantList SceneIO::entities(QObject *scene) const

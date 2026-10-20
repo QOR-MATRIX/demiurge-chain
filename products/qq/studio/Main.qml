@@ -159,8 +159,9 @@ ApplicationWindow {
             return false
         }
         const name = sceneName.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") || "untitled"
-        // Files from outside the project (models, sounds, logic) come into it first, so the project is whole on its own.
-        for (const e of SceneIO.entities(scene)) {
+        // Files from outside the project (models, sounds, pictures, skies, logic) come into it first, so the project is
+        // whole on its own: the scene's own (its sky) and its entities'.
+        for (const e of [scene].concat(SceneIO.entities(scene))) {
             for (const field of e.fields) {
                 if (SceneIO.fieldType(e, field) !== "url" || String(e[field]) === "")
                     continue
@@ -498,6 +499,10 @@ ApplicationWindow {
                                 text: qsTr("Lamp")
                                 onTriggered: window.add("Lamp", { position: Qt.vector3d(window.target.x + 1, 2.5, window.target.z + 1) })
                             }
+                            MenuItem {
+                                text: qsTr("Spotlight")
+                                onTriggered: window.add("Spotlight", { position: Qt.vector3d(window.target.x, 4, window.target.z) })
+                            }
                             MenuItem { text: qsTr("Model…"); onTriggered: modelChooser.open() }
                             MenuSeparator {}
                             MenuItem {
@@ -563,7 +568,8 @@ ApplicationWindow {
                                 height: 9
                                 radius: entry.modelData.kind === "Shape" && entry.modelData.form === "cube" ? 1 : 5
                                 color: entry.modelData.kind === "Shape" || entry.modelData.kind === "Ground" ? entry.modelData.colour
-                                     : entry.modelData.kind === "Lamp" || entry.modelData.kind === "Sun" ? entry.modelData.color
+                                     : entry.modelData.kind === "Lamp" || entry.modelData.kind === "Sun"
+                                       || entry.modelData.kind === "Spotlight" ? entry.modelData.color
                                      : "#ff6a00"
                             }
                             Label { text: entry.modelData.name; Layout.fillWidth: true; elide: Text.ElideRight }
@@ -634,6 +640,8 @@ ApplicationWindow {
                 skyHorizon: window.scene ? window.scene.skyHorizon : "#c7623a"
                 groundHorizon: window.scene ? window.scene.groundHorizon : "#2a1a1a"
                 groundBottom: window.scene ? window.scene.groundBottom : "#07080c"
+                sky: window.scene && String(window.scene.sky) !== "" ? SceneIO.resolvedUrl(window.scene, window.scene.sky) : ""
+                skyTurn: window.scene ? window.scene.skyTurn : 0
                 // A 2D scene is edited flat (P3.10): panned by a drag, zoomed by the wheel to `distance` units tall, in
                 // the look it plays in; in play it is scaled as the Player scales it.
                 flat: window.scene ? window.scene.view === "2d" : false

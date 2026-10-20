@@ -109,7 +109,7 @@ private slots:
                                      QStringLiteral("ScreenImage"), QStringLiteral("ScreenPanel"),
                                      QStringLiteral("ScreenButton"), QStringLiteral("InputAction"),
                                      QStringLiteral("Sprite"), QStringLiteral("TileMap"), QStringLiteral("Player2D"),
-                                     QStringLiteral("Music")}));
+                                     QStringLiteral("Music"), QStringLiteral("Spotlight")}));
         // Every kind there is.
         QStringList sorted = kinds;
         sorted.sort();
@@ -227,8 +227,9 @@ private slots:
         for (const QVariant &e : io->entities(copy))
             live += e.value<QObject *>()->property("live").toBool() ? 1 : 0;
         // The ground, the shape, the model (its clip plays), the player, the sound, the behaviour, the trigger, the five
-        // screen parts, the action, the sprite, the tile map, the 2D player and the music; the rest are the same in play.
-        QCOMPARE(live, 17);
+        // screen parts, the action, the sprite, the tile map, the 2D player, the music and the spotlight (its mark hidden);
+        // the rest are the same in play.
+        QCOMPARE(live, 18);
         for (const QVariant &e : io->entities(scene))
             QVERIFY(!e.value<QObject *>()->property("live").toBool());
         // The copy is the scene, and the scene is as it was; `playing` is not part of either's file.
@@ -312,19 +313,20 @@ private slots:
         const QUrl url = QUrl::fromLocalFile(fixture(QStringLiteral("scenes/sample.qml")));
         QObject *scene = io->load(url, nullptr);
         QVERIFY(scene);
-        QCOMPARE(io->entities(scene).size(), 20);
+        QCOMPARE(io->entities(scene).size(), 21);
 
         QObject *crystal = io->add(scene, QStringLiteral("Shape"),
                                    {{QStringLiteral("name"), QStringLiteral("Crystal")},
                                     {QStringLiteral("form"), QStringLiteral("cone")},
                                     {QStringLiteral("position"), QVector3D(2, 0.5f, -1)}});
         QVERIFY2(crystal, qPrintable(io->lastError()));
-        QCOMPARE(io->entities(scene).size(), 21);
+        QCOMPARE(io->entities(scene).size(), 22);
         const QString text = io->write(scene, url);
         QVERIFY2(text.endsWith(QStringLiteral("    Shape {\n        name: \"Crystal\"\n        position: Qt.vector3d(2, 0.5, -1)\n")
                                + QStringLiteral("        eulerRotation: Qt.vector3d(0, 0, 0)\n        scale: Qt.vector3d(1, 1, 1)\n")
                                + QStringLiteral("        form: \"cone\"\n        colour: \"#5ad1ff\"\n        metalness: 0\n")
                                + QStringLiteral("        roughness: 0.4\n        emissive: \"#000000\"\n        emissivePower: 0\n")
+                               + QStringLiteral("        image: \"\"\n        imageSize: 1\n        normalMap: \"\"\n        crisp: false\n")
                                + QStringLiteral("        body: \"static\"\n        mass: 1\n        bounce: 0.2\n        friction: 0.6\n")
                                + QStringLiteral("    }\n}\n")),
                  qPrintable(text.right(400)));
@@ -337,7 +339,7 @@ private slots:
         QVERIFY(io->remove(crystal));
         QVERIFY(!io->remove(scene));
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-        QCOMPARE(io->entities(scene).size(), 20);
+        QCOMPARE(io->entities(scene).size(), 21);
         QCOMPARE(io->write(scene, url), readAll(url.toLocalFile()));
         delete scene;
     }

@@ -52,7 +52,9 @@ public:
     Q_INVOKABLE QObject *play(QObject *scene, const QUrl &file, QObject *parent);
 
     /// A URL an entity holds, made whole against the file the entity was read from (Qt 6 keeps URL properties as
-    /// written, so a model's "../assets/x.glb" stays relative until something resolves it).
+    /// written, so a model's "../assets/x.glb" stays relative until something resolves it). Confined (confineTo), an
+    /// empty URL for one outside the game's package: every model, sound, picture, sky, map and logic file a scene names
+    /// is found through this before it is loaded.
     Q_INVOKABLE QUrl resolvedUrl(QObject *entity, const QUrl &url) const;
 
     /// The type of one of an object's properties, as the inspector edits it: "real", "int", "bool", "string", "url",
@@ -77,7 +79,7 @@ public:
 
     /// The kinds an entity can be: "Shape", "Lamp", "Prop", "Sun", "Ground", "Player", "Emitter", "Sound", "Behaviour",
     /// "Trigger", the screen kinds "ScreenText", "ScreenBar", "ScreenButton", "ScreenImage", "ScreenPanel",
-    /// "InputAction", and the 2D kinds "Sprite", "TileMap" and "Player2D".
+    /// "InputAction", the 2D kinds "Sprite", "TileMap" and "Player2D", "Music" (P3.13) and "Spotlight" (P3.14).
     Q_INVOKABLE QStringList kinds() const;
 
     /// The scene's entities, in file order.

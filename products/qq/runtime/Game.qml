@@ -60,6 +60,8 @@ World {
     skyHorizon: scene ? scene.skyHorizon : "#c7623a"
     groundHorizon: scene ? scene.groundHorizon : "#2a1a1a"
     groundBottom: scene ? scene.groundBottom : "#07080c"
+    sky: scene && String(scene.sky) !== "" ? SceneIO.resolvedUrl(scene, scene.sky) : ""
+    skyTurn: scene ? scene.skyTurn : 0
 
     /// A seed for this play, in place of the scene's (P3.11: the Player's --seed, a run ARQADE starts); 0 keeps the scene's.
     property int seed: 0
