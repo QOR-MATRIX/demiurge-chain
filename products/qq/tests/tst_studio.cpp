@@ -14,6 +14,7 @@
 #include <QQuickItem>
 #include <QQuickStyle>
 #include <QQuickWindow>
+#include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QVector3D>
@@ -25,6 +26,7 @@
 #include "mixer.h"
 
 #include "sceneio.h"
+#include "store.h"
 
 // Drawn with the GPU the Studio and the Player draw with: chosen before QTEST_MAIN makes the application.
 static const QString chosenGpu = qq::preferHighPerformanceGpu();
@@ -170,7 +172,12 @@ class TstStudio : public QObject
     Q_OBJECT
 
 private slots:
-    void initTestCase() { QQuickStyle::setStyle(QStringLiteral("Material")); }
+    void initTestCase()
+    {
+        QQuickStyle::setStyle(QStringLiteral("Material"));
+        // Games' stores (P3.16) go to the test's own folders, never a person's.
+        QStandardPaths::setTestModeEnabled(true);
+    }
 
     void aNewStudioOpensALitSceneInItsProject()
     {
@@ -852,6 +859,46 @@ private slots:
         QVERIFY(!overlay->isVisible());
         QVERIFY(!physics->property("forceDebugDraw").toBool());
         QVERIFY(s.call("stop").toBool());
+    }
+
+    void theProjectPanelSaysWhatTheGameKeepsAndForgetsIt()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        qq::GameStore *store = qq::GameStore::storeFor(QUrl::fromLocalFile(s.project.path()));
+        QVERIFY(store);
+        QObject *panel = s.window->findChild<QObject *>(QStringLiteral("projectPanel"));
+        QCOMPARE(panel->property("store").value<QObject *>(), store);
+        QObject *summary = s.window->findChild<QObject *>(QStringLiteral("savedSummary"));
+        QCOMPARE(summary->property("text").toString(), QStringLiteral("Nothing kept between plays"));
+
+        // A play whose logic keeps something: the panel says what, once play stops.
+        const QString logic = QDir(s.project.path()).filePath(QStringLiteral("logic/keeper.qml"));
+        QDir().mkpath(QFileInfo(logic).absolutePath());
+        {
+            QFile f(logic);
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write("import QQ\nLogic {\n    onStarted: save(\"best\", 3)\n}\n");
+        }
+        QVERIFY(s.call("add", QStringLiteral("Behaviour"),
+                       QVariantMap{{QStringLiteral("name"), QStringLiteral("Keeper")},
+                                   {QStringLiteral("source"), QUrl::fromLocalFile(logic)}})
+                    .value<QObject *>());
+        QVERIFY(s.call("play").toBool());
+        QTRY_COMPARE(store->value(QStringLiteral("best")).toInt(), 3);
+        QVERIFY(s.call("stop").toBool());
+        QTRY_VERIFY(summary->property("text").toString().startsWith(QStringLiteral("Kept between plays: best")));
+
+        // Forget: nothing kept, as for someone who has never played it.
+        auto *forget = s.window->findChild<QQuickItem *>(QStringLiteral("forgetSaved"));
+        QVERIFY(forget && forget->isVisible() && forget->isEnabled());
+        s.click("forgetSaved");
+        s.settle(2);
+        QVERIFY(store->keys().isEmpty());
+        QCOMPARE(summary->property("text").toString(), QStringLiteral("Nothing kept between plays"));
+        QVERIFY(!forget->isEnabled());
+        store->flush();
+        QVERIFY(!QFileInfo::exists(qq::GameStore::placeOf(store->game())));
     }
 
     void aNewBehaviourIsWrittenIntoTheProjectAndNeverOverAFile()

@@ -13,16 +13,20 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QQmlEngine>
+#include <QRegularExpression>
+#include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QVector3D>
 #include <QtQml/qqmlextensionplugin.h>
 #include <QtQuick3D/qquick3dobject.h>
 
+#include "confinement.h"
 #include "kinematics.h"
 #include "mixer.h"
 #include "run.h"
 #include "sceneio.h"
+#include "store.h"
 #include "tilemap.h"
 #include "webvoice.h"
 
@@ -80,6 +84,8 @@ class TstScene : public QObject
 private slots:
     void initTestCase()
     {
+        // Games' stores (P3.16) go to the test's own folders, never a person's.
+        QStandardPaths::setTestModeEnabled(true);
         engine = new QQmlEngine(this);
         io = engine->singletonInstance<qq::SceneIO *>("QQ", "SceneIO");
         QVERIFY(io);
@@ -643,6 +649,8 @@ private slots:
         holding[QStringLiteral("edges")] = QVariantList();
         run.capture(3, holding, {});
         run.setOutcome({{QStringLiteral("Rules"), QVariantMap{{QStringLiteral("gathered"), 2}}}});
+        // The game's store as the run found it (P3.16).
+        run.setStore({{QStringLiteral("best"), 3}, {QStringLiteral("name"), QStringLiteral("Ada")}});
         QCOMPARE(run.ticks(), 4);
 
         // Only what changed is kept, and every tick is given back as it was taken.
@@ -666,8 +674,17 @@ private slots:
         QCOMPARE(back.seed(), 7);
         QCOMPARE(back.ticks(), 4);
         QCOMPARE(back.outcome().value(QStringLiteral("Rules")).toMap().value(QStringLiteral("gathered")).toInt(), 2);
+        QCOMPARE(back.store().value(QStringLiteral("best")).toInt(), 3);
+        QCOMPARE(back.store().value(QStringLiteral("name")).toString(), QStringLiteral("Ada"));
         check(back);
         QCOMPARE(back.toJson(), json);
+        // A run kept before P3.16 has no store: its game found nothing kept.
+        QJsonObject older = QJsonDocument::fromJson(json).object();
+        older.remove(QStringLiteral("store"));
+        qq::RunRecord old;
+        QVERIFY(old.fromJson(QJsonDocument(older).toJson()));
+        QVERIFY(old.store().isEmpty());
+        QCOMPARE(old.seed(), 7);
 
         QVERIFY(!back.fromJson("{\"qqRun\": 2}", &why));
         QVERIFY2(why.contains(QStringLiteral("format 1")), qPrintable(why));
@@ -877,6 +894,138 @@ private slots:
         QCOMPARE(io->readText(file).toString(), QStringLiteral("import QQ\nLogic {}\n"));
         QVERIFY(!io->readText(QUrl::fromLocalFile(root.filePath(QStringLiteral("logic/none.qml")))).isValid());
         QVERIFY(io->lastError().contains(QStringLiteral("could not be read")));
+    }
+
+    // ── saving (P3.16, ADR-105) ──
+
+    void aStoreKeepsWhatJsonKeepsAndRefusesTheRest()
+    {
+        QTemporaryDir game;
+        qq::GameStore *store = qq::GameStore::storeFor(QUrl::fromLocalFile(game.path()));
+        QVERIFY(store);
+        QVERIFY(store->kept());
+        auto js = [this](const QString &text) { return engine->evaluate(text); };
+
+        // Numbers, text, true and false, null, and lists and objects of them, given back as they were kept.
+        QVERIFY(store->setValue(QStringLiteral("best"), js(QStringLiteral("12"))));
+        QVERIFY(store->setValue(QStringLiteral("profile"),
+                                js(QStringLiteral("({ name: 'Ada', levels: [1, 2.5, 3], sound: true, rival: null, "
+                                                  "deep: { er: ['x'] } })"))));
+        QCOMPARE(store->value(QStringLiteral("best")).toDouble(), 12.0);
+        const QVariantMap profile = store->value(QStringLiteral("profile")).toMap();
+        QCOMPARE(profile.value(QStringLiteral("name")).toString(), QStringLiteral("Ada"));
+        QCOMPARE(profile.value(QStringLiteral("levels")).toList().at(1).toDouble(), 2.5);
+        QCOMPARE(profile.value(QStringLiteral("sound")).toBool(), true);
+        QVERIFY(profile.contains(QStringLiteral("rival")) && profile.value(QStringLiteral("rival")).isNull());
+        QCOMPARE(profile.value(QStringLiteral("deep")).toMap().value(QStringLiteral("er")).toList().first().toString(),
+                 QStringLiteral("x"));
+        QVERIFY(store->problem().isEmpty());
+        QCOMPARE(store->value(QStringLiteral("absent"), 7).toInt(), 7);  // nothing kept there: the fallback
+
+        // Refused, each with its reason, and nothing of it kept.
+        const QList<QPair<QString, QString>> refused = {
+            {QString(), QStringLiteral("1")},
+            {QString(101, QLatin1Char('k')), QStringLiteral("1")},
+            {QStringLiteral("function"), QStringLiteral("(() => 1)")},
+            {QStringLiteral("vector"), QStringLiteral("Qt.vector3d(1, 2, 3)")},
+            {QStringLiteral("colour"), QStringLiteral("Qt.rgba(1, 0, 0, 1)")},
+            {QStringLiteral("date"), QStringLiteral("new Date(0)")},
+            {QStringLiteral("nan"), QStringLiteral("NaN")},
+            {QStringLiteral("infinite"), QStringLiteral("1 / 0")},
+            {QStringLiteral("undefined"), QStringLiteral("undefined")},
+            {QStringLiteral("inList"), QStringLiteral("[1, () => 2]")},
+            {QStringLiteral("inObject"), QStringLiteral("({ at: Qt.vector3d(0, 1, 0) })")},
+            {QStringLiteral("deep"), QStringLiteral("(() => { let v = 1; for (let i = 0; i < 40; ++i) v = [v]; return v })()")},
+            {QStringLiteral("huge"), QStringLiteral("'x'.repeat(70000)")},
+        };
+        for (const auto &[key, text] : refused) {
+            QVERIFY2(!store->setValue(key, js(text)), qPrintable(text));
+            QVERIFY2(!store->problem().isEmpty(), qPrintable(text));
+        }
+        QVERIFY(!store->setValue(QStringLiteral("object"), engine->newQObject(new QObject(this))));
+        QCOMPARE(store->keys(), (QStringList{QStringLiteral("best"), QStringLiteral("profile")}));
+
+        // Up to its 64 KiB it keeps, and the problem is gone; forgetting a key takes it away.
+        QVERIFY(store->setValue(QStringLiteral("long"), js(QStringLiteral("'x'.repeat(60000)"))));
+        QVERIFY(store->problem().isEmpty());
+        QVERIFY(store->size() > 60000 && store->size() <= qq::GameStore::maxBytes);
+        QVERIFY(store->remove(QStringLiteral("long")));
+        QVERIFY(!store->remove(QStringLiteral("long")));
+        store->clear();
+        store->flush();
+        QVERIFY(!QFileInfo::exists(qq::GameStore::placeOf(store->game())));
+    }
+
+    void aStoreIsWrittenAMomentAfterAChangeAndReadBackAsItWas()
+    {
+        QTemporaryDir game;
+        const QUrl package = QUrl::fromLocalFile(game.path());
+        qq::GameStore *store = qq::GameStore::storeFor(package);
+        QCOMPARE(qq::GameStore::storeFor(package), store);  // one per game
+        const QString file = qq::GameStore::placeOf(store->game());
+        QVERIFY(file.startsWith(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)));
+        QVERIFY(store->setValue(QStringLiteral("plays"), QJSValue(3)));
+        QVERIFY(!QFileInfo::exists(file));  // not on every change,
+        QTRY_VERIFY(QFileInfo::exists(file));  // but a moment later
+        // As the next start of the game reads it: a store made afresh from the file.
+        {
+            qq::GameStore again(store->game());
+            QCOMPARE(again.value(QStringLiteral("plays")).toInt(), 3);
+            QVERIFY(again.problem().isEmpty());
+        }
+        // Forgetting everything leaves nothing behind.
+        store->clear();
+        store->flush();
+        QVERIFY(!QFileInfo::exists(file));
+    }
+
+    void anUnreadableStoreIsKeptAsideAndTheGameStartsWithoutIt()
+    {
+        const QByteArray tooLarge = "{\"x\": \"" + QByteArray(qq::GameStore::maxBytes, 'x') + "\"}";
+        for (const QByteArray &bad : {QByteArray("not json"), QByteArray("[1, 2]"), tooLarge}) {
+            QTemporaryDir game;
+            const QString id = qq::GameStore::gameOf(QUrl::fromLocalFile(game.path()));
+            const QString file = qq::GameStore::placeOf(id);
+            QVERIFY(QDir().mkpath(QFileInfo(file).absolutePath()));
+            {
+                QFile f(file);
+                QVERIFY(f.open(QIODevice::WriteOnly));
+                f.write(bad);
+            }
+            qq::GameStore store(id);
+            QVERIFY(store.keys().isEmpty());
+            QVERIFY(!store.problem().isEmpty());
+            QVERIFY(!QFileInfo::exists(file));
+            QFile aside(file + QStringLiteral(".unreadable"));
+            QVERIFY(aside.open(QIODevice::ReadOnly));
+            QCOMPARE(aside.readAll(), bad);
+            aside.close();
+            QVERIFY(aside.remove());
+        }
+    }
+
+    void aGameIsItsFolderHoweverItIsWritten()
+    {
+        const QString one = qq::GameStore::gameOf(QUrl::fromLocalFile(QStringLiteral("C:/Games/Orb Run")));
+        QVERIFY2(QRegularExpression(QStringLiteral("^orb-run-[0-9a-f]{16}$")).match(one).hasMatch(), qPrintable(one));
+        QCOMPARE(qq::GameStore::gameOf(QUrl::fromLocalFile(QStringLiteral("C:/Games/Orb Run/"))), one);
+        QCOMPARE(qq::GameStore::gameOf(QUrl::fromLocalFile(QStringLiteral("C:/Games/x/../Orb Run"))), one);
+#ifdef Q_OS_WIN
+        QCOMPARE(qq::GameStore::gameOf(QUrl::fromLocalFile(QStringLiteral("c:/games/orb run"))), one);
+#endif
+        // Found from a scene file as the Studio and the Player both find it.
+        QCOMPARE(qq::GameStore::gameOf(qq::Confinement::packageOf(
+                     QUrl::fromLocalFile(QStringLiteral("C:/Games/Orb Run/scenes/arena.qml")))),
+                 one);
+        // Another folder of the same name is another game.
+        const QString another = qq::GameStore::gameOf(QUrl::fromLocalFile(QStringLiteral("D:/Elsewhere/Orb Run")));
+        QVERIFY(another != one && another.startsWith(QStringLiteral("orb-run-")));
+        // The bundled game is one; a package that is no folder is none.
+        QVERIFY(qq::GameStore::gameOf(QUrl(QStringLiteral("qrc:/playground"))).startsWith(QStringLiteral("playground-")));
+        QCOMPARE(qq::GameStore::gameOf(QUrl()), QString());
+        QCOMPARE(qq::GameStore::gameOf(QUrl::fromLocalFile(QStringLiteral("relative/folder"))), QString());
+        QCOMPARE(qq::GameStore::gameOf(QUrl(QStringLiteral("https://example.com/game"))), QString());
+        QVERIFY(!qq::GameStore::storeFor(QUrl()));
     }
 
     // ── sound (P3.13, ADR-105) ──

@@ -5,7 +5,8 @@
 //
 // With no scene it plays the playground bundled inside it. It reports how long the game took to show its first frame
 // proper (the scene playing and every model loaded), counted from when the process was created (natively) or the page
-// began to load (in a browser), and the frame rate over the next three seconds. The report is printed as one line,
+// began to load (in a browser), the frame rate over the next three seconds, and any of the scene's logic that did not
+// build. The report is printed as one line,
 // "QQ-MEASURE {json}"; with --measure it is also written to a file, and the player then exits. --capture saves the
 // first frame proper as an image and exits: exit code 0 done, 1 not saved, 2 timed out, 3 the scene could not play.
 //
@@ -210,7 +211,12 @@ int main(int argc, char *argv[])
 
     auto report = [&] {
         const double seconds = measure.sustained.elapsed() / 1000.0;
+        // Logic that does not build leaves a game that plays and is not its creator's, as a missing model does.
+        QVariant logicErrors;
+        if (auto *playing = window->property("playing").value<QObject *>())
+            QMetaObject::invokeMethod(playing, "logicErrors", Q_RETURN_ARG(QVariant, logicErrors));
         const QJsonObject result{{QStringLiteral("scene"), scene.toString()},
+                                 {QStringLiteral("logicErrors"), QJsonArray::fromStringList(logicErrors.toStringList())},
                                  {QStringLiteral("mainMs"), qRound(measure.mainMs)},
                                  {QStringLiteral("firstFrameMs"), qRound(measure.firstFrameMs)},
                                  {QStringLiteral("fps"), seconds > 0 ? qRound(measure.frames / seconds * 10) / 10.0 : 0},

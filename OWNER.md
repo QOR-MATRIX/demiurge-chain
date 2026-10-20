@@ -35,7 +35,7 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 **For your merge: the Studio's tools, pull request #67** (P3.15, last of three parts):
 the project's files in a list, a logic editor that says which line is wrong, and F3
 statistics. **Built, to follow it:** **saving** — *a game keeps scores and settings
-between plays*.
+between plays*. With it, every step of QQ's plan for real games is built.
 
 ## Toward a worldwide beta: what only you can do
 

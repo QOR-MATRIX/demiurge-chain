@@ -11,6 +11,8 @@
 //   a map           adds it as a TileMap
 //
 // A filter narrows the list by name. The list is read again whenever the project changes (saving, a prefab kept).
+//
+// Under the list, what the game keeps from one play to the next (P3.16), and Forget, to play it as someone new would.
 
 import QtQuick
 import QtQuick.Controls
@@ -25,6 +27,12 @@ ColumnLayout {
     required property QtObject studio
     /// The project as SceneIO.project() gives it.
     property var info: ({ scenes: [], logic: [], prefabs: [], assets: [] })
+    /// The game's store (SceneIO.storeOf), or null for a scene in no folder.
+    property QtObject store: null
+
+    function sizeText(bytes) {
+        return bytes < 1024 ? qsTr("%1 bytes").arg(bytes) : qsTr("%1 KB").arg((bytes / 1024).toFixed(1))
+    }
 
     spacing: 4
 
@@ -112,6 +120,35 @@ ColumnLayout {
                     elide: Text.ElideMiddle
                     Layout.fillWidth: true
                 }
+            }
+        }
+    }
+
+    RowLayout {
+        objectName: "savedData"
+        visible: panel.store !== null
+        Layout.fillWidth: true
+        spacing: 6
+        Label {
+            objectName: "savedSummary"
+            Layout.fillWidth: true
+            font.pixelSize: 11
+            opacity: 0.7
+            elide: Text.ElideRight
+            text: !panel.store ? ""
+                  : panel.store.keys.length === 0 ? qsTr("Nothing kept between plays")
+                  : qsTr("Kept between plays: %1 (%2)").arg(panel.store.keys.join(", ")).arg(panel.sizeText(panel.store.size))
+        }
+        Button {
+            objectName: "forgetSaved"
+            text: qsTr("Forget")
+            flat: true
+            enabled: panel.store !== null && panel.store.keys.length > 0
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Forget what this game keeps between plays, to play it as someone new would")
+            onClicked: {
+                panel.store.clear()
+                panel.studio.say(qsTr("Forgot what the game keeps between plays."))
             }
         }
     }

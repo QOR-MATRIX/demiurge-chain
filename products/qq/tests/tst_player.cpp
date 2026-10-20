@@ -1,5 +1,6 @@
 // Does the QQ Player play a game on its own, and say how quickly it started? (DIRECTION P3.2) And does it keep a run and
-// play it again with no window to the same outcome? (DIRECTION P3.11)
+// play it again with no window to the same outcome? (DIRECTION P3.11) And does a game keep its store from one start of
+// the Player to the next? (DIRECTION P3.16)
 //
 // The real executable, started as a person or the launcher starts it: it must play its bundled playground and a scene
 // file from disk, report its first frame and frame rate, and show a frame that is the game (sky, ground, lit shapes and
@@ -12,9 +13,14 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QProcess>
+#include <QScopeGuard>
 #include <QSet>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QUrl>
+
+#include "confinement.h"
+#include "store.h"
 
 namespace {
 
@@ -49,17 +55,50 @@ class TstPlayer : public QObject
 {
     Q_OBJECT
 
+    /// The bundled playground keeps its visits (P3.16) where a person's games keep theirs: whatever was there before the
+    /// checks is put back after them.
+    QString playgroundStore = qq::GameStore::placeOf(qq::GameStore::gameOf(
+        qq::Confinement::packageOf(QUrl(QStringLiteral("qrc:/playground/scenes/playground.qml")))));
+    bool playgroundKept = false;
+    QByteArray playgroundBefore;
+
+    int playgroundVisits() const { return readJson(playgroundStore).value(QStringLiteral("visits")).toInt(); }
+
 private slots:
+    void initTestCase()
+    {
+        QFile f(playgroundStore);
+        playgroundKept = f.open(QIODevice::ReadOnly);
+        if (playgroundKept)
+            playgroundBefore = f.readAll();
+    }
+
+    void cleanupTestCase()
+    {
+        if (!playgroundKept) {
+            QFile::remove(playgroundStore);
+            return;
+        }
+        QFile f(playgroundStore);
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write(playgroundBefore);
+    }
+
     void thePlaygroundPlaysAndItsStartIsMeasured()
     {
         QTemporaryDir out;
         const QString result = QDir(out.path()).filePath(QStringLiteral("measure.json"));
+        const int visits = playgroundVisits();
         QCOMPARE(runPlayer({QStringLiteral("--measure"), result}), 0);
+        // The bundled game keeps its store too (P3.16): one more visit, written as the Player closed.
+        QCOMPARE(playgroundVisits(), visits + 1);
         const QJsonObject m = readJson(result);
         qInfo("%s", QJsonDocument(m).toJson(QJsonDocument::Compact).constData());
         QCOMPARE(m.value(QStringLiteral("problem")).toString(), QString());
-        // Every model drawn: a model that failed would still let the game settle, and sooner.
+        // Every model drawn: a model that failed would still let the game settle, and sooner. And all its logic built:
+        // the playground's had stopped building, and nothing said so until P3.16 found it.
         QCOMPARE(m.value(QStringLiteral("unloaded")).toArray(), QJsonArray());
+        QCOMPARE(m.value(QStringLiteral("logicErrors")).toArray(), QJsonArray());
         QVERIFY(m.value(QStringLiteral("scene")).toString().endsWith(QStringLiteral("playground.qml")));
         // Counted from the process's creation: more than nothing, and well inside the time a person would wait.
         const double first = m.value(QStringLiteral("firstFrameMs")).toDouble();
@@ -178,6 +217,45 @@ private slots:
         logic.write("import QQ\nLogic {\n    property int throws: 0\n}\n");
         logic.close();
         QCOMPARE(runPlayer({scene.fileName(), QStringLiteral("--replay"), kept}), 3);
+    }
+
+    void aGameKeepsItsStoreFromOneStartOfThePlayerToTheNext()
+    {
+        // P3.16, the real executable: a game that counts its plays, started twice; what the first start kept, the
+        // second finds. A replay of the second finds what that run found, and changes nothing.
+        QTemporaryDir project;
+        const QDir root(project.path());
+        root.mkpath(QStringLiteral("scenes"));
+        root.mkpath(QStringLiteral("logic"));
+        QFile logic(root.filePath(QStringLiteral("logic/count.qml")));
+        QVERIFY(logic.open(QIODevice::WriteOnly));
+        logic.write("import QQ\nLogic {\n    property int found: -1\n"
+                    "    onStarted: { found = saved(\"plays\", 0); save(\"plays\", found + 1) }\n"
+                    "    outcome: ({ found: found })\n}\n");
+        logic.close();
+        QFile scene(root.filePath(QStringLiteral("scenes/count.qml")));
+        QVERIFY(scene.open(QIODevice::WriteOnly));
+        scene.write("import QQ\nScene {\n    name: \"count\"\n    Sun {}\n    Ground {}\n"
+                    "    Behaviour { name: \"Counter\"; source: \"../logic/count.qml\" }\n}\n");
+        scene.close();
+        // Where the Player keeps a person's games' stores: this check takes its own away after.
+        const QString kept = qq::GameStore::placeOf(qq::GameStore::gameOf(QUrl::fromLocalFile(project.path())));
+        const auto tidy = qScopeGuard([&kept] { QFile::remove(kept); });
+        QVERIFY(!QFile::exists(kept));
+
+        for (int start = 0; start < 2; ++start) {
+            const QString run = root.filePath(QStringLiteral("run%1.json").arg(start));
+            QCOMPARE(runPlayer({scene.fileName(), QStringLiteral("--record"), run, QStringLiteral("--ticks"), QStringLiteral("10")}),
+                     0);
+            const QJsonObject record = readJson(run);
+            const QJsonObject counter = record.value(QStringLiteral("outcome")).toObject().value(QStringLiteral("Counter")).toObject();
+            QCOMPARE(counter.value(QStringLiteral("found")).toInt(), start);
+            QCOMPARE(record.value(QStringLiteral("store")).toObject().value(QStringLiteral("plays")).toInt(), start);
+            QCOMPARE(readJson(kept).value(QStringLiteral("plays")).toInt(), start + 1);
+        }
+        // The second start's run, played again: it found 1, as its record says, and the store still says 2.
+        QCOMPARE(runPlayer({scene.fileName(), QStringLiteral("--replay"), root.filePath(QStringLiteral("run1.json"))}), 0);
+        QCOMPARE(readJson(kept).value(QStringLiteral("plays")).toInt(), 2);
     }
 
     void aSceneThatIsNotThereIsSaidNotHidden()

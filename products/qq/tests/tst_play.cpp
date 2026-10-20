@@ -23,6 +23,7 @@
 #include <QSaveFile>
 #include <QSet>
 #include <QSignalSpy>
+#include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QVector2D>
@@ -37,10 +38,12 @@
 #include <memory>
 #include <numbers>
 
+#include "confinement.h"
 #include "input.h"
 #include "mixer.h"
 #include "run.h"
 #include "sceneio.h"
+#include "store.h"
 
 // Drawn with the GPU the Studio and the Player draw with: chosen before QTEST_MAIN makes the application.
 static const QString chosenGpu = qq::preferHighPerformanceGpu();
@@ -260,7 +263,8 @@ struct Headless {
     QObject *scene = nullptr;
     qq::SceneIO *io = nullptr;
 
-    bool open(const QString &text, const QUrl &file)
+    /// Play `text` as the scene in `file`, kept by `recorder` if one is given.
+    bool open(const QString &text, const QUrl &file, QObject *recorder = nullptr)
     {
         io = engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO");
         scene = io->loadText(text, file, nullptr);
@@ -269,6 +273,8 @@ struct Headless {
             return false;
         }
         scene->setProperty("autoAdvance", false);
+        if (recorder)
+            scene->setProperty("recorder", QVariant::fromValue(recorder));
         scene->setProperty("playing", true);
         return QTest::qWaitFor([this] {
             QVariant ready;
@@ -331,6 +337,12 @@ class TstPlay : public QObject
 
     // Each Stage has its own engine, so its own Input: nothing held in one case reaches the next.
 private slots:
+    void initTestCase()
+    {
+        // Games' stores (P3.16) go to the test's own folders, never a person's.
+        QStandardPaths::setTestModeEnabled(true);
+    }
+
     // ── physics ──
 
     void aDynamicShapeFallsAndComesToRestOnTheGround()
@@ -1026,6 +1038,12 @@ private slots:
             QCOMPARE(editing.io->write(editing.scene, url), text);
         }
 
+        // What it keeps between plays (P3.16), from a store its player has scribbled in: a best that is no number.
+        qq::GameStore *kept = qq::GameStore::storeFor(qq::Confinement::packageOf(url));
+        QVERIFY(kept);
+        kept->clear();
+        QVERIFY(kept->setValue(QStringLiteral("best"), QJSValue(QStringLiteral("lots"))));
+
         Stage s;
         QVERIFY(s.open(text, true, url));
         QObject *rules = s.entity(QStringLiteral("Rules"));
@@ -1033,6 +1051,7 @@ private slots:
         auto score = [&] { return logic() ? logic()->property("score").toInt() : -1; };
         QVERIFY2(s.runUntil([&] { return logic() && logic()->property("orbsOut").toInt() == 2; }, 5000),
                  qPrintable(rules->property("error").toString()));
+        QCOMPARE(s.entity(QStringLiteral("Best"))->property("text").toString(), QStringLiteral("BEST 0"));
         // Each orb a prefab (P3.15): its glow and its pickup are its parts, not the scene's own entities.
         auto partOf = [&s](const QString &prefab, const QString &name) {
             QObject *p = s.entity(prefab);
@@ -1100,6 +1119,9 @@ private slots:
         QTest::keyRelease(s.window.get(), Qt::Key_W);
         QVERIFY2(gathered, "the player walked through the first orb without gathering it");
         QCOMPARE(s.entity(QStringLiteral("Score"))->property("text").toString(), QStringLiteral("ORBS 1"));
+        // The best play is kept and shown; what the player scribbled counted as nothing.
+        QCOMPARE(s.entity(QStringLiteral("Best"))->property("text").toString(), QStringLiteral("BEST 1"));
+        QCOMPARE(kept->value(QStringLiteral("best")).toInt(), 1);
         // A chime where the orb was taken (P3.13), put away once it has played through.
         QObject *voices = s.scene->property("_voices").value<QObject *>();
         auto sounding = [voices](const QString &file) {
@@ -1152,9 +1174,11 @@ private slots:
         QCOMPARE(level(), 0.0);
         QCOMPARE(s.entity(QStringLiteral("Music switch"))->property("text").toString(), QStringLiteral("Music: off"));
         QCOMPARE(mixer->level(QStringLiteral("effects")), 1.0);
+        QCOMPARE(kept->value(QStringLiteral("music")).toInt(), 0);  // kept for the next play
         QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(s.drawn(QStringLiteral("Music switch"))));
         QVERIFY(s.runUntil([&] { return mixer->level(QStringLiteral("music")) == 1; }, 2000));
         QVERIFY(qAbs(level() - 0.6) < 1e-6);
+        QCOMPARE(kept->value(QStringLiteral("music")).toInt(), 1);
         QTest::mouseClick(s.window.get(), Qt::LeftButton, {}, centre(s.drawn(QStringLiteral("Resume"))));
         QVERIFY(s.runUntil([&] { return !s.scene->property("paused").toBool() && !paused->isVisible(); }, 3000));
 
@@ -1489,6 +1513,102 @@ private slots:
         QCOMPARE(gate.value(QStringLiteral("x")).toDouble(), 5.0);
         QCOMPARE(gate.value(QStringLiteral("y")).toDouble(), 0.5);
         QCOMPARE(gate.value(QStringLiteral("physics")).toBool(), false);  // no physics world was made
+    }
+
+    // ── saving (P3.16, ADR-105) ──
+
+    void aGameKeepsWhatItSavesFromOnePlayToTheNext()
+    {
+        // A game that counts its plays and keeps a profile the first time; what it cannot keep, it is told.
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/keeper.qml")),
+                  "import QQ\nLogic {\n    property int plays: 0\n    property string name: \"\"\n"
+                  "    property bool refused: false\n"
+                  "    onStarted: {\n"
+                  "        plays = saved(\"plays\", 0) + 1\n"
+                  "        save(\"plays\", plays)\n"
+                  "        const profile = saved(\"profile\", null)\n"
+                  "        name = profile ? profile.name : \"\"\n"
+                  "        if (!profile)\n"
+                  "            save(\"profile\", { name: \"Ada\", levels: [1, 2, 3] })\n"
+                  "        refused = !save(\"where\", Qt.vector3d(1, 2, 3))\n"
+                  "    }\n}\n");
+        const QUrl file = QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")));
+        const QString text = sceneText(QStringLiteral("    Behaviour { name: \"Keeper\"; source: \"../logic/keeper.qml\"; target: \"\" }\n"));
+        writeFile(file.toLocalFile(), text.toUtf8());
+        qq::GameStore *store = qq::GameStore::storeFor(QUrl::fromLocalFile(project.path()));
+        QVERIFY(store && store->keys().isEmpty());
+
+        for (int play = 1; play <= 2; ++play) {
+            Headless h;
+            QVERIFY(h.open(text, file));
+            h.advance(0.1);
+            QObject *logic = h.logicOf(QStringLiteral("Keeper"));
+            QVERIFY(logic);
+            QCOMPARE(logic->property("plays").toInt(), play);
+            QCOMPARE(logic->property("name").toString(), play == 1 ? QString() : QStringLiteral("Ada"));
+            QVERIFY(logic->property("refused").toBool());
+        }
+        // On disk, as the game's next start reads it; what was refused is not there.
+        store->flush();
+        qq::GameStore fromFile(store->game());
+        QCOMPARE(fromFile.value(QStringLiteral("plays")).toInt(), 2);
+        QCOMPARE(fromFile.keys(), (QStringList{QStringLiteral("plays"), QStringLiteral("profile")}));
+        QCOMPARE(fromFile.value(QStringLiteral("profile")).toMap().value(QStringLiteral("levels")).toList().size(), 3);
+        store->clear();
+        store->flush();
+    }
+
+    void aReplayPlaysFromTheStoreAsItsRunFoundItAndKeepsNothing()
+    {
+        // A game that reads what it kept and keeps one more: its outcome rests on the store.
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/count.qml")),
+                  "import QQ\nLogic {\n    property int found: -1\n"
+                  "    onStarted: { found = saved(\"count\", 0); save(\"count\", found + 1) }\n"
+                  "    outcome: ({ found: found, now: saved(\"count\", -1), steps: steps })\n}\n");
+        const QUrl file = QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")));
+        const QString text = sceneText(QStringLiteral("    Behaviour { name: \"Counter\"; source: \"../logic/count.qml\"; target: \"\" }\n"));
+        writeFile(file.toLocalFile(), text.toUtf8());
+        qq::GameStore *store = qq::GameStore::storeFor(QUrl::fromLocalFile(project.path()));
+        QVERIFY(store->setValue(QStringLiteral("count"), QJSValue(5)));
+
+        // Played and kept: the run found 5 and left 6, and its record has the store as it found it.
+        qq::RunRecord run;
+        {
+            Headless h;
+            QVERIFY(h.open(text, file, &run));
+            h.advance(0.5);
+            QMetaObject::invokeMethod(h.scene, "finishRecord");
+        }
+        QCOMPARE(run.store().value(QStringLiteral("count")).toInt(), 5);
+        const QVariantMap kept = run.outcome().value(QStringLiteral("Counter")).toMap();
+        QCOMPARE(kept.value(QStringLiteral("found")).toInt(), 5);
+        QCOMPARE(kept.value(QStringLiteral("now")).toInt(), 6);
+        QCOMPARE(store->value(QStringLiteral("count")).toInt(), 6);
+
+        // The store moves on (another play, or the player's own hand); the replay still plays from what the run found,
+        // and reaches its outcome.
+        QVERIFY(store->setValue(QStringLiteral("count"), QJSValue(100)));
+        store->flush();
+        QQmlEngine engine;
+        const QVariantMap again = qq::replayRun(&engine, file, &run);
+        QCOMPARE(again.value(QStringLiteral("problem")).toString(), QString());
+        QVERIFY2(again.value(QStringLiteral("matches")).toBool(),
+                 qPrintable(QJsonDocument(QJsonObject::fromVariantMap(again)).toJson(QJsonDocument::Compact)));
+        // And keeps nothing: the store is as it was, in memory and on disk.
+        QCOMPARE(store->value(QStringLiteral("count")).toInt(), 100);
+        store->flush();
+        QCOMPARE(qq::GameStore(store->game()).value(QStringLiteral("count")).toInt(), 100);
+
+        // Read back from its file, the run carries its store; told it found another, it does not reach its outcome.
+        qq::RunRecord reread;
+        QVERIFY(reread.fromJson(run.toJson()));
+        QVERIFY(qq::replayRun(&engine, file, &reread).value(QStringLiteral("matches")).toBool());
+        reread.setStore({{QStringLiteral("count"), 7}});
+        QVERIFY(!qq::replayRun(&engine, file, &reread).value(QStringLiteral("matches")).toBool());
+        store->clear();
+        store->flush();
     }
 
     // ── animation (P3.12, ADR-105) ──

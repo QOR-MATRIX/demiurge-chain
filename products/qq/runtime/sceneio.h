@@ -163,6 +163,12 @@ public:
     /// { "line", "column", "message" }, in order; none if it builds. Nothing is made and nothing is run.
     Q_INVOKABLE QVariantList checkLogic(const QString &text, const QUrl &file);
 
+    /// The store of the game `entity` plays in (P3.16, store.h): the game's own, kept from one play to the next, or,
+    /// while its scene replays, a copy in memory of the store as the run found it, which the replay leaves behind. Null
+    /// for a scene that is in no folder. Confined, it is always the store of the package the engine is confined to, so a
+    /// game reaches no other's.
+    Q_INVOKABLE QObject *storeOf(QObject *entity);
+
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
     QString lastError() const { return m_lastError; }
 
@@ -186,6 +192,7 @@ private:
     QString m_lastError;
     bool m_confined = false;
     QString m_package;
+    QUrl m_packageUrl;
 };
 
 /// A number as a scene file writes it: four decimal places at most, no trailing zeros, never "-0".

@@ -56,7 +56,8 @@ target_compile_definitions(tst_player PRIVATE
     QQ_SAMPLES="${CMAKE_CURRENT_SOURCE_DIR}/../samples"
     QQ_PLAYER="$<TARGET_FILE:qq-player>")
 
-target_link_libraries(tst_player PRIVATE Qt6::Test Qt6::Gui)
+# The runtime only for where the Player keeps a game's store (P3.16): the check finds it as the Player does.
+target_link_libraries(tst_player PRIVATE Qt6::Test Qt6::Gui Qt6::Qml qqruntime)
 add_dependencies(tst_player qq-player)
 
 add_test(NAME tst_player COMMAND tst_player)

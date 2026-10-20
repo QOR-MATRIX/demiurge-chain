@@ -60,6 +60,11 @@
 //   readonly property var guard: machine({ start: "watch",
 //       watch: { step: () => { if (sees()) guard.go("chase") } },
 //       chase: { enter: () => target.clip = "run", on: { lost: "watch" } } })
+//
+// Saving (P3.16): one small store per game, kept from one play to the next, which the runtime writes for it:
+//
+//   onStarted: best = saved("best", 0)
+//   function scored() { if (score > best) { best = score; save("best", best) } }
 
 import QtQml
 import QQ
@@ -152,6 +157,26 @@ QtObject {
     }
     function setVolume(group, level) {
         Mixer.setLevel(group, level)
+    }
+
+    /// What this game kept under `key` (P3.16), or `fallback` when it kept nothing there. A game has one small store,
+    /// kept from one play to the next, the only one the lockdown allows: numbers, text, true and false, null, and lists
+    /// and objects of them, 64 KiB in all, under keys of 1 to 100 characters. A replay plays from the store as its run
+    /// found it and keeps nothing. The store is the player's, on their machine, so nothing rewarded rests on it.
+    function saved(key, fallback) {
+        const store = scene ? SceneIO.storeOf(scene) : null
+        const value = store ? store.value(key) : undefined
+        return value === undefined ? fallback : value
+    }
+    /// Keep `value` under `key` for the next play. False when it is not kept; the log says why.
+    function save(key, value) {
+        const store = scene ? SceneIO.storeOf(scene) : null
+        return store ? store.setValue(key, value) : false
+    }
+    /// Forget what is kept under `key`; true if something was.
+    function forget(key) {
+        const store = scene ? SceneIO.storeOf(scene) : null
+        return store ? store.remove(key) : false
     }
 
     /// Whether two entities' boxes overlap, as QQ measures them (never PhysX), so a replay measures the same.
