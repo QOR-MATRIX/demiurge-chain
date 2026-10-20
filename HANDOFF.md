@@ -3352,7 +3352,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
 
 105. **19 October 2026, late night: #61 merged by the owner at `6b03027` (CI passed every job on the merge, run
      39363830555), and P3.11 ticked; P3.12, animation, built
-     on `session/qq-animation`, not yet committed.** It was built on #61's head, since it needs P3.11's clock, and moved
+     on `session/qq-animation`, committed as `07cc295` and pushed at the owner's word as pull request #62.** It was built on #61's head, since it needs P3.11's clock, and moved
      onto `main` once #61 was merged (`main`'s tree is #61's head's, so its suites' run stands).
      - **Built** (DIRECTION P3.12 has the whole list):
        - a Prop's glTF clips, skeletal and morph, on the game's steps (`Clips` in C++ takes them from Qt's wall clock);
@@ -3368,7 +3368,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        - a vector or colour read from a field is a live reference, so a tween's start followed the field;
        - a machine made in a property's binding reassigned a list the binding read, and ran again;
        - a replay draws no frames, so its models were never posed: each step now poses them.
-     - **Next:** commit and push at the owner's word; then P3.13, sound.
+     - **Next:** #62's merge; then P3.13, sound.
 
 ## 5. Traps, so nobody re-learns them
 

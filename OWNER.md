@@ -29,7 +29,7 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 
 **Built since: animation** (P3.12). Models' own animations play — limbs bending, shapes
 swelling — and anything can glide to a new place, size or colour. *Orb Run* has swaying
-lanterns that flare when you take an orb. All tests pass. Say "commit and push" for it.
+lanterns that flare when you take an orb. All tests pass. It is pull request **#62**.
 
 ## Toward a worldwide beta: what only you can do
 

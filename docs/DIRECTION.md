@@ -1292,7 +1292,7 @@ P3.2 and on nothing on chain, and run in this order:
       - Seven planted faults were each caught.
 12. [ ] **Animation.** glTF skeletal and morph playback, tweens on any field, and a state machine.
 
-    **Built 19 October 2026** (branch `session/qq-animation`, on `main` at `6b03027`, not yet committed):
+    **Built 19 October 2026** (branch `session/qq-animation`, pull request #62, not yet merged):
     - **glTF clips.** A Prop plays its file's animations, skeletal and morph alike, by name: `clip`, `clipSpeed`
       (backwards too) and `clipLoops`. `clips` lists them, `clipTime` and `clipDone` say where it is, and `part(name)`
       finds a joint or a mesh.
