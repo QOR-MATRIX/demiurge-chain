@@ -613,7 +613,46 @@ jobs:
           fi
           echo "ruzstd is not in the compiled graph; the ignore still holds."
 
-      - name: "Audit launcher host dependencies (ignores only RUSTSEC-2026-0344; see .cargo/audit.toml)"
+      # The same file ignores RUSTSEC-2026-0383 (webpki-root-certs) in 0.26.11 alone, on two conditions (ADR-107):
+      # 0.26 holds no certificates of its own, only the 1.x crate's, which must be the fixed 1.0.10 or later; and it
+      # is built only for WebAssembly, which the launcher never targets. This step checks both for every target the
+      # launcher ships on, and says when the ignore can go. Seen to fail with wasm32-unknown-unknown in the list.
+      - name: "Condition of the webpki-root-certs ignore: 0.26 re-exports a fixed 1.x and is never built"
+        if: always()
+        working-directory: ./tools/qor-launcher/src-tauri
+        run: |
+          set -o pipefail
+          if ! grep -A1 '^name = "webpki-root-certs"$' Cargo.lock | grep -q '^version = "0\.26\.'; then
+            echo "::error::webpki-root-certs 0.26 has left Cargo.lock. Remove the RUSTSEC-2026-0383 ignore from tools/qor-launcher/src-tauri/.cargo/audit.toml (ADR-107)."
+            exit 1
+          fi
+          if ! under=$(cargo tree --locked -p webpki-root-certs@0.26 --target all -e normal --depth 1 --prefix none 2>tree.err); then
+            cat tree.err
+            echo "::error::cargo tree could not read what webpki-root-certs 0.26 re-exports, so the RUSTSEC-2026-0383 ignore is unproven (ADR-107)."
+            exit 1
+          fi
+          fixed=$(echo "$under" | sed -n 's/^webpki-root-certs v\(1\.[0-9.]*\)$/\1/p')
+          if [ -z "$fixed" ] || [ "$(printf '%s\n' 1.0.10 "$fixed" | sort -V | head -1)" != 1.0.10 ]; then
+            echo "$under"
+            echo "::error::webpki-root-certs 0.26 re-exports ${fixed:-no 1.x crate}, not 1.0.10 or later. The RUSTSEC-2026-0383 ignore no longer holds (ADR-107)."
+            exit 1
+          fi
+          for t in x86_64-pc-windows-msvc aarch64-pc-windows-msvc x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu \
+                   x86_64-apple-darwin aarch64-apple-darwin; do
+            if ! graph=$(cargo tree --locked -i webpki-root-certs@0.26 --target "$t" -e all 2>tree.err); then
+              cat tree.err
+              echo "::error::cargo tree could not check webpki-root-certs 0.26 for $t, so the RUSTSEC-2026-0383 ignore is unproven (ADR-107)."
+              exit 1
+            fi
+            if [ -n "$graph" ]; then
+              echo "$graph"
+              echo "::error::webpki-root-certs 0.26 is built for $t. The RUSTSEC-2026-0383 ignore in tools/qor-launcher/src-tauri/.cargo/audit.toml no longer holds and must be revisited (ADR-107)."
+              exit 1
+            fi
+          done
+          echo "webpki-root-certs 0.26 re-exports $fixed and is built for no target the launcher ships on; the ignore still holds."
+
+      - name: "Audit launcher host dependencies (ignores only RUSTSEC-2026-0344 and RUSTSEC-2026-0383; see .cargo/audit.toml)"
         if: always()
         working-directory: ./tools/qor-launcher/src-tauri
         run: cargo audit

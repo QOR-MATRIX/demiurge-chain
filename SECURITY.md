@@ -121,9 +121,15 @@ Anthropic key, no signed JWT and no mnemonic. The public repository was publishe
     [Dependency advisories in `chain/`](#dependency-advisories-in-chain) below. **This corrects an earlier
     claim in this file that none of the ten was reachable.** The audit runs in CI as a report that does not
     fail the run; it is not a gate, because making it pass today would need an exemption file.
-  - `tools/qor-launcher/src-tauri`: no exemption file, deliberately. Two of its warnings arrive with
-    `subxt`, and why `lru` is not in the compiled graph is recorded beside the dependency in `Cargo.toml`,
-    where someone would turn that feature on.
+  - `tools/qor-launcher/src-tauri`: no exemption file, deliberately, until 15 October 2026. **It now ignores
+    two advisories, each while a CI step proves it does not apply:** RUSTSEC-2026-0344 (`ruzstd` 0.8.3, never
+    built; ADR-089) and, since 20 October 2026, RUSTSEC-2026-0383 (`webpki-root-certs` 0.26.11, a wrapper
+    that holds no certificates of its own, re-exporting the fixed 1.x, and is built only for WebAssembly;
+    ADR-107). Two of its warnings arrive with `subxt`, and why `lru` is not in the compiled graph is recorded
+    beside the dependency in `Cargo.toml`, where someone would turn that feature on.
+  - RUSTSEC-2026-0381 to 0383 (`webpki-roots`, `rustls-webpki`, `webpki-root-certs`, published 19 and 20
+    October 2026) are fixed by updates in QOR ID's, Social's and both launcher lockfiles (0.103.16 and 1.0.10),
+    except the one ADR-107 covers. `chain/` carries them too, in its report.
   - RUSTSEC-2026-0285 (`rustls`, published 2026-09-14) is fixed in both lockfiles by upgrading to 0.23.45.
     **Correction, 2026-09-19:** only QOR ID's lockfile carried the upgrade. The launcher's still held 0.23.44,
     so `cargo audit` failed there, and the claim above had been true of one lockfile rather than two. It was
@@ -524,6 +530,13 @@ and carries forward as a requirement for the Polkadot SDK chain and QOR ID (ADR-
 report each advisory under [ADR-033](docs/decisions/ADR-033-dependency-versions.md) rules 2 and 4.
 `cargo audit` reports **10 vulnerabilities and 13 warnings** in `chain/`. Nothing is exempted, and the
 directory deliberately has no `.cargo/audit.toml`.
+
+**Not re-measured since.** CI's report on 20 October 2026 (run 39494997610) lists **20 vulnerabilities and 14
+warnings**: advisories published after this measurement, among them `wasmtime` 36.0.15, `ruzstd` 0.8.3, more
+in `rustls-webpki` 0.101.7, and RUSTSEC-2026-0381 to 0383 in `rustls-webpki` 0.103.15, `webpki-root-certs` and
+`webpki-roots` 0.25.4. The tables below still describe the ten. Measuring the new ones by exact version, and
+updating what a patch release fixes within the SDK's requirements, is its own task, because any change to
+`chain/Cargo.lock` needs the whole chain suite run without `SKIP_WASM_BUILD` (AGENTS.md §8).
 
 **Correction.** This file, `HANDOFF.md`, `docs/GATES.toml` and CI all said that none of the ten was
 reachable through a normal dependency edge. **Four of them are.** The claim came from a `cargo tree` run

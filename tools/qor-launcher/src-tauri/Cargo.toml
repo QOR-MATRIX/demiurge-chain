@@ -92,6 +92,10 @@ scale-decode = { version = "0.16", features = ["derive"] }
 # The WebSocket transport subxt already brings (jsonrpsee's, over soketto and rustls), named so Social's
 # socket uses it directly: no new library in the process that holds the vault. Both versions and every
 # feature named here are already in the graph through subxt.
+# Its TLS verifier, rustls-platform-verifier 0.5, brings webpki-root-certs 0.26 for wasm32 alone, under
+# RUSTSEC-2026-0383 with no fix on that line. 0.26 only re-exports the fixed 1.x, and is never built here, so
+# .cargo/audit.toml ignores that advisory on both conditions (ADR-107); CI's "Condition of the webpki-root-certs
+# ignore" step fails if either stops holding.
 jsonrpsee-client-transport = { version = "0.24", default-features = false, features = ["ws", "tls-rustls-platform-verifier"] }
 jsonrpsee-core = { version = "0.24", default-features = false, features = ["client"] }
 # The version subxt 0.51 itself uses, for deriving `EncodeAsType` on the
