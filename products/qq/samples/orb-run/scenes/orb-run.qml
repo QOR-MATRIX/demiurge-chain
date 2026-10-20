@@ -6,6 +6,8 @@ Scene {
     skyHorizon: "#c7623a"
     groundHorizon: "#2a1a1a"
     groundBottom: "#07080c"
+    sky: "../assets/dusk.hdr"
+    skyTurn: 0
     skyLight: 0.75
     exposure: 1
     bloom: true
@@ -28,7 +30,9 @@ Scene {
     Ground {
         name: "Ground"
         extent: 30
-        colour: "#151821"
+        colour: "#ffffff"
+        image: "../assets/floor.png"
+        imageSize: 2
     }
 
     Shape {
@@ -37,11 +41,15 @@ Scene {
         eulerRotation: Qt.vector3d(0, 0, 0)
         scale: Qt.vector3d(22, 1.5, 0.5)
         form: "cube"
-        colour: "#2b3140"
-        metalness: 0.2
-        roughness: 0.6
+        colour: "#ece4d8"
+        metalness: 0
+        roughness: 0.85
         emissive: "#000000"
         emissivePower: 0
+        image: "../assets/stone.png"
+        imageSize: 1.5
+        normalMap: "../assets/stone-normal.png"
+        crisp: false
         body: "static"
         mass: 1
         bounce: 0.2
@@ -54,11 +62,15 @@ Scene {
         eulerRotation: Qt.vector3d(0, 0, 0)
         scale: Qt.vector3d(22, 1.5, 0.5)
         form: "cube"
-        colour: "#2b3140"
-        metalness: 0.2
-        roughness: 0.6
+        colour: "#ece4d8"
+        metalness: 0
+        roughness: 0.85
         emissive: "#000000"
         emissivePower: 0
+        image: "../assets/stone.png"
+        imageSize: 1.5
+        normalMap: "../assets/stone-normal.png"
+        crisp: false
         body: "static"
         mass: 1
         bounce: 0.2
@@ -71,11 +83,15 @@ Scene {
         eulerRotation: Qt.vector3d(0, 0, 0)
         scale: Qt.vector3d(0.5, 1.5, 22)
         form: "cube"
-        colour: "#2b3140"
-        metalness: 0.2
-        roughness: 0.6
+        colour: "#ece4d8"
+        metalness: 0
+        roughness: 0.85
         emissive: "#000000"
         emissivePower: 0
+        image: "../assets/stone.png"
+        imageSize: 1.5
+        normalMap: "../assets/stone-normal.png"
+        crisp: false
         body: "static"
         mass: 1
         bounce: 0.2
@@ -88,11 +104,15 @@ Scene {
         eulerRotation: Qt.vector3d(0, 0, 0)
         scale: Qt.vector3d(0.5, 1.5, 22)
         form: "cube"
-        colour: "#2b3140"
-        metalness: 0.2
-        roughness: 0.6
+        colour: "#ece4d8"
+        metalness: 0
+        roughness: 0.85
         emissive: "#000000"
         emissivePower: 0
+        image: "../assets/stone.png"
+        imageSize: 1.5
+        normalMap: "../assets/stone-normal.png"
+        crisp: false
         body: "static"
         mass: 1
         bounce: 0.2
@@ -110,6 +130,10 @@ Scene {
         roughness: 0.9
         emissive: "#000000"
         emissivePower: 0
+        image: ""
+        imageSize: 1
+        normalMap: ""
+        crisp: false
         body: "dynamic"
         mass: 8
         bounce: 0.1
@@ -136,6 +160,28 @@ Scene {
         clip: "idle"
         clipSpeed: 0.9
         clipLoops: true
+    }
+
+    Spotlight {
+        name: "Arena light"
+        position: Qt.vector3d(0, 9, 0)
+        eulerRotation: Qt.vector3d(-90, 0, 0)
+        color: "#ffd9a8"
+        brightness: 2.5
+        reach: 20
+        cone: 80
+        softness: 0.6
+    }
+
+    Spotlight {
+        name: "Wall wash"
+        position: Qt.vector3d(0, 5, 8)
+        eulerRotation: Qt.vector3d(-19.65, 0, 0)
+        color: "#bcd4ff"
+        brightness: 1.5
+        reach: 30
+        cone: 40
+        softness: 0.6
     }
 
     Player {

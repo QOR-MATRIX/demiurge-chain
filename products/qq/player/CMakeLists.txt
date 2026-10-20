@@ -10,8 +10,9 @@ qt_add_qml_module(qq-player
         Main.qml
 )
 
-# The playground: a small game with everything P3.2 plays (bodies, a player, particles, sound and logic), kept as a
-# project would keep it, so its relative paths mean what they mean on disk.
+# The playground: a small game with everything P3.2 plays (bodies, a player, particles, sound and logic), and P3.14's
+# pictured stone, a spot light and an HDR sky, kept as a project would keep it, so its relative paths mean what they
+# mean on disk.
 qt_add_resources(qq-player "playground"
     PREFIX /playground
     BASE "${CMAKE_CURRENT_SOURCE_DIR}/playground"
@@ -20,6 +21,9 @@ qt_add_resources(qq-player "playground"
         playground/logic/hover.qml
         playground/assets/orb.gltf
         playground/assets/chime.wav
+        playground/assets/stone.png
+        playground/assets/stone-normal.png
+        playground/assets/dusk.hdr
 )
 
 target_link_libraries(qq-player PRIVATE Qt6::Gui Qt6::Quick Qt6::Quick3D qqruntime qqruntimeplugin)

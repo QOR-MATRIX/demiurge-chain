@@ -277,6 +277,21 @@ private slots:
         QCOMPARE(changed, QStringList{QStringLiteral("        roughness: 0.9")});
         QCOMPARE(s.window->property("projectInfo").toMap().value(QStringLiteral("scenes")).toStringList(),
                  QStringList{QStringLiteral("first-light")});
+
+        // A picture on a shape and the scene's own sky, chosen from outside the project (P3.14): saving brings both in,
+        // and the file names them relative to itself.
+        s.entity(QStringLiteral("Plinth"))->setProperty("image", QUrl::fromLocalFile(fixture(QStringLiteral("checker.png"))));
+        s.scene()->setProperty("sky", QUrl::fromLocalFile(fixture(QStringLiteral("sky.hdr"))));
+        s.call("refresh");
+        QVERIFY(s.call("saveScene").toBool());
+        QVERIFY(QFileInfo::exists(root.filePath(QStringLiteral("assets/checker.png"))));
+        QVERIFY(QFileInfo::exists(root.filePath(QStringLiteral("assets/sky.hdr"))));
+        const QString pictured = readAll(file);
+        QVERIFY(pictured.contains(QStringLiteral("        image: \"../assets/checker.png\"\n")));
+        QVERIFY(pictured.contains(QStringLiteral("    sky: \"../assets/sky.hdr\"\n")));
+        // And the world shows the sky from the project's copy.
+        QObject *world = s.window->findChild<QObject *>(QStringLiteral("world"));
+        QCOMPARE(world->property("sky").toUrl(), QUrl::fromLocalFile(root.filePath(QStringLiteral("assets/sky.hdr"))));
     }
 
     void aSavedSceneOpensAgainAsItWasSaved()

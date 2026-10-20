@@ -8,7 +8,8 @@ the roadmap items are DIRECTION P3.1 to P3.16.
 it; the QQ Player plays a scene on its own, natively and in a browser.
 
 - **The world:** a procedural sky that also lights the scene, a sun with soft shadows, lamps, filmic tonemapping, bloom,
-  ambient occlusion and multisampled edges; shapes with physically based surfaces; glTF 2.0 models loaded at runtime.
+  ambient occlusion and multisampled edges; shapes with physically based surfaces; glTF 2.0 models loaded at runtime;
+  and since P3.14 pictures on shapes and the ground, spot lights and HDR skies (below).
 - **Play (P3.2):** shapes with bodies (`body`: none, static or dynamic; mass, bounce, friction) that fall, collide as
   their shapes and come to rest, under the scene's gravity; a **Player**, a character controller that walks, runs, turns
   and jumps, is stopped by walls and climbs low steps, with a camera that follows; **input** from the keyboard (WASD or
@@ -63,6 +64,23 @@ it; the QQ Player plays a scene on its own, natively and in a browser.
     quieter with distance from the eye and panned to the side of it it is on. The page's first touch or key starts its
     audio, as browsers require.
   - **A replay makes no sound.** There `play()` returns nothing, so what it returns must not decide an outcome.
+- **Materials (P3.14, built 19 October 2026; ADR-105):**
+  - **Pictures on shapes** (`image`, `imageSize`): one copy every `imageSize` units on every face, whatever the shape's
+    size, so a wall 22 units long has 22 units of bricks rather than a few stretched ones. The picture is projected
+    along the shape's own three axes (`runtime/shaders/surface.frag`), so it moves and turns with the shape, and is
+    tinted by `colour` (white shows it as painted). A `normalMap` gives the surface its fine relief for the light to
+    pick out, and `crisp` keeps a pixel-art picture's pixels sharp. The lighting, shadows and sky light are Qt's own,
+    exactly as on a plain shape. The Ground takes a picture too.
+  - **Spot lights** (`Spotlight`): a cone of light (`cone` degrees, softening over `softness` of it toward its edge)
+    shining down unless turned (`eulerRotation`), falling off as a Lamp does, with shadows. Logic sweeps one with a
+    tween.
+  - **HDR skies** (the Scene's `sky`, `skyTurn`): an equirectangular `.hdr` image seen behind everything and lighting
+    it, turned about the vertical to bring its sun round. Its middle column faces +x and a quarter of the way across
+    faces -z, as Qt lays it. Empty, the sky is made from the scene's four colours as before.
+  - **Saving** brings pictures and skies into the project's `assets/`, the scene's own sky among them.
+  - **In the Player**, every file a scene names, pictures and skies among them, comes only from the game's package
+    (ADR-087): Qt Quick 3D reads pictures and models itself, past the engine's interceptor, so `SceneIO.resolvedUrl`
+    gives nothing outside the package.
 - **The Studio:** the scene's entities in a list, the selected one's fields in an inspector (built from what each type
   declares), click to select in the viewport, handles to move along an axis, turn about the vertical or scale evenly,
   orbit and zoom, add (cube, sphere, cylinder, cone, lamp, model, player, emitter, sound, behaviour, the screen kinds,
@@ -105,14 +123,14 @@ description with no human edit, made by whoever runs it with their own key.
 
 | Path | What it is |
 | --- | --- |
-| `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, `Trigger` (a volume that hears what enters and leaves it, P3.7), the screen kinds `ScreenText`, `ScreenBar`, `ScreenButton`, `ScreenImage` and `ScreenPanel` (the game's interface, drawn over the world on the World's overlay, each in a named screen; built on `ScreenPart`, P3.8), `Music` (a scene's music, fading from track to track, P3.13), `InputAction` (an action a player can take, with its keys, mouse buttons and pad buttons, P3.9), the 2D kinds `Sprite`, `TileMap` and `Player2D` (P3.10), and `Logic` (what a logic file is, with the gameplay API of P3.7: `onStarted`, `onContact`, `onEntered`, `onExited`, `ray`, `spawn`, `remove`, `after`, `every`, `cancel`; and for the interface, P3.8, `onClicked`, `showScreen`, `hideScreen`, `onlyScreen`, `pause` and `resume`; and for actions, P3.9, `onPressed`, `onReleased`, `held`, `rebind`, `bindingOf` and `pointing`; and for steps and runs, P3.11, `onStep`, `steps`, `random`, `randomInt`, `overlaps` and `outcome`; and for animation, P3.12, `tween` and `machine`; and for sound, P3.13, `play`, `setVolume` and `volumeOf`). `Look` is the interface's style: the faces Cinzel and Barlow Semi Condensed (carried in `runtime/fonts/`, under the SIL Open Font License), the launcher's inks and ARQADE's gilt, and the system's reduced-motion setting. In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `tilemap` (Tiled's maps read, their solid tiles merged into colliders, and `TileGeometry`, a layer as one mesh), `kinematics` (QQ's own: boxes swept against boxes, P3.11), `run` (`Random`, seeded and the same everywhere; `RunRecord`, a run kept; `replayRun`, a run played again with no window), `clips` (a glTF model's animations, taken from Qt's own wall-clock playing and posed on the game's steps, P3.12),
-`Mixer` (the volume groups, and a sound file's length, P3.13), `SoftDot` (the particles' sprite, made in memory) `gpu` (draw with the faster of two GPUs), `Confinement` (what a game may reach in the Player, ADR-087) and `WebVoice` (a sound in a browser, on the page's Web Audio and panned, so a game never needs Qt Multimedia's QML) |
+| `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, `Trigger` (a volume that hears what enters and leaves it, P3.7), the screen kinds `ScreenText`, `ScreenBar`, `ScreenButton`, `ScreenImage` and `ScreenPanel` (the game's interface, drawn over the world on the World's overlay, each in a named screen; built on `ScreenPart`, P3.8), `Music` (a scene's music, fading from track to track, P3.13), `Spotlight` (a cone of light, P3.14), `InputAction` (an action a player can take, with its keys, mouse buttons and pad buttons, P3.9), the 2D kinds `Sprite`, `TileMap` and `Player2D` (P3.10), and `Logic` (what a logic file is, with the gameplay API of P3.7: `onStarted`, `onContact`, `onEntered`, `onExited`, `ray`, `spawn`, `remove`, `after`, `every`, `cancel`; and for the interface, P3.8, `onClicked`, `showScreen`, `hideScreen`, `onlyScreen`, `pause` and `resume`; and for actions, P3.9, `onPressed`, `onReleased`, `held`, `rebind`, `bindingOf` and `pointing`; and for steps and runs, P3.11, `onStep`, `steps`, `random`, `randomInt`, `overlaps` and `outcome`; and for animation, P3.12, `tween` and `machine`; and for sound, P3.13, `play`, `setVolume` and `volumeOf`). `Look` is the interface's style: the faces Cinzel and Barlow Semi Condensed (carried in `runtime/fonts/`, under the SIL Open Font License), the launcher's inks and ARQADE's gilt, and the system's reduced-motion setting. In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `tilemap` (Tiled's maps read, their solid tiles merged into colliders, and `TileGeometry`, a layer as one mesh), `kinematics` (QQ's own: boxes swept against boxes, P3.11), `run` (`Random`, seeded and the same everywhere; `RunRecord`, a run kept; `replayRun`, a run played again with no window), `clips` (a glTF model's animations, taken from Qt's own wall-clock playing and posed on the game's steps, P3.12),
+`Mixer` (the volume groups, and a sound file's length, P3.13), `shaders/surface.vert` and `surface.frag` (a Shape's pictured surface, P3.14), `SoftDot` (the particles' sprite, made in memory) `gpu` (draw with the faster of two GPUs), `Confinement` (what a game may reach in the Player, ADR-087) and `WebVoice` (a sound in a browser, on the page's Web Audio and panned, so a game never needs Qt Multimedia's QML) |
 | `studio/` | QQ Studio. `qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>] [--launcher-channel <name>]`; `LauncherLink`, its side of the QOR host protocol (publishing through the launcher that started it, ADR-088) |
 | `agent/` | The agent's side of the Studio (P3.3): `McpServer` (MCP's JSON-RPC, served on a local pipe only this user can open), `StudioTools` (the fourteen tools, working the Studio's own window functions, and `StudioLog`, what the Studio has said), `DesignLoop` (a description designed, built, played and judged by Claude through those tools; ADR-085), `keychain` (the provider's key in Windows Credential Manager) and `qq-mcp` (the program an MCP client starts, relaying its standard input and output to the running Studio) |
 | `player/` | The QQ Player. `qq-player [scene.qml] [--capture <frame.png>] [--measure <result.json>] [--seed <n>] [--record <run.json> [--ticks <n>]] [--replay <run.json>]` (a replay has no window and exits 0 when it reaches the outcome kept, 4 when it does not); its playground (a small game with everything P3.2 plays) bundled inside it; `measure-web.mjs`, which plays the browser build in a headless browser and measures it |
 | `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks, drags and keys), `tst_play` (physics, the player, input, particles, sound, logic and gameplay in logic, 2D pixel for pixel, in real frames, and the Orb Run and Ember Climb samples played), `tst_player` (the real Player executable), `tst_lockdown` (what a game's logic may reach in the Player, ADR-087), `tst_publish` (publishing through a stand-in launcher, P3.4), `tst_agent` (the tools over MCP, in the real Studio and through the real `qq-mcp`) |
 | `tests/fixtures/` | `orb.gltf` (written by `make_orb.py`), `chime.wav` (written by `make_chime.py`), `logic/spin.qml`, `scenes/sample.qml` (every entity type, canonical), `first-light.qq.json` (the 2D preview's starter scene), and the 2D fixtures `make_2d.py` writes: `tiles.png`, `tiles.tsj`, `level.tmj` (a Tiled map with a mirrored tile and two layers) and `sheet.png` (eight frames), and `rig.gltf` (written by `make_rig.py`: a bar skinned to two joints that "bend" turns, and a box whose morph target "puff" doubles) |
-| `samples/` | Games made only from kinds and logic files, each proving a step of P3 and played by the suites (ADR-105): `orb-run/` for P3.7 to P3.9, P3.12 and P3.13, and `ember-climb/`, a pixel-art platformer, for P3.10 and P3.11 ([`samples/README.md`](samples/README.md)) |
+| `samples/` | Games made only from kinds and logic files, each proving a step of P3 and played by the suites (ADR-105): `orb-run/` for P3.7 to P3.9 and P3.12 to P3.14, and `ember-climb/`, a pixel-art platformer, for P3.10 and P3.11 ([`samples/README.md`](samples/README.md)) |
 | `build.ps1` | Builds with the owner's Qt, MSVC 2022 and Ninja and runs every test; `-Deploy` makes a self-contained Studio; `-Web` builds the Player for the browser and measures it |
 
 ## Build, test, deploy
@@ -165,7 +183,23 @@ drew about 12 frames a second.
 
 - **`tst_world`** (3 cases): a glTF model loads at runtime and is drawn lit in its own colour; bloom lights pixels past
   the glowing band; an unreadable model is an error, not a crash. Proven to fail by two planted faults (bloom ignored;
-  a prop that never loads).
+  a prop that never loads). **Since P3.14, 9 cases** (fixtures by `make_looks.py`):
+  - a checker on a wall 4 units by 2, a copy a unit: eight squares across and four up, square, not stretched, with
+    sharp edges when `crisp` and blended ones when not, and half as many at twice the size;
+  - a white box with a mid-grey picture drawn as a grey box is, face by face, so a picture is lit as a plain shape is
+    and its colours converted to linear light alike;
+  - a normal map leaning toward +x turns a face to a sun on its right and away from one on its left, where a flat
+    face is lit alike from both;
+  - a spot light's pool under it and darkness two units away, the pool moving two units when the light is tipped;
+  - an HDR sky half red and half blue: the half ahead seen, a white ball lit by the half behind the eye, and both
+    swapped when the sky is turned half round; and a sky dimmer than white left as it is by bloom;
+  - a ground 4 units across drawn as wide as its slab, with its picture, and the sky beyond its edge.
+
+  Eleven planted faults were each caught: pictures laid by the mesh rather than the shape's size, crisp ignored, a
+  picture's colours not made linear, the relief never reaching the light, the relief turned by Qt's normal matrix, a
+  spot light's cone ignored, the sky never turned, the ground drawn a hundred times its size, bloom washing a sky image
+  out, a confined game reading pictures from outside its package (by `tst_lockdown`), and saving bringing in only the
+  entities' files (by `tst_studio`).
 - **`tst_scene`** (14 cases): numbers are written one way only; a scene file reads and writes back byte for byte; one
   changed value is one changed line; a saved scene keeps its model relative and loads again; a scene saved elsewhere
   still points at its model (including across drives, where no relative path exists); adopting a model brings its
@@ -191,7 +225,8 @@ drew about 12 frames a second.
   and Play starts again from the same place; a new behaviour is written into the project and never over a file.
   **Since P3.10, 11 cases:** a 2D scene opens framed as it plays, its handles see what the world sees, its X handle moves
   along X on the plane, a drag on nothing pans with the pointer, and the wheel shows fewer units, larger. **Since
-  P3.13:** Stop puts back the volume levels a play set.
+  P3.13:** Stop puts back the volume levels a play set. **Since P3.14:** saving brings a shape's picture and the scene's
+  own sky in from outside the project, and the file names both relative to itself.
 - **`tst_play`** (11 cases, real frames): a dynamic shape falls and comes to rest on the ground; a static one holds
   what lands on it and one with no body lets it through; a cylinder and a cone collide as their shapes; a fall takes
   the time the scene's gravity says; the player walks, runs, turns and jumps at the keyboard, with the camera behind
@@ -278,18 +313,23 @@ drew about 12 frames a second.
   - no sound in a replay;
   - Orb Run's music changing when play starts, its chime and rumble, and its music switch.
 
+  **Since P3.14,** Orb Run's case also checks its looks: stone walls with their relief, a slate floor, two spot lights
+  and a dusk sky, each from its own `assets/`.
+
   Eight planted faults were each caught: one-shots deaf to their group's level, a one-shot never put away, music
   never letting its old track go, music deaf to its group's level, logic sounding in a replay, a browser panning to the
   wrong side, the Studio's Stop keeping a play's levels (by `tst_studio`), and a replaced file keeping its old length
   (by `tst_scene`).
-- **`tst_lockdown`** (7 cases, 12 checks with the imports' five; ADR-087): a game that keeps to its own files (logic
+- **`tst_lockdown`** (8 cases, 13 checks with the imports' five; ADR-087): a game that keeps to its own files (logic
   importing Quick 3D Physics, a model from its `assets/`) plays with nothing refused; imports of `QtQuick.LocalStorage`,
   `QtCore`, `QtQuick.Dialogs` and `Qt.labs.settings` refused with the module named (and `QtMultimedia` an expected
   failure, the known limit); `SceneIO`'s writing, saving, copying, loading and listing outside the package refused and
   nothing on disk; a `Loader` and an `Image` aimed outside the package, by whole URL and by a relative path climbing
   out, both errors; a network request to a listener on this computer never arriving; `Qt.openUrlExternally` refused for
   a file and a web address, with nothing handed to the system; and (P3.10) a picture measured, a map read, or a
-  map's tileset read from outside the package, each refused, while a game's own map and sheet play. **Proven to fail** by four planted faults, each caught by
+  map's tileset read from outside the package, each refused, while a game's own map and sheet play; and (P3.14) a
+  shape's picture and relief, a sky, a model and a sound named from outside the package are nothing, while a picture
+  inside comes as named. **Proven to fail** by four planted faults, each caught by
   its own check: no URL interceptor; no network policy; `SceneIO` left unconfined; every module allowed.
 - **`tst_publish`** (9 cases; P3.4, ADR-088), against a stand-in launcher speaking the QOR host protocol: the hello
   carries the token and the Studio's id; Publish asks for the commit and then the publish, with the project, and
@@ -381,6 +421,14 @@ the web has no audio, so in a browser sound is QQ's own, on the page's Web Audio
   costs its decoded size in memory. Volume levels last while the game runs; keeping a player's settings between plays
   comes with saving (P3.16). A one-shot's length is read only from a WAV file's header, so another format is put away
   after ten seconds, whatever its length.
+- **Materials, as built in P3.14:** a shape's picture is projected along its three axes, so on a sphere, cylinder or
+  cone it blends where two projections meet, and cannot be wrapped round it as a glTF model's texture is (a Prop is for
+  that). A shape takes one picture and one relief; roughness and metal come from its fields, not from pictures. A sky is
+  a Radiance `.hdr`, run-length encoded as tools write them: Qt misreads one written uncompressed, which shows as a dark
+  seam where the image's edges meet. A 2D scene keeps its backdrop of colours, not its sky image. Under a sky image,
+  bloom glows only from what is brighter than white, since bleeding the whole frame would wash a bright sky out. A sky
+  image's lighting and a pictured shape's shaders are prepared before the first frame: in a browser the playground's
+  first frame came 1.5 s later with them (7.2 s, from 5.7 s).
 - **Logic is code, and the Player locks it down** (ADR-087). In the Studio a creator's logic has the engine's full
   reach, as it should. In the QQ Player, natively and in a browser, every game is confined (`runtime/confinement.h`):
   it loads QML and files only from its own package and Qt's and QQ's module folders, imports only an allowed list of

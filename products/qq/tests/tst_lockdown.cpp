@@ -266,6 +266,49 @@ private slots:
         QVERIFY(g.newRefusals().join(QLatin1Char('\n')).contains(QStringLiteral("item.qml")));
     }
 
+    void aGamesPicturesSkiesModelsAndSoundsComeOnlyFromItsPackage()
+    {
+        // Qt Quick 3D reads a picture or a model itself, past the engine's interceptor (P3.14). Everything a scene names
+        // is found through SceneIO.resolvedUrl first, which gives nothing outside the package; a file inside comes as
+        // named.
+        Game g;
+        QImage(4, 4, QImage::Format_RGB32).save(g.out(QStringLiteral("picture.png")));
+        for (const char *name : {"sky.hdr", "orb.gltf", "chime.wav"})
+            QVERIFY(QFile::copy(fixture(QLatin1String(name)), g.out(QLatin1String(name))));
+        QVERIFY(QDir().mkpath(g.in(QStringLiteral("assets"))));
+        QVERIFY(QFile::copy(fixture(QStringLiteral("checker.png")), g.in(QStringLiteral("assets/checker.png"))));
+        QVERIFY(g.play(QByteArrayLiteral("import QQ\nLogic {}\n"),
+                       QStringLiteral("    Shape { name: \"Far\"; image: \"%1\"; normalMap: \"%1\" }\n"
+                                      "    Shape { name: \"Near\"; image: \"../assets/checker.png\" }\n"
+                                      "    Prop { name: \"Model\"; source: \"%2\" }\n")
+                           .arg(g.outUrl(QStringLiteral("picture.png")), g.outUrl(QStringLiteral("orb.gltf")))));
+        QObject *far = nullptr;
+        QObject *near = nullptr;
+        QObject *model = nullptr;
+        for (const QVariant &e : g.io->entities(g.scene)) {
+            QObject *entity = e.value<QObject *>();
+            const QString name = entity->property("name").toString();
+            if (name == QStringLiteral("Far"))
+                far = entity;
+            else if (name == QStringLiteral("Near"))
+                near = entity;
+            else if (name == QStringLiteral("Model"))
+                model = entity;
+        }
+        QVERIFY(far && near && model);
+        auto texture = [](QObject *shape, const char *which) {
+            return shape->property(which).value<QObject *>()->property("source").toUrl();
+        };
+        QCOMPARE(texture(far, "picture"), QUrl());
+        QCOMPARE(texture(far, "relief"), QUrl());
+        QCOMPARE(texture(near, "picture"), QUrl::fromLocalFile(g.in(QStringLiteral("assets/checker.png"))));
+        // A sky and a sound outside are nothing too, and the model outside never loads.
+        QCOMPARE(g.io->resolvedUrl(g.scene, QUrl(g.outUrl(QStringLiteral("sky.hdr")))), QUrl());
+        QCOMPARE(g.io->resolvedUrl(g.scene, QUrl(g.outUrl(QStringLiteral("chime.wav")))), QUrl());
+        QTest::qWait(300);
+        QVERIFY(model->property("status").toInt() != 1);  // Prop.Ready
+    }
+
     void aRelativePathCannotClimbOutOfThePackage()
     {
         // The same, but written relative to the logic file and climbing out: a relative URL is checked whole, once it

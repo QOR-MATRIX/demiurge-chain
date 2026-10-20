@@ -920,6 +920,22 @@ private slots:
         QVERIFY(s.entity(QStringLiteral("Orb 1")) && s.entity(QStringLiteral("Orb 1 glow")));
         QCOMPARE(score(), 0);
 
+        // Its looks (P3.14): stone walls with their relief, a slate floor, two spot lights and a dusk sky, every file
+        // its own (make_looks.py writes them).
+        auto picture = [](QObject *e, const char *which) {
+            return e->property(which).value<QObject *>()->property("source").toUrl().toLocalFile();
+        };
+        for (const char *wall : {"North wall", "South wall", "East wall", "West wall"}) {
+            QObject *w = s.entity(QLatin1String(wall));
+            QVERIFY2(picture(w, "picture").endsWith(QStringLiteral("orb-run/assets/stone.png")), wall);
+            QVERIFY2(picture(w, "relief").endsWith(QStringLiteral("orb-run/assets/stone-normal.png")), wall);
+        }
+        QVERIFY(picture(s.entity(QStringLiteral("Ground")), "picture").endsWith(QStringLiteral("orb-run/assets/floor.png")));
+        QCOMPARE(s.entity(QStringLiteral("Arena light"))->property("kind").toString(), QStringLiteral("Spotlight"));
+        QCOMPARE(s.entity(QStringLiteral("Wall wash"))->property("coneAngle").toDouble(), 40.0);
+        QVERIFY(s.io->resolvedUrl(s.scene, s.scene->property("sky").toUrl()).toLocalFile()
+                    .endsWith(QStringLiteral("orb-run/assets/dusk.hdr")));
+
         // It opens on its title, the world held still behind it (P3.8); Play starts it, and the score is on the HUD.
         auto centre = [](QQuickItem *item) {
             return item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint();

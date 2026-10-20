@@ -9,20 +9,30 @@
 //
 // For logic (P3.7): `contact` as the body meets another, and push(), applyForce(), setVelocity() and setSpin() on a
 // dynamic one.
+//
+// Its surface can be a picture (P3.14): `image`, one copy every `imageSize` units on every face whatever the shape's
+// size, so a long wall has as many bricks as it is long, not a few stretched ones; tinted by `colour` (white shows it
+// as painted). `normalMap` is a picture of the surface's fine relief, which the light then picks out, and `crisp` is
+// for pixel art: each of its pixels a sharp square however near the eye comes. The pictures are projected along the
+// shape's own three axes (shaders/surface.frag), so they move and turn with it.
 
 import QtQuick
 import QtQuick3D
 import QtQuick3D.Helpers
 import QtQuick3D.Physics
+import QQ
 
 Node {
     id: shape
 
     readonly property string kind: "Shape"
     readonly property var fields: ["name", "position", "eulerRotation", "scale", "form", "colour", "metalness",
-                                   "roughness", "emissive", "emissivePower", "body", "mass", "bounce", "friction"]
-    readonly property var ranges: ({ metalness: [0, 1], roughness: [0, 1], emissivePower: [0, 10], mass: [0.1, 100],
-                                     bounce: [0, 1], friction: [0, 1.5] })
+                                   "roughness", "emissive", "emissivePower", "image", "imageSize", "normalMap", "crisp",
+                                   "body", "mass", "bounce", "friction"]
+    readonly property var ranges: ({ metalness: [0, 1], roughness: [0, 1], emissivePower: [0, 10],
+                                     imageSize: [0.05, 100], mass: [0.1, 100], bounce: [0, 1], friction: [0, 1.5] })
+    readonly property var fileTypes: ({ image: ["Images (*.png *.jpg *.jpeg *.webp)"],
+                                        normalMap: ["Images (*.png *.jpg *.jpeg *.webp)"] })
     readonly property var choices: ({ form: ["cube", "sphere", "cylinder", "cone", "plane"],
                                       body: ["static", "dynamic", "kinematic", "none"] })
 
@@ -35,6 +45,13 @@ Node {
     /// Light the surface gives off itself; with emissivePower above 1 it blooms.
     property color emissive: "#000000"
     property real emissivePower: 0.0
+    /// A picture on its faces, kept relative to the scene file, and the units one copy of it covers.
+    property url image
+    property real imageSize: 1
+    /// A picture of the surface's fine relief (a normal map), repeating as `image` does.
+    property url normalMap
+    /// Pixel art: the picture's pixels drawn as sharp squares, not blended.
+    property bool crisp: false
 
     /// static, dynamic, kinematic or none: what the shape is in play.
     property string body: "static"
@@ -112,14 +129,55 @@ Node {
         pickable: true
         castsShadows: true
         receivesShadows: true
-        materials: PrincipledMaterial {
-            baseColor: shape.colour
-            metalness: shape.metalness
-            roughness: shape.roughness
-            emissiveFactor: Qt.vector3d(shape.emissive.r * shape.emissivePower,
-                                        shape.emissive.g * shape.emissivePower,
-                                        shape.emissive.b * shape.emissivePower)
-        }
+        materials: [shape.pictured ? shape.painted : shape.plain]
+    }
+
+    readonly property vector3d glow: Qt.vector3d(emissive.r * emissivePower, emissive.g * emissivePower,
+                                                 emissive.b * emissivePower)
+    readonly property bool pictured: String(image) !== "" || String(normalMap) !== ""
+
+    readonly property Material plain: PrincipledMaterial {
+        baseColor: shape.colour
+        metalness: shape.metalness
+        roughness: shape.roughness
+        emissiveFactor: shape.glow
+    }
+
+    // Lit as the plain one is, by Qt's own lighting, shadows and sky; only its colour and relief come from the pictures,
+    // projected along the shape's axes in units of its own size.
+    readonly property Material painted: CustomMaterial {
+        shadingMode: CustomMaterial.Shaded
+        vertexShader: "shaders/surface.vert"
+        fragmentShader: "shaders/surface.frag"
+        property color qqTint: shape.colour
+        property real qqMetal: shape.metalness
+        property real qqRough: shape.roughness
+        property vector3d qqGlow: shape.glow
+        // Qt's built-in meshes are a hundred units across; this makes their points the shape's own units.
+        property vector3d qqSize: shape.scale.times(0.01)
+        property real qqImageSize: Math.max(0.05, shape.imageSize)
+        property bool qqHasPicture: String(shape.image) !== ""
+        property bool qqHasRelief: String(shape.normalMap) !== ""
+        property TextureInput qqPicture: TextureInput { texture: shape.picture }
+        property TextureInput qqRelief: TextureInput { texture: shape.relief }
+    }
+
+    // The pictures, made whole against the scene file (a URL is kept as written).
+    readonly property Texture picture: Texture {
+        source: String(shape.image) !== "" ? SceneIO.resolvedUrl(shape, shape.image) : ""
+        tilingModeHorizontal: Texture.Repeat
+        tilingModeVertical: Texture.Repeat
+        generateMipmaps: true
+        mipFilter: Texture.Linear
+        magFilter: shape.crisp ? Texture.Nearest : Texture.Linear
+    }
+    readonly property Texture relief: Texture {
+        source: String(shape.normalMap) !== "" ? SceneIO.resolvedUrl(shape, shape.normalMap) : ""
+        tilingModeHorizontal: Texture.Repeat
+        tilingModeVertical: Texture.Repeat
+        generateMipmaps: true
+        mipFilter: Texture.Linear
+        magFilter: shape.crisp ? Texture.Nearest : Texture.Linear
     }
 
     // The collision shape for each form, in the body's own unscaled space. A plane is a thin slab, so it has a side to

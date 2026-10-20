@@ -27,7 +27,9 @@ ColumnLayout {
         exposure: qsTr("Exposure"), bloom: qsTr("Bloom"), gravity: qsTr("Gravity"), body: qsTr("In play"),
         mass: qsTr("Mass"), bounce: qsTr("Bounce"), friction: qsTr("Friction"), speed: qsTr("Speed"),
         jumpHeight: qsTr("Jump"), rate: qsTr("Rate"), life: qsTr("Life"), size: qsTr("Size"), spread: qsTr("Spread"),
-        volume: qsTr("Volume"), loops: qsTr("Loops"), target: qsTr("Drives")
+        volume: qsTr("Volume"), loops: qsTr("Loops"), target: qsTr("Drives"), image: qsTr("Picture"),
+        imageSize: qsTr("Picture size"), normalMap: qsTr("Surface detail"), crisp: qsTr("Sharp pixels"), sky: qsTr("Sky image"),
+        skyTurn: qsTr("Sky turn"), cone: qsTr("Cone"), softness: qsTr("Softness")
     })
     // A file field is named for what it holds.
     readonly property var fileLabels: ({ Prop: qsTr("Model file"), Sound: qsTr("Sound file"), Behaviour: qsTr("Logic file") })

@@ -6,6 +6,8 @@ Scene {
     skyHorizon: "#3a1630"
     groundHorizon: "#0a0710"
     groundBottom: "#07080c"
+    sky: ""
+    skyTurn: 0
     skyLight: 0.75
     exposure: 1
     bloom: false

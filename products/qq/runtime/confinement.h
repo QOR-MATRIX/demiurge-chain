@@ -7,7 +7,9 @@
 //   imports only the modules a game needs (allowedModules()): Qt Quick, Quick 3D and its physics, particles, helpers and
 //     spatial audio, Controls, and QQ; not storage, settings, devices, dialogs, sockets or workers;
 //   makes no network request at all;
-//   reads scenes only from the package through SceneIO, and writes or copies no file (SceneIO::confineTo);
+//   reads scenes only from the package through SceneIO, and writes or copies no file (SceneIO::confineTo); every file
+//     a scene names (a model, a sound, a picture, a sky, a map) is found through SceneIO::resolvedUrl, which gives
+//     nothing outside the package, since Qt Quick 3D reads pictures and models past the engine's interceptor;
 //   refuses to hand URLs to the operating system (Qt.openUrlExternally) for every scheme in refusedSchemes().
 //
 // It is a second wall, not the boundary: a stranger's game plays only in the browser, whose sandbox is the boundary
