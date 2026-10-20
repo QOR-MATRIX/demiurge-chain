@@ -1,10 +1,12 @@
 #include "sceneio.h"
+#include "tilemap.h"
 
 #include <QColor>
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QImageReader>
 #include <QJSValue>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -360,6 +362,19 @@ QUrl SceneIO::adopt(const QUrl &model, const QUrl &project)
     if (!bundled && source.canonicalFilePath().startsWith(rootPath, Qt::CaseInsensitive))
         return model;
 
+    // A Tiled map names its tilesets and their images by path; they come along, keeping those paths. One outside the
+    // map's folder could not keep its path in the project, so the map is refused, before anything is copied.
+    const bool tiled = source.suffix().compare(QStringLiteral("tmj"), Qt::CaseInsensitive) == 0
+                    || source.suffix().compare(QStringLiteral("json"), Qt::CaseInsensitive) == 0;
+    const QStringList mapNeeds = tiled ? tiledMapNeeds(source.filePath()) : QStringList();
+    for (const QString &needed : mapNeeds) {
+        if (needed.startsWith(QStringLiteral("..")) || QDir::isAbsolutePath(needed)) {
+            fail(QStringLiteral("%1 uses %2, outside its folder: keep a map's tilesets and images beside it, or in "
+                                "folders under it, to add it to a project.").arg(source.fileName(), needed));
+            return {};
+        }
+    }
+
     // Logic is code, kept apart from what it uses.
     const bool logic = source.suffix().compare(QStringLiteral("qml"), Qt::CaseInsensitive) == 0;
     const QDir assets(root.filePath(logic ? QStringLiteral("logic") : QStringLiteral("assets")));
@@ -390,6 +405,12 @@ QUrl SceneIO::adopt(const QUrl &model, const QUrl &project)
                     }
                 }
             }
+        }
+    }
+    for (const QString &needed : std::as_const(mapNeeds)) {
+        if (!copyOnce(source.absoluteDir().filePath(needed), assets.filePath(needed))) {
+            fail(QStringLiteral("%1, which %2 needs, could not be copied.").arg(needed, source.fileName()));
+            return {};
         }
     }
     return QUrl::fromLocalFile(assets.filePath(name));
@@ -432,7 +453,7 @@ QStringList SceneIO::kinds() const
             QStringLiteral("Emitter"), QStringLiteral("Sound"),  QStringLiteral("Behaviour"),
             QStringLiteral("Trigger"), QStringLiteral("ScreenText"), QStringLiteral("ScreenBar"),
             QStringLiteral("ScreenButton"), QStringLiteral("ScreenImage"), QStringLiteral("ScreenPanel"),
-            QStringLiteral("InputAction")};
+            QStringLiteral("InputAction"), QStringLiteral("Sprite"), QStringLiteral("TileMap"), QStringLiteral("Player2D")};
 }
 
 QVariantList SceneIO::entities(QObject *scene) const
@@ -504,6 +525,25 @@ QObject *SceneIO::viewOf(QObject *scene) const
             return view;
     }
     return nullptr;
+}
+
+QSize SceneIO::imageSize(const QUrl &image) const
+{
+    if (image.isEmpty() || outside(image))
+        return {};
+    const QString path = image.isLocalFile() ? image.toLocalFile()
+                       : image.scheme() == QStringLiteral("qrc") ? QStringLiteral(":") + image.path()
+                                                                 : QString();
+    if (path.isEmpty())
+        return {};
+    QImageReader reader(path);
+    const QSize size = reader.size();
+    return size.isValid() ? size : QSize();
+}
+
+QVariantMap SceneIO::readTiledMap(const QUrl &file, const QString &layer) const
+{
+    return qq::readTiledMap(file, layer, [this](const QUrl &url) { return !outside(url); });
 }
 
 QObject *SceneIO::entityOf(QObject *scene, QObject *object) const
@@ -584,11 +624,17 @@ QVariantMap SceneIO::importQqJson(const QUrl &file)
         return refuse(QStringLiteral("This reads QQ scenes of format 1."));
 
     const double h = json.value(QStringLiteral("size")).toObject().value(QStringLiteral("h")).toDouble(540);
-    // A 2D scene stands upright on the ground, facing the eye: 100 pixels to a unit, its centre at x 0, its bottom at y 0.
+    // A 2D scene stays one (P3.10): seen flat, 100 pixels to a unit, its centre at x 0 and its bottom on the ground at
+    // y 0, the view exactly its height (its shapes are not pixel art).
     auto unit = [](double px) { return px / 100.0; };
 
-    QString qml = QStringLiteral("import QQ\nScene {\n    name: %1\n    Sun {}\n    Ground {}\n")
-                      .arg(quoted(json.value(QStringLiteral("name")).toString(QStringLiteral("imported"))));
+    // Its background is the flat view's backdrop, top to bottom.
+    const QString background = quoted(json.value(QStringLiteral("background")).toString(QStringLiteral("#07080c")));
+    QString qml = QStringLiteral("import QQ\nScene {\n    name: %1\n    view: \"2d\"\n    pixelsPerUnit: 100\n"
+                                 "    viewHeight: %2\n    pixelArt: false\n    skyTop: %3\n    skyHorizon: %3\n"
+                                 "    groundHorizon: %3\n    Sun {}\n    Ground {}\n")
+                      .arg(quoted(json.value(QStringLiteral("name")).toString(QStringLiteral("imported"))),
+                           formatNumber(qBound(1.0, unit(h), 200.0)), background);
     QStringList skipped;
     int imported = 0;
     for (const QJsonValue &value : json.value(QStringLiteral("entities")).toArray()) {
@@ -596,7 +642,7 @@ QVariantMap SceneIO::importQqJson(const QUrl &file)
         const QString name = e.value(QStringLiteral("name")).toString(e.value(QStringLiteral("id")).toString());
         for (const char *later : {"motion", "follow"}) {
             if (e.contains(QLatin1String(later)))
-                skipped << QStringLiteral("%1: %2, which has no 3D form yet").arg(name, QLatin1String(later));
+                skipped << QStringLiteral("%1: %2, which QQ does not bring in yet").arg(name, QLatin1String(later));
         }
         const QJsonObject t = e.value(QStringLiteral("transform")).toObject();
         const double x = unit(t.value(QStringLiteral("x")).toDouble());

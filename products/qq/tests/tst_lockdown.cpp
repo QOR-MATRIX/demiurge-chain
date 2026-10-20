@@ -132,10 +132,15 @@ private slots:
         Game g;
         QVERIFY(QDir().mkpath(g.in(QStringLiteral("assets"))));
         QVERIFY(QFile::copy(fixture(QStringLiteral("orb.gltf")), g.in(QStringLiteral("assets/orb.gltf"))));
+        // And a 2D game's files (P3.10): a Tiled map, its tileset and image, and a sheet of sprite frames.
+        for (const char *name : {"level.tmj", "tiles.tsj", "tiles.png", "sheet.png"})
+            QVERIFY(QFile::copy(fixture(QLatin1String(name)), g.in(QStringLiteral("assets/") + QLatin1String(name))));
         QVERIFY(g.play(QByteArrayLiteral(
                            "import QtQuick\nimport QtQuick3D\nimport QtQuick3D.Physics\nimport QQ\n"
                            "Logic {\n    property bool ran: false\n    onFrame: (dt) => ran = true\n}\n"),
-                       QStringLiteral("    Prop { name: \"Orb\"; source: \"../assets/orb.gltf\" }\n")));
+                       QStringLiteral("    Prop { name: \"Orb\"; source: \"../assets/orb.gltf\" }\n"
+                                      "    TileMap { name: \"Level\"; source: \"../assets/level.tmj\" }\n"
+                                      "    Sprite { name: \"Runner\"; source: \"../assets/sheet.png\"; columns: 4; rows: 2 }\n")));
         QObject *logic = g.logic();
         QVERIFY2(logic, qPrintable(g.behaviour()->property("error").toString()));
         QTRY_VERIFY(logic->property("ran").toBool());
@@ -146,6 +151,15 @@ private slots:
         QTRY_VERIFY2(orb->property("status").toInt() == 1,  // Prop.Ready
                      qPrintable(QStringLiteral("status %1: %2; refused: %3").arg(orb->property("status").toInt())
                                     .arg(orb->property("errorString").toString(), g.newRefusals().join(QStringLiteral(" | ")))));
+        for (const QVariant &e : g.io->entities(g.scene)) {
+            QObject *entity = e.value<QObject *>();
+            if (entity->property("name").toString() == QStringLiteral("Level")) {
+                QCOMPARE(entity->property("error").toString(), QString());
+                QCOMPARE(entity->property("count").toInt(), 16);
+            } else if (entity->property("name").toString() == QStringLiteral("Runner")) {
+                QCOMPARE(entity->property("pixels").toSizeF(), QSizeF(32, 16));
+            }
+        }
         QVERIFY2(g.newRefusals().isEmpty(), qPrintable(g.newRefusals().join(QLatin1Char('\n'))));
     }
 
@@ -179,17 +193,44 @@ private slots:
     {
         Game g;
         write(g.out(QStringLiteral("scenes/other.qml")), "import QQ\nScene { name: \"other\" }\n");
+        // A picture and a map outside, and a map inside whose tileset is outside (P3.10). That tileset's image is back
+        // inside the package, so only the tileset itself is outside, and only its own check can refuse it.
+        QImage(4, 4, QImage::Format_RGB32).save(g.out(QStringLiteral("picture.png")));
+        for (const char *name : {"level.tmj", "tiles.png"})
+            QVERIFY(QFile::copy(fixture(QLatin1String(name)), g.out(QLatin1String(name))));
+        QVERIFY(QDir().mkpath(g.in(QStringLiteral("assets"))));
+        QVERIFY(QFile::copy(fixture(QStringLiteral("tiles.png")), g.in(QStringLiteral("assets/tiles.png"))));
+        {
+            QFile f(fixture(QStringLiteral("tiles.tsj")));
+            QVERIFY(f.open(QIODevice::ReadOnly));
+            QByteArray tileset = f.readAll();
+            const QString back = QDir(g.outside.path()).relativeFilePath(g.in(QStringLiteral("assets/tiles.png")));
+            tileset.replace("\"tiles.png\"", "\"" + back.toUtf8() + "\"");
+            write(g.out(QStringLiteral("tiles.tsj")), tileset);
+        }
+        {
+            QFile f(fixture(QStringLiteral("level.tmj")));
+            QVERIFY(f.open(QIODevice::ReadOnly));
+            QByteArray text = f.readAll();
+            const QString climb = QDir(g.in(QStringLiteral("maps"))).relativeFilePath(g.out(QStringLiteral("tiles.tsj")));
+            text.replace("\"tiles.tsj\"", "\"" + climb.toUtf8() + "\"");
+            write(g.in(QStringLiteral("maps/inside.tmj")), text);
+        }
         const QString outside = QUrl::fromLocalFile(g.outside.path()).toString();
         QVERIFY(g.play(QStringLiteral(
             "import QtQml\nimport QQ\nLogic {\n"
             "    property string wrote: \"\"\n    property string saved: \"\"\n    property string copied: \"\"\n"
             "    property bool loaded: true\n    property var listed: ({})\n"
+            "    property real measured: 7\n    property string mapped: \"\"\n    property string climbed: \"\"\n"
             "    Component.onCompleted: {\n"
             "        wrote = SceneIO.writeLogic(\"%1\", \"made\", \"x\")\n"
             "        saved = SceneIO.save(scene, \"%1/scenes/saved.qml\")\n"
             "        copied = SceneIO.adopt(\"%1/scenes/other.qml\", \"%1/copy\")\n"
             "        loaded = SceneIO.load(\"%1/scenes/other.qml\", null) !== null\n"
             "        listed = SceneIO.project(\"%1\")\n"
+            "        measured = SceneIO.imageSize(\"%1/picture.png\").width\n"
+            "        mapped = SceneIO.readTiledMap(\"%1/level.tmj\").error\n"
+            "        climbed = SceneIO.readTiledMap(Qt.resolvedUrl(\"../maps/inside.tmj\")).error\n"
             "    }\n}\n").arg(outside).toUtf8()));
         QObject *logic = g.logic();
         QVERIFY2(logic, qPrintable(g.behaviour()->property("error").toString()));
@@ -198,6 +239,9 @@ private slots:
         QCOMPARE(logic->property("copied").toString(), QString());
         QCOMPARE(logic->property("loaded").toBool(), false);
         QVERIFY(logic->property("listed").toMap().isEmpty());
+        QCOMPARE(logic->property("measured").toDouble(), -1.0);
+        QCOMPARE(logic->property("mapped").toString(), QStringLiteral("A game reads only its own files."));
+        QCOMPARE(logic->property("climbed").toString(), QStringLiteral("A game reads only its own files."));
         QVERIFY(!QFile::exists(g.out(QStringLiteral("logic/made.qml"))));
         QVERIFY(!QFile::exists(g.out(QStringLiteral("scenes/saved.qml"))));
         QVERIFY(!QDir(g.out(QStringLiteral("copy"))).exists());

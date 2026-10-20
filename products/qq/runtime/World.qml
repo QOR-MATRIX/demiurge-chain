@@ -3,6 +3,12 @@
 // The look is QQ's default, chosen to make a scene read well before anyone tunes it: a procedural sky that also lights
 // the scene (image-based lighting, so materials have something to reflect), filmic tonemapping, bloom from anything
 // bright, ambient occlusion in the creases, and multisampled edges. Each can be changed per world.
+//
+// Flat (a 2D scene, DIRECTION P3.10, ADR-105 and ADR-106): the same world through an orthographic camera looking down
+// the depth axis at `target`, over a backdrop of the sky's colours, with no ambient occlusion. Pixel art is scaled by
+// whole numbers of device pixels to an art pixel, as many as fit `viewHeight` units in the height (`pixelsPerUnit`
+// pixels to a unit), and drawn in exactly the colours it was painted in: linear tonemapping, no bloom, no dithering.
+// Art that is not pixel art fills exactly `viewHeight` units, with the 3D look's tonemapping and bloom.
 
 import QtQuick
 import QtQuick3D
@@ -38,10 +44,34 @@ View3D {
     /// The camera the world is seen through, for an overlay that must see it the same way.
     readonly property alias viewCamera: eyeCamera
 
-    camera: eyeCamera
+    /// Seen flat, through an orthographic camera (a 2D scene), or in perspective.
+    property bool flat: false
+    /// Flat: pixels of art to a unit, and how many units tall the view is at the least.
+    property real pixelsPerUnit: 16
+    property real viewHeight: 12
+    /// Flat: the art is pixel art (scaled by whole numbers, in its painted colours), or not.
+    property bool pixelArt: true
+    /// Flat: shows exactly `viewHeight` units at any scale, pixel art or not (the Studio while editing, zooming freely).
+    property bool freeZoom: false
+    /// Whole-number scaling, and art in exactly its painted colours.
+    readonly property bool wholePixels: flat && pixelArt && !freeZoom
+    readonly property bool asPainted: flat && pixelArt
+
+    /// The device pixels to a logical one, and the whole number of device pixels each art pixel is drawn with.
+    readonly property real dpr: Screen.devicePixelRatio > 0 ? Screen.devicePixelRatio : 1
+    readonly property int zoom: Math.max(1, Math.floor(height * dpr / (viewHeight * pixelsPerUnit)))
+    /// Logical pixels to a unit, flat (never 0, which a camera refuses, even before the view has a size).
+    readonly property real magnification: Math.max(0.001, wholePixels ? pixelsPerUnit * zoom / dpr
+                                                                      : height / Math.max(0.01, viewHeight))
+
+    /// The camera in use.
+    readonly property Camera activeCamera: flat ? flatCamera : eyeCamera
+
+    camera: activeCamera
 
     environment: ExtendedSceneEnvironment {
-        backgroundMode: SceneEnvironment.SkyBox
+        // Flat, the camera's rays are parallel and a sky box would be one colour: a 2D world draws its backdrop below.
+        backgroundMode: world.flat ? SceneEnvironment.Transparent : SceneEnvironment.SkyBox
         lightProbe: Texture {
             textureData: ProceduralSkyTextureData {
                 skyTopColor: world.skyTop
@@ -55,24 +85,27 @@ View3D {
         probeExposure: world.skyLight
         skyboxBlurAmount: 0.12
 
-        tonemapMode: SceneEnvironment.TonemapModeFilmic
+        // Pixel art is shown in the colours it was painted in.
+        tonemapMode: world.asPainted ? SceneEnvironment.TonemapModeLinear : SceneEnvironment.TonemapModeFilmic
         exposure: world.exposure
 
-        glowEnabled: world.bloom
+        // Nor with bloom, which would brighten every colour, not only the brightest.
+        glowEnabled: world.bloom && !world.asPainted
         glowStrength: 1.0
         glowIntensity: 0.6
         glowBloom: 0.35
         glowHDRMinimumValue: 1.1
         glowBlendMode: ExtendedSceneEnvironment.GlowBlendMode.Additive
 
-        aoEnabled: true
+        aoEnabled: !world.flat
         aoStrength: 45
         aoDistance: 6
 
         antialiasingMode: SceneEnvironment.MSAA
         antialiasingQuality: SceneEnvironment.High
         specularAAEnabled: true
-        ditheringEnabled: true
+        // Nor with the noise added against banding.
+        ditheringEnabled: !world.asPainted
     }
 
     PerspectiveCamera {
@@ -88,6 +121,37 @@ View3D {
                 AudioEngine { distanceScale: 100 }
                 AudioListener {}
             }
+        }
+    }
+
+    // Flat: centred on `target`, moved to the nearest whole device pixel so art pixels never straddle two. A view an odd
+    // number of device pixels across has its middle inside a pixel, so its camera sits half a pixel over.
+    OrthographicCamera {
+        id: flatCamera
+        horizontalMagnification: world.magnification
+        verticalMagnification: world.magnification
+        clipNear: 1
+        clipFar: 4000
+        position: Qt.vector3d(world.snapped(world.target.x, Math.round(world.width * world.dpr)),
+                              world.snapped(world.target.y, Math.round(world.height * world.dpr)), 2000)
+    }
+
+    function snapped(v, devicePixels) {
+        if (!wholePixels)
+            return v
+        const step = 1 / (pixelsPerUnit * zoom)
+        return Math.round(v / step) * step + (devicePixels % 2 === 1 ? step / 2 : 0)
+    }
+
+    // A flat world's backdrop: the sky's colours top to bottom, beneath the scene.
+    Rectangle {
+        anchors.fill: parent
+        z: -1
+        visible: world.flat
+        gradient: Gradient {
+            GradientStop { position: 0; color: world.skyTop }
+            GradientStop { position: 0.62; color: world.skyHorizon }
+            GradientStop { position: 1; color: world.groundHorizon }
         }
     }
 

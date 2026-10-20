@@ -3294,7 +3294,53 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        - Five planted faults were each caught.
      - **Next:** P3.10, 2D.
 
+103. **19 October 2026, late night: #59 merged by the owner; P3.10, 2D, built on `session/qq-2d`, with ADR-106, not yet
+     committed.**
+     - **Merged:** #59 (P3.9) at `b483e7a`. P3.9 is ticked in DIRECTION.
+     - **P3.10, built** (DIRECTION P3.10 has the whole list):
+       - `view: "2d"`, the same world through an orthographic camera, with a backdrop of the sky's colours.
+       - `Sprite`, `TileMap` (Tiled's JSON, one mesh per layer, colliders merged) and `Player2D`. Bodies stay on the
+         plane.
+       - The Studio edits flat, and the preview's scenes import as 2D.
+     - **ADR-106** (accepted under the owner's delegation, as ADR-105 was) amends ADR-105 decisions 1 and 5:
+       - whole-number scaling and painted colours are for pixel art, which a scene says it has (`pixelArt`);
+       - a tile layer is one mesh, not instanced.
+
+       The qor-engine gate counts it (change log, a tightening).
+     - **Ember Climb** (`products/qq/samples/ember-climb/`): a pixel-art platformer made only of kinds and logic, its art
+       and Tiled level written by `make_art.py`.
+     - **Evidence, on the owner's PC:**
+       - All eight suites pass in one run of `build.ps1`: 109 cases.
+       - Comments were then corrected and an unused property removed, and the run was repeated. Seven suites passed;
+         `tst_play`'s tile-level case failed at its first line, its window never reported shown, with nothing logged.
+         This is the background-focus flake known from QQ Media. `tst_play` then passed whole on its own.
+       - `tst_play` has 32 cases, 6 new.
+       - Seven planted faults were each caught.
+       - Frames were looked at: Ember Climb's title in the real Player, with the eye stopped at the level's edges, and
+         its play.
+     - **Found on the way, fixed:**
+       - bloom brightened every painted colour (`#28c8c8` drew as `#65ffff`);
+       - after the Studio's overlay changed camera, the first change to its handles was not drawn until something asked
+         for a frame later;
+       - Ember Climb's Again gathered the last ember where the hero stood.
+     - **Next:** commit and push at the owner's word, then P3.11, fixed steps and replay.
+
 ## 5. Traps, so nobody re-learns them
+
+**QQ's 2D (P3.10)**
+- **Bloom brightens every colour, not only the brightest.** `ExtendedSceneEnvironment`'s glow drew a painted `#28c8c8`
+  as `#65ffff`, though nothing in the frame was above its HDR threshold. Pixel art is drawn with no bloom, tonemapping or
+  dithering (`World.asPainted`).
+- **PhysX keeps a character controller 0.1 unit from what it touches** (its contact offset, which Qt Quick 3D Physics
+  leaves at PhysX's default). `Player2D` builds its capsule that much smaller all round, or its feet float 0.1 unit (1.6
+  art pixels at 16 to a unit) above the floor. Qt sets the step offset to a quarter of the capsule's straight part
+  (`qphysxcharactercontroller.cpp`).
+- **A second View3D's first change after it switches camera may not be drawn.** The Studio's overlay went
+  orthographic with a 2D scene, and the handles shown next were neither drawn nor picked until something asked for a
+  frame later. Its handles now ask for one, just after they change (`Qt.callLater`); asking synchronously, inside the
+  binding update, did not help.
+- **`QVariantList{QVariantList{…}}` with one element is a copy, not a list of one list** (C++ list-initialisation of a
+  class from one element of its own type). Wrap it: `QVariantList{QVariant(QVariantList{…})}`.
 
 **Frame counts in CI's browser checks**
 - CI's Chrome draws WebGL in software. A heavy backdrop gets 16 to 47 frames a second there, and below about 41 the

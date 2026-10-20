@@ -175,6 +175,10 @@ Node {
             physicsMaterial: surface
             massMode: DynamicRigidBody.Mass
             mass: shape.mass
+            // In a 2D scene (P3.10) it moves on the plane and turns only about the depth axis.
+            linearAxisLock: shape.parent && shape.parent.view === "2d" ? DynamicRigidBody.LockZ : DynamicRigidBody.LockNone
+            angularAxisLock: shape.parent && shape.parent.view === "2d" ? DynamicRigidBody.LockX | DynamicRigidBody.LockY
+                                                                        : DynamicRigidBody.LockNone
             sendContactReports: true
             receiveContactReports: true
             sendTriggerReports: true

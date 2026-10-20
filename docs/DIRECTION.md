@@ -1164,10 +1164,10 @@ P3.2 and on nothing on chain, and run in this order:
      screens among them. All eight suites pass in one run of `build.ps1`: 88 cases. Five planted faults were each
      caught: a button that answers on any screen, physics that ignores a pause, logic that ignores a pause, reduced
      motion ignored, and a part drawn whatever its screen.
-9. [ ] **Input actions.** Named actions with default bindings for keyboard, mouse, gamepad and touch, rebound by the
+9. [x] **Input actions.** Named actions with default bindings for keyboard, mouse, gamepad and touch, rebound by the
    player; the pointer picking what it is over. Move, look, jump and run stay as built-in actions.
 
-   **Built 19 October 2026** (branch `session/qq-input`, not yet merged):
+   **Done 19 October 2026, merged (#59, at `b483e7a`):**
    - **Declaring actions.** A scene names an action with an **InputAction** entity: keys and mouse buttons ("E,
      Mouse Left") and gamepad buttons ("X, RT"). Every pad button is read, the triggers among them. A
      `ScreenButton` with an `action` holds it under a finger, which is how touch controls work.
@@ -1188,6 +1188,59 @@ P3.2 and on nothing on chain, and run in this order:
 10. [ ] **2D.** `view: "2d"` with whole-number pixel scaling; **Sprite** (images and sheets, frame animation, lit or
     unlit); **TileMap** (instanced, imported from Tiled's JSON); bodies locked to the plane; a kinematic 2D player for
     platform and top-down games. The launcher preview's 2D scenes import as 2D QQ scenes.
+
+    **Built 19 October 2026** (branch `session/qq-2d`, not yet merged), with
+    [ADR-106](decisions/ADR-106-2d-scenes-say-whether-their-art-is-pixel-art.md) amending ADR-105 decisions 1 and 5:
+    - **The view.** A 2D scene is the same world through an orthographic camera on the plane z = 0, over a backdrop of
+      its sky's colours.
+      - **Pixel art** (`pixelArt`, on by default) is scaled by whole numbers of device pixels to an art pixel, as many
+        as fit `viewHeight` units, with the camera on whole device pixels, and shown in exactly its painted colours: no
+        bloom, tonemapping or dithering.
+      - **Drawn art** fills `viewHeight` exactly and keeps the 3D look.
+    - **Sprite:** an image or a frame of a sheet, played from `first` for `count` frames at `fps` and held by a pause.
+      Crisp or smooth, lit or not, flipped, and a static, dynamic or kinematic body that logic pushes as a Shape's.
+    - **TileMap:** a level drawn in Tiled and saved as JSON, its tileset external (`.tsj` or `.tsx`) or inside it, its
+      tiles as CSV or zlib-compressed Base64, flips kept.
+      - One layer each, drawn as one mesh.
+      - A solid map collides through the fewest rectangles that cover its tiles.
+      - The map marked `bounds` is where a following eye stops.
+      - A map copied into a project brings its tileset and image, and one whose tileset is outside its folder is
+        refused with the reason.
+    - **Bodies on the plane:** a 2D scene's dynamic shapes and sprites move only on it and turn only about its depth
+      axis.
+    - **Player2D:** a platformer's hero or a top-down one, under the same input, carrying a Sprite as its look and
+      saying what it is doing (`activity`), so logic plays the frames. `respawn()` puts it back. Its capsule is built
+      PhysX's 0.1 contact offset smaller all round, so it stands on the floor, not a pixel and a half above it.
+    - **Importing:** the preview's scenes import as 2D scenes of drawn art, framed as they were made, their background
+      as the backdrop.
+    - **The Studio** edits a 2D scene flat: a drag pans, the wheel zooms, and the handles move things on the plane and
+      turn them about its depth axis. Its Add menu has a 2D submenu, and the agent's instructions name the kinds.
+    - **Ember Climb** (`samples/ember-climb/`) is a pixel-art platformer made only of kinds and logic.
+      - Its art and Tiled level are written by a script, standard library only.
+      - The hero runs and jumps through eight embers spawned by logic. A pit puts the hero back at the start, and the
+        last ember lights the forge.
+      - It has title, HUD, pause and win screens.
+    - **Evidence, on the owner's PC:**
+      - `tst_play` passes 32 cases, 6 new: a crisp sprite drawn pixel for pixel at a whole zoom (square art pixels,
+        sharp edges, painted colours, flipped); a sheet playing its frames and holding when paused; a Tiled level drawn
+        tile for tile and stood on, run to its wall and jumped from; a top-down player carrying its look; a dynamic
+        body kept on the plane; and Ember Climb played to its end and again.
+      - `tst_scene` gains five cases (ten checks), `tst_studio` and `tst_player` one each, and `tst_lockdown` checks
+        that a game measures no picture and reads no map or tileset outside its package.
+      - All eight suites pass in one run of `build.ps1`: 109 cases.
+      - Seven planted faults were each caught:
+        - a sheet read upside down;
+        - pixel art scaled to fit;
+        - Tiled's mirror flag ignored;
+        - PhysX's skin not allowed for;
+        - a dynamic body free to drift in depth;
+        - a tileset read from outside the package;
+        - the eye shown past the level's edges.
+    - **Found and fixed on the way:**
+      - bloom brightened every painted colour;
+      - the Studio's handles were not drawn after the view went flat;
+      - Again in Ember Climb gathered the last ember where the hero stood.
+    - **Not yet read from Tiled:** object layers, tile animations, one-way platforms and slopes.
 11. [ ] **Fixed steps and replay.** Logic at 60 steps a second whatever the frame rate; seeded random numbers; a run's
     inputs recorded and replayed with no window to the same outcome. A rewarded outcome never depends on PhysX
     (ADR-102 decision 5).

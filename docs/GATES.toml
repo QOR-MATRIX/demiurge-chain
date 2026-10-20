@@ -907,6 +907,12 @@ type = "tightening"
 change = "Gate qor-engine: criterion qor-engine.roadmap gains P3.7 to P3.16 (ADR-105: gameplay in logic, the game's interface, input actions, 2D, fixed steps and replay, animation, sound, materials, the Studio's basics and saving), and qor-engine.decisions gains ADR-105. The gate's `means` says the engine makes real games in 3D and in 2D from one runtime. P3.7 was ticked the same day, merged in #55."
 reason = "A tightening: the gate needs ten more roadmap items and one more decision before it is met. ADR-105 defines what the engine must do to make real games, the owner's direction of 2026-10-19, so the engine's gate counts it."
 
+[[change_log]]
+date = "2026-10-19"
+type = "tightening"
+change = "Gate qor-engine: criterion qor-engine.decisions gains ADR-106 (a 2D scene says whether its art is pixel art; a tile layer is one mesh), which amends ADR-105 decisions 1 and 5 as P3.10 was built. No other criterion, kind, met condition or counting rule changes."
+reason = "A tightening: the gate needs one more accepted decision. ADR-106 is accepted, so the criterion stays met. The engine's gate counts the decisions its 2D rests on, and ADR-105 alone no longer says how 2D is scaled and drawn."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1775,7 +1781,7 @@ publishing to ARQADE."""
   id = "qor-engine.decisions"
   kind = "adr"
   # ADR-082 is the architecture decision accepted under ADR-081's delegation.
-  adrs = ["ADR-046", "ADR-048", "ADR-049", "ADR-050", "ADR-081", "ADR-082", "ADR-083", "ADR-105"]
+  adrs = ["ADR-046", "ADR-048", "ADR-049", "ADR-050", "ADR-081", "ADR-082", "ADR-083", "ADR-105", "ADR-106"]
 
   [[gates.criteria]]
   id = "qor-engine.roadmap"

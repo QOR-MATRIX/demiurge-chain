@@ -2,7 +2,7 @@
 
 An engine for virtual worlds and experiences, built on **Qt 6** under the owner's commercial licence
 ([ADR-083](../../docs/decisions/ADR-083-qq-on-qt.md)). The blueprint is [`docs/blueprints/qq.md`](../../docs/blueprints/qq.md);
-the roadmap items are DIRECTION P3.1 to P3.6.
+the roadmap items are DIRECTION P3.1 to P3.16.
 
 **Status, 10 October 2026: P3.1 and P3.2 done.** QQ Studio edits a 3D world, keeps it in a Qontrol project, and plays
 it; the QQ Player plays a scene on its own, natively and in a browser.
@@ -18,16 +18,32 @@ it; the QQ Player plays a scene on its own, natively and in a browser.
   (`Sound`: placed in the world, louder nearer, panned, silent beyond its reach, heard through the camera; in a browser
   not panned, below); and **logic** (`Behaviour` names a `logic/<name>.qml` file whose root is a `Logic`; it runs only
   in play and is rebuilt each time the file is saved, without stopping the world).
+- **2D (P3.10, built 19 October 2026; ADR-105, ADR-106):** a scene with `view: "2d"` is the same world seen flat,
+  through an orthographic camera on the plane z = 0, over a backdrop of its sky's colours. **Pixel art** (`pixelArt`, on
+  by default) is scaled by whole numbers of screen pixels to an art pixel, as many as fit `viewHeight` units, with the
+  camera on whole device pixels, and shown in exactly the colours it was painted (no bloom, tonemapping or dithering);
+  drawn art fills its view exactly and keeps the 3D look. **Sprite**: an image or a frame of a sheet, played from
+  `first` for `count` frames at `fps`, crisp or smooth, lit or not, flipped, and a body if it needs one. **TileMap**: a
+  level drawn in [Tiled](https://www.mapeditor.org) and saved as JSON (`.tmj`, its tileset beside it or inside it, tiles
+  as CSV or zlib-compressed Base64, flips kept), one layer each, drawn as one mesh; a solid one collides through the
+  fewest rectangles that cover its tiles, and the one marked `bounds` is where a following eye stops. **Player2D**: a
+  platformer's hero or a top-down one, under the same input as everything else, carrying a Sprite as its look and
+  saying what it is doing (`activity`) so logic plays the right frames; `respawn()` puts it back. Shapes and sprites
+  with bodies stay on the plane and turn only about its depth axis.
 - **The Studio:** the scene's entities in a list, the selected one's fields in an inspector (built from what each type
   declares), click to select in the viewport, handles to move along an axis, turn about the vertical or scale evenly,
-  orbit and zoom, add (cube, sphere, cylinder, cone, lamp, model, player, emitter, sound, behaviour) and delete.
+  orbit and zoom, add (cube, sphere, cylinder, cone, lamp, model, player, emitter, sound, behaviour, the screen kinds,
+  actions, and in 2D a sprite, a tile map and a 2D player) and delete. A 2D scene is edited flat: a drag pans, the wheel
+  zooms, and the handles move things on the plane and turn them about its depth axis.
   **Play** (F5) plays a copy built from the scene's canonical text; **Stop** (Esc) throws the copy away, so the scene,
   its unsaved state and the selection are exactly as they were. **New behaviour** writes a starter logic file into the
   project, never over one that is there.
 - **The files:** a scene is `scenes/<name>.qml` in the project, in one canonical layout: read and written back it is
   the same bytes, and one changed value is one changed line in Projects. Models and sounds are copied into `assets/`
-  and logic into `logic/`, so the project is whole on its own. 2D scenes from the launcher's preview (`.qq.json`) are
-  imported, emitters included; motion and the pointer follow, which in 3D are logic, are named as not carried over.
+  and logic into `logic/`, so the project is whole on its own; a Tiled map brings its tileset and image, and one whose
+  tileset is outside its folder is refused with the reason. 2D scenes from the launcher's preview (`.qq.json`) import
+  as 2D scenes of drawn art (100 pixels to a unit, framed as they were made, their background as the backdrop),
+  emitters included; motion and the pointer follow are named as not brought in.
 - **The QQ Player:** plays one scene as a game, full window, natively (`qq-player [scene.qml]`, the bundled playground
   without one) and as a WebAssembly build in a browser, and measures how long its first frame takes.
 - **The launcher:** **Open in QQ Studio** on the launcher's QQ surface starts the Studio on the project open there.
@@ -56,13 +72,13 @@ description with no human edit, made by whoever runs it with their own key.
 
 | Path | What it is |
 | --- | --- |
-| `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, `Trigger` (a volume that hears what enters and leaves it, P3.7), the screen kinds `ScreenText`, `ScreenBar`, `ScreenButton`, `ScreenImage` and `ScreenPanel` (the game's interface, drawn over the world on the World's overlay, each in a named screen; built on `ScreenPart`, P3.8), `InputAction` (an action a player can take, with its keys, mouse buttons and pad buttons, P3.9), and `Logic` (what a logic file is, with the gameplay API of P3.7: `onStarted`, `onContact`, `onEntered`, `onExited`, `ray`, `spawn`, `remove`, `after`, `every`, `cancel`; and for the interface, P3.8, `onClicked`, `showScreen`, `hideScreen`, `onlyScreen`, `pause` and `resume`; and for actions, P3.9, `onPressed`, `onReleased`, `held`, `rebind`, `bindingOf` and `pointing`). `Look` is the interface's style: the faces Cinzel and Barlow Semi Condensed (carried in `runtime/fonts/`, under the SIL Open Font License), the launcher's inks and ARQADE's gilt, and the system's reduced-motion setting. In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `SoftDot` (the particles' sprite, made in memory) `gpu` (draw with the faster of two GPUs), `Confinement` (what a game may reach in the Player, ADR-087) and `WebVoice` (a sound in a browser, so a game never needs Qt Multimedia's QML) |
+| `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, `Trigger` (a volume that hears what enters and leaves it, P3.7), the screen kinds `ScreenText`, `ScreenBar`, `ScreenButton`, `ScreenImage` and `ScreenPanel` (the game's interface, drawn over the world on the World's overlay, each in a named screen; built on `ScreenPart`, P3.8), `InputAction` (an action a player can take, with its keys, mouse buttons and pad buttons, P3.9), the 2D kinds `Sprite`, `TileMap` and `Player2D` (P3.10), and `Logic` (what a logic file is, with the gameplay API of P3.7: `onStarted`, `onContact`, `onEntered`, `onExited`, `ray`, `spawn`, `remove`, `after`, `every`, `cancel`; and for the interface, P3.8, `onClicked`, `showScreen`, `hideScreen`, `onlyScreen`, `pause` and `resume`; and for actions, P3.9, `onPressed`, `onReleased`, `held`, `rebind`, `bindingOf` and `pointing`). `Look` is the interface's style: the faces Cinzel and Barlow Semi Condensed (carried in `runtime/fonts/`, under the SIL Open Font License), the launcher's inks and ARQADE's gilt, and the system's reduced-motion setting. In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `tilemap` (Tiled's maps read, their solid tiles merged into colliders, and `TileGeometry`, a layer as one mesh), `SoftDot` (the particles' sprite, made in memory) `gpu` (draw with the faster of two GPUs), `Confinement` (what a game may reach in the Player, ADR-087) and `WebVoice` (a sound in a browser, so a game never needs Qt Multimedia's QML) |
 | `studio/` | QQ Studio. `qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>] [--launcher-channel <name>]`; `LauncherLink`, its side of the QOR host protocol (publishing through the launcher that started it, ADR-088) |
 | `agent/` | The agent's side of the Studio (P3.3): `McpServer` (MCP's JSON-RPC, served on a local pipe only this user can open), `StudioTools` (the fourteen tools, working the Studio's own window functions, and `StudioLog`, what the Studio has said), `DesignLoop` (a description designed, built, played and judged by Claude through those tools; ADR-085), `keychain` (the provider's key in Windows Credential Manager) and `qq-mcp` (the program an MCP client starts, relaying its standard input and output to the running Studio) |
 | `player/` | The QQ Player. `qq-player [scene.qml] [--capture <frame.png>] [--measure <result.json>]`; its playground (a small game with everything P3.2 plays) bundled inside it; `measure-web.mjs`, which plays the browser build in a headless browser and measures it |
-| `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks, drags and keys), `tst_play` (physics, the player, input, particles, sound, logic and gameplay in logic, in real frames, and the Orb Run sample played), `tst_player` (the real Player executable), `tst_lockdown` (what a game's logic may reach in the Player, ADR-087), `tst_publish` (publishing through a stand-in launcher, P3.4), `tst_agent` (the tools over MCP, in the real Studio and through the real `qq-mcp`) |
-| `tests/fixtures/` | `orb.gltf` (written by `make_orb.py`), `chime.wav` (written by `make_chime.py`), `logic/spin.qml`, `scenes/sample.qml` (every entity type, canonical), `first-light.qq.json` (the 2D preview's starter scene) |
-| `samples/` | Games made only from kinds and logic files, each proving a step of P3 and played by the suites (ADR-105): `orb-run/` for P3.7 and P3.8 ([`samples/README.md`](samples/README.md)) |
+| `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks, drags and keys), `tst_play` (physics, the player, input, particles, sound, logic and gameplay in logic, 2D pixel for pixel, in real frames, and the Orb Run and Ember Climb samples played), `tst_player` (the real Player executable), `tst_lockdown` (what a game's logic may reach in the Player, ADR-087), `tst_publish` (publishing through a stand-in launcher, P3.4), `tst_agent` (the tools over MCP, in the real Studio and through the real `qq-mcp`) |
+| `tests/fixtures/` | `orb.gltf` (written by `make_orb.py`), `chime.wav` (written by `make_chime.py`), `logic/spin.qml`, `scenes/sample.qml` (every entity type, canonical), `first-light.qq.json` (the 2D preview's starter scene), and the 2D fixtures `make_2d.py` writes: `tiles.png`, `tiles.tsj`, `level.tmj` (a Tiled map with a mirrored tile and two layers) and `sheet.png` (eight frames) |
+| `samples/` | Games made only from kinds and logic files, each proving a step of P3 and played by the suites (ADR-105): `orb-run/` for P3.7 to P3.9 and `ember-climb/`, a pixel-art platformer, for P3.10 ([`samples/README.md`](samples/README.md)) |
 | `build.ps1` | Builds with the owner's Qt, MSVC 2022 and Ninja and runs every test; `-Deploy` makes a self-contained Studio; `-Web` builds the Player for the browser and measures it |
 
 ## Build, test, deploy
@@ -122,7 +138,11 @@ drew about 12 frames a second.
   files and never overwrites; sounds are adopted into `assets/` and logic into `logic/`; playing is a copy, and the
   scene is not touched; what is not a scene is refused with a reason; entities are added and removed and the file
   follows; a project lists its scenes; the bundled sample can be adopted; a 2D scene imports as a canonical one; a
-  file of another format is not imported.
+  file of another format is not imported. **Since P3.10, 19 cases (24 checks):** a Tiled map is read with its external
+  tileset, its mirrored tile and its solids merged, and another layer by name; a map of zlib-compressed Base64 with its
+  tileset inside reads the same; six maps that cannot be read are refused, each with its reason; solid tiles become the
+  fewest rectangles; and a map adopted into a project brings its tileset and image, while one whose tileset is outside
+  its folder is refused with nothing copied.
 - **`tst_studio`** (10 cases, the real window): a new Studio opens a lit scene in its project; a click on the model
   selects it and a click on the sky selects nothing; dragging the X handle moves along X only; dragging the centre
   handle scales evenly and leaves the position alone; saving writes a canonical scene and carries the model into the
@@ -131,6 +151,8 @@ drew about 12 frames a second.
   button, a crate falls and rests while the scene's crate stays put, W walks the player and the eye follows, a drag
   turns the player and tilts the eye, Esc leaves the scene, its unsaved state and the selection exactly as they were,
   and Play starts again from the same place; a new behaviour is written into the project and never over a file.
+  **Since P3.10, 11 cases:** a 2D scene opens framed as it plays, its handles see what the world sees, its X handle moves
+  along X on the plane, a drag on nothing pans with the pointer, and the wheel shows fewer units, larger.
 - **`tst_play`** (11 cases, real frames): a dynamic shape falls and comes to rest on the ground; a static one holds
   what lands on it and one with no body lets it through; a cylinder and a cone collide as their shapes; a fall takes
   the time the scene's gravity says; the player walks, runs, turns and jumps at the keyboard, with the camera behind
@@ -172,13 +194,28 @@ drew about 12 frames a second.
 
   Five planted faults were each caught: a press never announced, the naming press also firing, a finger holding
   nothing, picking ignoring the pointer, and every event read twice.
+  **Since 19 October 2026, late night, 32 cases (P3.10):**
+  - a crisp sprite is drawn pixel for pixel at a whole zoom: every art pixel a square of whole device pixels, sharp
+    edges, the painted colours, the sheet's second row the right way up, and flipped;
+  - a sheet plays its frames, from the first of them, and holds them while the world is paused;
+  - a Tiled level is drawn tile for tile with its mirrored tile and only its first layer, and the hero stands on its
+    floor to within half an art pixel, runs to its wall, jumps a unit and a half and turns;
+  - a top-down player moves across the plane with no gravity and carries its look;
+  - a dynamic body in a 2D scene, pushed into the depth, stays on the plane and turns only about its depth axis;
+  - Ember Climb is canonical and plays: its title, an ember gathered, a pit and back to the start, pause, the forge lit
+    and Again; and its eye stops at the level's edges.
+
+  Seven planted faults were each caught: a sheet read upside down, pixel art scaled to fit, Tiled's mirror flag
+  ignored, PhysX's skin not allowed for, a body free to drift in depth, a tileset read from outside the package (by
+  `tst_lockdown`), and the eye shown past the level's edges.
 - **`tst_lockdown`** (7 cases, 12 checks with the imports' five; ADR-087): a game that keeps to its own files (logic
   importing Quick 3D Physics, a model from its `assets/`) plays with nothing refused; imports of `QtQuick.LocalStorage`,
   `QtCore`, `QtQuick.Dialogs` and `Qt.labs.settings` refused with the module named (and `QtMultimedia` an expected
   failure, the known limit); `SceneIO`'s writing, saving, copying, loading and listing outside the package refused and
   nothing on disk; a `Loader` and an `Image` aimed outside the package, by whole URL and by a relative path climbing
   out, both errors; a network request to a listener on this computer never arriving; `Qt.openUrlExternally` refused for
-  a file and a web address, with nothing handed to the system. **Proven to fail** by four planted faults, each caught by
+  a file and a web address, with nothing handed to the system; and (P3.10) a picture measured, a map read, or a
+  map's tileset read from outside the package, each refused, while a game's own map and sheet play. **Proven to fail** by four planted faults, each caught by
   its own check: no URL interceptor; no network policy; `SceneIO` left unconfined; every module allowed.
 - **`tst_publish`** (9 cases; P3.4, ADR-088), against a stand-in launcher speaking the QOR host protocol: the hello
   carries the token and the Studio's id; Publish asks for the commit and then the publish, with the project, and
@@ -191,9 +228,10 @@ drew about 12 frames a second.
   launcher nothing. **Proven to fail** by four planted faults: publishing without the commit (three cases);
   publishing without saving first; Publish greyed out on a folder that is not versioned (the owner's first run, 10
   October 2026); the whole notice not shown on hover (15 October 2026). The launcher's side, the channel's proofs and a run against a development node, is in the launcher's tests.
-- **`tst_player`** (4 cases, the real executable): the playground plays and its start is measured; its first frame is
+- **`tst_player`** (5 cases, the real executable): the playground plays and its start is measured; its first frame is
   the game (hundreds of colours, not an empty window); a scene file from disk plays too, with every model loaded in it
-  and in the playground; a scene that is not there is said, not hidden. **Proven to fail** (10 October 2026) by putting
+  and in the playground; a 2D game (Ember Climb) plays, measured and captured; a scene that is not there is said, not
+  hidden. **Proven to fail** (10 October 2026) by putting
   back `Prop`'s old loader line: both playing cases fail with `Orb: IO Error: File not found`.
 - **Proven to fail** (10 October 2026) by five planted faults, each caught by its own check: no gamepad dead zone (the
   gamepad case); a logic file not watched (the rebuild); Play on the scene itself, not a copy (`tst_scene` and
@@ -245,6 +283,13 @@ single-threaded kit has no Qt Multimedia, and in the threaded one Qt's spatial a
 the web has no audio, so in a browser `Sound` is a plain sound effect.
 
 ## Known limits
+
+- **2D, as built in P3.10:** a Tiled map is read one tile layer per TileMap, from its first tileset, which must be one
+  image (a collection of images is refused, with the reason); object layers, tile animations, one-way platforms and
+  slopes are not read yet. A Player2D is PhysX's character controller, built 0.1 unit smaller all round because PhysX
+  keeps it that far from what it touches (Qt Quick 3D Physics leaves PhysX's contact offset at its default). It steps
+  up on its own only what is lower than a quarter of its capsule's straight part, which Qt sets: a sixteenth of a unit
+  for the default figure, so a platformer's hero jumps onto anything higher.
 
 - **In a browser, sounds are not panned.** Their volume follows the distance from the scene's player (full within a
   metre, halving with each doubling, none beyond `reach`); a scene with no player hears them at their own volume.

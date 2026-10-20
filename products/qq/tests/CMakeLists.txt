@@ -53,6 +53,7 @@ qt_add_executable(tst_player tst_player.cpp)
 # The real player, started as the launcher starts it.
 target_compile_definitions(tst_player PRIVATE
     QQ_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+    QQ_SAMPLES="${CMAKE_CURRENT_SOURCE_DIR}/../samples"
     QQ_PLAYER="$<TARGET_FILE:qq-player>")
 
 target_link_libraries(tst_player PRIVATE Qt6::Test Qt6::Gui)

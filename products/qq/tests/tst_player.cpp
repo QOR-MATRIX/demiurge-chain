@@ -103,6 +103,31 @@ private slots:
         QVERIFY(m.value(QStringLiteral("firstFrameMs")).toDouble() > 0);
     }
 
+    void aTwoDimensionalGamePlaysToo()
+    {
+        // Ember Climb (P3.10): a level from Tiled, sprites and a 2D player, flat and pixel for pixel.
+        const QString sample = QDir(QStringLiteral(QQ_SAMPLES)).filePath(QStringLiteral("ember-climb/scenes/ember-climb.qml"));
+        QTemporaryDir out;
+        const QString result = QDir(out.path()).filePath(QStringLiteral("measure.json"));
+        QCOMPARE(runPlayer({sample, QStringLiteral("--measure"), result}), 0);
+        const QJsonObject m = readJson(result);
+        QCOMPARE(m.value(QStringLiteral("problem")).toString(), QString());
+        QVERIFY(m.value(QStringLiteral("firstFrameMs")).toDouble() > 0);
+        QVERIFY2(m.value(QStringLiteral("fps")).toDouble() >= 20, qPrintable(QString::number(m.value(QStringLiteral("fps")).toDouble())));
+
+        const QString frame = QDir(out.path()).filePath(QStringLiteral("first.png"));
+        QCOMPARE(runPlayer({sample, QStringLiteral("--capture"), frame}), 0);
+        const QImage image(frame);
+        QVERIFY(!image.isNull());
+        image.save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("player-ember-climb.png")));
+        QSet<QRgb> colours;
+        for (int y = 0; y < image.height(); y += 2) {
+            for (int x = 0; x < image.width(); x += 2)
+                colours.insert(image.pixel(x, y));
+        }
+        QVERIFY2(colours.size() > 40, qPrintable(QString::number(colours.size())));
+    }
+
     void aSceneThatIsNotThereIsSaidNotHidden()
     {
         QTemporaryDir out;

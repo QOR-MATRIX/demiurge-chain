@@ -11,6 +11,10 @@ Scene {
     bloom: true
     gravity: 9.81
     screens: "title"
+    view: "3d"
+    pixelsPerUnit: 16
+    viewHeight: 12
+    pixelArt: true
 
     Sun {
         name: "Sun"

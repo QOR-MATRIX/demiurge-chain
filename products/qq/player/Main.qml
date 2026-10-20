@@ -41,8 +41,12 @@ Window {
         color: "#e6e8ee"
         font.pixelSize: 13
         font.letterSpacing: 0.4
-        text: game.follow ? qsTr("WASD or the left stick to move  ·  Space or A to jump  ·  Shift to run  ·  drag or the right stick to look")
-                          : qsTr("Drag to turn  ·  scroll to come closer")
+        // A 2D game has no eye to turn: its hint is the hands' alone (P3.10).
+        text: game.flat && game.follow && game.follow.style === "top-down" ? qsTr("WASD or the left stick to move  ·  Shift to run")
+            : game.flat && game.follow ? qsTr("A and D or the left stick to move  ·  Space or A to jump  ·  Shift to run")
+            : game.flat ? ""
+            : game.follow ? qsTr("WASD or the left stick to move  ·  Space or A to jump  ·  Shift to run  ·  drag or the right stick to look")
+            : qsTr("Drag to turn  ·  scroll to come closer")
         opacity: game.settled && hint.running ? 0.7 : 0
         Behavior on opacity { NumberAnimation { duration: 900; easing.type: Easing.OutCubic } }
         Timer { id: hint; interval: 7000; running: game.settled }

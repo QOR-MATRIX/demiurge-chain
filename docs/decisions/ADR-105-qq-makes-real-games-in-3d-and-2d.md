@@ -7,7 +7,7 @@ to the recommendation ("proceed with the next steps forward as best recommended 
 are those engineering choices. **Extends** [ADR-083](ADR-083-qq-on-qt.md) (QQ on Qt 6) and
 [ADR-084](ADR-084-qq-player-on-the-web.md) (the Player's web build); **keeps** [ADR-087](ADR-087-strangers-games-are-confined.md)
 (a stranger's game is confined) and [ADR-102](ADR-102-arqade-in-the-launcher-on-qt.md) decision 5 (a rewarded run is
-replayed by the server). It decides **no economic value**.
+replayed by the server). It decides **no economic value**. **Decisions 1 and 5 amended** by [ADR-106](ADR-106-2d-scenes-say-whether-their-art-is-pixel-art.md) (19 October 2026): whole-number scaling is for pixel art, which a scene says it has, and a tile layer is one mesh rather than instanced.
 
 ## Context
 
