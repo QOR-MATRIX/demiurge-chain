@@ -3326,7 +3326,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
      - **Next:** #60's merge, then P3.11, fixed steps and replay.
 
 104. **19 October 2026, late night: #60 merged by the owner; P3.11, fixed steps and replay, built on `session/qq-steps`,
-     not yet committed.**
+     committed as `93b0bf4` and pushed at the owner's word as pull request #61.**
      - **Merged:** #60 (P3.10) at `6b58167`. CI passed every job on it (run 39357583640). P3.10 is ticked in DIRECTION.
      - **P3.11, built** (DIRECTION P3.11 has the whole list):
        - **The clock.** Play moves in ticks of 1/60 s whatever the frame rate. Each tick takes the hands and the clicks,
@@ -3347,7 +3347,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        itself. The logic never built, the game played without it, and the replay matched an empty outcome with an empty
        outcome. A Behaviour now says why its logic does not build, and a replay refuses such a game (exit 3), so an
        empty outcome is never counted as a match.
-     - **Next:** commit and push at the owner's word, then P3.12, animation.
+     - **Next:** #61's merge, then P3.12, animation.
 
 ## 5. Traps, so nobody re-learns them
 

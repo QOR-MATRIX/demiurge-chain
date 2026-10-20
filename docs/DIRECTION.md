@@ -1245,7 +1245,7 @@ P3.2 and on nothing on chain, and run in this order:
     inputs recorded and replayed with no window to the same outcome. A rewarded outcome never depends on PhysX
     (ADR-102 decision 5).
 
-    **Built 19 October 2026** (branch `session/qq-steps`, not yet merged):
+    **Built 19 October 2026** (branch `session/qq-steps`, pull request #61, not yet merged):
     - **The clock.** A playing scene moves in ticks of 1/60 s, whatever the frame rate.
       - Each frame's time is paid in whole ticks, at most eight a frame: beyond that the game slows rather than leaps.
       - Each tick takes the player's hands (`Input.takeStep`: move, look, the actions held, and every press and release

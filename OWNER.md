@@ -37,7 +37,7 @@ and *Ember Climb*, a small platformer.
 **Built since: fair, repeatable play** (P3.11). Games now run 60 steps a second on any
 screen; random numbers follow a seed; and a played run can be **replayed** with no window
 to the exact same result. That is what later lets a server check a score before anything
-is rewarded. All tests pass. Not committed yet: say "commit and push" for a pull request.
+is rewarded. All tests pass. It is pull request **#61**, waiting for you to merge.
 
 ## Toward a worldwide beta: what only you can do
 
