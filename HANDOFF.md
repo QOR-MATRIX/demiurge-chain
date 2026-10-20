@@ -3,7 +3,7 @@
 **Current state, 19 October 2026, late night.** The code is the public repository `QOR-MATRIX/demiurge-chain`
 (ADR-063, ADR-064). `main` is at `dd5a29d`, the merge of #62 (P3.12, animation), merged by the owner (§4 item 106). CI
 passed every job on it (run 39370514734). Pull requests #1 to #62 are merged; P3.13, sound, and the records of #62's
-merge are on `session/qq-sound`, not yet committed. Work goes on a `session/*` branch and reaches `main` by pull
+merge are pull request #63, from `session/qq-sound`. Work goes on a `session/*` branch and reaches `main` by pull
 request. `origin` is the private archive, not the current tree. Live, devnet-only and with test CGT: Demiurge Devnet
 (`wss://rpc.qorsync.dev`), QOR ID (`https://id.qorsync.dev`), Social, ARQADE (`https://qor-arqade-tau.vercel.app`)
 and the homepage (`https://qorsync.dev`). §1 has the detail.
@@ -3372,7 +3372,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
 
 106. **19 October 2026, late night: #62 merged by the owner at `dd5a29d` (CI passed every job on its head and on the
      merge, runs 39368661482 and 39370514734), and P3.12 ticked; P3.13, sound, built on `session/qq-sound` from that
-     merge, not yet committed.**
+     merge, committed as `9282899` and pushed at the owner's word as pull request #63.**
      - **Built** (DIRECTION P3.13 has the whole list):
        - one-shots from logic (`play(source, { at, volume, group, reach })`), placed or heard everywhere, put away when
          played through (`Voices.qml`, measured by `Mixer.lengthOf`);
@@ -3401,7 +3401,7 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
          changes;
        - a WebVoice given another file went on playing the old one, and one given none kept it; it now stops first
          (found by reading it: the browser check plays one file once).
-     - **Next:** the owner's word to commit and push P3.13 as a pull request; then P3.14, materials.
+     - **Next:** #63's merge; then P3.14, materials.
 
 ## 5. Traps, so nobody re-learns them
 
@@ -4185,8 +4185,8 @@ container named here.*
 ## 7. Repository state
 
 - **Now (19 October 2026, late night): `main` on `QOR-MATRIX/demiurge-chain` is at `dd5a29d`**, the merge of #62;
-  pull requests #1 to #62 are merged. This session's work is on `session/qq-sound`, branched from `dd5a29d` and not
-  yet committed (§4 item 106). Each pull request targets `main`; work that needs an unmerged one waits for its merge.
+  pull requests #1 to #62 are merged. This session's work is pull request #63, from `session/qq-sound`, branched from
+  `dd5a29d` (§4 item 106). Each pull request targets `main`; work that needs an unmerged one waits for its merge.
 - **Earlier (10 October 2026): the public repository `QOR-MATRIX/demiurge-chain`** (ADR-064, remote `matrix`), whose
   `main` is at `0583835` (PR #19, P3.1; PRs #1 to #20 are merged). Work goes on a `session/*` branch and reaches `main`
   by pull request. `origin` is the private archive and is not the current tree, and the local branch `main` follows

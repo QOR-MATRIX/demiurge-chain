@@ -1326,7 +1326,7 @@ P3.2 and on nothing on chain, and run in this order:
         Looking into why found that a replay, which draws no frames, never posed the model at all; each step now does.
 13. [ ] **Sound.** One-shots from logic, music, and volume groups, panned in a browser where it can be.
 
-    **Built 19 October 2026** (branch `session/qq-sound`, not yet a pull request):
+    **Built 19 October 2026** (branch `session/qq-sound`, pull request #63, not yet merged):
     - **One-shots.** Logic's `play(source, { at, volume, group, reach })` plays a file once: placed in the world where
       logic says, or heard everywhere alike. It is put away when it has played through, measured from the file's
       header, since Qt's spatial sounds do not say when they have finished. A scene keeps its one-shots out of its

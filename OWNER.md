@@ -31,8 +31,8 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 **Built since: sound** (P3.13). A game plays a sound once where something happens, has
 music that fades from one track to the next, and has volume groups, so a player can turn
 the music down and keep the effects. In a browser, sounds now come from the side they are
-on. *Orb Run* has music, a chime, a rumble and a music switch. All tests pass. Not yet
-committed: say "commit and push" for a pull request.
+on. *Orb Run* has music, a chime, a rumble and a music switch. All tests pass. It is pull
+request **#63**.
 
 ## Toward a worldwide beta: what only you can do
 
