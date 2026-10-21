@@ -23,22 +23,17 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 3. **QQ makes real games** — *QQ is our game engine* (ADR-105). Merged: gameplay, triggers
    and timers (#55); menus, scores and pause screens (#57); rebindable controls (#59); 2D
    with sharp pixel art and levels from **Tiled** — *the free level editor* (#60);
-   **fair, repeatable play** (#61): 60 steps a second on any screen, seeded random numbers,
-   and a run that **replays** with no window to the same result — what later lets a
-   server check a score before anything is rewarded; **animation** (#62); and **sound**
-   (#63): music that fades between tracks, volume groups, side-to-side sound in a
-   browser. *Orb Run* and *Ember Climb* prove it.
+   **fair, repeatable play** (#61): 60 steps a second, seeded random numbers, and runs that
+   **replay** to the same result, so a server can check a score before any reward;
+   **animation** (#62); **sound** (#63); **materials** (#64): pictures on any wall, spot
+   lights, **HDR skies** — *360° images that light the world*; and the Studio's **editing**
+   (#65): undo and redo, duplicate, snapping. *Orb Run* and *Ember Climb* prove it.
+4. **#65 also fixed three security advisories** — *published flaws in libraries we use*;
+   one, in a wrapper never built, is ignored while CI proves it, as you chose (ADR-107).
 
-**Merged too: materials** (#64): pictures on shapes that keep their size on any wall,
-spot lights, and **HDR skies** — *360° sky images that also light the world*.
-
-**For your merge: the Studio's editing, pull request #65** (P3.15, first of three parts):
-undo and redo of every edit, duplicate, and snapping to a grid. It also fixes three
-**security advisories** — *published flaws in libraries we use* — found this week in the
-code that checks web certificates. One, in a wrapper that holds no certificates and is
-never built, is ignored while CI proves both, as you chose (ADR-107).
-**Built since, to follow #65: groups and prefabs** (P3.15, second part) — *a group saved
-once and placed many times*. *Orb Run*'s orbs are a prefab now.
+**For your merge: groups and prefabs, pull request #66** (P3.15, second of three parts) —
+*a group saved once and placed many times*. **Built, to follow one at a time:** the
+Studio's tools, and **saving** — *a game keeps scores and settings between plays*.
 
 ## Toward a worldwide beta: what only you can do
 

@@ -1414,8 +1414,8 @@ P3.2 and on nothing on chain, and run in this order:
     Built in three parts, each its own pull request: editing (undo and redo, duplicate, snapping); the hierarchy with
     parenting and prefabs; and the asset browser, the logic editor and the statistics overlay.
 
-    **Part one, editing, built 20 October 2026** (branch `session/qq-studio-edit`, on `main` at `f6d230a` since #64's merge,
-    whose tree it was built and checked on; pull request #65, not yet merged):
+    **Part one, editing, built 20 October 2026, merged 21 October** (#65, at `f75d082`, with the fix for three dependency
+    advisories, ADR-107; CI passed every job on its head and on the merge, runs 39508315025 and 39521483702):
     - **Undo and redo** (Ctrl+Z; Ctrl+Y or Ctrl+Shift+Z; toolbar buttons). Each step is the scene's canonical text after
       an edit (`studio/History.qml`, up to 200), noted wherever an edit ends (the window's `refresh()`), so every edit
       is covered whatever made it: a field in the inspector, a handle let go, an entity added, duplicated or deleted, a
@@ -1436,8 +1436,8 @@ P3.2 and on nothing on chain, and run in this order:
         undo, a copy of a copy named after the copy, turning not snapped, and redo made ambiguous by naming a key the
         platform's redo already has.
 
-    **Part two, the hierarchy and prefabs, built 20 October 2026** (branch `session/qq-hierarchy`, on #65's head; kept
-    back until #65 is merged):
+    **Part two, the hierarchy and prefabs, built 20 October 2026** (branch `session/qq-hierarchy`, on `main` at `f75d082`
+    since #65's merge, whose tree it was built and checked on; pull request #66, not yet merged):
     - **Groups.** A new kind, `Group`: entities under one place, turn and scale, moved as one, and written inside it in
       the scene's file. What is placed can be in a group (shapes, lamps, spot lights, models, emitters, sounds,
       triggers, sprites, groups, prefabs, behaviours); players, the ground, the sun, tile maps and what has no place stay
