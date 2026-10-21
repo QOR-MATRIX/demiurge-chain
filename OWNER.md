@@ -32,11 +32,12 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
    game keeps scores and settings between plays*. Every step of the plan is done.
 4. **#65 also fixed three security advisories** — *published flaws in libraries we use*;
    one, in a wrapper never built, is ignored while CI proves it, as you chose (ADR-107).
+5. **#69: one look everywhere** (ADR-108, as you chose) — one shared source of colours,
+   faces and motion, checked in CI. The homepage is on it and live, its fonts its own.
 
-**For your merge: one look everywhere, pull request #69** (ADR-108, as you chose) — one
-shared source of colours, faces and motion, checked in CI; the homepage on it first, its
-fonts its own. **Built, to follow it:** QQ Studio in the same look, and game menus a
-keyboard can use.
+**For your merge: #70, QQ Studio in the same look**, and game menus a keyboard can use.
+**Built, to follow it:** ARQADE's website in the look, held there by a CI check, and its
+welcome screen fixed (live, it sits in a corner instead of filling the window).
 
 ## Toward a worldwide beta: what only you can do
 

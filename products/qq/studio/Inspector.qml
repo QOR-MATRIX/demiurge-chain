@@ -69,9 +69,12 @@ ColumnLayout {
     }
 
     component FieldLabel: Label {
-        font.pixelSize: 11
+        font.family: Look.ui
+        font.weight: Font.DemiBold
+        font.pixelSize: Look.sizeMicro
+        font.letterSpacing: Look.sizeMicro * Look.trackingEyebrow
         font.capitalization: Font.AllUppercase
-        opacity: 0.6
+        color: Look.inkMuted
     }
 
     Component {
@@ -238,14 +241,14 @@ ColumnLayout {
                 text: inspector.target ? decodeURIComponent(String(inspector.target[urlRow.field]).split("/").pop()) : ""
             }
             RowLayout {
-                Button {
+                StudioButton {
                     text: qsTr("Replace…")
                     flat: true
                     onClicked: fileChooser.open()
                 }
                 // A QML file (logic, a prefab) can also be opened in the creator's own editor; a save there reloads it
                 // in play. The Studio's own logic editor is the inspector's Edit logic (P3.15).
-                Button {
+                StudioButton {
                     visible: inspector.target !== null && /\.qml$/i.test(String(inspector.target[urlRow.field]))
                     text: qsTr("Open outside")
                     flat: true

@@ -54,6 +54,7 @@ qt_add_qml_module(qqruntime
         run.h run.cpp
         clips.h clips.cpp
         mixer.h mixer.cpp
+        tokens.h
         store.h store.cpp
 )
 

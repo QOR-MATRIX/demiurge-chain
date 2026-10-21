@@ -2167,7 +2167,7 @@ private slots:
             auto *look = s.engine.singletonInstance<QObject *>("QQ", "Look");
             QVERIFY(look);
             look->setProperty("reducedMotion", reduced);
-            QCOMPARE(look->property("fade").toInt(), reduced ? 0 : 180);
+            QCOMPARE(look->property("fade").toInt(), reduced ? 0 : 260);  // the standard duration (ADR-108)
             QQuickItem *note = s.drawn(QStringLiteral("Note"));
             QVERIFY(note && !note->isVisible());
             QMetaObject::invokeMethod(s.scene, "showScreen", Q_ARG(QVariant, QStringLiteral("note")));
@@ -2178,6 +2178,54 @@ private slots:
                 QVERIFY2(note->opacity() < 1.0, qPrintable(QStringLiteral("opacity %1 at once").arg(note->opacity())));
             QVERIFY(s.runUntil([note] { return note->opacity() > 0.999; }, 1000));
         }
+    }
+
+    void aScreenButtonAnswersTheKeyboardAndAReplayPressesItToo()
+    {
+        // ADR-108: a game's menu is reached by keyboard as well as by pointer. Tab gives the shown button the focus and
+        // its ring; Enter presses it, delivered at the scene's next tick as a click is, so a run keeps it and a replay
+        // presses it at the same moment.
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/go.qml")),
+                  "import QQ\nLogic {\n    property int presses: 0\n"
+                  "    onStarted: showScreen(\"title\")\n"
+                  "    onClicked: presses += 1\n"
+                  "    outcome: ({ presses: presses, steps: steps })\n}\n");
+        const QUrl file = QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")));
+        const QString text = sceneText(QStringLiteral(
+            "    ScreenButton { name: \"Go\"; screen: \"title\"; anchor: \"centre\"; text: \"Go\" }\n"
+            "    Behaviour { name: \"Counter\"; source: \"../logic/go.qml\"; target: \"Go\" }\n"));
+        writeFile(file.toLocalFile(), text.toUtf8());
+
+        qq::RunRecord run;
+        {
+            Stage s;
+            QVERIFY(s.open(text, false, file));
+            s.scene->setProperty("recorder", QVariant::fromValue(static_cast<QObject *>(&run)));
+            s.scene->setProperty("playing", true);
+            QObject *counter = s.entity(QStringLiteral("Counter"));
+            auto logic = [counter] { return counter->property("logic").value<QObject *>(); };
+            QQuickItem *go = nullptr;
+            QVERIFY(s.runUntil([&] {
+                go = s.drawn(QStringLiteral("Go"));
+                return logic() && go && go->isVisible() && go->opacity() > 0.99;
+            }, 4000));
+            QTest::keyClick(s.window.get(), Qt::Key_Tab);
+            s.run(50);
+            QQuickItem *focused = s.window->activeFocusItem();
+            QVERIFY2(focused && (focused == go || go->isAncestorOf(focused)), "Tab did not reach the shown button");
+            QTest::keyClick(s.window.get(), Qt::Key_Return);
+            QVERIFY(s.runUntil([&] { return logic()->property("presses").toInt() == 1; }, 2000));
+            s.run(200);
+            QMetaObject::invokeMethod(s.scene, "finishRecord");
+        }
+        QCOMPARE(run.outcome().value(QStringLiteral("Counter")).toMap().value(QStringLiteral("presses")).toInt(), 1);
+        // Played again with no window and no keyboard: the press is in the record, at the same tick.
+        QQmlEngine engine;
+        const QVariantMap again = qq::replayRun(&engine, file, &run);
+        QCOMPARE(again.value(QStringLiteral("problem")).toString(), QString());
+        QVERIFY2(again.value(QStringLiteral("matches")).toBool(),
+                 qPrintable(QJsonDocument(QJsonObject::fromVariantMap(again)).toJson(QJsonDocument::Compact)));
     }
 
     void aScreenImageDrawsAPictureFromTheProjectCrisply()

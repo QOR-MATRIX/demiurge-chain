@@ -64,7 +64,8 @@ ColumnLayout {
             placeholderText: "sk-ant-…"
             Accessible.name: qsTr("Anthropic API key")
         }
-        Button {
+        StudioButton {
+            kind: "ghost"
             text: qsTr("Keep it in the keychain")
             enabled: keyField.text.trim() !== ""
             onClicked: {
@@ -76,7 +77,7 @@ ColumnLayout {
         Label {
             id: keyProblem
             visible: text !== ""
-            color: "#d57889"
+            color: Look.bad
             wrapMode: Text.Wrap
             Layout.fillWidth: true
         }
@@ -105,20 +106,21 @@ ColumnLayout {
 
     RowLayout {
         Layout.fillWidth: true
-        Button {
+        StudioButton {
             objectName: "agentStart"
+            kind: "primary"
             text: qsTr("Design and build")
-            highlighted: true
             enabled: panel.designer.hasKey && !panel.designer.running && brief.text.trim() !== ""
             onClicked: panel.designer.start(brief.text)
         }
-        Button {
+        StudioButton {
+            kind: "danger"
             text: qsTr("Stop")
             visible: panel.designer.running
             onClicked: panel.designer.stop()
         }
         Item { Layout.fillWidth: true }
-        Button {
+        StudioButton {
             text: qsTr("Undo the run")
             flat: true
             visible: panel.designer.canUndo
@@ -145,8 +147,8 @@ ColumnLayout {
                 wrapMode: Text.Wrap
                 text: modelData.text
                 font.pixelSize: modelData.kind === "said" ? 13 : 12
-                font.family: modelData.kind === "tool" || modelData.kind === "frame" ? "Consolas" : Qt.application.font.family
-                color: modelData.failed ? "#d57889" : modelData.kind === "done" ? "#3ddc84" : Material.foreground
+                font.family: modelData.kind === "tool" || modelData.kind === "frame" ? Look.mono : Qt.application.font.family
+                color: modelData.failed ? Look.bad : modelData.kind === "done" ? Look.ok : Look.inkBody
                 opacity: modelData.kind === "tool" ? 0.65 : 1
             }
             Image {
@@ -179,7 +181,7 @@ ColumnLayout {
                       : ""
     }
 
-    Button {
+    StudioButton {
         text: qsTr("Forget the key")
         flat: true
         visible: panel.designer.hasKey && !panel.designer.running
