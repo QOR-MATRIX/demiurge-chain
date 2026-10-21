@@ -921,6 +921,12 @@ reason = "No update removes 0.26.11: no later 0.26 release exists, rustls-platfo
 condition = "webpki-root-certs 0.26 re-exports a 1.x of 1.0.10 or later, is built for no Windows, Linux or macOS target, and is still in the launcher's Cargo.lock, checked on every CI run"
 approved_by = "owner, 2026-10-20 (ADR-107: 'Guarded ignore (Recommended)')"
 
+[[change_log]]
+date = "2026-10-21"
+type = "tightening"
+change = "Gate qfx: qfx.decisions gains ADR-108 (one look across every surface, the owner's choice of 2026-10-21) and qfx.roadmap gains P2.9 (its slices). CI's security job gains a step, 'One look, from one source (ADR-108)', running `node docs/design/tokens.mjs --check`: it fails when a file generated from docs/design/tokens.json is stale, a bundled face differs from docs/design/fonts/, or a text colour reads under 4.5:1 on any background or filled control. [ci].quality_gates records it."
+reason = "A tightening: one more accepted decision, one more roadmap item and one more failing step, none relaxed. Proven to fail first: a faint ink of #6b7385 (the value ARQADE's Qt application and QOR Media carried) fails the contrast rule, and a changed byte in one bundled face, or in site/tokens.css, fails as a drifted or stale file."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -975,6 +981,7 @@ quality_gates = [
   "framework/ stays retired: the security job fails if the directory returns, and with it the six advisories its audit.toml exempted until M3.5",
   "no private key material tracked in git",
   "no credentials committed in configuration files",
+  "one look from one source (ADR-108): node docs/design/tokens.mjs --check, every generated file current, every bundled face the source's, every text colour 4.5:1 or more on every background. Since 2026-10-21",
   "the language rule (ADR-008, AGENTS.md section 6) over what people read in the active scope: site/scripts/check-site.mjs, then no APY, ROI, passive income, investment or staking rewards in the site, ARQADE, the launcher, QOR Media, QQ, Social and QOR ID, and no yield in their copy. Since 2026-10-19",
   "no log call in services/qor-auth/src interpolates a token, key, secret, password, link or address, and no request span records the URI",
   "no [patch] section in any tracked manifest, and no reference to a personal Substrate fork anywhere tracked, excluding only ci.yml itself and HANDOFF.md",
@@ -1740,14 +1747,14 @@ weaken."""
   [[gates.criteria]]
   id = "qfx.decisions"
   kind = "adr"
-  adrs = ["ADR-048", "ADR-050", "ADR-051"]
+  adrs = ["ADR-048", "ADR-050", "ADR-051", "ADR-108"]
 
   [[gates.criteria]]
   id = "qfx.roadmap"
   kind = "roadmap"
   # P2.8 was appended to the track on 2026-09-22 and counted by nobody until
   # 2026-09-23, which is the same omission as L4.6 in beta.launcher.
-  items = ["P2.1", "P2.2", "P2.3", "P2.4", "P2.5", "P2.6", "P2.7", "P2.8"]
+  items = ["P2.1", "P2.2", "P2.3", "P2.4", "P2.5", "P2.6", "P2.7", "P2.8", "P2.9"]
 
   [[gates.criteria]]
   id = "qfx.depends"

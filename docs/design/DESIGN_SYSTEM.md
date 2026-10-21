@@ -1,11 +1,21 @@
 # Design system
 
-How every Demiurge surface looks and behaves. The QOR Launcher (`tools/qor-launcher`) is the reference
-implementation: its tokens live in `src/styles/themes.ts` and `src/styles/qor.css`, and its components
-in `src/components/ui` and `src/views/parts.tsx`. The web surfaces of ADR-011 adopt the same tokens,
-scales and rules when they are built.
+How every Demiurge surface looks and behaves. **There is one look, obsidian and gilt, in two registers** (ADR-108,
+the owner's, 21 October 2026). Its values have one source, [`tokens.json`](tokens.json). [`tokens.mjs`](tokens.mjs)
+writes them into each surface and copies the faces in [`fonts/`](fonts/) to where each surface bundles them; no surface
+writes a colour, a face, a radius or a duration of its own. Run with `--check`, as CI does, it fails on a stale file, a
+face that differs from the source, or a text colour under 4.5:1 on any background or filled control.
 
-When this document and the launcher disagree, fix one of them in the same change.
+**Surfaces join one at a time** (DIRECTION P2.9), each in the change that makes it read its generated file.
+**Joined:** the homepage (`site/tokens.css` and `site/fonts/`). **Not yet joined, each keeping its own values until its
+slice:** QQ (the Studio and the game screens), ARQADE (the web and Qt), the launcher, QOR ID's pages and emails, QOR
+Media and the Android shell. Their faces in Qt are already the source's (Cinzel and Barlow Semi Condensed, checked).
+
+The QOR Launcher stays the reference for behaviour: its components (`src/components/ui`, `src/views/parts.tsx`), its
+accessibility settings and its checks are the most complete implementation of the rules below, and its theme table
+(`src/styles/themes.ts`) gains the Obsidian theme, made from the tokens, as its default when it joins.
+
+When this document and a joined surface disagree, fix one of them in the same change.
 
 ## 1. Position
 
@@ -29,6 +39,17 @@ spent, not a new rule: depth and light carry the premium feel (lit panels, glowi
 crosses a button), and plain grouping carries the understanding (the rail grouped by what a person is doing). The
 obligations below are unchanged.
 
+**One look, two registers (ADR-108, the owner, 21 October 2026).** Obsidian grounds, warm parchment inks, ember the one
+colour of action, gilt the metal of the brand: its engraving, rules and numerals. A register decides how much ornament
+a surface carries, never a value:
+- **Showcase** (the homepage, ARQADE, a game's own screens, ceremonies): Cinzel for wordmarks, heroes and titles; gilt
+  engraving and sacred geometry; the living canvas behind.
+- **Tool** (the launcher, QQ Studio, QOR Media, QOR ID's pages, the Android shell): Barlow Semi Condensed for headings
+  and controls, Barlow for reading, gilt only as hairlines and numerals, denser spacing; Cinzel only in a wordmark.
+
+The edge is the gilt geometry, which recurs from the homepage's astrolabe to ARQADE's orbits, and light that answers the
+pointer.
+
 **History.** Until 6 October 2026 this section ruled glows, pointer-following light, canvas backdrops, gradients, neon
 and looping animation out of every surface, with two exceptions: QFX (`src/qfx/`, ADR-051, 22 September 2026) for its
 canvas and pointer rules, and the ceremony (`src/qfx/ceremony/`, 28 September 2026) for glow, gradients and loops. ADR-080
@@ -36,6 +57,28 @@ removes the rules, so the exceptions are no longer needed; QFX keeps its own mea
 painted, reduced motion, its frame-time budget).
 
 ## 2. Colour
+
+### The palette (`tokens.json`)
+
+| Token | Value | Role |
+| --- | --- | --- |
+| `void` | `#06070a` | Deepest ground: title bars, the rail, the homepage |
+| `base` | `#0b0e14` | Application background |
+| `well` | `#0e121a` | Inputs and inset areas |
+| `surface` | `#131821` | Panel fill |
+| `raised` | `#1b212d` | Hover fills, raised controls |
+| `edge`, `edgeSoft` | `#2a3140`, `#1f2530` | Hairlines |
+| `ink`, `inkBody`, `inkMuted`, `inkFaint` | `#f3ede1`, `#d6d1c6`, `#9ba2ad`, `#868f9d` | Text, brightest to faintest; every step 4.5:1 or more on every ground, the weakest (`inkFaint` on `raised`) 4.94:1 |
+| `accent`, `accentBright`, `accentDim` | `#ff6a00`, `#ff9142`, `#b44a00` | Ember, the one colour of action |
+| `onAccent` | `#06070a` | Text on an ember or gilt fill: 7.0:1 on ember, where white would read 2.9:1 |
+| `gilt`, `giltBright`, `giltDim` | `#c9a45c`, `#ead39a`, `#7a6236` | The brand's metal: engraving, rules, numerals, display type. `giltDim` is for hairlines, never text |
+| `ok`, `warn`, `bad` | `#22c55e`, `#e6a817`, `#d57889` | Status, never decorative |
+
+A generated file names them `--qor-void` … `--qor-bad` in CSS. The launcher's theme tokens below name the same roles;
+its Obsidian theme takes these values when it joins, and its `--counter`, a structural red for danger edges, is
+settled in that slice.
+
+### The launcher's theme tokens
 
 **One accent, one structural counter, three status colours, all from the theme's tokens.** The accent's
 first job is to mean "this one": live, selected, or about to be pressed. Since ADR-080 it may also carry
@@ -91,8 +134,12 @@ belong, not a defect waiting to be fixed.
 
 ## 3. Type
 
-Every face renders offline and on first run: the display face is bundled with the launcher, the others are the
-system's.
+**The faces (ADR-108):** Cinzel for display in the showcase register; Barlow Semi Condensed for headings, controls and
+labels; Barlow for reading; IBM Plex Mono for numbers and addresses. All four are bundled with, and served by, each
+surface itself, never from a font service; the files are in `docs/design/fonts/` (SIL Open Font License).
+
+**The launcher's faces, until it joins.** Every face renders offline and on first run: the display face is bundled with
+the launcher, the others are the system's.
 - display (headings, the rail, buttons, eyebrows): **Barlow Semi Condensed** at 500, 600 and 700, bundled through
   `@fontsource/barlow-semi-condensed` (SIL Open Font License), then Segoe UI Variable Display. Chosen on 17 October 2026
   for a condensed, athletic display face that still reads plainly at small sizes; until then the display face was the
@@ -148,7 +195,8 @@ Spacing uses Tailwind's 0.25rem unit, which the density setting rescales.
 | Between panels | `gap-4`; between tiles `gap-3`; between sections `mb-9` |
 
 **Radius is 8px on controls and fields** (`rounded-qor`, `--radius-qor`) **and 12px on panels, glass and menus**
-(`--radius-panel`), since 17 October 2026 (2px before). The status dot, the switch and the status pill are round.
+(`--radius-panel`), since 17 October 2026 (2px before), and on every surface since ADR-108 (`--qor-radius-control`,
+`--qor-radius-panel`). The status dot, the switch and the status pill are round.
 
 **Depth.** A panel is lit from above: a faint gradient of the raised colour over its fill, a one-pixel highlight on its
 top edge, and a soft shadow below. Every colour in it is a theme token mixed with transparency.

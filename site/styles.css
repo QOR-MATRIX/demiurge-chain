@@ -2,28 +2,31 @@
   Demiurge — qorsync.dev
   Ancient-futuristic: obsidian and gilt, carved Roman capitals over a living astrolabe. One accent, the launcher's ember;
   gilt is the structural counter (engraving, rules, numerals). A single dark look, set explicitly, as the launcher is.
+
+  The showcase register of Demiurge's one look (ADR-108): every colour, face, radius and easing below comes from
+  tokens.css, generated from docs/design/tokens.json, which every surface shares. The names here are the page's own.
 */
 :root {
-  --obsidian: #06070a;
-  --basalt: #0b0e14;
-  --slate: #131821;
-  --gilt: #c9a45c;
-  --gilt-bright: #ead39a;
-  --gilt-dim: #7a6236;
-  --ember: #ff6a00;
-  --ember-bright: #ff9142;
-  --parchment: #f3ede1;
-  --ink: #d6d1c6;
-  --ink-muted: #9ba2ad;
+  --obsidian: var(--qor-void);
+  --basalt: var(--qor-base);
+  --slate: var(--qor-surface);
+  --gilt: var(--qor-gilt);
+  --gilt-bright: var(--qor-gilt-bright);
+  --gilt-dim: var(--qor-gilt-dim);
+  --ember: var(--qor-accent);
+  --ember-bright: var(--qor-accent-bright);
+  --parchment: var(--qor-ink);
+  --ink: var(--qor-ink-body);
+  --ink-muted: var(--qor-ink-muted);
   --line: rgba(201, 164, 92, 0.18);
   --line-strong: rgba(201, 164, 92, 0.42);
 
-  --display: "Cinzel", "Trajan Pro", "Times New Roman", Georgia, serif;
-  --ui: "Barlow Semi Condensed", "Arial Narrow", "Segoe UI", system-ui, sans-serif;
-  --body: "Barlow", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --display: var(--qor-font-display);
+  --ui: var(--qor-font-interface);
+  --body: var(--qor-font-body);
+  --mono: var(--qor-font-mono);
 
-  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease: var(--qor-ease);
   --gutter: max(20px, env(safe-area-inset-left, 0px));
   --gutter-r: max(20px, env(safe-area-inset-right, 0px));
   color-scheme: dark;
@@ -47,7 +50,7 @@ body {
 img, svg, canvas { display: block; max-width: 100%; }
 a { color: var(--gilt-bright); text-decoration-color: rgba(234, 211, 154, 0.35); text-underline-offset: 3px; }
 a:hover { color: var(--parchment); text-decoration-color: var(--ember); }
-:focus-visible { outline: 2px solid var(--ember-bright); outline-offset: 3px; border-radius: 2px; }
+:focus-visible { outline: var(--qor-focus-width) solid var(--qor-focus); outline-offset: 3px; border-radius: 2px; }
 strong { color: var(--parchment); font-weight: 500; }
 code { font-family: var(--mono); }
 
@@ -110,7 +113,7 @@ header, main, footer { position: relative; z-index: 2; }
 .btn {
   position: relative; isolation: isolate; overflow: hidden;
   display: inline-flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px;
-  padding: 15px 26px; text-decoration: none; border-radius: 3px;
+  padding: 15px 26px; text-decoration: none; border-radius: var(--qor-radius-control);
   font: 600 16px/1.1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase;
   transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease), background 0.35s, color 0.35s, border-color 0.35s;
   will-change: transform;
@@ -199,7 +202,7 @@ p { max-width: 68ch; }
   padding: 30px 26px 28px;
   background: linear-gradient(160deg, rgba(19, 24, 33, 0.82), rgba(11, 14, 20, 0.9));
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--qor-radius-panel);
   transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));
   transition: transform 0.5s var(--ease), border-color 0.4s, box-shadow 0.5s var(--ease);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
@@ -245,7 +248,7 @@ p { max-width: 68ch; }
 .card:hover .glyph svg { transform: rotate(-135deg); }
 .pill {
   display: inline-flex; align-items: center; gap: 8px; margin: 0 0 18px; padding: 5px 11px;
-  font: 600 12px/1 var(--ui); letter-spacing: 0.2em; text-transform: uppercase; border-radius: 2px;
+  font: 600 12px/1 var(--ui); letter-spacing: 0.2em; text-transform: uppercase; border-radius: 999px;
 }
 .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
 .pill-live { color: var(--ember-bright); border: 1px solid rgba(255, 145, 66, 0.4); background: rgba(255, 106, 0, 0.07); }
@@ -275,7 +278,7 @@ span.row-where { color: var(--ink-muted); }
 .tablets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
 .tablet {
   position: relative; overflow: hidden; min-width: 0; padding: 40px 30px 34px;
-  border: 1px solid var(--line); border-radius: 4px;
+  border: 1px solid var(--line); border-radius: var(--qor-radius-panel);
   background: linear-gradient(180deg, rgba(201, 164, 92, 0.06), rgba(11, 14, 20, 0.7) 45%);
   transition: border-color 0.4s, transform 0.5s var(--ease);
 }
@@ -308,7 +311,7 @@ span.row-where { color: var(--ink-muted); }
 /* ── source ────────────────────────────────────────────────────────────── */
 .source { padding-bottom: 120px; }
 .source-inner {
-  position: relative; padding: clamp(36px, 6vw, 72px); border: 1px solid var(--line-strong); border-radius: 4px; overflow: hidden;
+  position: relative; padding: clamp(36px, 6vw, 72px); border: 1px solid var(--line-strong); border-radius: var(--qor-radius-panel); overflow: hidden;
   background:
     radial-gradient(600px 300px at 100% 0%, rgba(255, 106, 0, 0.12), transparent 70%),
     linear-gradient(160deg, rgba(19, 24, 33, 0.85), rgba(6, 7, 10, 0.9));

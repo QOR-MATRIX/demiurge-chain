@@ -710,6 +710,12 @@ jobs:
           fi
           echo "No financial language in the active scope."
 
+      # Demiurge's one look (ADR-108): every file written from docs/design/tokens.json is current, every bundled face is
+      # the one in docs/design/fonts/, and every text colour reads at 4.5:1 or more on every background.
+      - name: "One look, from one source (ADR-108)"
+        if: always()
+        run: node docs/design/tokens.mjs --check
+
       # chain/ is audited as a REPORT, not a gate, and that is deliberate.
       #
       # On 2026-09-20 each of its 10 vulnerabilities was measured one by one:

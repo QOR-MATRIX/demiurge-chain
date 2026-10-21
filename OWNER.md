@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 20 October 2026. One page, rewritten every session.
+For Andrew, 21 October 2026. One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -35,8 +35,8 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 
 **For your merge: saving, pull request #68** — *a game keeps scores and settings between
 plays*, never read by a replay. With it, every step of QQ's plan for real games is built.
-**Next, as you chose: one look everywhere** — obsidian and gilt from one shared source, a
-showcase register (homepage, ARQADE, games) and a tool register (launcher, Studio, Media).
+**Built, to follow #68: one look everywhere** (ADR-108, as you chose) — one shared source of
+colours, faces and motion, checked in CI. The homepage is on it first, its fonts its own.
 
 ## Toward a worldwide beta: what only you can do
 

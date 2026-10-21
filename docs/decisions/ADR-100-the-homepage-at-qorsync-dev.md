@@ -6,7 +6,9 @@ that information is consistant with this project as closely as possible"), chose
 homepage with the other domains redirecting to it, chose that the assistant build and publish it, and asked for "a high
 quality, ancient futuristic style with animations and effects mouse-over hover and reactive background. Premium only
 look and feel." The design and the names below are the assistant's, under that instruction. It decides **no economic
-value**. **Brings into scope:** `site/` (AGENTS.md §4).
+value**. **Decision 5, the look, is amended by [ADR-108](ADR-108-one-look-obsidian-and-gilt-in-two-registers.md)**
+(21 October 2026): obsidian and gilt become every surface's look, from one source, and the page's faces are served
+from its own folder rather than a font service. **Brings into scope:** `site/` (AGENTS.md §4).
 
 ## Context
 

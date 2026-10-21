@@ -1030,6 +1030,27 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
    sets it, and the bytes come from the temporary content store until the Mesh (M8). **The model** is a glTF
    or GLB entry rendered in that same canvas, which is the 3D view the owner asked for.
 
+9. [ ] **One look across every surface** (ADR-108, the owner's choice of 21 October 2026): obsidian and gilt in two
+   registers, every value from `docs/design/tokens.json`, written into each surface by `docs/design/tokens.mjs`. In
+   slices, each surface joining in the change that makes it read its generated file and gaining the checks it lacks:
+   the source and the homepage; QQ (the Studio and the game screens); ARQADE (the web, then Qt); the launcher's
+   default theme, Obsidian; QOR ID's pages and emails; QOR Media and the Android shell.
+
+   **The first slice, the source and the homepage, built 21 October 2026** (branch `session/one-look`, on #68's head;
+   kept back until #68 is merged):
+   - `docs/design/tokens.json`: the palette, the four faces, the type scale, tracking, radii, motion and the focus ring.
+     `docs/design/tokens.mjs` writes each surface's generated file and copies its faces, and with `--check` (a CI step
+     in the security job) fails on a stale file, a face that differs from the source, or a text colour under 4.5:1 on
+     any of the five grounds or on a filled control. The weakest pairing is `inkFaint` on `raised`, 4.94:1.
+   - `docs/design/fonts/`: Cinzel, Barlow Semi Condensed, Barlow and IBM Plex Mono for the web (Fontsource 5.3.0, Latin
+     and Latin Extended, the weights the homepage uses) and the TrueType faces the Qt applications bundle, each family's
+     licence beside them. ARQADE's Qt application and QQ already bundled identical copies; they are now checked to stay
+     so.
+   - The homepage: `site/tokens.css` and `site/fonts/` are generated; `styles.css` maps its own names onto the tokens;
+     its faces come from its own folder, so the page makes no request to a font service and its content security
+     policy allows styles and fonts only from itself. Its colours do not change; its buttons and panels take the shared
+     8 and 12 pixel corners, and its status tags the round pill. The share image renders the same from the local faces.
+
 #### P3: QOR Engine / QQ (P3.1 depends on nothing on chain)
 
 QQ, the QOR Engine: a game engine for virtual worlds and experiences, built on **Qt 6** (C++20, QML, Qt Quick 3D and
