@@ -1080,8 +1080,39 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
        screen button pressed from the keyboard and replayed.
      - `build.ps1 -Web` plays the playground in headless Chrome with no problem on the page: first frame 7.6 s, 305
        frames a second, its store kept across a reload.
-     - Nine planted faults were each caught: Look's accent written by hand, the launcher's word on motion ignored, reduced motion leaving a duration running, white ink on the ember primary, Play not the primary, a notice that cannot give way (the toolbar overflowing a 1539-point window), the Studio's faces not bundled, a screen button deaf to the keyboard, and a keyboard press that skips the scene's tick.
+     - Nine planted faults were each caught: Look's accent written by hand, the launcher's word on motion ignored,
+       reduced motion leaving a duration running, white ink on the ember primary, Play not the primary, a notice that
+       cannot give way (the toolbar overflowing a 1539-point window), the Studio's faces not bundled, a screen button
+       deaf to the keyboard, and a keyboard press that skips the scene's tick.
      - The Studio looked at, as painted in its case.
+
+   **The third slice, ARQADE on the web, built 21 October 2026** (branch `session/arqade-one-look`, on the second;
+   kept back until the slices before it are merged):
+   - `products/arqade/app/tokens.css` and `products/arqade/public/fonts/`, generated; `app/globals.css` imports them.
+     **The showcase register:** every colour of the interface is a token, shadcn's sixteen variables included. Colours
+     were written 501 times in the stylesheet and are now written 127 times, every one the games' own art (121
+     colours, their palettes and glows); the stylesheet reads the tokens 536 times. Headlines are Cinzel, the eyebrows
+     gilt capitals, the brand a gilt nameplate, and so is a game's title in its dialog; the ember buttons carry dark
+     ink (7:1) in tracked capitals, and the secondary ones the same face in sentence case. Panels take the 12 pixel
+     corner (the chat window too) and controls the 8; the body is Barlow where it was Arial, and the smallest mono
+     text comes up to the scale's floor of 10 pixels. Every transition, and the chat's entrance, is timed by the
+     duration tokens and the shared easing; the disc's drop and the intro's glitch and fades keep their own, as the
+     games' choreography. Focus is the shared ring.
+   - **Two faults found on the live site, fixed:** the welcome filled only a quarter of the window, pushed off its
+     corner: Tailwind 4 centres a dialog with `translate`, and the stylesheet's minifier folded it into the
+     `transform: none` beside it, so the offset stayed. And the ground rules' last lines were cut by the panel's edge;
+     they now fade under it, so the panel says it scrolls. The hero's headline follows the window's width, so it holds
+     one line on a phone.
+   - **A check, `scripts/check-design.mjs`** (`npm run check:design`, a step in CI's ARQADE job): it fails if
+     `globals.css` does not import the tokens, if one of shadcn's variables is not a token, if a font is set to a face
+     not the look's, if a colour is written that is not one of the games' 121, or written as a function of numbers
+     (`rgb()`, `oklch()` …), if a transition, or an animation not the games', is timed by anything but the tokens, or
+     if a corner is not a token, a circle, a pill, square, or the 2 pixels of a meter's track and a key's cap.
+   - **`scripts/shots.mjs`:** every screen as it is drawn, at a desktop's size and a phone's, for design review.
+   - **Evidence, on the owner's PC:** type check; lint with no errors (the four warnings it had); 49 tests; the
+     production build; the phone check, 17 of 17; `node docs/design/tokens.mjs --check`, 56 targets. Twelve planted
+     faults were each caught by the design check (in `docs/GATES.toml`'s log), one only after the rule was tightened
+     to read each part of a timing. Every screen looked at, before and after, on a desktop and a phone.
 
 #### P3: QOR Engine / QQ (P3.1 depends on nothing on chain)
 

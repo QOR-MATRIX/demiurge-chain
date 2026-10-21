@@ -13,7 +13,8 @@
     "lint": "eslint . --ignore-pattern .next",
     "typecheck": "tsc --noEmit",
     "test": "node --test \"tests/*.test.mjs\" \"sdk/tests/*.test.mjs\"",
-    "check:phone": "node scripts/check-phone.mjs"
+    "check:phone": "node scripts/check-phone.mjs",
+    "check:design": "node scripts/check-design.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

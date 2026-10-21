@@ -464,6 +464,13 @@ jobs:
         working-directory: ./products/arqade
         run: npm run lint
 
+      # Demiurge's one look (ADR-108): the stylesheet imports the generated tokens; every colour, corner and timing of
+      # the interface is a token, shadcn's variables too, and every face is the look's. The colours still written, and
+      # the timings, are the games' own art (scripts/check-design.mjs).
+      - name: "Design: one look (ADR-108)"
+        working-directory: ./products/arqade
+        run: npm run check:design
+
   coverage:
     # Produces the report the "coverage" kind in docs/GATES.toml reads. It does
     # not fail the run: the gate compares each pallet against the threshold.

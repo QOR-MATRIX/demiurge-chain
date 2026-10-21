@@ -123,6 +123,9 @@ const targets = [
   { file: 'products/qq/runtime/tokens.h', text: () => cpp('qq::tokens') },
   ...['Barlow-Regular.ttf', 'Barlow-Medium.ttf', 'IBMPlexMono-Regular.ttf', 'IBMPlexMono-Medium.ttf', 'Barlow-OFL.txt',
       'IBMPlexMono-OFL.txt'].map((name) => ({ file: `products/qq/studio/fonts/${name}`, copy: `docs/design/fonts/${name}` })),
+  // ARQADE on the web (P2.9's third slice): its globals.css imports these, and Next serves the faces from public/.
+  { file: 'products/arqade/app/tokens.css', text: () => css('/fonts') },
+  ...web.faces.map((f) => ({ file: `products/arqade/public/fonts/${f.file}`, copy: `docs/design/fonts/web/${f.file}` })),
 ];
 
 let written = 0;
