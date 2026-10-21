@@ -3,7 +3,7 @@
 //
 //   node site/scripts/render-images.mjs
 //
-// Needs Microsoft Edge or Chrome (set BROWSER_PATH for another), and the network for og.html's fonts.
+// Needs Microsoft Edge or Chrome (set BROWSER_PATH for another), and no network: og.html's fonts are the site's own (tokens.css, ADR-108).
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

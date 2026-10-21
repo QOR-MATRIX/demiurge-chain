@@ -59,7 +59,8 @@ including from git history (D-012).
 | [`tools/qor-launcher/README.md`](../tools/qor-launcher/README.md) | Launcher architecture and security design |
 | [`tools/qor-media/README.md`](../tools/qor-media/README.md) | QOR Media, the Library's Qt 6 player, viewer and editor: what opens where, how the launcher talks to it, building, testing and deploying it (ADR-094) |
 | [`tools/qor-launcher/shell/README.md`](../tools/qor-launcher/shell/README.md) | The QOR Launcher on Android (ADR-104, L13): the Qt shell, the Rust core it shares with the Windows launcher and the bridge between them, the Android toolchain, and how to build the APK and run the tests |
-| [`docs/design/DESIGN_SYSTEM.md`](design/DESIGN_SYSTEM.md) | How every surface looks and behaves: tokens, themes, type and spacing scales, components, motion, accessibility settings, what is ruled out |
+| [`docs/design/DESIGN_SYSTEM.md`](design/DESIGN_SYSTEM.md) | How every surface looks and behaves: one look in two registers (ADR-108), tokens, themes, type and spacing scales, components, motion, accessibility settings, what is ruled out |
+| [`docs/design/tokens.json`](design/tokens.json) | The one source of the look's values (ADR-108), with `tokens.mjs`, which writes them into each surface and checks them, and the faces in `design/fonts/` |
 | [`.cursorrules`](../.cursorrules) | Project law: naming, CGT, supply, economics, language, documentation |
 | [`AGENTS.md`](../AGENTS.md) | Rules for AI assistants working in this repository |
 | [`MISSING_ASSETS.md`](../MISSING_ASSETS.md) | Binary assets absent from the repository |

@@ -1030,6 +1030,27 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
    sets it, and the bytes come from the temporary content store until the Mesh (M8). **The model** is a glTF
    or GLB entry rendered in that same canvas, which is the 3D view the owner asked for.
 
+9. [ ] **One look across every surface** (ADR-108, the owner's choice of 21 October 2026): obsidian and gilt in two
+   registers, every value from `docs/design/tokens.json`, written into each surface by `docs/design/tokens.mjs`. In
+   slices, each surface joining in the change that makes it read its generated file and gaining the checks it lacks:
+   the source and the homepage; QQ (the Studio and the game screens); ARQADE (the web, then Qt); the launcher's
+   default theme, Obsidian; QOR ID's pages and emails; QOR Media and the Android shell.
+
+   **The first slice, the source and the homepage, built 21 October 2026** (branch `session/one-look`, on `main` at
+   `b88185a` since #68's merge, whose tree it was built and checked on; pull request #69, not yet merged):
+   - `docs/design/tokens.json`: the palette, the four faces, the type scale, tracking, radii, motion and the focus ring.
+     `docs/design/tokens.mjs` writes each surface's generated file and copies its faces, and with `--check` (a CI step
+     in the security job) fails on a stale file, a face that differs from the source, or a text colour under 4.5:1 on
+     any of the five grounds or on a filled control. The weakest pairing is `inkFaint` on `raised`, 4.94:1.
+   - `docs/design/fonts/`: Cinzel, Barlow Semi Condensed, Barlow and IBM Plex Mono for the web (Fontsource 5.3.0, Latin
+     and Latin Extended, the weights the homepage uses) and the TrueType faces the Qt applications bundle, each family's
+     licence beside them. ARQADE's Qt application and QQ already bundled identical copies; they are now checked to stay
+     so.
+   - The homepage: `site/tokens.css` and `site/fonts/` are generated; `styles.css` maps its own names onto the tokens;
+     its faces come from its own folder, so the page makes no request to a font service and its content security
+     policy allows styles and fonts only from itself. Its colours do not change; its buttons and panels take the shared
+     8 and 12 pixel corners, and its status tags the round pill. The share image renders the same from the local faces.
+
 #### P3: QOR Engine / QQ (P3.1 depends on nothing on chain)
 
 QQ, the QOR Engine: a game engine for virtual worlds and experiences, built on **Qt 6** (C++20, QML, Qt Quick 3D and
@@ -1496,10 +1517,10 @@ P3.2 and on nothing on chain, and run in this order:
       - `build.ps1 -Web` plays the playground in headless Chrome with no problem on the page: first frame 7.1 s; 217 frames a second in that run and 315 measured again straight after (a run's frame rate varies with what else the machine is doing).
       - Eight planted faults were each caught: assets in folders under `assets/` not listed, logic never found wanting, a model from the list added as a sound, Ctrl+S saving the scene while the logic has the keys, a saved file still shown unsaved, colliders not drawn in play, draw calls not counted, and the filter ignored.
       - The Studio looked at with the project's files, the editor open and the statistics showing.
-16. [ ] **Saving.** One small store per game, the one the lockdown allows.
+16. [x] **Saving.** One small store per game, the one the lockdown allows.
 
-    **Built 20 October 2026** (branch `session/qq-saving`, on `main` at `d2357c1` since #67's merge, whose tree it was built and checked on; pull
-    request #68, not yet merged). With it, every step ADR-105 set out (P3.7 to P3.16) is built.
+    **Done 20 October 2026, merged 21 October** (#68, at `b88185a`; CI passed every job on its head and on the merge, runs
+    39562131024 and 39591890110). With it, every step ADR-105 set out (P3.7 to P3.16) is done.
     - **A game's store** (`runtime/store.h`, `GameStore`): logic's `save(key, value)`, `saved(key, fallback)` and
       `forget(key)`. It keeps numbers, text, true and false, null, and lists and objects of them, 64 KiB in all, under
       keys of 1 to 100 characters. Anything else is refused with its reason in the log, and `save` returns false. The
