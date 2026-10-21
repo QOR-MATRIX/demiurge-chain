@@ -35,88 +35,95 @@ Scene {
         imageSize: 2
     }
 
-    Shape {
-        name: "North wall"
-        position: Qt.vector3d(0, 0.75, -11)
+    Group {
+        name: "Walls"
+        position: Qt.vector3d(0, 0, 0)
         eulerRotation: Qt.vector3d(0, 0, 0)
-        scale: Qt.vector3d(22, 1.5, 0.5)
-        form: "cube"
-        colour: "#ece4d8"
-        metalness: 0
-        roughness: 0.85
-        emissive: "#000000"
-        emissivePower: 0
-        image: "../assets/stone.png"
-        imageSize: 1.5
-        normalMap: "../assets/stone-normal.png"
-        crisp: false
-        body: "static"
-        mass: 1
-        bounce: 0.2
-        friction: 0.6
-    }
+        scale: Qt.vector3d(1, 1, 1)
 
-    Shape {
-        name: "South wall"
-        position: Qt.vector3d(0, 0.75, 11)
-        eulerRotation: Qt.vector3d(0, 0, 0)
-        scale: Qt.vector3d(22, 1.5, 0.5)
-        form: "cube"
-        colour: "#ece4d8"
-        metalness: 0
-        roughness: 0.85
-        emissive: "#000000"
-        emissivePower: 0
-        image: "../assets/stone.png"
-        imageSize: 1.5
-        normalMap: "../assets/stone-normal.png"
-        crisp: false
-        body: "static"
-        mass: 1
-        bounce: 0.2
-        friction: 0.6
-    }
+        Shape {
+            name: "North wall"
+            position: Qt.vector3d(0, 0.75, -11)
+            eulerRotation: Qt.vector3d(0, 0, 0)
+            scale: Qt.vector3d(22, 1.5, 0.5)
+            form: "cube"
+            colour: "#ece4d8"
+            metalness: 0
+            roughness: 0.85
+            emissive: "#000000"
+            emissivePower: 0
+            image: "../assets/stone.png"
+            imageSize: 1.5
+            normalMap: "../assets/stone-normal.png"
+            crisp: false
+            body: "static"
+            mass: 1
+            bounce: 0.2
+            friction: 0.6
+        }
 
-    Shape {
-        name: "East wall"
-        position: Qt.vector3d(11, 0.75, 0)
-        eulerRotation: Qt.vector3d(0, 0, 0)
-        scale: Qt.vector3d(0.5, 1.5, 22)
-        form: "cube"
-        colour: "#ece4d8"
-        metalness: 0
-        roughness: 0.85
-        emissive: "#000000"
-        emissivePower: 0
-        image: "../assets/stone.png"
-        imageSize: 1.5
-        normalMap: "../assets/stone-normal.png"
-        crisp: false
-        body: "static"
-        mass: 1
-        bounce: 0.2
-        friction: 0.6
-    }
+        Shape {
+            name: "South wall"
+            position: Qt.vector3d(0, 0.75, 11)
+            eulerRotation: Qt.vector3d(0, 0, 0)
+            scale: Qt.vector3d(22, 1.5, 0.5)
+            form: "cube"
+            colour: "#ece4d8"
+            metalness: 0
+            roughness: 0.85
+            emissive: "#000000"
+            emissivePower: 0
+            image: "../assets/stone.png"
+            imageSize: 1.5
+            normalMap: "../assets/stone-normal.png"
+            crisp: false
+            body: "static"
+            mass: 1
+            bounce: 0.2
+            friction: 0.6
+        }
 
-    Shape {
-        name: "West wall"
-        position: Qt.vector3d(-11, 0.75, 0)
-        eulerRotation: Qt.vector3d(0, 0, 0)
-        scale: Qt.vector3d(0.5, 1.5, 22)
-        form: "cube"
-        colour: "#ece4d8"
-        metalness: 0
-        roughness: 0.85
-        emissive: "#000000"
-        emissivePower: 0
-        image: "../assets/stone.png"
-        imageSize: 1.5
-        normalMap: "../assets/stone-normal.png"
-        crisp: false
-        body: "static"
-        mass: 1
-        bounce: 0.2
-        friction: 0.6
+        Shape {
+            name: "East wall"
+            position: Qt.vector3d(11, 0.75, 0)
+            eulerRotation: Qt.vector3d(0, 0, 0)
+            scale: Qt.vector3d(0.5, 1.5, 22)
+            form: "cube"
+            colour: "#ece4d8"
+            metalness: 0
+            roughness: 0.85
+            emissive: "#000000"
+            emissivePower: 0
+            image: "../assets/stone.png"
+            imageSize: 1.5
+            normalMap: "../assets/stone-normal.png"
+            crisp: false
+            body: "static"
+            mass: 1
+            bounce: 0.2
+            friction: 0.6
+        }
+
+        Shape {
+            name: "West wall"
+            position: Qt.vector3d(-11, 0.75, 0)
+            eulerRotation: Qt.vector3d(0, 0, 0)
+            scale: Qt.vector3d(0.5, 1.5, 22)
+            form: "cube"
+            colour: "#ece4d8"
+            metalness: 0
+            roughness: 0.85
+            emissive: "#000000"
+            emissivePower: 0
+            image: "../assets/stone.png"
+            imageSize: 1.5
+            normalMap: "../assets/stone-normal.png"
+            crisp: false
+            body: "static"
+            mass: 1
+            bounce: 0.2
+            friction: 0.6
+        }
     }
 
     Shape {

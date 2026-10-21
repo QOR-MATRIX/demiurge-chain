@@ -895,6 +895,122 @@ private slots:
                  qPrintable(QStringLiteral("rider at %1").arg(s.where(QStringLiteral("Rider")).y())));
     }
 
+    // ── groups and prefabs (P3.15) ──
+
+    void aGroupCarriesWhatIsInItAndItsBodiesFollow()
+    {
+        // A lift: a group holding a kinematic deck and a trigger above it. A crate lands on the deck where the group put
+        // it, and the trigger hears it; then logic raises the group a little each frame, as a game moves a platform,
+        // and the deck carries the crate up, the trigger going with them.
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/raise.qml")),
+                  "import QQ\nLogic {\n    property bool go: false\n"
+                  "    onFrame: (dt) => { if (go && target.position.y < 1.5) "
+                  "target.position.y = Math.min(1.5, target.position.y + 0.8 * dt) }\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    Group { name: \"Lift\"; position: Qt.vector3d(3, 0.5, 0)\n"
+                           "        Shape { name: \"Deck\"; body: \"kinematic\"; scale: Qt.vector3d(2, 0.2, 2) }\n"
+                           "        Trigger { name: \"Sensor\"; position: Qt.vector3d(0, 0.5, 0); scale: Qt.vector3d(1.5, 1, 1.5) }\n"
+                           "    }\n"
+                           "    Behaviour { name: \"Raise\"; source: \"../logic/raise.qml\"; target: \"Lift\" }\n"
+                           "    Shape { name: \"Crate\"; body: \"dynamic\"; position: Qt.vector3d(3, 3, 0); "
+                           "scale: Qt.vector3d(0.5, 0.5, 0.5); bounce: 0 }\n")),
+                       true, QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")))));
+        // On the deck, and staying there (not only passing on its way down): its top at 0.5 + 0.1, the crate's middle a
+        // quarter above.
+        QVERIFY2(s.runUntil([&] { return qAbs(s.where(QStringLiteral("Crate")).y() - 0.85f) < 0.05f; }, 5000),
+                 qPrintable(QString::number(s.where(QStringLiteral("Crate")).y())));
+        s.run(600);
+        QVERIFY2(qAbs(s.where(QStringLiteral("Crate")).y() - 0.85f) < 0.05f,
+                 qPrintable(QString::number(s.where(QStringLiteral("Crate")).y())));
+        QCOMPARE(s.where(QStringLiteral("Deck")), QVector3D(3, 0.5f, 0));
+        QObject *sensor = s.entity(QStringLiteral("Sensor"));
+        QVERIFY(s.runUntil([&] { return sensor->property("inside").toInt() >= 1; }, 2000));
+        // Raised a unit by logic.
+        QObject *raise = s.entity(QStringLiteral("Raise"))->property("logic").value<QObject *>();
+        QVERIFY(raise);
+        raise->setProperty("go", true);
+        QVERIFY(s.runUntil([&] { return s.entity(QStringLiteral("Lift"))->property("position").value<QVector3D>().y() >= 1.499f; },
+                           4000));
+        s.run(500);
+        QVERIFY2(qAbs(s.where(QStringLiteral("Crate")).y() - 1.85f) < 0.08f,
+                 qPrintable(QString::number(s.where(QStringLiteral("Crate")).y())));
+        QVERIFY(qAbs(s.where(QStringLiteral("Deck")).y() - 1.5f) < 1e-4f);
+        QVERIFY(qAbs(sensor->property("physics").value<QObject *>()->property("scenePosition").value<QVector3D>().y() - 2.0f) < 1e-4f);
+        QVERIFY(sensor->property("inside").toInt() >= 1);
+    }
+
+    void aPrefabPlacedTwiceIsTwoAndLogicPlacesMore()
+    {
+        // A hoop: a trigger and the logic that counts what passes through it, in a prefab file. Two are placed in the
+        // scene and logic places a third; a ball dropped through the right one is counted by that one alone.
+        QTemporaryDir project;
+        const QDir root(project.path());
+        writeFile(root.filePath(QStringLiteral("logic/count.qml")),
+                  "import QQ\nLogic {\n    property int count: 0\n    onEntered: (other) => count += 1\n}\n");
+        writeFile(root.filePath(QStringLiteral("prefabs/hoop.qml")),
+                  "import QQ\nGroup {\n    name: \"Hoop\"\n"
+                  "    Trigger { name: \"Ring\"; position: Qt.vector3d(0, 1, 0); scale: Qt.vector3d(2, 0.5, 2) }\n"
+                  "    Behaviour { name: \"Counter\"; source: \"../logic/count.qml\"; target: \"Ring\" }\n}\n");
+        writeFile(root.filePath(QStringLiteral("logic/placer.qml")),
+                  "import QQ\nLogic {\n    property var middle: null\n"
+                  "    onStarted: middle = spawn(\"Prefab\", { name: \"Middle\", source: \"../prefabs/hoop.qml\", "
+                  "position: Qt.vector3d(0, 0, -4) })\n}\n");
+        Stage s;
+        QVERIFY(s.open(sceneText(QStringLiteral(
+                           "    Prefab { name: \"Left\"; source: \"../prefabs/hoop.qml\"; position: Qt.vector3d(-3, 0, 0) }\n"
+                           "    Prefab { name: \"Right\"; source: \"../prefabs/hoop.qml\"; position: Qt.vector3d(3, 0, 0) }\n"
+                           "    Behaviour { name: \"Placer\"; source: \"../logic/placer.qml\" }\n"
+                           "    Shape { name: \"Ball\"; form: \"sphere\"; body: \"dynamic\"; position: Qt.vector3d(3, 4, 0);"
+                           " scale: Qt.vector3d(0.4, 0.4, 0.4) }\n")),
+                       true, QUrl::fromLocalFile(root.filePath(QStringLiteral("scenes/play.qml")))));
+        auto counted = [&](const QString &prefab) {
+            QObject *p = s.entity(prefab);
+            if (!p)
+                return -1;
+            QVariant counter;
+            QMetaObject::invokeMethod(p, "part", Q_RETURN_ARG(QVariant, counter), Q_ARG(QVariant, QStringLiteral("Counter")));
+            QObject *logic = counter.value<QObject *>() ? counter.value<QObject *>()->property("logic").value<QObject *>() : nullptr;
+            return logic ? logic->property("count").toInt() : -1;
+        };
+        // Each made of the file, where it stands; the third placed by logic.
+        QVERIFY(s.runUntil([&] { return counted(QStringLiteral("Left")) == 0 && counted(QStringLiteral("Right")) >= 0
+                                        && counted(QStringLiteral("Middle")) == 0; }, 5000));
+        QVariant ring;
+        QMetaObject::invokeMethod(s.entity(QStringLiteral("Right")), "part", Q_RETURN_ARG(QVariant, ring),
+                                  Q_ARG(QVariant, QStringLiteral("Ring")));
+        QCOMPARE(ring.value<QObject *>()->property("scenePosition").value<QVector3D>(), QVector3D(3, 1, 0));
+        // The ball falls through the right one: counted there, nowhere else.
+        QVERIFY2(s.runUntil([&] { return counted(QStringLiteral("Right")) == 1; }, 5000), "the right hoop never counted");
+        s.run(300);
+        QCOMPARE(counted(QStringLiteral("Right")), 1);
+        QCOMPARE(counted(QStringLiteral("Left")), 0);
+        QCOMPARE(counted(QStringLiteral("Middle")), 0);
+        // The scene's own entities are the prefabs, not their parts.
+        QVERIFY(!s.entity(QStringLiteral("Ring")));
+        // Logic removes the third, parts and all.
+        QObject *placer = s.entity(QStringLiteral("Placer"))->property("logic").value<QObject *>();
+        QObject *middle = placer->property("middle").value<QObject *>();
+        QVERIFY(middle);
+        QVariant removed;
+        QMetaObject::invokeMethod(placer, "remove", Q_RETURN_ARG(QVariant, removed), Q_ARG(QVariant, QVariant::fromValue(middle)));
+        QVERIFY(removed.toBool());
+        QVERIFY(s.runUntil([&] { return !s.entity(QStringLiteral("Middle")); }, 2000));
+        // And one part of the left one: logic takes away what is in a prefab (or a group) too.
+        QVariant leftRing;
+        QMetaObject::invokeMethod(s.entity(QStringLiteral("Left")), "part", Q_RETURN_ARG(QVariant, leftRing),
+                                  Q_ARG(QVariant, QStringLiteral("Ring")));
+        QMetaObject::invokeMethod(placer, "remove", Q_RETURN_ARG(QVariant, removed), Q_ARG(QVariant, leftRing));
+        QVERIFY(removed.toBool());
+        QVERIFY(s.runUntil([&] {
+            QVariant ring;
+            QMetaObject::invokeMethod(s.entity(QStringLiteral("Left")), "part", Q_RETURN_ARG(QVariant, ring),
+                                      Q_ARG(QVariant, QStringLiteral("Ring")));
+            return !ring.value<QObject *>();
+        }, 2000));
+    }
+
     void theOrbRunSampleIsAGameMadeOfKindsAndLogic()
     {
         const QString path = QDir(QStringLiteral(QQ_SAMPLES)).filePath(QStringLiteral("orb-run/scenes/orb-run.qml"));
@@ -917,7 +1033,20 @@ private slots:
         auto score = [&] { return logic() ? logic()->property("score").toInt() : -1; };
         QVERIFY2(s.runUntil([&] { return logic() && logic()->property("orbsOut").toInt() == 2; }, 5000),
                  qPrintable(rules->property("error").toString()));
-        QVERIFY(s.entity(QStringLiteral("Orb 1")) && s.entity(QStringLiteral("Orb 1 glow")));
+        // Each orb a prefab (P3.15): its glow and its pickup are its parts, not the scene's own entities.
+        auto partOf = [&s](const QString &prefab, const QString &name) {
+            QObject *p = s.entity(prefab);
+            QVariant found;
+            if (p)
+                QMetaObject::invokeMethod(p, "part", Q_RETURN_ARG(QVariant, found), Q_ARG(QVariant, name));
+            return found.value<QObject *>();
+        };
+        QVERIFY(s.entity(QStringLiteral("Orb 1")) && partOf(QStringLiteral("Orb 1"), QStringLiteral("Glow"))
+                && partOf(QStringLiteral("Orb 1"), QStringLiteral("Pickup")));
+        QCOMPARE(s.entity(QStringLiteral("Orb 1"))->property("kind").toString(), QStringLiteral("Prefab"));
+        QVERIFY(!s.entity(QStringLiteral("Glow")));
+        // The walls are a group (P3.15).
+        QCOMPARE(s.entity(QStringLiteral("North wall"))->parent(), s.entity(QStringLiteral("Walls")));
         QCOMPARE(score(), 0);
 
         // Its looks (P3.14): stone walls with their relief, a slate floor, two spot lights and a dusk sky, every file
@@ -988,11 +1117,11 @@ private slots:
         QCOMPARE(lantern->property("clips").toStringList(), (QStringList{QStringLiteral("idle"), QStringLiteral("flare")}));
         QCOMPARE(lantern->property("clip").toString(), QStringLiteral("flare"));
         QVERIFY(s.runUntil([&] { return lantern->property("clip").toString() == QStringLiteral("idle"); }, 3000));
-        QTRY_VERIFY(!s.entity(QStringLiteral("Orb 1")) && !s.entity(QStringLiteral("Orb 1 glow")));
+        QTRY_VERIFY(!s.entity(QStringLiteral("Orb 1")));  // taken away whole, glow and pickup
         QVERIFY(s.runUntil([&] { return !chime; }, 3000));
         QVERIFY2(s.runUntil([&] { return s.entity(QStringLiteral("Orb 3")) != nullptr; }, 4000), "no new orb");
         // A new orb grows in to its full size.
-        QObject *grown = s.entity(QStringLiteral("Orb 3 glow"));
+        QObject *grown = partOf(QStringLiteral("Orb 3"), QStringLiteral("Glow"));
         QVERIFY(s.runUntil([&] { return qAbs(grown->property("scale").value<QVector3D>().x() - 0.6f) < 1e-4f; }, 3000));
         QCOMPARE(logic()->property("orbsOut").toInt(), 2);
 

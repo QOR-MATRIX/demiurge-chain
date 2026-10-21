@@ -15,6 +15,7 @@
 #include <QTimer>
 #include <QVector2D>
 #include <QVector3D>
+#include <QtQuick3D/qquick3dobject.h>
 
 #include <cmath>
 
@@ -228,7 +229,10 @@ QString StudioTools::instructions()
         "art; a "
         "Spotlight shines a `cone` of light down its forward direction (eulerRotation; -90 about x is straight down), with "
         "`softness` at the edge; and the Scene's `sky` can be an equirectangular .hdr image that is seen and lights the "
-        "world, turned by `skyTurn`. "
+        "world, turned by `skyTurn`. A Group holds entities placed in its own terms (entity_add's `group`), moved as one; a "
+        "Prefab places a prefabs/<name>.qml file (its root a Group) by `source`, and logic places more with "
+        "spawn(\"Prefab\", { source, position }) and finds a part of one with prefab.part(name); spawn's third argument "
+        "puts what it makes in a group. "
         "A dynamic Shape "
         "has push(impulse), applyForce(force), "
         "setVelocity(v) and setSpin(v), and a kinematic Shape goes where logic sets its position. The game's interface is the "
@@ -274,12 +278,15 @@ void StudioTools::addTools()
         QStringLiteral("entity_add"),
         QStringLiteral("Add an entity of a kind (see kinds), with its fields. Vectors are [x, y, z], colours "
                        "\"#rrggbb\", files a path in the project (\"assets/x.glb\") or on this computer. The name given "
-                       "is made unique if taken; the entity added is returned."),
-        schema({{QStringLiteral("kind"), prop(QStringLiteral("string"), QStringLiteral("Shape, Prop, Lamp, Sun, Ground, "
-                                                                                       "Player, Emitter, Sound or "
-                                                                                       "Behaviour."))},
+                       "is made unique if taken; the entity added is returned. With `group`, it goes in that Group, its "
+                       "position then in the group's own terms."),
+        schema({{QStringLiteral("kind"), prop(QStringLiteral("string"), QStringLiteral("A kind (see kinds): Shape, Prop, "
+                                                                                       "Lamp, Group, Prefab, and so "
+                                                                                       "on."))},
                 {QStringLiteral("name"), prop(QStringLiteral("string"), QStringLiteral("What to call it."))},
-                {QStringLiteral("fields"), prop(QStringLiteral("object"), QStringLiteral("Field name to value."))}},
+                {QStringLiteral("fields"), prop(QStringLiteral("object"), QStringLiteral("Field name to value."))},
+                {QStringLiteral("group"), prop(QStringLiteral("string"), QStringLiteral("The Group to put it in, by "
+                                                                                        "name."))}},
                {QStringLiteral("kind")}),
         now([this](Args a) { return entityAdd(a); }));
     m_server->addTool(QStringLiteral("entity_set"),
@@ -465,8 +472,11 @@ McpServer::Result StudioTools::sceneRead()
     QJsonArray entities;
     for (const QVariant &v : m_io->entities(s)) {
         QObject *e = v.value<QObject *>();
-        entities.append(QJsonObject{{QStringLiteral("kind"), e->property("kind").toString()},
-                                    {QStringLiteral("fields"), fieldsOf(e)}});
+        QJsonObject entry{{QStringLiteral("kind"), e->property("kind").toString()}, {QStringLiteral("fields"), fieldsOf(e)}};
+        // Which group it is in (P3.15): its place is in that group's terms.
+        if (auto *node = qobject_cast<QQuick3DObject *>(e); node && node->parentItem() != s)
+            entry.insert(QStringLiteral("group"), node->parentItem()->property("name").toString());
+        entities.append(entry);
     }
     const QUrl file = m_studio->property("sceneFile").toUrl();
     return ok({{QStringLiteral("scene"), fieldsOf(s)},
@@ -654,9 +664,16 @@ McpServer::Result StudioTools::entityAdd(const QJsonObject &args)
     if (!name.trimmed().isEmpty())
         start.insert(QStringLiteral("name"), name.trimmed());
     fields.remove(QStringLiteral("name"));
+    // In a group (P3.15), named.
+    QObject *into = nullptr;
+    if (const QString group = args.value(QStringLiteral("group")).toString(); !group.isEmpty()) {
+        into = entity(group);
+        if (!into || into->property("kind").toString() != QStringLiteral("Group"))
+            return problem(tr("There is no group called %1.").arg(group));
+    }
     QVariant made;
-    QMetaObject::invokeMethod(m_studio, "add", Q_RETURN_ARG(QVariant, made), Q_ARG(QVariant, kind),
-                              Q_ARG(QVariant, start));
+    QMetaObject::invokeMethod(m_studio, "addInto", Q_RETURN_ARG(QVariant, made), Q_ARG(QVariant, kind),
+                              Q_ARG(QVariant, start), Q_ARG(QVariant, QVariant::fromValue(into)));
     QObject *e = made.value<QObject *>();
     if (!e)
         return problem(m_studio->property("notice").toString());

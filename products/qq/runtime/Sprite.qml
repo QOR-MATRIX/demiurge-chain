@@ -93,10 +93,8 @@ Node {
     function makeBody() {
         if (!live || physics || (body !== "static" && body !== "dynamic" && body !== "kinematic"))
             return
-        const made = (body === "dynamic" ? movingBody : body === "kinematic" ? ledBody : standingBody).createObject(parent, {
-            position: sprite.position,
-            rotation: sprite.rotation
-        })
+        const made = (body === "dynamic" ? movingBody : body === "kinematic" ? ledBody : standingBody)
+            .createObject(SceneIO.sceneOf(sprite) ?? parent, { position: sprite.scenePosition, rotation: sprite.sceneRotation })
         made.collisionShapes = [box.createObject(made)]
         physics = made
     }
@@ -149,7 +147,7 @@ Node {
         castsShadows: sprite.lit
         receivesShadows: sprite.lit
         scale: {
-            const s = parent === sprite ? Qt.vector3d(1, 1, 1) : sprite.scale
+            const s = parent === sprite ? Qt.vector3d(1, 1, 1) : sprite.sceneScale
             return Qt.vector3d((sprite.flip ? -1 : 1) * s.x * sprite.size.x / 100, s.y * sprite.size.y / 100, 1)
         }
         materials: PrincipledMaterial {
@@ -176,7 +174,7 @@ Node {
     Component {
         id: box
         BoxShape {
-            extents: Qt.vector3d(sprite.size.x * sprite.scale.x, sprite.size.y * sprite.scale.y, 1)
+            extents: Qt.vector3d(sprite.size.x * sprite.sceneScale.x, sprite.size.y * sprite.sceneScale.y, 1)
         }
     }
     Component {
@@ -215,8 +213,8 @@ Node {
             readonly property QtObject entity: sprite
             physicsMaterial: surface
             isKinematic: true
-            kinematicPosition: sprite.position
-            kinematicRotation: sprite.rotation
+            kinematicPosition: sprite.scenePosition
+            kinematicRotation: sprite.sceneRotation
             sendContactReports: true
             receiveContactReports: true
             sendTriggerReports: true

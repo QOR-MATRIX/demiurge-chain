@@ -187,15 +187,18 @@ QtObject {
 
     /// The entity in this scene called `name`, or null.
     function entity(name) {
-        return scene ? SceneIO.entities(scene).find(e => e.name === name) ?? null : null
+        // The scene's own first, those in groups among them; then any prefab's part (P3.15), the first of that name.
+        return scene ? SceneIO.entities(scene).find(e => e.name === name)
+                       ?? SceneIO.everyEntity(scene).find(e => e.name === name) ?? null : null
     }
 
-    /// Make an entity of `kind` with `fields` while the world plays: it, or null if it cannot be made. It is part of
-    /// the game being played, never of the scene being edited.
-    function spawn(kind, fields) {
+    /// Make an entity of `kind` with `fields` while the world plays, at the scene's top or in a group (`into`): it, or
+    /// null if it cannot be made. It is part of the game being played, never of the scene being edited. A prefab is
+    /// placed so: spawn("Prefab", { source: "../prefabs/coin.qml", position: at }), its parts found by its part(name).
+    function spawn(kind, fields, into) {
         if (!scene)
             return null
-        const made = SceneIO.add(scene, kind, fields ?? {})
+        const made = SceneIO.add(scene, kind, fields ?? {}, into ?? null)
         if (!made)
             console.warn("QQ logic: spawn(\"" + kind + "\"): " + SceneIO.lastError)
         return made
@@ -204,7 +207,7 @@ QtObject {
     /// Take an entity out of the game, with its body. It goes once the handler that asked has returned, so a contact
     /// or an entry can remove what caused it. False if it is not an entity of this scene, or is already going.
     function remove(entity) {
-        if (!entity || !scene || entity.parent !== scene || removing(entity))
+        if (!entity || !scene || SceneIO.sceneOf(entity) !== scene || removing(entity))
             return false
         logic._removing = logic._removing.concat([entity])
         // In a step it goes as the step ends, so a replay removes it at the same moment; otherwise once control returns.

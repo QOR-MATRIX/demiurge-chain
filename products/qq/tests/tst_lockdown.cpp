@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
+#include <QFileInfo>
 #include <QImage>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -273,15 +274,17 @@ private slots:
         // named.
         Game g;
         QImage(4, 4, QImage::Format_RGB32).save(g.out(QStringLiteral("picture.png")));
-        for (const char *name : {"sky.hdr", "orb.gltf", "chime.wav"})
-            QVERIFY(QFile::copy(fixture(QLatin1String(name)), g.out(QLatin1String(name))));
+        for (const char *name : {"sky.hdr", "orb.gltf", "chime.wav", "prefabs/post.qml"})
+            QVERIFY(QFile::copy(fixture(QLatin1String(name)), g.out(QFileInfo(QLatin1String(name)).fileName())));
         QVERIFY(QDir().mkpath(g.in(QStringLiteral("assets"))));
         QVERIFY(QFile::copy(fixture(QStringLiteral("checker.png")), g.in(QStringLiteral("assets/checker.png"))));
         QVERIFY(g.play(QByteArrayLiteral("import QQ\nLogic {}\n"),
                        QStringLiteral("    Shape { name: \"Far\"; image: \"%1\"; normalMap: \"%1\" }\n"
                                       "    Shape { name: \"Near\"; image: \"../assets/checker.png\" }\n"
-                                      "    Prop { name: \"Model\"; source: \"%2\" }\n")
-                           .arg(g.outUrl(QStringLiteral("picture.png")), g.outUrl(QStringLiteral("orb.gltf")))));
+                                      "    Prop { name: \"Model\"; source: \"%2\" }\n"
+                                      "    Prefab { name: \"Stranger\"; source: \"%3\" }\n")
+                           .arg(g.outUrl(QStringLiteral("picture.png")), g.outUrl(QStringLiteral("orb.gltf")),
+                                g.outUrl(QStringLiteral("post.qml")))));
         QObject *far = nullptr;
         QObject *near = nullptr;
         QObject *model = nullptr;
@@ -307,6 +310,14 @@ private slots:
         QCOMPARE(g.io->resolvedUrl(g.scene, QUrl(g.outUrl(QStringLiteral("chime.wav")))), QUrl());
         QTest::qWait(300);
         QVERIFY(model->property("status").toInt() != 1);  // Prop.Ready
+        // And a prefab from outside is made of nothing (P3.15).
+        QObject *stranger = nullptr;
+        for (const QVariant &e : g.io->entities(g.scene))
+            if (e.value<QObject *>()->property("name").toString() == QStringLiteral("Stranger"))
+                stranger = e.value<QObject *>();
+        QVERIFY(stranger);
+        QVERIFY(!stranger->property("content").value<QObject *>());
+        QVERIFY(!stranger->property("error").toString().isEmpty());
     }
 
     void aRelativePathCannotClimbOutOfThePackage()

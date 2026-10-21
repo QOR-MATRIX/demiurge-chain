@@ -11,7 +11,10 @@
 //
 // Editing (P3.15): Ctrl+Z undoes an edit and Ctrl+Y (or Ctrl+Shift+Z) does it again, whatever made it (History.qml);
 // Ctrl+D duplicates the selection beside itself; and with snapping on, a handle moves along a grid, turns by 15 degrees
-// and scales by tenths.
+// and scales by tenths. The list is the scene's tree: Ctrl+G puts the selection in a new group, Ctrl+Shift+G takes a
+// group's contents out of it, the inspector moves the selection between groups, and a group can be kept as a prefab,
+// prefabs/<name>.qml, placed as often as wanted. A click in the world picks what is innermost, but a prefab's parts
+// pick the prefab.
 //
 // Play (F5) runs the scene (DIRECTION P3.2): a copy is built from the scene's canonical text and played in its place,
 // with physics, the player under the keyboard, mouse and gamepad, particles, sound and logic that reloads when its file
@@ -237,20 +240,10 @@ ApplicationWindow {
             return false
         }
         const name = sceneName.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") || "untitled"
-        // Files from outside the project (models, sounds, pictures, skies, logic) come into it first, so the project is
-        // whole on its own: the scene's own (its sky) and its entities'.
-        for (const e of [scene].concat(SceneIO.entities(scene))) {
-            for (const field of e.fields) {
-                if (SceneIO.fieldType(e, field) !== "url" || String(e[field]) === "")
-                    continue
-                const adopted = SceneIO.adopt(SceneIO.resolvedUrl(e, e[field]), project)
-                if (String(adopted) === "") {
-                    say(SceneIO.lastError, true)
-                    return false
-                }
-                e[field] = adopted
-            }
-        }
+        // Files from outside the project (models, sounds, pictures, skies, prefabs, logic) come into it first, so the
+        // project is whole on its own: the scene's own (its sky) and its entities', those in groups too.
+        if (!adoptFiles([scene].concat(SceneIO.entities(scene))))
+            return false
         scene.name = name
         const file = fileFor(name)
         const problem = SceneIO.save(scene, file)
@@ -285,6 +278,11 @@ ApplicationWindow {
     }
 
     function add(kind, properties) {
+        return addInto(kind, properties, null)
+    }
+
+    /// Add an entity of `kind` in a group (`into`), or at the scene's top (null): it, selected, or null.
+    function addInto(kind, properties, into) {
         if (!scene)
             return null
         let n = 1
@@ -295,7 +293,7 @@ ApplicationWindow {
         properties.name = name
         if (kind !== "Sun" && kind !== "Ground" && kind !== "Behaviour" && kind !== "Music" && properties.position === undefined)
             properties.position = Qt.vector3d(window.target.x, Math.max(0.5, window.target.y), window.target.z)
-        const made = SceneIO.add(scene, kind, properties)
+        const made = SceneIO.add(scene, kind, properties, into)
         if (!made) {
             say(SceneIO.lastError, true)
             return null
@@ -303,6 +301,150 @@ ApplicationWindow {
         selection = made
         refresh()
         return made
+    }
+
+    // ── the scene's tree (P3.15) ──
+
+    /// How many groups (or prefabs) an entity is in.
+    function depthOf(e) {
+        let d = 0
+        for (let p = e.parent; p && p !== scene; p = p.parent)
+            d++
+        return d
+    }
+
+    /// The groups the selection could go into: every group but itself and what is in it.
+    function groupsFor(e) {
+        return entityList.filter(g => g.kind === "Group" && g !== e && !SceneIO.entities(e).includes(g))
+    }
+
+    /// Put the selection in a new group, where it stands (Ctrl+G).
+    function groupSelection() {
+        if (playing || !selection || selection === scene)
+            return null
+        const chosen = selection
+        if (!SceneIO.nestable(chosen.kind)) {
+            say(qsTr("A %1 cannot be in a group.").arg(chosen.kind), true)
+            return null
+        }
+        const at = chosen.position
+        const group = addInto("Group", { name: "Group", position: Qt.vector3d(at.x, at.y, at.z) },
+                              chosen.parent === scene ? null : chosen.parent)
+        if (!group)
+            return null
+        SceneIO.reparent(chosen, group)
+        selection = group
+        refresh()
+        say(qsTr("%1 is in a new group.").arg(chosen.name))
+        return group
+    }
+
+    /// Take what is in the selected group out of it, where it stands, and the group away (Ctrl+Shift+G).
+    function ungroupSelection() {
+        if (playing || !selection || selection.kind !== "Group")
+            return false
+        const group = selection
+        for (const e of SceneIO.entities(group).filter(e => e.parent === group))
+            SceneIO.reparent(e, group.parent)
+        selection = null
+        SceneIO.remove(group)
+        Qt.callLater(refresh)
+        return true
+    }
+
+    /// Move the selection into `group`, or out to the scene's top (null), where it stands.
+    function moveSelectionInto(group) {
+        if (playing || !selection || selection === scene)
+            return false
+        if (!SceneIO.reparent(selection, group ?? scene)) {
+            say(SceneIO.lastError, true)
+            return false
+        }
+        refresh()
+        return true
+    }
+
+    /// Bring every file the entities name in from outside the project, as saving does; false (said) if one cannot be.
+    function adoptFiles(entities) {
+        for (const e of entities) {
+            for (const field of e.fields) {
+                if (SceneIO.fieldType(e, field) !== "url" || String(e[field]) === "")
+                    continue
+                const adopted = SceneIO.adopt(SceneIO.resolvedUrl(e, e[field]), project)
+                if (String(adopted) === "") {
+                    say(SceneIO.lastError, true)
+                    return false
+                }
+                e[field] = adopted
+            }
+        }
+        return true
+    }
+
+    /// Turn the selected prefab back into a group of its parts, where it stood, to change them; Keep as prefab then
+    /// writes the group back over the same file.
+    function unpackPrefab() {
+        if (playing || !selection || selection.kind !== "Prefab" || !selection.content)
+            return null
+        const prefab = selection
+        const parts = prefab.content
+        const into = prefab.parent
+        const copy = v => Qt.vector3d(v.x, v.y, v.z)
+        const turn = copy(prefab.eulerRotation)
+        const size = copy(prefab.scale)
+        const name = prefab.name
+        parts.fromPrefab = SceneIO.resolvedUrl(prefab, prefab.source)
+        if (!SceneIO.reparent(parts, into)) {
+            say(SceneIO.lastError, true)
+            return null
+        }
+        parts.eulerRotation = turn
+        parts.scale = size
+        prefab.content = null
+        selection = null
+        SceneIO.remove(prefab)
+        parts.name = name
+        selection = parts
+        Qt.callLater(refresh)
+        say(qsTr("Unpacked: change it, then Keep as prefab writes it back to its file."))
+        return parts
+    }
+
+    /// Keep the selected group as a prefab, prefabs/<name>.qml, and put that prefab where the group was. A group
+    /// unpacked from a prefab is written back over that file, and every prefab of it in the scene is made again.
+    function makePrefab() {
+        if (playing || !selection || selection.kind !== "Group")
+            return null
+        if (String(project) === "") {
+            say(qsTr("A prefab lives in the project: choose a project first."), true)
+            return null
+        }
+        const group = selection
+        if (!adoptFiles([group].concat(SceneIO.entities(group))))
+            return null
+        const back = String(group.fromPrefab) !== ""
+        const file = back ? SceneIO.writePrefab(group, project, String(group.fromPrefab).split("/").pop().replace(/\.qml$/i, ""), true)
+                          : SceneIO.writePrefab(group, project, group.name)
+        if (String(file) === "") {
+            say(SceneIO.lastError, true)
+            return null
+        }
+        const copy = v => Qt.vector3d(v.x, v.y, v.z)
+        const fields = { name: group.name, source: file, position: copy(group.position),
+                         eulerRotation: copy(group.eulerRotation), scale: copy(group.scale) }
+        const into = group.parent === scene ? null : group.parent
+        selection = null
+        SceneIO.remove(group)
+        entityList = SceneIO.entities(scene)
+        const placed = addInto("Prefab", fields, into)
+        // The others of that file are made again from it.
+        for (const e of SceneIO.entities(scene))
+            if (e !== placed && e.kind === "Prefab" && String(SceneIO.resolvedUrl(e, e.source)) === String(file))
+                e._build()
+        if (placed)
+            say(qsTr("Kept as prefabs/%1; this is a prefab of it now.").arg(String(file).split("/").pop()))
+        projectInfo = SceneIO.project(project)
+        return placed
     }
 
     function play() {
@@ -420,12 +562,19 @@ ApplicationWindow {
             target = selection.scenePosition
     }
 
-    /// The entity a picked model belongs to: the nearest ancestor that declares a kind, other than the scene.
+    /// The entity a picked model belongs to: the innermost that declares a kind, other than the scene; but a prefab's
+    /// parts are its file's, so a click on one picks the prefab (the outermost, if prefabs are in prefabs).
     function entityOf(object) {
-        let o = object
-        while (o && !(o.kind !== undefined && o.kind !== "Scene"))
-            o = o.parent
-        return o ?? null
+        let found = null
+        for (let o = object; o && o.kind !== "Scene"; o = o.parent) {
+            if (o.kind === undefined)
+                continue
+            if (o.kind === "Prefab")
+                found = o
+            else if (!found)
+                found = o
+        }
+        return found
     }
 
     Component.onCompleted: {
@@ -441,6 +590,8 @@ ApplicationWindow {
     // ambiguous shortcut does nothing.
     Shortcut { sequences: [StandardKey.Redo]; enabled: !window.playing; onActivated: window.redo() }
     Shortcut { sequence: "Ctrl+D"; enabled: !window.playing; onActivated: window.duplicateSelection() }
+    Shortcut { sequence: "Ctrl+G"; enabled: !window.playing; onActivated: window.groupSelection() }
+    Shortcut { sequence: "Ctrl+Shift+G"; enabled: !window.playing; onActivated: window.ungroupSelection() }
     Shortcut { sequence: "F"; enabled: !window.playing; onActivated: window.frameSelection() }
     Shortcut { sequence: "F5"; onActivated: window.playing ? window.stop() : window.play() }
     Shortcut { sequence: "Escape"; enabled: window.playing; onActivated: window.stop() }
@@ -619,6 +770,11 @@ ApplicationWindow {
                                 onTriggered: window.add("Spotlight", { position: Qt.vector3d(window.target.x, 4, window.target.z) })
                             }
                             MenuItem { text: qsTr("Model…"); onTriggered: modelChooser.open() }
+                            MenuItem {
+                                text: qsTr("Group")
+                                onTriggered: window.add("Group", { name: "Group" })
+                            }
+                            MenuItem { text: qsTr("Prefab…"); onTriggered: prefabChooser.open() }
                             MenuSeparator {}
                             MenuItem {
                                 text: qsTr("Player")
@@ -678,6 +834,8 @@ ApplicationWindow {
                         onClicked: window.selection = modelData
                         contentItem: RowLayout {
                             spacing: 10
+                            // Indented by the groups it is in.
+                            Item { implicitWidth: window.depthOf(entry.modelData) * 14; visible: implicitWidth > 0 }
                             Rectangle {
                                 width: 9
                                 height: 9
@@ -685,6 +843,8 @@ ApplicationWindow {
                                 color: entry.modelData.kind === "Shape" || entry.modelData.kind === "Ground" ? entry.modelData.colour
                                      : entry.modelData.kind === "Lamp" || entry.modelData.kind === "Sun"
                                        || entry.modelData.kind === "Spotlight" ? entry.modelData.color
+                                     : entry.modelData.kind === "Group" ? "#9ba2ad"
+                                     : entry.modelData.kind === "Prefab" ? "#c9a45c"
                                      : "#ff6a00"
                             }
                             Label { text: entry.modelData.name; Layout.fillWidth: true; elide: Text.ElideRight }
@@ -1009,6 +1169,15 @@ ApplicationWindow {
                             }
                         }
                         ToolButton {
+                            objectName: "groupButton"
+                            visible: window.selection !== null && window.selection !== window.scene
+                                     && SceneIO.nestable(window.selection.kind)
+                            text: qsTr("Group")
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTr("Put it in a new group (Ctrl+G)")
+                            onClicked: window.groupSelection()
+                        }
+                        ToolButton {
                             objectName: "duplicateButton"
                             visible: window.selection !== null && window.selection !== window.scene
                             text: qsTr("Duplicate")
@@ -1029,6 +1198,48 @@ ApplicationWindow {
                         wrapMode: Text.Wrap
                         opacity: 0.55
                         text: qsTr("Select something in the world or in the list to change it.")
+                    }
+
+                    // Which group it is in, to move it to another, or out to the scene's top.
+                    RowLayout {
+                        visible: window.selection !== null && window.selection !== window.scene
+                                 && SceneIO.nestable(window.selection.kind)
+                        Layout.fillWidth: true
+                        Label { text: qsTr("In group"); opacity: 0.7; Layout.preferredWidth: 90 }
+                        ComboBox {
+                            objectName: "groupChoice"
+                            Layout.fillWidth: true
+                            readonly property var choices: window.selection ? [null].concat(window.groupsFor(window.selection)) : [null]
+                            model: choices.map(g => g ? g.name : qsTr("None (the scene)"))
+                            currentIndex: window.selection ? Math.max(0, choices.indexOf(window.selection.parent)) : 0
+                            onActivated: (i) => window.moveSelectionInto(choices[i])
+                        }
+                    }
+                    Button {
+                        objectName: "unpackButton"
+                        visible: window.selection !== null && window.selection.kind === "Prefab"
+                        text: qsTr("Unpack")
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Make it a group of its parts, to change them")
+                        onClicked: window.unpackPrefab()
+                    }
+                    RowLayout {
+                        visible: window.selection !== null && window.selection.kind === "Group"
+                        Button {
+                            objectName: "prefabButton"
+                            text: qsTr("Keep as prefab")
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTr("Write it to prefabs/ and place it as a prefab")
+                            onClicked: window.makePrefab()
+                        }
+                        Button {
+                            objectName: "ungroupButton"
+                            text: qsTr("Ungroup")
+                            flat: true
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTr("Take what is in it out (Ctrl+Shift+G)")
+                            onClicked: window.ungroupSelection()
+                        }
                     }
 
                     Inspector {
@@ -1117,6 +1328,15 @@ ApplicationWindow {
         title: qsTr("Add the scene's music")
         nameFilters: [qsTr("Sound (*.wav *.mp3 *.ogg *.flac)")]
         onAccepted: window.add("Music", { name: "Music", source: selectedFile })
+    }
+
+    FileDialog {
+        id: prefabChooser
+        title: qsTr("Place a prefab")
+        currentFolder: String(window.project) !== "" ? String(window.project) + "/prefabs" : ""
+        nameFilters: [qsTr("QQ prefabs (*.qml)")]
+        onAccepted: window.add("Prefab", { name: String(selectedFile).split("/").pop().replace(/\.qml$/i, ""),
+                                           source: selectedFile })
     }
 
     FileDialog {

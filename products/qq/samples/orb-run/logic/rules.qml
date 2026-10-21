@@ -11,6 +11,9 @@
 //
 // Its sound (P3.13): the title's music, giving way to the arena's when play starts; a chime where an orb is taken and a
 // rumble where the boulder is rolled; and the pause screen turns the music off and on again (its volume group).
+//
+// Its orbs are a prefab (P3.15), prefabs/orb.qml: a glow and the trigger that hears the player, placed whole and taken
+// away whole; the arena's walls are a group.
 
 import QQ
 
@@ -26,21 +29,19 @@ Logic {
                                   Qt.vector3d(4, 1, 4), Qt.vector3d(-4, 1, 4), Qt.vector3d(0, 1, -8)]
     property int placed: 0
 
-    /// An orb: a glowing sphere that nothing touches, and a trigger around it that hears the player.
+    /// An orb: the prefab, a glowing sphere that nothing touches and a trigger around it that hears the player.
     function placeOrb() {
         const at = spots[placed % spots.length]
         placed += 1
-        const name = "Orb " + placed
-        const glow = spawn("Shape", { name: name + " glow", form: "sphere", body: "none", position: at,
-                                      scale: Qt.vector3d(0.05, 0.05, 0.05), colour: "#ffd27a", emissive: "#ffb340",
-                                      emissivePower: 4, roughness: 0.2 })
-        const orb = spawn("Trigger", { name: name, form: "sphere", position: at, scale: Qt.vector3d(1.4, 1.4, 1.4) })
-        if (!glow || !orb)
+        const orb = spawn("Prefab", { name: "Orb " + placed, source: "../prefabs/orb.qml", position: at })
+        const glow = orb ? orb.part("Glow") : null
+        const pickup = orb ? orb.part("Pickup") : null
+        if (!glow || !pickup)
             return
         tween(glow, "scale", Qt.vector3d(0.6, 0.6, 0.6), 0.45, "outBack")
         orbsOut += 1
-        orb.entered.connect((other) => {
-            if (!other || other.kind !== "Player" || removing(orb))
+        pickup.entered.connect((other) => {
+            if (!other || other.kind !== "Player" || removing(pickup))
                 return
             score += 1
             orbsOut -= 1
@@ -49,9 +50,10 @@ Logic {
                 shown.text = "ORBS " + score
                 tween(shown, "size", 44, 0.12, "outQuad", () => tween(shown, "size", 34, 0.25, "inOutQuad"))
             }
-            remove(orb)
-            play("../assets/chime.wav", { at: glow.position })
-            tween(glow, "scale", Qt.vector3d(0.01, 0.01, 0.01), 0.25, "inCubic", () => remove(glow))
+            // Heard no more at once; seen shrinking away, and then gone whole.
+            remove(pickup)
+            play("../assets/chime.wav", { at: orb.position })
+            tween(glow, "scale", Qt.vector3d(0.01, 0.01, 0.01), 0.25, "inCubic", () => remove(orb))
             flare()
             after(1.5, placeOrb)
         })
@@ -136,7 +138,7 @@ Logic {
     // The orbs turn slowly, so they read as things to take.
     onFrame: (dt) => {
         for (const e of SceneIO.entities(scene))
-            if (e.name.endsWith(" glow"))
+            if (e.kind === "Prefab" && e.name.startsWith("Orb "))
                 e.eulerRotation.y += 60 * dt
     }
 }

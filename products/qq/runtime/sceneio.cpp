@@ -124,7 +124,8 @@ void writeObject(QString &out, const QObject *o, int depth, const QDir *base)
     for (const QString &field : fields)
         out += indent + QStringLiteral("    ") + field + QStringLiteral(": ") + valueText(o, o->property(field.toUtf8()), base)
                + QLatin1Char('\n');
-    if (const auto *node = qobject_cast<const QQuick3DObject *>(o)) {
+    // What is in a group is written in it; a prefab's parts are its own file's, never the scene's.
+    if (const auto *node = qobject_cast<const QQuick3DObject *>(o); node && o->property("kind").toString() != QStringLiteral("Prefab")) {
         for (const QQuick3DObject *child : node->childItems()) {
             if (!isEntity(child))
                 continue;
@@ -380,9 +381,19 @@ QUrl SceneIO::adopt(const QUrl &model, const QUrl &project)
         }
     }
 
-    // Logic is code, kept apart from what it uses.
-    const bool logic = source.suffix().compare(QStringLiteral("qml"), Qt::CaseInsensitive) == 0;
-    const QDir assets(root.filePath(logic ? QStringLiteral("logic") : QStringLiteral("assets")));
+    // Logic is code, kept apart from what it uses; a prefab (a QML file whose root is a Group, P3.15) goes with the
+    // others.
+    const bool qmlFile = source.suffix().compare(QStringLiteral("qml"), Qt::CaseInsensitive) == 0;
+    bool prefab = false;
+    if (qmlFile) {
+        QFile f(source.filePath());
+        static const QRegularExpression rootType(QStringLiteral(R"(^\s*([A-Za-z][A-Za-z0-9]*)\s*\{)"),
+                                                 QRegularExpression::MultilineOption);
+        prefab = f.open(QIODevice::ReadOnly)
+              && rootType.match(QString::fromUtf8(f.read(1 << 16))).captured(1) == QStringLiteral("Group");
+    }
+    const QDir assets(root.filePath(prefab ? QStringLiteral("prefabs") : qmlFile ? QStringLiteral("logic")
+                                                                                : QStringLiteral("assets")));
     // A model of the same name but different content is kept beside it, never over it.
     QString name = source.fileName();
     for (int n = 2; QFileInfo::exists(assets.filePath(name)) && digest(assets.filePath(name)) != digest(source.filePath());
@@ -459,22 +470,60 @@ QStringList SceneIO::kinds() const
             QStringLiteral("Trigger"), QStringLiteral("ScreenText"), QStringLiteral("ScreenBar"),
             QStringLiteral("ScreenButton"), QStringLiteral("ScreenImage"), QStringLiteral("ScreenPanel"),
             QStringLiteral("InputAction"), QStringLiteral("Sprite"), QStringLiteral("TileMap"), QStringLiteral("Player2D"),
-            QStringLiteral("Music"), QStringLiteral("Spotlight")};
+            QStringLiteral("Music"), QStringLiteral("Spotlight"), QStringLiteral("Group"), QStringLiteral("Prefab")};
 }
+
+namespace {
+
+/// The entities under `node`, in file order, each before what is in it; into prefabs' parts only when `parts`.
+void collect(const QQuick3DObject *node, bool parts, QVariantList &out)
+{
+    for (QQuick3DObject *child : node->childItems()) {
+        if (!isEntity(child))
+            continue;
+        out << QVariant::fromValue(static_cast<QObject *>(child));
+        if (parts || child->property("kind").toString() != QStringLiteral("Prefab"))
+            collect(child, parts, out);
+    }
+}
+
+}  // namespace
 
 QVariantList SceneIO::entities(QObject *scene) const
 {
     QVariantList out;
-    if (const auto *node = qobject_cast<const QQuick3DObject *>(scene)) {
-        for (QQuick3DObject *child : node->childItems()) {
-            if (isEntity(child))
-                out << QVariant::fromValue(static_cast<QObject *>(child));
-        }
-    }
+    if (const auto *node = qobject_cast<const QQuick3DObject *>(scene))
+        collect(node, false, out);
     return out;
 }
 
-QObject *SceneIO::add(QObject *scene, const QString &kind, const QVariantMap &properties)
+QVariantList SceneIO::everyEntity(QObject *scene) const
+{
+    QVariantList out;
+    if (const auto *node = qobject_cast<const QQuick3DObject *>(scene))
+        collect(node, true, out);
+    return out;
+}
+
+QObject *SceneIO::sceneOf(QObject *entity) const
+{
+    for (auto *o = qobject_cast<QQuick3DObject *>(entity); o; o = o->parentItem()) {
+        if (o->property("kind").toString() == QStringLiteral("Scene"))
+            return o;
+    }
+    return nullptr;
+}
+
+bool SceneIO::nestable(const QString &kind) const
+{
+    static const QStringList placed = {QStringLiteral("Shape"),   QStringLiteral("Lamp"),      QStringLiteral("Prop"),
+                                       QStringLiteral("Emitter"), QStringLiteral("Sound"),     QStringLiteral("Trigger"),
+                                       QStringLiteral("Sprite"),  QStringLiteral("Spotlight"), QStringLiteral("Group"),
+                                       QStringLiteral("Prefab"),  QStringLiteral("Behaviour")};
+    return placed.contains(kind);
+}
+
+QObject *SceneIO::add(QObject *scene, const QString &kind, const QVariantMap &properties, QObject *into)
 {
     auto *parent = qobject_cast<QQuick3DObject *>(scene);
     if (!parent || scene->property("kind").toString() != QStringLiteral("Scene")) {
@@ -484,6 +533,18 @@ QObject *SceneIO::add(QObject *scene, const QString &kind, const QVariantMap &pr
     if (!kinds().contains(kind)) {
         fail(QStringLiteral("QQ has no entity called %1.").arg(kind));
         return nullptr;
+    }
+    if (into && into != scene) {
+        if (into->property("kind").toString() != QStringLiteral("Group") || sceneOf(into) != scene
+            || !entities(scene).contains(QVariant::fromValue(into))) {
+            fail(QStringLiteral("Entities are added to a scene, or to a group of it."));
+            return nullptr;
+        }
+        if (!nestable(kind)) {
+            fail(QStringLiteral("A %1 cannot be in a group.").arg(kind));
+            return nullptr;
+        }
+        parent = qobject_cast<QQuick3DObject *>(into);
     }
     QQmlEngine *qml = engine();
     QQmlComponent component(qml);
@@ -498,26 +559,162 @@ QObject *SceneIO::add(QObject *scene, const QString &kind, const QVariantMap &pr
     for (auto it = properties.cbegin(); it != properties.cend(); ++it)
         entity->setProperty(it.key().toUtf8(), it.value());
     qobject_cast<QQuick3DObject *>(entity)->setParentItem(parent);
-    entity->setParent(scene);
+    entity->setParent(parent);
     QQmlEngine::setObjectOwnership(entity, QQmlEngine::CppOwnership);
     component.completeCreate();
     return entity;
 }
 
-bool SceneIO::remove(QObject *entity)
+namespace {
+
+/// Take the bodies play made for `entity` and everything in it out of the world: they sit at the scene's top, and go
+/// at once, deleted when control returns to the event loop (see SceneIO::discard()).
+void dropBodies(QObject *entity)
 {
-    auto *node = qobject_cast<QQuick3DObject *>(entity);
-    if (!node || !isEntity(entity) || !node->parentItem()
-        || node->parentItem()->property("kind").toString() != QStringLiteral("Scene"))
-        return false;
-    // A body play made sits beside its entity in the scene (Shape.qml, Trigger.qml, Player.qml): it leaves the scene with
-    // it at once, taking any model that rides on it, and is deleted when control returns to the event loop, while its
-    // world still stands (see discard()).
     if (auto *body = qobject_cast<QQuick3DObject *>(entity->property("physics").value<QObject *>());
         body && body->inherits("QAbstractPhysicsNode")) {
         body->setParentItem(nullptr);
         body->deleteLater();
     }
+    if (const auto *node = qobject_cast<const QQuick3DObject *>(entity)) {
+        for (QQuick3DObject *child : node->childItems()) {
+            if (isEntity(child))
+                dropBodies(child);
+        }
+    }
+}
+
+}  // namespace
+
+bool SceneIO::reparent(QObject *entity, QObject *into)
+{
+    // Nodes, through their properties and invokables: Qt Quick 3D's node class is not public API.
+    auto *node = qobject_cast<QQuick3DObject *>(entity);
+    auto *target = qobject_cast<QQuick3DObject *>(into);
+    QObject *scene = sceneOf(entity);
+    if (!node || !target || !isEntity(entity) || !scene || sceneOf(into) != scene || entity == scene) {
+        fail(QStringLiteral("An entity moves to a group of its own scene, or to the scene itself."));
+        return false;
+    }
+    if (into != scene && into->property("kind").toString() != QStringLiteral("Group")) {
+        fail(QStringLiteral("Entities go into groups."));
+        return false;
+    }
+    if (into != scene && !nestable(entity->property("kind").toString())) {
+        fail(QStringLiteral("A %1 cannot be in a group.").arg(entity->property("kind").toString()));
+        return false;
+    }
+    for (auto *o = qobject_cast<QQuick3DObject *>(into); o; o = o->parentItem()) {
+        if (o == entity) {
+            fail(QStringLiteral("A group cannot go into itself, or into what is in it."));
+            return false;
+        }
+    }
+    // Where it is in the world, kept: its place seen from its new group. Its turn and scale stay its own.
+    const QVector3D world = entity->property("scenePosition").value<QVector3D>();
+    QVector3D local = world;
+    if (into != scene)
+        QMetaObject::invokeMethod(into, "mapPositionFromScene", Q_RETURN_ARG(QVector3D, local), Q_ARG(QVector3D, world));
+    node->setParentItem(target);
+    entity->setParent(into);
+    entity->setProperty("position", local);
+    return true;
+}
+
+QObject *SceneIO::instantiate(QObject *prefab, const QUrl &file)
+{
+    auto *holder = qobject_cast<QQuick3DObject *>(prefab);
+    if (!holder || file.isEmpty()) {
+        fail(QStringLiteral("A prefab names its file."));
+        return nullptr;
+    }
+    if (outside(file)) {
+        fail(QStringLiteral("A game reads only its own files."));
+        return nullptr;
+    }
+    const bool bundled = file.scheme() == QStringLiteral("qrc");
+    QFile f(bundled ? QLatin1Char(':') + file.path() : file.toLocalFile());
+    if ((!file.isLocalFile() && !bundled) || !f.open(QIODevice::ReadOnly)) {
+        fail(QStringLiteral("The prefab %1 could not be read.").arg(file.fileName()));
+        return nullptr;
+    }
+    QQmlEngine *qml = engine();
+    QQmlComponent component(qml);
+    component.setData(f.readAll(), file);
+    if (component.isError()) {
+        QStringList why;
+        for (const QQmlError &e : component.errors())
+            why << e.toString();
+        fail(why.join(QLatin1Char('\n')));
+        return nullptr;
+    }
+    QObject *made = component.beginCreate(qml->rootContext());
+    if (!made) {
+        fail(component.errorString());
+        return nullptr;
+    }
+    qobject_cast<QQuick3DObject *>(made)->setParentItem(holder);
+    made->setParent(prefab);
+    QQmlEngine::setObjectOwnership(made, QQmlEngine::CppOwnership);
+    component.completeCreate();
+    if (made->property("kind").toString() != QStringLiteral("Group")) {
+        delete made;
+        fail(QStringLiteral("%1 is not a QQ prefab: its root is not a Group.").arg(file.fileName()));
+        return nullptr;
+    }
+    return made;
+}
+
+QUrl SceneIO::writePrefab(QObject *group, const QUrl &project, const QString &name, bool replace)
+{
+    if (m_confined) {
+        fail(QStringLiteral("A game cannot write files."));
+        return {};
+    }
+    if (!group || group->property("kind").toString() != QStringLiteral("Group") || !project.isLocalFile()) {
+        fail(QStringLiteral("A prefab is made from a group, in a project on this computer."));
+        return {};
+    }
+    QString safe = name.trimmed().toLower();
+    safe.replace(QRegularExpression(QStringLiteral("[^a-z0-9-]+")), QStringLiteral("-"));
+    safe.remove(QRegularExpression(QStringLiteral("^-+|-+$")));
+    if (safe.isEmpty())
+        safe = QStringLiteral("prefab");
+    const QDir folder(QDir(project.toLocalFile()).filePath(QStringLiteral("prefabs")));
+    const QString path = folder.filePath(safe + QStringLiteral(".qml"));
+    if (QFileInfo::exists(path) && !replace) {
+        fail(QStringLiteral("prefabs/%1.qml is there already.").arg(safe));
+        return {};
+    }
+    // At the origin, turned and scaled not at all: where the group stands is the place of each prefab made from it.
+    const QVariant position = group->property("position");
+    const QVariant turn = group->property("eulerRotation");
+    const QVariant scale = group->property("scale");
+    group->setProperty("position", QVector3D());
+    group->setProperty("eulerRotation", QVector3D());
+    group->setProperty("scale", QVector3D(1, 1, 1));
+    const QString text = write(group, QUrl::fromLocalFile(path));
+    group->setProperty("position", position);
+    group->setProperty("eulerRotation", turn);
+    group->setProperty("scale", scale);
+    QDir().mkpath(folder.path());
+    QSaveFile f(path);
+    if (!f.open(QIODevice::WriteOnly) || f.write(text.toUtf8()) < 0 || !f.commit()) {
+        fail(QStringLiteral("prefabs/%1.qml could not be written.").arg(safe));
+        return {};
+    }
+    return QUrl::fromLocalFile(path);
+}
+
+bool SceneIO::remove(QObject *entity)
+{
+    auto *node = qobject_cast<QQuick3DObject *>(entity);
+    if (!node || !isEntity(entity) || !node->parentItem() || entity->property("kind").toString() == QStringLiteral("Scene"))
+        return false;
+    // A body play made sits at the scene's top (Shape.qml, Trigger.qml, Player.qml): it leaves the scene with its entity
+    // at once, taking any model that rides on it, and so do those of what is in a group or a prefab; each is deleted
+    // when control returns to the event loop, while its world still stands (see discard()).
+    dropBodies(entity);
     node->setParentItem(nullptr);
     entity->deleteLater();
     return true;
@@ -554,8 +751,48 @@ QVariantMap SceneIO::readTiledMap(const QUrl &file, const QString &layer) const
 
 namespace {
 
-/// An entity's box as QQ measures it (P3.11): never from PhysX's own shapes, only from the entity's fields and, for a
-/// dynamic body, where its body is now.
+/// Where an entity is in its scene, as QQ measures it: its own place, scale and turn about the depth axis, and those of
+/// each group or prefab it is in (P3.15), worked out here in doubles rather than by Qt's matrices of floats, so a
+/// replay measures the same everywhere. A group's turn about the depth axis is counted; its turns about the others are
+/// not, since QQ's kinematics are on the plane.
+struct Place {
+    double x, y, z, sx, sy, sz, turn;
+};
+
+Place placeOf(QObject *entity)
+{
+    auto vec = [](QObject *o, const char *name, QVector3D fallback) {
+        const QVariant v = o->property(name);
+        return v.isValid() ? v.value<QVector3D>() : fallback;
+    };
+    const QVector3D at = vec(entity, "position", {});
+    const QVector3D scale = vec(entity, "scale", {1, 1, 1});
+    Place place{at.x(), at.y(), at.z(), scale.x(), scale.y(), scale.z(), vec(entity, "eulerRotation", {}).z()};
+    for (auto *o = qobject_cast<QQuick3DObject *>(entity)->parentItem(); o; o = o->parentItem()) {
+        const QString kind = o->property("kind").toString();
+        if (kind != QStringLiteral("Group") && kind != QStringLiteral("Prefab"))
+            break;
+        const QVector3D gAt = vec(o, "position", {});
+        const QVector3D gScale = vec(o, "scale", {1, 1, 1});
+        const double gTurn = vec(o, "eulerRotation", {}).z();
+        // Scaled, turned, then moved, as a node's children are; a turn of 0 is exact (its cosine 1, its sine 0).
+        const double x = place.x * gScale.x();
+        const double y = place.y * gScale.y();
+        const double c = gTurn == 0 ? 1 : std::cos(gTurn * std::numbers::pi / 180);
+        const double s = gTurn == 0 ? 0 : std::sin(gTurn * std::numbers::pi / 180);
+        place.x = gAt.x() + c * x - s * y;
+        place.y = gAt.y() + s * x + c * y;
+        place.z = gAt.z() + place.z * gScale.z();
+        place.sx *= gScale.x();
+        place.sy *= gScale.y();
+        place.sz *= gScale.z();
+        place.turn += gTurn;
+    }
+    return place;
+}
+
+/// An entity's box as QQ measures it (P3.11): never from PhysX's own shapes, only from the entity's fields (and its
+/// groups', placeOf) and, for a dynamic body, where its body is now.
 Box boxOf(QObject *entity)
 {
     const QString kind = entity->property("kind").toString();
@@ -567,26 +804,29 @@ Box boxOf(QObject *entity)
                       entity->property("atZ").toDouble(), entity->property("width").toDouble() / 2,
                       entity->property("height").toDouble() / 2, 0.5);
     }
-    QVector3D at = entity->property("position").value<QVector3D>();
+    Place place = placeOf(entity);
     auto *body = entity->property("physics").value<QObject *>();
-    if (body && (entity->property("body").toString() == QStringLiteral("dynamic") || kind == QStringLiteral("Player")))
-        at = body->property("scenePosition").value<QVector3D>();
+    if (body && (entity->property("body").toString() == QStringLiteral("dynamic") || kind == QStringLiteral("Player"))) {
+        const QVector3D now = body->property("scenePosition").value<QVector3D>();
+        place.x = now.x();
+        place.y = now.y();
+        place.z = now.z();
+    }
     if (kind == QStringLiteral("Player"))
-        return around(at.x(), at.y(), at.z(), 0.3, 0.9, 0.3);  // its capsule: 0.6 across, 1.8 tall
-    const QVector3D scale = entity->property("scale").value<QVector3D>();
+        return around(place.x, place.y, place.z, 0.3, 0.9, 0.3);  // its capsule: 0.6 across, 1.8 tall
     if (kind == QStringLiteral("Sprite")) {
         const QVector3D size = entity->property("size").value<QVector3D>();
-        return around(at.x(), at.y(), at.z(), std::abs(size.x() * scale.x()) / 2, std::abs(size.y() * scale.y()) / 2,
+        return around(place.x, place.y, place.z, std::abs(size.x() * place.sx) / 2, std::abs(size.y() * place.sy) / 2,
                       0.5);
     }
     // A shape or a trigger: a unit across before its scale, turned about the depth axis at most (its box on the plane
     // grows with the turn); a sphere, a cylinder or a cone is measured by its box.
-    const double turn = double(entity->property("eulerRotation").value<QVector3D>().z()) * std::numbers::pi / 180;
-    const double c = std::abs(std::cos(turn));
-    const double s = std::abs(std::sin(turn));
-    const double hx = std::abs(scale.x()) / 2;
-    const double hy = std::abs(scale.y()) / 2;
-    return around(at.x(), at.y(), at.z(), c * hx + s * hy, s * hx + c * hy, std::abs(scale.z()) / 2);
+    const double turn = place.turn * std::numbers::pi / 180;
+    const double c = place.turn == 0 ? 1 : std::abs(std::cos(turn));
+    const double s = place.turn == 0 ? 0 : std::abs(std::sin(turn));
+    const double hx = std::abs(place.sx) / 2;
+    const double hy = std::abs(place.sy) / 2;
+    return around(place.x, place.y, place.z, c * hx + s * hy, s * hx + c * hy, std::abs(place.sz) / 2);
 }
 
 /// What a 2D mover stands on and runs into in `scene`: solid tile maps, the boxes of static and kinematic shapes and
@@ -629,7 +869,7 @@ QList<Box> solidsOf(const QVariantList &entities, QObject *except)
 QVariantMap SceneIO::move2D(QObject *scene, QObject *mover, double x, double y, double z, double halfWidth,
                             double halfHeight, double dx, double dy) const
 {
-    const Moved m = sweep2D(solidsOf(entities(scene), mover), x, y, z, halfWidth, halfHeight, dx, dy);
+    const Moved m = sweep2D(solidsOf(everyEntity(scene), mover), x, y, z, halfWidth, halfHeight, dx, dy);
     return {{QStringLiteral("x"), m.x},       {QStringLiteral("y"), m.y},
             {QStringLiteral("left"), m.left}, {QStringLiteral("right"), m.right},
             {QStringLiteral("down"), m.down}, {QStringLiteral("up"), m.up}};
@@ -651,8 +891,9 @@ QObject *SceneIO::entityOf(QObject *scene, QObject *object) const
         // A body names its entity; a model riding on a body is found through the body.
         if (auto *named = o->property("entity").value<QObject *>(); named && isEntity(named))
             return named;
-        if (isEntity(o) && o->parentItem() == scene)
-            return o;
+        // The innermost entity: a shape in a group is itself, a part of a prefab is that part (P3.15).
+        if (isEntity(o))
+            return sceneOf(o) == scene ? o : nullptr;
     }
     return nullptr;
 }
@@ -696,7 +937,8 @@ QVariantMap SceneIO::project(const QUrl &folder) const
     return {{QStringLiteral("name"), root.dirName()},
             {QStringLiteral("repository"), QFileInfo(root.filePath(QStringLiteral(".git"))).exists()},
             {QStringLiteral("scenes"), names(QStringLiteral("scenes"))},
-            {QStringLiteral("logic"), names(QStringLiteral("logic"))}};
+            {QStringLiteral("logic"), names(QStringLiteral("logic"))},
+            {QStringLiteral("prefabs"), names(QStringLiteral("prefabs"))}};
 }
 
 QVariantMap SceneIO::importQqJson(const QUrl &file)
