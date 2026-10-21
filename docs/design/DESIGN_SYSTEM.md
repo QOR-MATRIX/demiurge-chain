@@ -7,9 +7,10 @@ writes a colour, a face, a radius or a duration of its own. Run with `--check`, 
 face that differs from the source, or a text colour under 4.5:1 on any background or filled control.
 
 **Surfaces join one at a time** (DIRECTION P2.9), each in the change that makes it read its generated file.
-**Joined:** the homepage (`site/tokens.css` and `site/fonts/`). **Not yet joined, each keeping its own values until its
-slice:** QQ (the Studio and the game screens), ARQADE (the web and Qt), the launcher, QOR ID's pages and emails, QOR
-Media and the Android shell. Their faces in Qt are already the source's (Cinzel and Barlow Semi Condensed, checked).
+**Joined:** the homepage (`site/tokens.css` and `site/fonts/`); QQ, the Studio and a game's screens
+(`products/qq/runtime/tokens.h`, read by `Look`, and the Studio's faces in `products/qq/studio/fonts/`). **Not yet
+joined, each keeping its own values until its slice:** ARQADE (the web and Qt), the launcher, QOR ID's pages and emails,
+QOR Media and the Android shell. Their faces in Qt are already the source's (Cinzel and Barlow Semi Condensed, checked).
 
 The QOR Launcher stays the reference for behaviour: its components (`src/components/ui`, `src/views/parts.tsx`), its
 accessibility settings and its checks are the most complete implementation of the rules below, and its theme table

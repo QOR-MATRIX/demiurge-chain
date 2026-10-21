@@ -1051,6 +1051,38 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      policy allows styles and fonts only from itself. Its colours do not change; its buttons and panels take the shared
      8 and 12 pixel corners, and its status tags the round pill. The share image renders the same from the local faces.
 
+   **The second slice, QQ, built 21 October 2026** (branch `session/qq-one-look`, on #69's head, the first slice;
+   kept back until #69 is merged):
+   - `products/qq/runtime/tokens.h`, generated: QQ's `Look` takes every value from it, for the Studio and a game's
+     screens alike: the whole palette (`Look.deepest` is the token `void`, a keyword in C++ and JavaScript), the four
+     faces, the type scale and tracking, the corners, the durations (0 with reduced motion) and the easing. A game
+     screen fades over the standard 260 milliseconds, where it was 180. `Look` hears the launcher's word on motion
+     (`QOR_REDUCED_MOTION`) before the system's. The Studio alone carries Barlow and IBM Plex Mono (copied by the
+     generator), so the Player and its browser build do not grow. On Windows Qt names Barlow Semi Condensed "Barlow",
+     the family of every width, so `Look` answers with each face's own name, by which each face and weight is found
+     (measured).
+   - **QQ Studio in the tool register**, where it was Qt's stock Material Dark with a green Play: obsidian grounds and
+     a gilt hairline under the bar, the wordmark in gilt Cinzel, Barlow for reading and Barlow Semi Condensed capitals
+     with tracking for headings, labels and actions, IBM Plex Mono in the logic editor and statistics, and every
+     colour from `Look`. Its actions are `StudioButton`s (`studio/StudioButton.qml`): Play the one ember primary, lit
+     from above with a glow and dark ink (7:1), Stop the status red, Save a ghost whose ember edge says there is work to
+     save, tools quiet until pointed at; 8 pixel corners, the shared focus ring for the keyboard, motion on the shared
+     easing and still under reduced motion (the "Playing" pulse too). The inspector names the selection on a line of
+     its own, its kind in gilt, its actions under it; the toolbar gives way at its notice, so every action stays in a
+     window as narrow as 1539 points.
+   - **A game's screen buttons answer the keyboard:** Tab moves between the buttons that answer, Enter or Space presses
+     one, delivered at the scene's next tick as a click is, so a run keeps it and a replay presses it at the same
+     moment; the focus ring is the shared one. A hidden screen's button keeps no key from the game.
+   - **Evidence, on the owner's PC:**
+     - All eight suites pass in one run of `build.ps1`: 160 cases, 4 new: `Look` equal to `tokens.json` value by value
+       (read from the JSON, not the header), the launcher's word on motion, the Studio in its register (as painted:
+       Play ember below its band of light, the focus ring clear of its edge, every action inside the window), and a
+       screen button pressed from the keyboard and replayed.
+     - `build.ps1 -Web` plays the playground in headless Chrome with no problem on the page: first frame 7.6 s, 305
+       frames a second, its store kept across a reload.
+     - Nine planted faults were each caught: Look's accent written by hand, the launcher's word on motion ignored, reduced motion leaving a duration running, white ink on the ember primary, Play not the primary, a notice that cannot give way (the toolbar overflowing a 1539-point window), the Studio's faces not bundled, a screen button deaf to the keyboard, and a keyboard press that skips the scene's tick.
+     - The Studio looked at, as painted in its case.
+
 #### P3: QOR Engine / QQ (P3.1 depends on nothing on chain)
 
 QQ, the QOR Engine: a game engine for virtual worlds and experiences, built on **Qt 6** (C++20, QML, Qt Quick 3D and

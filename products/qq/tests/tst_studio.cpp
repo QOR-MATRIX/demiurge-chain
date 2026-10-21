@@ -8,6 +8,9 @@
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
+#include <QFontDatabase>
+#include <QFontMetricsF>
+#include <QImage>
 #include <QMouseEvent>
 #include <QPointingDevice>
 #include <QQmlApplicationEngine>
@@ -941,6 +944,74 @@ private slots:
         QVERIFY(s.call("saveScene").toBool());
         QVERIFY(readAll(root.filePath(QStringLiteral("scenes/untitled.qml")))
                     .contains(QStringLiteral("        source: \"../logic/behaviour-2.qml\"\n")));
+    }
+
+    void theStudioWearsTheOneLooksToolRegister()
+    {
+        // ADR-108: the Studio is drawn in Demiurge's one look, every value from Look, and checked as painted.
+        Studio s;
+        QVERIFY(s.open());
+        auto *look = s.engine.singletonInstance<QObject *>("QQ", "Look");
+        QVERIFY(look);
+        auto colour = [look](const char *name) { return look->property(name).value<QColor>(); };
+        QCOMPARE(s.window->color(), colour("deepest"));
+        // Its reading and numeric faces are its own, carried in the Studio.
+        // Bundled, and found by name: "Barlow" alone would also find Barlow Semi Condensed, which Qt files under the
+        // same family on Windows, so the reading face is told by its width, which is wider.
+        for (const char *file : {":/qq/studio-fonts/Barlow-Regular.ttf", ":/qq/studio-fonts/IBMPlexMono-Regular.ttf"})
+            QVERIFY2(QFile::exists(QLatin1String(file)), file);
+        QVERIFY(QFontDatabase::families().contains(QStringLiteral("IBM Plex Mono")));
+        const QString sample = QStringLiteral("WORLD SETTINGS 0123");
+        QFont reading(QStringLiteral("Barlow"));
+        reading.setPixelSize(40);
+        QFont narrow(QStringLiteral("Barlow Semi Condensed"));
+        narrow.setPixelSize(40);
+        QVERIFY2(QFontMetricsF(reading).horizontalAdvance(sample) > QFontMetricsF(narrow).horizontalAdvance(sample) + 20,
+                 "Barlow, the reading face, is not there: what answers to its name is the narrow face");
+        QCOMPARE(look->property("body").toString(), QStringLiteral("Barlow"));
+        QCOMPARE(look->property("mono").toString(), QStringLiteral("IBM Plex Mono"));
+        QCOMPARE(s.window->property("font").value<QFont>().family(), QStringLiteral("Barlow"));
+
+        // Play is the one primary: ember, with dark ink on it. Save, with work unsaved, is not a second one.
+        auto *play = s.window->findChild<QQuickItem *>(QStringLiteral("playButton"));
+        auto *save = s.window->findChild<QQuickItem *>(QStringLiteral("saveButton"));
+        QVERIFY(play && save);
+        QCOMPARE(play->property("kind").toString(), QStringLiteral("primary"));
+        QCOMPARE(play->property("inkColour").value<QColor>(), colour("onAccent"));
+        s.call("add", QStringLiteral("Shape"), QVariantMap{{QStringLiteral("name"), QStringLiteral("Crate")}});
+        s.settle(2);
+        QVERIFY(s.window->property("dirty").toBool());
+        QCOMPARE(save->property("kind").toString(), QStringLiteral("ghost"));
+        QCOMPARE(save->property("inkColour").value<QColor>(), colour("accentBright"));
+
+        // As painted: the Play button's face is ember below its band of light.
+        auto near = [](const QColor &a, const QColor &b, int within) {
+            return qAbs(a.red() - b.red()) <= within && qAbs(a.green() - b.green()) <= within
+                   && qAbs(a.blue() - b.blue()) <= within;
+        };
+        s.settle(4);
+        QImage frame = s.window->grabWindow();
+        const qreal dpr = frame.devicePixelRatio();
+        // Inside the rounded corner, before the label, under the band of light that lights the top half.
+        const QPoint face = (play->mapToScene(QPointF(12, play->height() * 0.75)) * dpr).toPoint();
+        frame.save(QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("studio-look.png")));
+        // Every action in the window, however narrow the screen made it (a 1536-point screen, at 125%, gives 1539).
+        QVERIFY2(play->mapToScene(QPointF(play->width(), 0)).x() <= s.window->width(),
+                 qPrintable(QStringLiteral("Play ends at %1 in a window %2 wide")
+                                .arg(play->mapToScene(QPointF(play->width(), 0)).x())
+                                .arg(s.window->width())));
+        QVERIFY2(near(frame.pixelColor(face), colour("accent"), 24),
+                 qPrintable(frame.pixelColor(face).name() + QStringLiteral(" is not ember")));
+
+        // The keyboard's focus draws the one focus ring, clear of the button's edge.
+        play->forceActiveFocus(Qt::TabFocusReason);
+        s.settle(4);
+        QVERIFY(play->property("visualFocus").toBool());
+        frame = s.window->grabWindow();
+        const QPoint ring = (play->mapToScene(QPointF(-(look->property("focusWidth").toInt() + 1), play->height() / 2)) * dpr)
+                                .toPoint();
+        QVERIFY2(near(frame.pixelColor(ring), colour("focus"), 40),
+                 qPrintable(frame.pixelColor(ring).name() + QStringLiteral(" is not the focus ring")));
     }
 };
 

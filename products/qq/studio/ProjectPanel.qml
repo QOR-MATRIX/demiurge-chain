@@ -56,7 +56,9 @@ ColumnLayout {
     readonly property var labels: ({ scene: qsTr("Scene"), prefab: qsTr("Prefab"), logic: qsTr("Logic"),
                                      model: qsTr("Model"), picture: qsTr("Picture"), sound: qsTr("Sound"),
                                      sky: qsTr("Sky"), map: qsTr("Map") })
-    readonly property var marks: ({ scene: "#c9a45c", prefab: "#e3c27a", logic: "#ff8a3d", model: "#8ec5ff",
+    // A mark per kind: the scene, its prefabs and its logic in the look's own metal and ember; the assets in colours of
+    // their own, so a kind is told apart at a glance.
+    readonly property var marks: ({ scene: Look.gilt, prefab: Look.giltBright, logic: Look.accentBright, model: "#8ec5ff",
                                     picture: "#9fd49a", sound: "#c79bff", sky: "#f2a35e", map: "#5ad1ff" })
 
     TextField {
@@ -79,9 +81,12 @@ ColumnLayout {
         section.delegate: Label {
             required property string section
             text: panel.labels[section] ?? section
-            font.pixelSize: 10
+            font.family: Look.ui
+            font.weight: Font.DemiBold
+            font.pixelSize: Look.sizeMicro
+            font.letterSpacing: Look.sizeMicro * Look.trackingEyebrow
             font.capitalization: Font.AllUppercase
-            opacity: 0.5
+            color: Look.inkFaint
             topPadding: 6
         }
         delegate: ItemDelegate {
@@ -110,7 +115,7 @@ ColumnLayout {
                     width: 9
                     height: 9
                     radius: row.modelData.kind === "logic" ? 1 : 5
-                    color: panel.marks[row.modelData.kind] ?? "#9ba2ad"
+                    color: panel.marks[row.modelData.kind] ?? Look.inkMuted
                     Layout.leftMargin: 5
                     Layout.rightMargin: 6
                 }
@@ -139,7 +144,7 @@ ColumnLayout {
                   : panel.store.keys.length === 0 ? qsTr("Nothing kept between plays")
                   : qsTr("Kept between plays: %1 (%2)").arg(panel.store.keys.join(", ")).arg(panel.sizeText(panel.store.size))
         }
-        Button {
+        StudioButton {
             objectName: "forgetSaved"
             text: qsTr("Forget")
             flat: true

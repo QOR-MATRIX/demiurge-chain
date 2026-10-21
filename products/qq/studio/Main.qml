@@ -42,11 +42,18 @@ ApplicationWindow {
     height: 960
     visible: true
     title: (dirty ? "● " : "") + sceneName + " — QQ Studio"
-    color: "#07080c"
+    color: Look.deepest
 
+    // The tool register of Demiurge's one look (ADR-108): every colour, face and corner from Look. Qt's Material style
+    // draws the fields, lists and menus in it; the actions are StudioButtons.
     Material.theme: Material.Dark
-    Material.accent: "#ff6a00"
-    Material.primary: "#11131a"
+    Material.accent: Look.accent
+    Material.primary: Look.surface
+    Material.background: Look.base
+    Material.foreground: Look.inkBody
+    Material.roundedScale: Material.SmallScale
+    Material.containerStyle: Material.Outlined
+    font.family: Look.body
 
     property QtObject scene: null
     property QtObject selection: null
@@ -677,27 +684,47 @@ ApplicationWindow {
     // ── the window ─────────────────────────────────────────────────────────────────────────────
 
     header: ToolBar {
-        Material.background: "#0d0f15"
+        Material.background: Look.deepest
         height: 56
+        // A gilt hairline under the bar.
+        Rectangle {
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+            height: 1
+            color: Qt.rgba(Look.gilt.r, Look.gilt.g, Look.gilt.b, 0.22)
+        }
         RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 16
             anchors.rightMargin: 12
             spacing: 12
 
+            // The wordmark: the one place the tool register sets Cinzel.
             Label {
                 text: "QQ"
+                font.family: Look.display
                 font.pixelSize: 22
-                font.weight: Font.Black
-                color: Material.accent
+                font.weight: Font.DemiBold
+                font.letterSpacing: 22 * Look.trackingHeading
+                color: Look.giltBright
             }
             Label {
                 text: window.projectInfo.name !== "" ? window.projectInfo.name : qsTr("No project")
-                opacity: 0.7
+                Layout.maximumWidth: 200
+                elide: Text.ElideRight
+                font.family: Look.ui
+                font.weight: Font.Medium
+                font.letterSpacing: Look.sizeTitle * Look.trackingHeading
+                font.pixelSize: Look.sizeTitle
+                color: Look.inkMuted
             }
-            Label { text: "/"; opacity: 0.35 }
+            Label { text: "/"; color: Look.inkFaint }
             TextField {
                 Layout.preferredWidth: 200
+                implicitHeight: 38
+                topInset: 0
+                bottomInset: 0
+                topPadding: 8
+                bottomPadding: 8
                 text: window.sceneName
                 Accessible.name: qsTr("Scene name")
                 onEditingFinished: window.sceneName = text
@@ -714,12 +741,15 @@ ApplicationWindow {
             Label {
                 id: noticeLabel
                 objectName: "noticeLabel"
+                // It gives way first when the window is narrow, so every action stays in the window.
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 Layout.maximumWidth: 560
                 wrapMode: Text.Wrap
                 maximumLineCount: 2
                 elide: Text.ElideRight
                 text: window.playProblem !== "" ? window.playProblem : window.notice
-                color: window.noticeIsProblem || window.playProblem !== "" ? "#d57889" : Material.foreground
+                color: window.noticeIsProblem || window.playProblem !== "" ? Look.bad : Look.inkBody
                 opacity: window.noticeIsProblem || window.playProblem !== "" ? 1 : 0.7
                 font.pixelSize: 13
                 HoverHandler { id: noticeHover }
@@ -730,7 +760,7 @@ ApplicationWindow {
                     width: Math.min(implicitWidth, 560)
                 }
             }
-            ToolButton {
+            StudioButton {
                 objectName: "agentButton"
                 visible: window.designer !== null
                 text: qsTr("Agent")
@@ -738,7 +768,7 @@ ApplicationWindow {
                 checked: window.agentOpen
                 onToggled: window.agentOpen = checked
             }
-            ToolButton {
+            StudioButton {
                 objectName: "undoButton"
                 text: qsTr("Undo")
                 enabled: !window.playing && window.history.canUndo
@@ -746,7 +776,7 @@ ApplicationWindow {
                 ToolTip.text: qsTr("Undo (Ctrl+Z)")
                 onClicked: window.undo()
             }
-            ToolButton {
+            StudioButton {
                 objectName: "redoButton"
                 text: qsTr("Redo")
                 enabled: !window.playing && window.history.canRedo
@@ -756,8 +786,13 @@ ApplicationWindow {
             }
             ComboBox {
                 objectName: "snapChoice"
+                flat: true
                 enabled: !window.playing
                 Layout.preferredWidth: 128
+                implicitHeight: 38
+                topInset: 0
+                bottomInset: 0
+                font.pixelSize: Look.sizeBody
                 Accessible.name: qsTr("Snapping")
                 // One art pixel is a unit over the scene's pixels to a unit.
                 readonly property var steps: [0, window.scene ? 1 / window.scene.pixelsPerUnit : 0.0625, 0.1, 0.25, 0.5, 1]
@@ -767,7 +802,7 @@ ApplicationWindow {
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Handles move along this grid, turn by 15 degrees and scale by tenths")
             }
-            ToolButton {
+            StudioButton {
                 objectName: "statsButton"
                 text: qsTr("Stats")
                 checkable: true
@@ -776,9 +811,12 @@ ApplicationWindow {
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("What the world costs, and colliders in play (F3)")
             }
-            ToolButton { text: qsTr("New"); enabled: !window.playing; onClicked: window.newScene() }
-            ToolButton { text: qsTr("Import 2D…"); enabled: !window.playing; onClicked: importChooser.open() }
-            Button {
+            StudioButton { text: qsTr("New"); enabled: !window.playing; onClicked: window.newScene() }
+            StudioButton { text: qsTr("Import 2D…"); enabled: !window.playing; onClicked: importChooser.open() }
+            // Play is the one primary action; unsaved work lights Save's ember edge rather than making a second one.
+            StudioButton {
+                objectName: "saveButton"
+                kind: "ghost"
                 text: qsTr("Save")
                 enabled: !window.playing
                 highlighted: window.dirty
@@ -791,21 +829,21 @@ ApplicationWindow {
                 HoverHandler { id: publishHover }
                 ToolTip.visible: publishHover.hovered && window.publishHint !== ""
                 ToolTip.text: window.publishHint
-                Button {
+                StudioButton {
                     id: publishButton
                     objectName: "publishButton"
+                    kind: "ghost"
                     anchors.fill: parent
                     text: window.launcher && window.launcher.busy ? qsTr("Publishing…") : qsTr("Publish")
                     enabled: window.canPublish
                     onClicked: window.publish()
                 }
             }
-            Button {
+            StudioButton {
                 id: playButton
                 objectName: "playButton"
+                kind: window.playing ? "danger" : "primary"
                 text: window.playing ? qsTr("■  Stop") : qsTr("▶  Play")
-                highlighted: !window.playing
-                Material.accent: window.playing ? "#d57889" : "#3ddc84"
                 Accessible.name: window.playing ? qsTr("Stop") : qsTr("Play")
                 ToolTip.visible: hovered
                 ToolTip.text: window.playing ? qsTr("Stop (Esc)") : qsTr("Play (F5)")
@@ -824,7 +862,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             enabled: !window.playing
             opacity: enabled ? 1 : 0.45
-            Material.background: "#0d0f15"
+            Material.background: Look.base
             padding: 14
 
             ColumnLayout {
@@ -834,12 +872,15 @@ ApplicationWindow {
                 RowLayout {
                     Label {
                         text: qsTr("Scene")
-                        font.pixelSize: 11
+                        font.family: Look.ui
+                        font.weight: Font.DemiBold
+                        font.pixelSize: Look.sizeMicro
+                        font.letterSpacing: Look.sizeMicro * Look.trackingEyebrow
                         font.capitalization: Font.AllUppercase
-                        opacity: 0.6
+                        color: Look.inkMuted
                         Layout.fillWidth: true
                     }
-                    ToolButton {
+                    StudioButton {
                         text: qsTr("+ Add")
                         onClicked: addMenu.open()
                         Menu {
@@ -930,9 +971,9 @@ ApplicationWindow {
                                 color: entry.modelData.kind === "Shape" || entry.modelData.kind === "Ground" ? entry.modelData.colour
                                      : entry.modelData.kind === "Lamp" || entry.modelData.kind === "Sun"
                                        || entry.modelData.kind === "Spotlight" ? entry.modelData.color
-                                     : entry.modelData.kind === "Group" ? "#9ba2ad"
-                                     : entry.modelData.kind === "Prefab" ? "#c9a45c"
-                                     : "#ff6a00"
+                                     : entry.modelData.kind === "Group" ? Look.inkMuted
+                                     : entry.modelData.kind === "Prefab" ? Look.gilt
+                                     : Look.accent
                             }
                             Label { text: entry.modelData.name; Layout.fillWidth: true; elide: Text.ElideRight }
                             Label { text: entry.modelData.kind; opacity: 0.4; font.pixelSize: 11 }
@@ -945,12 +986,15 @@ ApplicationWindow {
                 RowLayout {
                     Label {
                         text: qsTr("Project")
-                        font.pixelSize: 11
+                        font.family: Look.ui
+                        font.weight: Font.DemiBold
+                        font.pixelSize: Look.sizeMicro
+                        font.letterSpacing: Look.sizeMicro * Look.trackingEyebrow
                         font.capitalization: Font.AllUppercase
-                        opacity: 0.6
+                        color: Look.inkMuted
                         Layout.fillWidth: true
                     }
-                    ToolButton {
+                    StudioButton {
                         text: String(window.project) === "" ? qsTr("Choose…") : qsTr("Change…")
                         onClicked: projectChooser.open()
                     }
@@ -1219,9 +1263,10 @@ ApplicationWindow {
                         height: 8
                         radius: 4
                         anchors.verticalCenter: parent.verticalCenter
-                        color: "#3ddc84"
+                        color: Look.ok
+                        // Still, for anyone who asked for less motion.
                         SequentialAnimation on opacity {
-                            running: window.playing
+                            running: window.playing && !Look.reducedMotion
                             loops: Animation.Infinite
                             NumberAnimation { to: 0.3; duration: 700; easing.type: Easing.InOutSine }
                             NumberAnimation { to: 1; duration: 700; easing.type: Easing.InOutSine }
@@ -1230,10 +1275,11 @@ ApplicationWindow {
                     Label {
                         id: playingLabel
                         text: qsTr("PLAYING") + (Input.gamepad ? "  ·  " + qsTr("gamepad") : "")
-                        font.pixelSize: 11
-                        font.letterSpacing: 1.5
+                        font.family: Look.ui
+                        font.pixelSize: Look.sizeCaption
+                        font.letterSpacing: Look.sizeCaption * Look.trackingLabel
                         font.weight: Font.DemiBold
-                        color: "#3ddc84"
+                        color: Look.ok
                     }
                 }
             }
@@ -1255,7 +1301,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             enabled: !window.playing
             opacity: enabled ? 1 : 0.45
-            Material.background: "#0d0f15"
+            Material.background: Look.base
             padding: 16
 
             ScrollView {
@@ -1266,28 +1312,37 @@ ApplicationWindow {
                     width: parent.width
                     spacing: 12
 
+                    // Its name and kind on a line of their own; what can be done with it under them.
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+                        Label {
+                            text: window.selection ? (window.selection === window.scene ? qsTr("Look and sky")
+                                                                                        : window.selection.name)
+                                                   : qsTr("Nothing selected")
+                            font.family: Look.ui
+                            font.pixelSize: Look.sizeHeading + 2
+                            font.weight: Font.DemiBold
+                            font.letterSpacing: (Look.sizeHeading + 2) * Look.trackingHeading
+                            color: Look.ink
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
+                        }
+                        Label {
+                            visible: window.selection !== null && window.selection !== window.scene
+                            text: window.selection ? window.selection.kind : ""
+                            font.family: Look.ui
+                            font.pixelSize: Look.sizeCaption
+                            font.letterSpacing: Look.sizeCaption * Look.trackingLabel
+                            font.capitalization: Font.AllUppercase
+                            color: Look.gilt
+                        }
+                    }
                     RowLayout {
                         Layout.fillWidth: true
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 0
-                            Label {
-                                text: window.selection ? (window.selection === window.scene ? qsTr("Look and sky")
-                                                                                            : window.selection.name)
-                                                       : qsTr("Nothing selected")
-                                font.pixelSize: 18
-                                font.weight: Font.DemiBold
-                                elide: Text.ElideRight
-                                Layout.fillWidth: true
-                            }
-                            Label {
-                                visible: window.selection !== null && window.selection !== window.scene
-                                text: window.selection ? window.selection.kind : ""
-                                opacity: 0.5
-                                font.pixelSize: 12
-                            }
-                        }
-                        ToolButton {
+                        visible: window.selection !== null && window.selection !== window.scene
+                        spacing: 4
+                        StudioButton {
                             objectName: "groupButton"
                             visible: window.selection !== null && window.selection !== window.scene
                                      && SceneIO.nestable(window.selection.kind)
@@ -1296,7 +1351,7 @@ ApplicationWindow {
                             ToolTip.text: qsTr("Put it in a new group (Ctrl+G)")
                             onClicked: window.groupSelection()
                         }
-                        ToolButton {
+                        StudioButton {
                             objectName: "duplicateButton"
                             visible: window.selection !== null && window.selection !== window.scene
                             text: qsTr("Duplicate")
@@ -1304,7 +1359,7 @@ ApplicationWindow {
                             ToolTip.text: qsTr("Duplicate (Ctrl+D)")
                             onClicked: window.duplicateSelection()
                         }
-                        ToolButton {
+                        StudioButton {
                             visible: window.selection !== null && window.selection !== window.scene
                             text: qsTr("Delete")
                             onClicked: window.removeSelection()
@@ -1334,14 +1389,14 @@ ApplicationWindow {
                             onActivated: (i) => window.moveSelectionInto(choices[i])
                         }
                     }
-                    Button {
+                    StudioButton {
                         objectName: "editLogicButton"
                         visible: window.selection !== null && window.selection.kind === "Behaviour"
                                  && window.logicNameOf(window.selection) !== ""
                         text: qsTr("Edit logic")
                         onClicked: window.openLogic(window.logicNameOf(window.selection))
                     }
-                    Button {
+                    StudioButton {
                         objectName: "unpackButton"
                         visible: window.selection !== null && window.selection.kind === "Prefab"
                         text: qsTr("Unpack")
@@ -1351,14 +1406,14 @@ ApplicationWindow {
                     }
                     RowLayout {
                         visible: window.selection !== null && window.selection.kind === "Group"
-                        Button {
+                        StudioButton {
                             objectName: "prefabButton"
                             text: qsTr("Keep as prefab")
                             ToolTip.visible: hovered
                             ToolTip.text: qsTr("Write it to prefabs/ and place it as a prefab")
                             onClicked: window.makePrefab()
                         }
-                        Button {
+                        StudioButton {
                             objectName: "ungroupButton"
                             text: qsTr("Ungroup")
                             flat: true
@@ -1387,7 +1442,7 @@ ApplicationWindow {
             visible: window.agentOpen && window.designer !== null
             Layout.preferredWidth: 380
             Layout.fillHeight: true
-            Material.background: "#0b0d13"
+            Material.background: Look.well
             padding: 16
 
             Loader {

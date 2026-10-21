@@ -23,6 +23,7 @@
 
 #include "confinement.h"
 #include "kinematics.h"
+#include "look.h"
 #include "mixer.h"
 #include "run.h"
 #include "sceneio.h"
@@ -1026,6 +1027,62 @@ private slots:
         QCOMPARE(qq::GameStore::gameOf(QUrl::fromLocalFile(QStringLiteral("relative/folder"))), QString());
         QCOMPARE(qq::GameStore::gameOf(QUrl(QStringLiteral("https://example.com/game"))), QString());
         QVERIFY(!qq::GameStore::storeFor(QUrl()));
+    }
+
+    // ── the one look (ADR-108) ──
+
+    void theLookIsTheOneLooksSourceValueByValue()
+    {
+        // Read from docs/design/tokens.json itself, not from the header generated from it: a value that went stale
+        // anywhere between the two would show here.
+        QFile file(QStringLiteral(QQ_TOKENS));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QJsonObject tokens = QJsonDocument::fromJson(file.readAll()).object();
+        auto *look = engine->singletonInstance<QObject *>("QQ", "Look");
+        QVERIFY(look);
+        const QJsonObject colours = tokens.value(QStringLiteral("color")).toObject();
+        QVERIFY(colours.size() >= 21);
+        for (auto it = colours.constBegin(); it != colours.constEnd(); ++it) {
+            // `void` is a word C++ and JavaScript keep: Look calls it `deepest`.
+            const QString name = it.key() == QStringLiteral("void") ? QStringLiteral("deepest") : it.key();
+            QCOMPARE(look->property(name.toUtf8()).value<QColor>(), QColor(it.value().toString()));
+        }
+        const QJsonObject radius = tokens.value(QStringLiteral("radius")).toObject();
+        QCOMPARE(look->property("radiusControl").toInt(), radius.value(QStringLiteral("control")).toInt());
+        QCOMPARE(look->property("radiusPanel").toInt(), radius.value(QStringLiteral("panel")).toInt());
+        const QJsonObject size = tokens.value(QStringLiteral("size")).toObject();
+        QCOMPARE(look->property("sizeBody").toInt(), size.value(QStringLiteral("body")).toInt());
+        QCOMPARE(look->property("sizeFigure").toInt(), size.value(QStringLiteral("figure")).toInt());
+        const QJsonObject font = tokens.value(QStringLiteral("font")).toObject();
+        QCOMPARE(look->property("display").toString(),
+                 font.value(QStringLiteral("display")).toObject().value(QStringLiteral("family")).toString());
+        QCOMPARE(look->property("ui").toString(),
+                 font.value(QStringLiteral("interface")).toObject().value(QStringLiteral("family")).toString());
+        // Motion: the token durations, all 0 with reduced motion; the easing's control points.
+        const QJsonObject motion = tokens.value(QStringLiteral("motion")).toObject();
+        const bool was = look->property("reducedMotion").toBool();
+        look->setProperty("reducedMotion", false);
+        QCOMPARE(look->property("standard").toInt(), motion.value(QStringLiteral("standard")).toInt());
+        QCOMPARE(look->property("fade").toInt(), motion.value(QStringLiteral("standard")).toInt());
+        look->setProperty("reducedMotion", true);
+        for (const char *name : {"quick", "standard", "enter", "sheen", "fade"})
+            QCOMPARE(look->property(name).toInt(), 0);
+        look->setProperty("reducedMotion", was);
+        const QVariantList ease = look->property("ease").toList();
+        QCOMPARE(ease.size(), 6);
+        QCOMPARE(ease.at(0).toDouble(), 0.16);
+        QCOMPARE(ease.at(2).toDouble(), 0.3);
+    }
+
+    void theLaunchersWordOnMotionComesBeforeTheSystems()
+    {
+        qputenv("QOR_REDUCED_MOTION", "1");
+        QVERIFY(qq::Look::systemPrefersReducedMotion());
+        qputenv("QOR_REDUCED_MOTION", "true");
+        QVERIFY(qq::Look::systemPrefersReducedMotion());
+        qputenv("QOR_REDUCED_MOTION", "0");
+        QVERIFY(!qq::Look::systemPrefersReducedMotion());
+        qunsetenv("QOR_REDUCED_MOTION");
     }
 
     // ── sound (P3.13, ADR-105) ──

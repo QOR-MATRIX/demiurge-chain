@@ -21,6 +21,19 @@ qt_add_qml_module(qqstudio
         ProjectPanel.qml
         LogicEditor.qml
         StatsOverlay.qml
+        StudioButton.qml
+)
+
+# The Studio's reading and numeric faces (Look's body and mono, ADR-108), copied here from docs/design/fonts/ by
+# docs/design/tokens.mjs: only the Studio carries them, so the Player and its browser build do not grow.
+qt_add_resources(qqstudio "studiofonts"
+    PREFIX "/qq/studio-fonts"
+    BASE fonts
+    FILES
+        fonts/Barlow-Regular.ttf
+        fonts/Barlow-Medium.ttf
+        fonts/IBMPlexMono-Regular.ttf
+        fonts/IBMPlexMono-Medium.ttf
 )
 
 # The model a new scene opens with: the same fixture the tests render, so what is checked is what is shown.

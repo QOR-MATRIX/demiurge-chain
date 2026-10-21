@@ -29,7 +29,7 @@ Pane {
 
     signal closed()
 
-    Material.background: "#0b0d13"
+    Material.background: Look.well
     padding: 0
 
     /// Open logic/<name>.qml: false (said) if it cannot be read.
@@ -110,18 +110,19 @@ Pane {
             Label {
                 objectName: "logicStatus"
                 text: editor.problems.length === 0 ? qsTr("Builds") : qsTr("%n problem(s)", "", editor.problems.length)
-                color: editor.problems.length === 0 ? "#3ddc84" : "#d57889"
+                color: editor.problems.length === 0 ? Look.ok : Look.bad
                 font.pixelSize: 12
             }
             Item { Layout.fillWidth: true }
-            Button {
+            StudioButton {
                 objectName: "logicSave"
+                kind: "ghost"
                 text: qsTr("Save")
                 highlighted: editor.dirty
                 enabled: editor.name !== ""
                 onClicked: editor.save()
             }
-            ToolButton {
+            StudioButton {
                 text: qsTr("Close")
                 onClicked: {
                     editor.name = ""
@@ -144,10 +145,10 @@ Pane {
                 wrapMode: TextEdit.NoWrap
                 selectByMouse: true
                 persistentSelection: true
-                font.family: "Consolas"
+                font.family: Look.mono
                 font.pixelSize: 13
                 leftPadding: gutter.width + 12
-                color: "#e6e1d6"
+                color: Look.inkBody
                 background: null
                 onTextChanged: quiet.restart()
                 // Four spaces for a tab, as the files are written.
@@ -164,7 +165,7 @@ Pane {
                     width: Math.max(28, implicitWidth)
                     horizontalAlignment: Text.AlignRight
                     font: code.font
-                    color: "#5d6370"
+                    color: Look.inkFaint
                     text: Array.from({ length: Math.max(1, code.lineCount) }, (_, i) => i + 1).join("\n")
                 }
             }
@@ -186,7 +187,7 @@ Pane {
                 height: 24
                 font.pixelSize: 12
                 text: qsTr("Line %1: %2").arg(modelData.line).arg(modelData.message)
-                Material.foreground: "#d57889"
+                Material.foreground: Look.bad
                 onClicked: editor.goTo(modelData.line)
             }
         }

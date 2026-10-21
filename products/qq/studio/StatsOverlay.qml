@@ -21,9 +21,9 @@ Rectangle {
 
     implicitWidth: column.implicitWidth + 20
     implicitHeight: column.implicitHeight + 14
-    radius: 6
-    color: "#cc0b0d13"
-    border.color: "#33ffffff"
+    color: Qt.rgba(Look.well.r, Look.well.g, Look.well.b, 0.82)
+    border.color: Look.edge
+    radius: Look.radiusPanel
 
     // Counted twice a second: an overlay that walks the scene every frame would cost what it measures.
     Timer {
@@ -46,21 +46,21 @@ Rectangle {
             objectName: "statsFrames"
             text: overlay.stats ? qsTr("%1 fps · %2 ms").arg(Math.round(overlay.stats.fps))
                                                         .arg(overlay.stats.frameTime.toFixed(1)) : ""
-            font.family: "Consolas"
+            font.family: Look.mono
             font.pixelSize: 12
         }
         Label {
             objectName: "statsDraws"
             text: overlay.stats ? qsTr("%1 draw calls · %2").arg(overlay.stats.drawCallCount).arg(overlay.stats.graphicsApiName)
                                 : ""
-            font.family: "Consolas"
+            font.family: Look.mono
             font.pixelSize: 12
             opacity: 0.8
         }
         Label {
             objectName: "statsScene"
             text: qsTr("%1 entities · %2 bodies").arg(overlay.entities).arg(overlay.bodies)
-            font.family: "Consolas"
+            font.family: Look.mono
             font.pixelSize: 12
             opacity: 0.8
         }

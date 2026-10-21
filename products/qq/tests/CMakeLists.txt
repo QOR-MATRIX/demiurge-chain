@@ -13,7 +13,9 @@ add_test(NAME tst_world COMMAND tst_world)
 
 qt_add_executable(tst_scene tst_scene.cpp)
 
-target_compile_definitions(tst_scene PRIVATE QQ_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+# The one look's source (ADR-108): Look is checked against it, value by value.
+target_compile_definitions(tst_scene PRIVATE QQ_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+    QQ_TOKENS="${CMAKE_CURRENT_SOURCE_DIR}/../../../docs/design/tokens.json")
 
 target_link_libraries(tst_scene PRIVATE
     Qt6::Test Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Quick3D

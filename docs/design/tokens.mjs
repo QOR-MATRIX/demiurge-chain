@@ -82,6 +82,32 @@ function css(fontDir) {
   return `/*\n  ${GENERATED.replace('\n', '\n  ')}\n*/\n\n${faces}\n:root {\n${vars.join('\n')}\n}\n`;
 }
 
+/** A C++ header of the values, for a Qt application's own style: `namespace` holds them, as constexpr. */
+function cpp(namespace) {
+  const pascal = (name) => name[0].toUpperCase() + name.slice(1);
+  const ease = tokens.motion.ease.match(/cubic-bezier\(([^)]+)\)/)[1].split(',').map((n) => Number(n.trim()));
+  const { ease: _, ...durations } = tokens.motion;
+  const lines = [];
+  lines.push('// Colours, as QRgb (0xrrggbb).');
+  for (const [name, value] of Object.entries(tokens.color)) lines.push(`inline constexpr QRgb color${pascal(name)} = 0x${value.slice(1)};`);
+  lines.push('', '// Faces: family names, as each is registered once its file is loaded.');
+  for (const [role, f] of Object.entries(tokens.font)) lines.push(`inline constexpr const char *font${pascal(role)} = "${f.family}";`);
+  lines.push('', '// The type scale, in pixels; tracking, in ems.');
+  for (const [step, px] of Object.entries(tokens.size)) lines.push(`inline constexpr int size${pascal(step)} = ${px};`);
+  for (const [name, value] of Object.entries(tokens.tracking)) lines.push(`inline constexpr double tracking${pascal(name)} = ${parseFloat(value)};`);
+  lines.push('', '// Corners, in pixels.');
+  for (const [name, px] of Object.entries(tokens.radius)) lines.push(`inline constexpr int radius${pascal(name)} = ${px};`);
+  lines.push('', '// Motion: durations in milliseconds, and the one easing as a cubic Bézier curve.');
+  for (const [name, ms] of Object.entries(durations)) lines.push(`inline constexpr int motion${pascal(name)} = ${ms};`);
+  lines.push(`inline constexpr double easeBezier[4] = {${ease.join(', ')}};`);
+  lines.push('', '// The focus ring.');
+  lines.push(`inline constexpr int focusWidth = ${tokens.focus.width};`);
+  lines.push(`inline constexpr int focusHalo = ${tokens.focus.halo};`);
+  lines.push(`inline constexpr QRgb focusColor = color${pascal(tokens.focus.color)};`);
+  const comment = GENERATED.split('\n').map((l) => `// ${l}`).join('\n');
+  return `${comment}\n\n#pragma once\n\n#include <QtGui/qrgb.h>\n\nnamespace ${namespace} {\n\n${lines.join('\n')}\n\n}  // namespace ${namespace}\n`;
+}
+
 // Each target: a file this script writes, or a font it copies. A surface joins by adding its own.
 const targets = [
   // The homepage (site/, ADR-100): its stylesheet maps its own names onto these.
@@ -92,6 +118,11 @@ const targets = [
     .map((name) => ({ file: `products/arqade/qt/fonts/${name}`, copy: `docs/design/fonts/${name}` })),
   ...['Cinzel.ttf', 'BarlowSemiCondensed-Regular.ttf', 'BarlowSemiCondensed-SemiBold.ttf']
     .map((name) => ({ file: `products/qq/runtime/fonts/${name}`, copy: `docs/design/fonts/${name}` })),
+  // QQ (P2.9's second slice): Look's values, for the Studio and a game's screens alike, and the Studio's reading and
+  // numeric faces, which only the Studio carries, so the Player and its browser build do not grow.
+  { file: 'products/qq/runtime/tokens.h', text: () => cpp('qq::tokens') },
+  ...['Barlow-Regular.ttf', 'Barlow-Medium.ttf', 'IBMPlexMono-Regular.ttf', 'IBMPlexMono-Medium.ttf', 'Barlow-OFL.txt',
+      'IBMPlexMono-OFL.txt'].map((name) => ({ file: `products/qq/studio/fonts/${name}`, copy: `docs/design/fonts/${name}` })),
 ];
 
 let written = 0;
@@ -99,11 +130,12 @@ for (const t of targets) {
   const path = join(repo, t.file);
   const want = t.copy ? readFileSync(join(repo, t.copy)) : Buffer.from(t.text(), 'utf8');
   const have = existsSync(path) ? readFileSync(path) : null;
-  // A generated text file is compared whatever its line endings: Git on Windows writes CRLF where it stores LF. A face
-  // is compared byte for byte.
-  const same = t.copy
-    ? have?.equals(want)
-    : have !== null && have.toString('utf8').replaceAll('\r\n', '\n') === want.toString('utf8');
+  // Text is compared whatever its line endings, since Git on Windows writes CRLF where it stores LF. A face is compared
+  // byte for byte.
+  const isText = !t.copy || /\.(txt|css|h|qml|json)$/.test(t.file);
+  const same = isText
+    ? have !== null && have.toString('utf8').replaceAll('\r\n', '\n') === want.toString('utf8').replaceAll('\r\n', '\n')
+    : have?.equals(want);
   if (same) continue;
   if (checking) {
     const what = !have ? 'is missing' : t.copy ? `differs from ${t.copy}` : 'is stale';
