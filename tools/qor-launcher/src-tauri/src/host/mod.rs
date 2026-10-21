@@ -190,6 +190,39 @@ impl Confirm for ProductDialog<'_> {
     }
 }
 
+/// The person's own Motion setting, as the launcher's interface last said it, passed on to every product the launcher
+/// starts as `QOR_REDUCED_MOTION`: `1` for less motion, `0` for all of it (ADR-108 decision 5). Until the interface has
+/// said, nothing is passed and a product follows the system's own setting. A product already running keeps what it was
+/// started with; ARQADE's app hears changes over its channel as well (`arqade_app_prefs`).
+static REDUCED_MOTION: std::sync::atomic::AtomicU8 =
+    std::sync::atomic::AtomicU8::new(MOTION_UNSAID);
+const MOTION_UNSAID: u8 = 0;
+const MOTION_LESS: u8 = 1;
+const MOTION_FULL: u8 = 2;
+
+/// Remember the person's Motion setting for the products started from now on.
+pub fn set_reduced_motion(reduced: bool) {
+    REDUCED_MOTION.store(
+        if reduced { MOTION_LESS } else { MOTION_FULL },
+        std::sync::atomic::Ordering::Relaxed,
+    );
+}
+
+/// The value `QOR_REDUCED_MOTION` takes for a product started now, if the interface has said.
+fn reduced_motion_word() -> Option<&'static str> {
+    match REDUCED_MOTION.load(std::sync::atomic::Ordering::Relaxed) {
+        MOTION_LESS => Some("1"),
+        MOTION_FULL => Some("0"),
+        _ => None,
+    }
+}
+
+/// The person's Motion setting, from the launcher's interface: less motion, or all of it.
+#[tauri::command]
+pub fn launcher_motion(reduced: bool) {
+    set_reduced_motion(reduced);
+}
+
 /// A product to start.
 pub struct Launch {
     pub product: ProductRecord,
@@ -231,16 +264,19 @@ pub async fn launch<H: Handler>(
     let channel = channel::Channel::open().map_err(HostError::Io)?;
     let name = channel.name().to_owned();
 
-    let mut child = tokio::process::Command::new(&launch.product.path)
+    let mut command = tokio::process::Command::new(&launch.product.path);
+    command
         .args(&launch.args)
         .arg("--launcher-channel")
         .arg(&name)
         .current_dir(&launch.cwd)
         .stdin(Stdio::piped())
         .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(HostError::Io)?;
+        .stderr(Stdio::piped());
+    if let Some(word) = reduced_motion_word() {
+        command.env("QOR_REDUCED_MOTION", word);
+    }
+    let mut child = command.spawn().map_err(HostError::Io)?;
     let issued = Instant::now();
     let pid = child
         .id()

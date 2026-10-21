@@ -59,7 +59,7 @@ export function TitleBar() {
     <header className="drag-region flex h-10 flex-none items-center gap-4 border-b border-edge bg-void pl-4">
       <div className="flex items-center gap-2.5">
         <ApertureGlyph />
-        <span className="heading text-ui tracking-eyebrow text-ink">QOR</span>
+        <span className="font-wordmark text-ui font-semibold tracking-eyebrow text-gilt-bright">QOR</span>
         <span className="eyebrow text-ink-faint">Launcher {version}</span>
       </div>
 
@@ -108,8 +108,10 @@ function WindowButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`flex h-10 w-11 items-center justify-center text-ink-muted transition-colors duration-150 hover:text-ink ${
-        danger ? 'hover:bg-counter' : 'hover:bg-raised'
+      // Closing ends something: under the pointer it takes the status red with dark ink on it (6.6:1), in every theme,
+      // as QQ Studio's danger buttons do (ADR-108).
+      className={`flex h-10 w-11 items-center justify-center text-ink-muted transition-colors duration-150 ${
+        danger ? 'hover:bg-bad hover:text-on-accent' : 'hover:bg-raised hover:text-ink'
       }`}
     >
       {children}

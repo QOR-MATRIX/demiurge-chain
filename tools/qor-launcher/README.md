@@ -293,6 +293,8 @@ key and never holds one. `src-tauri/src/host/` is the product host:
   unguessable name with remote clients refused (a `0700` folder and `0600` socket elsewhere). It accepts **one**
   connection, and only from the process the launcher spawned: the operating system's client process id, that process's
   start time (so a reused id cannot pass) and its user, all checked.
+- **The Motion setting** (`mod.rs`): every product is started with `QOR_REDUCED_MOTION`, `1` or `0`, the person's
+  own setting as the interface last told the host (`launcher_motion`; ADR-108 decision 5).
 - **The token** (`mod.rs`, `session.rs`): 32 random bytes, written as hex on the product's **stdin**, which is then
   closed (never an argument or an environment variable); good once, for 30 seconds, compared in constant time.
 - **The protocol** (`frame.rs`, `protocol.rs`; schema and golden frames in `tools/qor-launcher/host-protocol/`): a
@@ -749,14 +751,18 @@ with the chain.
 
 ## Design
 
-The launcher is the reference implementation of the Demiurge design system:
-[`docs/design/DESIGN_SYSTEM.md`](../../docs/design/DESIGN_SYSTEM.md). It covers tokens, themes,
+The launcher wears Demiurge's one look (ADR-108) in its tool register: its default theme, **Obsidian**, is made from
+`src/styles/tokens.ts`, and its four faces from `src/styles/tokens.css` and `src/styles/fonts/`, all three generated
+by `node docs/design/tokens.mjs` from `docs/design/tokens.json`: edit that, never them. Every launcher moved to
+Obsidian once (ADR-109); a theme picked after that stays. `node scripts/check-look.mjs` holds it. The design
+system is [`docs/design/DESIGN_SYSTEM.md`](../../docs/design/DESIGN_SYSTEM.md). It covers tokens, themes,
 the type, tracking and spacing scales, components, motion, the accessibility settings and what is
 ruled out. `node scripts/check-design.mjs` fails on colour literals outside the token files and on sizes
 or tracking off the scales. Since ADR-080 effects are allowed; reduce motion must still stop them moving, and the
 contrast and readability checks still measure the text over them.
 
-System fonts only: a launcher must render correctly offline and on first run.
+No face comes from the system or a font service: the launcher carries its own, so it renders the same offline and on
+first run.
 
 ---
 

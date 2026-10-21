@@ -16,7 +16,8 @@ import { Intro } from './qfx/ceremony/Intro';
 import { Onboarding } from './components/onboarding/Onboarding';
 import { Rail } from './components/chrome/Rail';
 import { TitleBar } from './components/chrome/TitleBar';
-import type { Motion } from './lib/a11y';
+import { type Motion, wantsLessMotion } from './lib/a11y';
+import { shell } from './lib/ipc';
 import { selectVaultUnlocked, useQor } from './state/store';
 import { QQView } from './qq/editor/QQView';
 import { ArqadeView } from './views/ArqadeView';
@@ -77,10 +78,17 @@ export function App() {
   const notice = useQor((s) => s.notice);
   const clearNotice = useQor((s) => s.clearNotice);
   const motionSetting = useQor((s) => s.a11y.motion);
+  const lessMotion = useQor((s) => wantsLessMotion(s.a11y));
 
   useEffect(() => {
     void bootstrap();
   }, [bootstrap]);
+
+  // The person's Motion setting, for what the launcher starts from now on: QQ Studio, QOR Media and ARQADE's app take
+  // it as QOR_REDUCED_MOTION (ADR-108 decision 5).
+  useEffect(() => {
+    void shell.motion(lessMotion).catch(() => undefined);
+  }, [lessMotion]);
 
   // The window is created hidden so the first frame the user sees is painted,
   // not a white flash followed by the app. Show it once state has resolved.

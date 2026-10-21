@@ -7,6 +7,9 @@
 //!
 //! `--mode publish --project <folder>` asks as QQ Studio does: commit the project, then publish it as its Cartridge.
 //! Exit code: 10 minted, 11 revised, 12 unchanged, 13 declined, 14 refused for another reason.
+//!
+//! `--mode motion` says, by its exit code, what the launcher passed it as `QOR_REDUCED_MOTION` (ADR-108 decision 5):
+//! 20 `1`, 21 `0`, 22 nothing, 23 anything else.
 
 use qor_launcher_lib::host::frame::{read_frame, write_frame};
 use serde_json::{json, Value};
@@ -33,6 +36,15 @@ async fn run() -> i32 {
         return 3;
     }
     let token = token.trim().to_string();
+
+    if mode == "motion" {
+        return match std::env::var("QOR_REDUCED_MOTION").as_deref() {
+            Ok("1") => 20,
+            Ok("0") => 21,
+            Err(std::env::VarError::NotPresent) => 22,
+            _ => 23,
+        };
+    }
 
     if mode == "late" {
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;

@@ -311,6 +311,8 @@ const call = <T,>(command: string, args?: Record<string, unknown>): Promise<T> =
 
 export const shell = {
   state: () => call<LauncherState>('launcher_state'),
+  /** The person's Motion setting, passed on to every product the launcher starts (ADR-108 decision 5). */
+  motion: (reduced: boolean) => call<void>('launcher_motion', { reduced }),
 };
 
 export const vault = {

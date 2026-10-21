@@ -43,7 +43,7 @@
 // Exits non-zero if any check fails.
 
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -51,6 +51,10 @@ import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const dist = resolve(process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'dist'));
+// The default theme, Obsidian, is the one look's source (ADR-108, ADR-109): its values are read from there.
+const OBSIDIAN = JSON.parse(
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'docs', 'design', 'tokens.json'), 'utf8'),
+).color;
 if (!existsSync(join(dist, 'index.html'))) {
   console.error(`No build at ${dist}. Run \`npm run build\` first.`);
   process.exit(2);
@@ -243,12 +247,12 @@ const setAttr = (name, value = '') => `document.documentElement.setAttribute('${
 check(
   'the app applied a theme at startup',
   await evaluate(`document.documentElement.getAttribute('data-theme')`),
-  'architect',
+  'obsidian',
 );
 
 // Contrast.
 await evaluate(reset);
-check('normal contrast: --ink-muted is the theme value', await evaluate(token('--ink-muted')), '#93a0ae');
+check('normal contrast: --ink-muted is the theme value', await evaluate(token('--ink-muted')), OBSIDIAN.inkMuted);
 await evaluate(setAttr('data-contrast', 'high'));
 check('high contrast raises --ink-muted', await evaluate(token('--ink-muted')), '#b4bfca');
 check('high contrast raises --edge', await evaluate(token('--edge')), '#49525f');

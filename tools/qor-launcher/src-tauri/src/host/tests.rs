@@ -512,6 +512,20 @@ async fn a_spawned_product_proves_itself_and_is_answered() {
     assert_eq!(exited.code, Some(0), "{exited:?}");
 }
 
+/// The person's Motion setting reaches what the launcher starts (ADR-108 decision 5): nothing until the interface has
+/// said, then `1` for less motion and `0` for all of it. The only test that sets it, since the setting is the launcher's.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_spawned_product_is_told_the_persons_motion_setting() {
+    let (exited, _) = run_fake("motion").await;
+    assert_eq!(exited.code, Some(22), "nothing said yet: {exited:?}");
+    super::set_reduced_motion(true);
+    let (exited, _) = run_fake("motion").await;
+    assert_eq!(exited.code, Some(20), "less motion: {exited:?}");
+    super::set_reduced_motion(false);
+    let (exited, _) = run_fake("motion").await;
+    assert_eq!(exited.code, Some(21), "all of it: {exited:?}");
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn a_spawned_product_with_the_wrong_token_or_name_is_refused() {
     for mode in ["wrong-token", "wrong-product"] {

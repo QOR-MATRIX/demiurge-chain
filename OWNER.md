@@ -38,6 +38,8 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 
 **For your merge: #71, ARQADE in the look**, its website and its app in the launcher, held
 there by a CI check, and the website's welcome screen fixed (live, it sits in a corner).
+**Built, to follow it:** the launcher in Obsidian, everyone moved once as you chose
+(ADR-109), its four fonts its own, and your Motion setting passed to QQ and QOR Media.
 
 ## Toward a worldwide beta: what only you can do
 

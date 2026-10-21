@@ -29,6 +29,8 @@
  * and the accessibility contrast levels push the same values further still.
  */
 
+import { TOKENS } from './tokens';
+
 export interface Theme {
   id: string;
   name: string;
@@ -65,7 +67,33 @@ export interface Theme {
   };
 }
 
+const C = TOKENS.color;
+
 export const THEMES: Theme[] = [
+  // Demiurge's one look (ADR-108), every value from docs/design/tokens.json through the generated tokens.ts: the
+  // default, and the theme every launcher moved to once (ADR-109). Its structural colour is the gilt of the brand.
+  {
+    id: 'obsidian',
+    name: 'Obsidian',
+    note: "Gilt and ember on obsidian. Demiurge's one look.",
+    tokens: {
+      void: C.void,
+      base: C.base,
+      surface: C.surface,
+      raised: C.raised,
+      well: C.well,
+      accent: C.accent,
+      accentBright: C.accentBright,
+      accentDim: C.accentDim,
+      counter: C.giltDim,
+      ink: C.ink,
+      inkBody: C.inkBody,
+      inkMuted: C.inkMuted,
+      inkFaint: C.inkFaint,
+      edge: C.edge,
+      edgeSoft: C.edgeSoft,
+    },
+  },
   {
     id: 'architect',
     name: 'Architect',
@@ -178,9 +206,16 @@ export const THEMES: Theme[] = [
   },
 ];
 
-export const DEFAULT_THEME = 'architect';
+export const DEFAULT_THEME = 'obsidian';
 
 const STORAGE_KEY = 'qor.theme';
+
+/**
+ * Every launcher moves to Obsidian once, whatever it had stored (ADR-109, the owner's decision of 21 October 2026).
+ * The first launch that finds no record of the move stores Obsidian and the record; a theme picked after that stays.
+ */
+const MOVED_KEY = 'qor.theme.moved';
+const MOVED_TO = 'obsidian';
 
 /** Map a theme's tokens onto the CSS custom properties the stylesheet reads. */
 function cssVariables(theme: Theme): Record<string, string> {
@@ -246,9 +281,14 @@ export function applyTheme(id: string): Theme {
   return theme;
 }
 
-/** The stored preference, or the default. */
+/** The stored preference, or the default; on the first launch since the move, Obsidian (ADR-109). */
 export function storedTheme(): string {
   try {
+    if (localStorage.getItem(MOVED_KEY) !== MOVED_TO) {
+      localStorage.setItem(STORAGE_KEY, MOVED_TO);
+      localStorage.setItem(MOVED_KEY, MOVED_TO);
+      return MOVED_TO;
+    }
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved && THEMES.some((t) => t.id === saved)) return saved;
   } catch {

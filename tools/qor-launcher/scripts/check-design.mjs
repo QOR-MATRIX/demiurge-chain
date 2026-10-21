@@ -19,8 +19,9 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const src = join(root, 'src');
 
-/** Files that define tokens and so may contain colour literals. */
-const TOKEN_FILES = new Set(['src/styles/themes.ts', 'src/styles/qor.css']);
+/** Files that define tokens and so may contain colour literals: the two docs/design/tokens.mjs generates from
+ *  docs/design/tokens.json (ADR-108), the theme table, and the stylesheet's contrast levels. */
+const TOKEN_FILES = new Set(['src/styles/tokens.css', 'src/styles/tokens.ts', 'src/styles/themes.ts', 'src/styles/qor.css']);
 
 const RULES = [
   {

@@ -10,8 +10,10 @@ face that differs from the source, or a text colour under 4.5:1 on any backgroun
 **Joined:** the homepage (`site/tokens.css` and `site/fonts/`); QQ, the Studio and a game's screens
 (`products/qq/runtime/tokens.h`, read by `Look`, and the Studio's faces in `products/qq/studio/fonts/`); ARQADE on the
 web (`products/arqade/app/tokens.css` and `public/fonts/`) and its Qt application (`products/arqade/qt/qml/Tokens.qml`,
-read by `Theme`, and `qt/fonts/`), both held by `products/arqade/scripts/check-design.mjs`. **Not yet joined, each
-keeping its own values until its slice:** the launcher, QOR ID's pages and emails, QOR Media and the Android shell.
+read by `Theme`, and `qt/fonts/`), both held by `products/arqade/scripts/check-design.mjs`; the launcher
+(`tools/qor-launcher/src/styles/tokens.css`, `tokens.ts` and `fonts/`; Obsidian its default theme, which every
+launcher moved to once, ADR-109; held by `scripts/check-look.mjs`). **Not yet joined, each keeping its own values
+until its slice:** QOR ID's pages and emails, QOR Media and the Android shell.
 Their faces in Qt are already the source's (Cinzel and Barlow Semi Condensed, checked).
 
 **In QML,** a property is never named `on` and a capital (`onAccent`): QML reads it as a signal handler. The ink on a
@@ -81,8 +83,7 @@ painted, reduced motion, its frame-time budget).
 | `ok`, `warn`, `bad` | `#22c55e`, `#e6a817`, `#d57889` | Status, never decorative |
 
 A generated file names them `--qor-void` … `--qor-bad` in CSS. The launcher's theme tokens below name the same roles;
-its Obsidian theme takes these values when it joins, and its `--counter`, a structural red for danger edges, is
-settled in that slice.
+its Obsidian theme takes these values (`src/styles/tokens.ts`), and its `--counter` is `giltDim`.
 
 ### The launcher's theme tokens
 
@@ -99,7 +100,7 @@ mistaken for state.
 | `--raised` | `bg-raised` | Hover fills, raised controls |
 | `--well` | `bg-well` | Inputs and inset areas, sunk below the surface |
 | `--accent`, `--accent-bright`, `--accent-dim` | `text-accent`, `bg-accent`, … | The single meaningful colour; bright for hover, dim for borders |
-| `--counter` | `bg-counter` | Structure and danger edges, such as the close button's hover |
+| `--counter` | `bg-counter` | Structure: in Obsidian, the gilt. Not danger: the close button's hover is `bg-bad` with dark ink, in every theme |
 | `--ink`, `--ink-body`, `--ink-muted`, `--ink-faint` | `text-ink`, … | Text, brightest to faintest |
 | `--edge`, `--edge-soft` | `border-edge`, … | Hairlines |
 | `--color-ok`, `--color-warn`, `--color-bad` | `text-ok`, `border-warn`, `bg-bad/5`, … | Success, caution, failure. Never decorative |
@@ -130,8 +131,9 @@ the token checks cannot see it.
 ### Themes
 
 A theme is a set of the tokens above (`src/styles/themes.ts`), applied as one stylesheet rule on
-`:root[data-theme]`. Five exist: Architect (the default: ember on carbon), Abyss, Sanguine, Veridian and
-Numen.
+`:root[data-theme]`. Six exist: **Obsidian**, the default and the one look (ADR-108), made from
+`src/styles/tokens.ts`, which every launcher moved to once whatever it had stored (ADR-109); Architect (ember on
+carbon, the default until then), Abyss, Sanguine, Veridian and Numen.
 
 **Decided by the owner, 22 September 2026:** Veridian (`#3DFF88`) and Abyss (`#22D3EE`), the two neon
 themes, become QFX themes and are never the default. They move when QFX's theme package exists (P2.5); until
@@ -144,14 +146,10 @@ belong, not a defect waiting to be fixed.
 labels; Barlow for reading; IBM Plex Mono for numbers and addresses. All four are bundled with, and served by, each
 surface itself, never from a font service; the files are in `docs/design/fonts/` (SIL Open Font License).
 
-**The launcher's faces, until it joins.** Every face renders offline and on first run: the display face is bundled with
-the launcher, the others are the system's.
-- display (headings, the rail, buttons, eyebrows): **Barlow Semi Condensed** at 500, 600 and 700, bundled through
-  `@fontsource/barlow-semi-condensed` (SIL Open Font License), then Segoe UI Variable Display. Chosen on 17 October 2026
-  for a condensed, athletic display face that still reads plainly at small sizes; until then the display face was the
-  system's;
-- body: Segoe UI Variable, then the platform's UI face;
-- numbers and addresses: Cascadia Mono, SF Mono or Consolas.
+**The launcher's faces** (since its slice, 21 October 2026) are the four, carried by the launcher itself through
+`src/styles/tokens.css`, so they render offline and on first run, in every theme: `--font-display` (headings, the
+rail, buttons, eyebrows) is Barlow Semi Condensed; `--font-body` Barlow, at 400, 500 and 600, so bold reading text has
+a face of its own; `--font-mono` IBM Plex Mono; and `--font-wordmark`, the title bar's QOR alone, Cinzel in gilt.
 
 ### Scale
 

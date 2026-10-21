@@ -3,7 +3,9 @@
 **Status:** **Accepted**, 21 October 2026, by the owner, who chose the recommendation ("Obsidian & gilt, two registers
 (Recommended)") after a survey of every surface. **Amends** [ADR-100](ADR-100-the-homepage-at-qorsync-dev.md)
 decision 5: the homepage's look becomes every surface's. **Changes** `docs/design/DESIGN_SYSTEM.md`: the launcher stops
-being the source of the values, which move to `docs/design/tokens.json`. It decides **no economic value**.
+being the source of the values, which move to `docs/design/tokens.json`. It decides **no economic value**. Decision 6
+is extended by [ADR-109](ADR-109-every-launcher-moves-to-obsidian-once.md) (the owner, 21 October 2026): every
+launcher moves to Obsidian once, whatever it had stored.
 
 **Relates to:** [ADR-080](ADR-080-effects-are-allowed.md) (effects are allowed, and what they owe people),
 [ADR-051](ADR-051-the-shells-rendering-layer-for-qfx.md) (QFX's canvas and its contrast contract), and the Qt surfaces of
