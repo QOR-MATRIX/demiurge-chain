@@ -28,15 +28,15 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
    **animation** (#62); **sound** (#63); **materials** (#64): pictures on any wall, spot
    lights, **HDR skies** — *360° images that light the world*; and the Studio's **editing**
    (#65): undo and redo, duplicate, snapping; **groups** and **prefabs** (#66) — *a group
-   saved once and placed many times*; and the Studio's tools (#67). *Orb Run* and *Ember
-   Climb* prove it.
+   saved once and placed many times*; the Studio's tools (#67); and **saving** (#68) — *a
+   game keeps scores and settings between plays*. Every step of the plan is done.
 4. **#65 also fixed three security advisories** — *published flaws in libraries we use*;
    one, in a wrapper never built, is ignored while CI proves it, as you chose (ADR-107).
 
-**For your merge: saving, pull request #68** — *a game keeps scores and settings between
-plays*, never read by a replay. With it, every step of QQ's plan for real games is built.
-**Built, to follow #68: one look everywhere** (ADR-108, as you chose) — one shared source of
-colours, faces and motion, checked in CI. The homepage is on it first, its fonts its own.
+**For your merge: one look everywhere, pull request #69** (ADR-108, as you chose) — one
+shared source of colours, faces and motion, checked in CI; the homepage on it first, its
+fonts its own. **Built, to follow it:** QQ Studio in the same look, and game menus a
+keyboard can use.
 
 ## Toward a worldwide beta: what only you can do
 
