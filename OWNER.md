@@ -36,8 +36,8 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
    faces and motion, checked in CI. The homepage is on it and live, its fonts its own.
 
 **For your merge: #70, QQ Studio in the same look**, and game menus a keyboard can use.
-**Built, to follow it:** ARQADE's website in the look, held there by a CI check, and its
-welcome screen fixed (live, it sits in a corner instead of filling the window).
+**Built, to follow it:** ARQADE in the look, its website and its app in the launcher, held
+there by a CI check, and the website's welcome screen fixed (live, it sits in a corner).
 
 ## Toward a worldwide beta: what only you can do
 

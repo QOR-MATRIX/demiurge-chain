@@ -1086,8 +1086,8 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
        deaf to the keyboard, and a keyboard press that skips the scene's tick.
      - The Studio looked at, as painted in its case.
 
-   **The third slice, ARQADE on the web, built 21 October 2026** (branch `session/arqade-one-look`, on the second;
-   kept back until the slices before it are merged):
+   **The third slice, ARQADE, the web and then its Qt application, built 21 October 2026** (branch
+   `session/arqade-one-look`, on the second; kept back until the slices before it are merged). The web:
    - `products/arqade/app/tokens.css` and `products/arqade/public/fonts/`, generated; `app/globals.css` imports them.
      **The showcase register:** every colour of the interface is a token, shadcn's sixteen variables included. Colours
      were written 501 times in the stylesheet and are now written 127 times, every one the games' own art (121
@@ -1113,6 +1113,32 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      production build; the phone check, 17 of 17; `node docs/design/tokens.mjs --check`, 56 targets. Twelve planted
      faults were each caught by the design check (in `docs/GATES.toml`'s log), one only after the rule was tightened
      to read each part of a timing. Every screen looked at, before and after, on a desktop and a phone.
+
+   Its Qt application (`products/arqade/qt/`, docked in the launcher):
+   - `qml/Tokens.qml`, generated (a new kind of target in `docs/design/tokens.mjs`: a QML singleton, which QOR Media
+     can take too), and Barlow with each family's licence copied into `fonts/`. `Theme` binds every value to it, the
+     launcher's theme still laid over its grounds, accent and inks when the launcher sends one. Three values change:
+     `raised` and `edge` move to the source's, and `inkFaint`, `#6b7385`, which read under 4.5:1, becomes `#868f9d`.
+   - The showcase register, as on the web: buttons and the rankings' tabs take the 8 pixel corner where they were
+     pills, panels the 12; the primary is ember lit from above with a glow and dark ink, written by hand until now;
+     Barlow for reading where Barlow Semi Condensed was; every text off the showcase's Cinzel titles a step of the
+     scale, the balance at the figure step and shrinking to fit; the status green the source's `ok`; every
+     transition on the durations and the easing, 0 under reduced motion; the shared focus ring on the buttons, the
+     tabs and the game cards. The 3D portal and emblems keep their own lights, metals and motion, as art.
+   - **Found on the way:** a QML property named `onAccent` is read as a signal handler and came out black; Theme calls
+     it `inkOnAccent`. Barlow, being wider, wrapped single words onto lines of their own; two measures widened.
+   - **Checks:** `scripts/check-design.mjs` also reads the application's QML, in CI, which has no licensed Qt: a face
+     not Theme's, a size under the titles off the scale, a written colour, a corner, a duration or an easing of its
+     own each fail it. `tests/tst_interface.cpp` checks the same as painted, on the owner's PC: Theme equal to
+     `tokens.json` value by value; every text the window shows in the look's faces, scale and colours, with Barlow
+     carried and drawn at its Regular; the primary's ink dark on ember and lit ember (4.5:1 or more) and its focus
+     ring the shared one; every duration 0 under reduced motion.
+   - **Evidence, on the owner's PC:** the three Qt Test suites pass, 35 tests where there were 32, 3 new. Thirteen
+     planted faults caught: ten by the design check (Theme's own colour, ink written by hand, a system face, a size
+     off the scale, a pill tab, a duration and an easing of their own, `Qt.rgba` of numbers, a named colour, the old
+     status green) and three by the interface test (the reading face unloaded, a colour computed off the palette,
+     parchment ink on the primary). The unloaded face passed its first version, since Barlow's Medium answered for
+     its Regular; the test now asks which face is drawn. Every screen the test saves looked at, before and after.
 
 #### P3: QOR Engine / QQ (P3.1 depends on nothing on chain)
 

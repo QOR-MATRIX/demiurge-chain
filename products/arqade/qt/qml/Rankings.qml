@@ -32,9 +32,9 @@ Glass {
             Text {
                 text: qsTr("RANKINGS")
                 font.family: Theme.ui
-                font.pixelSize: 12
+                font.pixelSize: Theme.sizeUi
                 font.weight: Font.DemiBold
-                font.letterSpacing: 3
+                font.letterSpacing: Theme.sizeUi * Theme.trackingEyebrow
                 color: Theme.gilt
                 Layout.fillWidth: true
             }
@@ -45,13 +45,13 @@ Glass {
                     anchors.verticalCenter: parent.verticalCenter
                     width: 7
                     height: 7
-                    radius: 3.5
-                    color: "#5fd38d"
+                    radius: width / 2
+                    color: Theme.ok
                 }
                 Text {
                     text: qsTr("%n online", "", rankings.server.online)
                     font.family: Theme.ui
-                    font.pixelSize: 13
+                    font.pixelSize: Theme.sizeUi
                     color: Theme.inkMuted
                 }
             }
@@ -73,25 +73,39 @@ Glass {
                     readonly property bool chosen: rankings.game === modelData.id
                     hoverEnabled: true
                     focusPolicy: Qt.StrongFocus
-                    implicitHeight: 30
+                    implicitHeight: 32
                     implicitWidth: label.implicitWidth + 24
                     onClicked: rankings.game = modelData.id
                     Accessible.role: Accessible.PageTab
                     Accessible.name: modelData.label
                     Accessible.checked: chosen
                     background: Rectangle {
-                        radius: 15
+                        radius: Theme.radiusControl
                         color: tab.chosen ? Qt.rgba(Theme.gilt.r, Theme.gilt.g, Theme.gilt.b, 0.16) : "transparent"
                         border.width: 1
-                        border.color: tab.chosen || tab.visualFocus ? Theme.gilt : (tab.hovered ? Theme.lineStrong : Theme.line)
+                        border.color: tab.chosen ? Theme.gilt : (tab.hovered ? Theme.lineStrong : Theme.line)
+                        Behavior on color { ColorAnimation { duration: Theme.quick } }
+                        Behavior on border.color { ColorAnimation { duration: Theme.quick } }
+
+                        // The focus ring, for the keyboard only.
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: -(Theme.focusWidth + 2)
+                            radius: parent.radius + Theme.focusWidth + 2
+                            color: "transparent"
+                            visible: tab.visualFocus
+                            border.width: Theme.focusWidth
+                            border.color: Theme.focus
+                        }
                     }
                     contentItem: Text {
                         id: label
                         text: tab.modelData.label
                         font.family: Theme.ui
-                        font.pixelSize: 13
+                        font.pixelSize: Theme.sizeUi
                         font.weight: Font.DemiBold
-                        font.letterSpacing: 0.8
+                        font.letterSpacing: Theme.sizeUi * Theme.trackingLabel
+                        font.capitalization: Font.AllUppercase
                         color: tab.chosen ? Theme.giltBright : Theme.inkBody
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -113,7 +127,8 @@ Glass {
                 visible: rankings.mine !== null && !rankings.mineShown
                 text: "···"
                 color: Theme.inkFaint
-                font.pixelSize: 14
+                font.family: Theme.ui
+                font.pixelSize: Theme.sizeBody
                 Layout.alignment: Qt.AlignHCenter
             }
             Ranked {
@@ -125,8 +140,8 @@ Glass {
         Text {
             visible: rankings.phase === ArqadeServer.SignedIn && rankings.rows.length === 0
             text: qsTr("No ranked matches yet. The first win ranks.")
-            font.family: Theme.ui
-            font.pixelSize: 15
+            font.family: Theme.body
+            font.pixelSize: Theme.sizeTitle
             color: Theme.inkMuted
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
@@ -139,8 +154,8 @@ Glass {
             Layout.fillWidth: true
             Text {
                 text: qsTr("Signing in to ARQADE with your QOR ID…")
-                font.family: Theme.ui
-                font.pixelSize: 15
+                font.family: Theme.body
+                font.pixelSize: Theme.sizeTitle
                 color: Theme.inkMuted
             }
             Rectangle {
@@ -173,8 +188,8 @@ Glass {
             Layout.fillWidth: true
             Text {
                 text: rankings.server.message
-                font.family: Theme.ui
-                font.pixelSize: 15
+                font.family: Theme.body
+                font.pixelSize: Theme.sizeTitle
                 color: Theme.inkBody
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
@@ -194,7 +209,7 @@ Glass {
         readonly property bool me: row.me === true
         Layout.fillWidth: true
         implicitHeight: 38
-        radius: 8
+        radius: Theme.radiusControl
         color: me ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.1) : "transparent"
         border.width: me ? 1 : 0
         border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.4)
@@ -211,7 +226,7 @@ Glass {
             Text {
                 text: ranked.row.rank ?? ""
                 font.family: Theme.display
-                font.pixelSize: 17
+                font.pixelSize: Theme.sizeHeading
                 font.weight: Font.Bold
                 color: (ranked.row.rank ?? 99) <= 3 ? Theme.giltBright : Theme.inkMuted
                 horizontalAlignment: Text.AlignRight
@@ -220,7 +235,7 @@ Glass {
             Text {
                 text: ranked.row.alias ?? ""
                 font.family: Theme.ui
-                font.pixelSize: 16
+                font.pixelSize: Theme.sizeTitle
                 font.weight: Font.Medium
                 color: Theme.ink
                 elide: Text.ElideRight
@@ -230,21 +245,21 @@ Glass {
                 visible: ranked.me
                 text: qsTr("YOU")
                 font.family: Theme.ui
-                font.pixelSize: 11
+                font.pixelSize: Theme.sizeCaption
                 font.weight: Font.DemiBold
-                font.letterSpacing: 1.6
+                font.letterSpacing: Theme.sizeCaption * Theme.trackingLabel
                 color: Theme.accentBright
             }
             Text {
                 text: "%1–%2–%3".arg(ranked.row.wins ?? 0).arg(ranked.row.losses ?? 0).arg(ranked.row.draws ?? 0)
                 font.family: Theme.ui
-                font.pixelSize: 13
+                font.pixelSize: Theme.sizeUi
                 color: Theme.inkMuted
             }
             Text {
                 text: ranked.row.points ?? 0
                 font.family: Theme.display
-                font.pixelSize: 16
+                font.pixelSize: Theme.sizeTitle
                 font.weight: Font.DemiBold
                 color: Theme.giltBright
                 horizontalAlignment: Text.AlignRight

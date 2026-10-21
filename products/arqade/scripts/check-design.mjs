@@ -1,4 +1,4 @@
-// Is ARQADE on the web drawn in Demiurge's one look? (ADR-108, DIRECTION P2.9)
+// Is ARQADE drawn in Demiurge's one look, on the web and in its Qt application? (ADR-108, DIRECTION P2.9)
 //
 //   node scripts/check-design.mjs
 //
@@ -16,9 +16,19 @@
 //   - a corner is not a token (var(--qor-radius-…)), a circle (50%), a pill (999px), square (0) or the 2 pixels of a
 //     meter's track and a key's cap.
 //
+// And it reads the Qt application's QML (qt/qml/), whose Theme binds to the generated Tokens.qml, and fails when:
+//   - Tokens.qml is missing, or Theme writes a colour of its own;
+//   - a face is not one of Theme's (display, ui, body);
+//   - a text under the showcase's Cinzel titles (18 pixels) is not a step of the scale (Theme.size…);
+//   - a colour is written, as a string or as Qt.rgba() of numbers, but for the wordmark's sheen and its masks;
+//   - a corner is not Theme's, another item's, a circle, or a hairline of 2 pixels or less;
+//   - a duration is not Theme's, but for three slow loops of light, or an easing is not the look's (Theme.ease).
+// The 3D scenes (Emblem, Portal) are the games' own art: their lights, metals and motion are theirs, and only the face
+// rule reads them. CI has no licensed Qt; on the owner's PC tests/tst_interface.cpp checks the same as painted.
+//
 // Exits non-zero, naming each problem.
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -90,9 +100,67 @@ for (const [, value] of css.matchAll(/border-radius:([^;}]+)/g)) {
     problems.push(`border-radius:${corner} is a corner of its own: a panel's and a control's are tokens`);
 }
 
+// ── The Qt application ──────────────────────────────────────────────────────────────────────────────────────────────
+
+const qml = join(root, 'qt', 'qml');
+// The games' own 3D scenes.
+const SCENES = new Set(['Emblem.qml', 'Portal.qml']);
+// What the 2D files still write themselves: the wordmark's sheen and the masks it draws through, and three slow loops of
+// light (the sheen's pass and pause, a card's status breathing, the light along the signing-in rule).
+const QML_ART = {
+  'Wordmark.qml': { colours: ['#fff4d6', 'white'], durations: [4200, 3800] },
+  'GameCard.qml': { durations: [1100] },
+  'Rankings.qml': { durations: [1400] },
+};
+if (!existsSync(join(qml, 'Tokens.qml'))) problems.push('qt/qml/Tokens.qml is missing: run node docs/design/tokens.mjs');
+if (/"#[0-9a-fA-F]{3,8}"/.test(readFileSync(join(qml, 'Theme.qml'), 'utf8')))
+  problems.push("qt/qml/Theme.qml writes a colour of its own: its values are Tokens.qml's");
+let qmlFiles = 0;
+for (const file of readdirSync(qml).filter((f) => f.endsWith('.qml') && f !== 'Tokens.qml' && f !== 'Theme.qml')) {
+  qmlFiles += 1;
+  const text = readFileSync(join(qml, file), 'utf8');
+  const where = `qt/qml/${file}`;
+  const art = QML_ART[file] ?? { colours: [], durations: [] };
+  for (const [, family] of text.matchAll(/font\.family:\s*([^\n;}]+)/g))
+    if (!/^Theme\.(display|ui|body)$/.test(family.trim()))
+      problems.push(`${where}: font.family: ${family.trim()} is not one of the look's faces (Theme.display, .ui, .body)`);
+  for (const [, size] of text.matchAll(/font\.pixelSize:\s*([\d.]+)\s*$/gm))
+    if (Number(size) < 18)
+      problems.push(`${where}: font.pixelSize: ${size} is off the scale: under the showcase's titles a size is Theme's`);
+  if (SCENES.has(file)) continue;
+  for (const [, hex] of text.matchAll(/"(#[0-9a-fA-F]{3,8})"/g))
+    if (!(art.colours ?? []).includes(hex.toLowerCase()))
+      problems.push(`${where}: ${hex} is written as a colour: the interface's colours are Theme's`);
+  for (const [, name] of text.matchAll(/[cC]olor:\s*"([a-z]+)"/g))
+    if (name !== 'transparent' && !(art.colours ?? []).includes(name))
+      problems.push(`${where}: "${name}" is written as a colour: the interface's colours are Theme's`);
+  for (const [call] of text.matchAll(/Qt\.(?:rgba|hsla|hsva|hsl)\(\s*[\d.]+[^)]*\)/g))
+    problems.push(`${where}: ${call} is written as a colour: a colour with transparency is built on Theme's`);
+  for (const [, value] of text.matchAll(/\bradius:\s*([^\n;}]+)/g)) {
+    const corner = value.trim();
+    if (/^(Theme\.radius(Control|Panel)|\w+\.radius|width \/ 2|height \/ 2)\b/.test(corner)) continue;
+    if (/^[\d.]+$/.test(corner) && Number(corner) <= 2) continue;
+    problems.push(`${where}: radius: ${corner} is a corner of its own: a panel's and a control's are Theme's`);
+  }
+  for (const [, value] of text.matchAll(/\bduration:\s*([^\n;}]+)/g)) {
+    const time = value.trim();
+    if (/^Theme\.(quick|standard|enter|sheen)$/.test(time)) continue;
+    if (/^\d+$/.test(time) && (art.durations ?? []).includes(Number(time))) continue;
+    problems.push(`${where}: duration: ${time} is timed by its own numbers: the durations are Theme's`);
+  }
+  for (const [, type] of text.matchAll(/easing\.type:\s*Easing\.(\w+)/g))
+    if (type !== 'BezierSpline' && !((art.durations ?? []).length && type === 'InOutSine'))
+      problems.push(`${where}: Easing.${type} is not the look's easing (Easing.BezierSpline on Theme.ease)`);
+  for (const [, curve] of text.matchAll(/easing\.bezierCurve:\s*([^\n;}]+)/g))
+    if (curve.trim() !== 'Theme.ease') problems.push(`${where}: easing.bezierCurve: ${curve.trim()} is not Theme.ease`);
+}
+
 if (problems.length) {
   for (const p of problems) console.log(`FAIL  ${p}`);
   console.log(`RESULT: ${problems.length} problem${problems.length === 1 ? '' : 's'}`);
   process.exit(1);
 }
-console.log(`RESULT: every colour, corner and timing of the interface a token, every face the look's; ${ART.size} colours of the games' art`);
+console.log(
+  `RESULT: every colour, corner and timing of the interface a token, every face the look's, on the web (${ART.size} ` +
+    `colours of the games' art) and in ${qmlFiles} QML files of the Qt application`,
+);

@@ -9,9 +9,13 @@ face that differs from the source, or a text colour under 4.5:1 on any backgroun
 **Surfaces join one at a time** (DIRECTION P2.9), each in the change that makes it read its generated file.
 **Joined:** the homepage (`site/tokens.css` and `site/fonts/`); QQ, the Studio and a game's screens
 (`products/qq/runtime/tokens.h`, read by `Look`, and the Studio's faces in `products/qq/studio/fonts/`); ARQADE on the
-web (`products/arqade/app/tokens.css` and `public/fonts/`, held by its own `scripts/check-design.mjs`). **Not yet
-joined, each keeping its own values until its slice:** ARQADE's Qt application, the launcher, QOR ID's pages and emails,
-QOR Media and the Android shell. Their faces in Qt are already the source's (Cinzel and Barlow Semi Condensed, checked).
+web (`products/arqade/app/tokens.css` and `public/fonts/`) and its Qt application (`products/arqade/qt/qml/Tokens.qml`,
+read by `Theme`, and `qt/fonts/`), both held by `products/arqade/scripts/check-design.mjs`. **Not yet joined, each
+keeping its own values until its slice:** the launcher, QOR ID's pages and emails, QOR Media and the Android shell.
+Their faces in Qt are already the source's (Cinzel and Barlow Semi Condensed, checked).
+
+**In QML,** a property is never named `on` and a capital (`onAccent`): QML reads it as a signal handler. The ink on a
+filled control is `inkOnAccent` there.
 
 The QOR Launcher stays the reference for behaviour: its components (`src/components/ui`, `src/views/parts.tsx`), its
 accessibility settings and its checks are the most complete implementation of the rules below, and its theme table

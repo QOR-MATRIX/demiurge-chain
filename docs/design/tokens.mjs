@@ -108,6 +108,32 @@ function cpp(namespace) {
   return `${comment}\n\n#pragma once\n\n#include <QtGui/qrgb.h>\n\nnamespace ${namespace} {\n\n${lines.join('\n')}\n\n}  // namespace ${namespace}\n`;
 }
 
+/** A QML singleton of the values, for a Qt Quick application's own theme to bind to. */
+function qml() {
+  const pascal = (name) => name[0].toUpperCase() + name.slice(1);
+  const ease = tokens.motion.ease.match(/cubic-bezier\(([^)]+)\)/)[1].split(',').map((n) => Number(n.trim()));
+  const { ease: _, ...durations } = tokens.motion;
+  const lines = [];
+  lines.push('    // Colours.');
+  for (const [name, value] of Object.entries(tokens.color)) lines.push(`    readonly property color color${pascal(name)}: "${value}"`);
+  lines.push('', '    // Faces: family names, as each is registered once its file is loaded.');
+  for (const [role, f] of Object.entries(tokens.font)) lines.push(`    readonly property string font${pascal(role)}: "${f.family}"`);
+  lines.push('', '    // The type scale, in pixels; tracking, in ems (multiply by the size for letterSpacing).');
+  for (const [step, px] of Object.entries(tokens.size)) lines.push(`    readonly property int size${pascal(step)}: ${px}`);
+  for (const [name, value] of Object.entries(tokens.tracking)) lines.push(`    readonly property real tracking${pascal(name)}: ${parseFloat(value)}`);
+  lines.push('', '    // Corners, in pixels.');
+  for (const [name, px] of Object.entries(tokens.radius)) lines.push(`    readonly property int radius${pascal(name)}: ${px}`);
+  lines.push('', '    // Motion: durations in milliseconds, and the one easing as an Easing.BezierSpline curve.');
+  for (const [name, ms] of Object.entries(durations)) lines.push(`    readonly property int motion${pascal(name)}: ${ms}`);
+  lines.push(`    readonly property var easeCurve: [${ease.join(', ')}, 1, 1]`);
+  lines.push('', '    // The focus ring.');
+  lines.push(`    readonly property int focusWidth: ${tokens.focus.width}`);
+  lines.push(`    readonly property int focusHalo: ${tokens.focus.halo}`);
+  lines.push(`    readonly property color focusColor: color${pascal(tokens.focus.color)}`);
+  const comment = GENERATED.split('\n').map((l) => `// ${l}`).join('\n');
+  return `${comment}\n\npragma Singleton\nimport QtQuick\n\nQtObject {\n${lines.join('\n')}\n}\n`;
+}
+
 // Each target: a file this script writes, or a font it copies. A surface joins by adding its own.
 const targets = [
   // The homepage (site/, ADR-100): its stylesheet maps its own names onto these.
@@ -126,6 +152,11 @@ const targets = [
   // ARQADE on the web (P2.9's third slice): its globals.css imports these, and Next serves the faces from public/.
   { file: 'products/arqade/app/tokens.css', text: () => css('/fonts') },
   ...web.faces.map((f) => ({ file: `products/arqade/public/fonts/${f.file}`, copy: `docs/design/fonts/web/${f.file}` })),
+  // ARQADE's Qt application (P2.9's fourth slice): its Theme binds to Tokens.qml, and it carries Barlow for reading
+  // beside the faces above, with each family's licence.
+  { file: 'products/arqade/qt/qml/Tokens.qml', text: () => qml() },
+  ...['Barlow-Regular.ttf', 'Barlow-Medium.ttf', 'Barlow-OFL.txt', 'BarlowSemiCondensed-OFL.txt', 'Cinzel-OFL.txt']
+    .map((name) => ({ file: `products/arqade/qt/fonts/${name}`, copy: `docs/design/fonts/${name}` })),
 ];
 
 let written = 0;

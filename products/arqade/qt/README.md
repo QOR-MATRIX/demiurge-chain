@@ -40,8 +40,15 @@ rebuilt in QQ (P7.20). Until a game's rebuild arrives, its card opens today's ve
 
 ## How it looks
 
-The homepage's identity (`site/`): obsidian, gilt and ember, with Cinzel for names and Barlow Semi Condensed for words.
-Both faces are carried in the executable under the SIL Open Font License (`fonts/`).
+Demiurge's one look in the showcase register (ADR-108, `docs/design/DESIGN_SYSTEM.md`): obsidian, gilt and ember.
+Every value comes from `qml/Tokens.qml`, which `node docs/design/tokens.mjs` generates from `docs/design/tokens.json`:
+edit that, never this file. `qml/Theme.qml` binds to it, and lays the launcher's theme over its grounds, accent and
+inks when the launcher sends one. Cinzel for names and numerals, Barlow Semi Condensed for labels and controls,
+Barlow for reading, carried in the executable under the SIL Open Font License (`fonts/`, copied by the generator).
+Buttons and tabs take the 8 pixel corner and panels the 12; the primary is ember with dark ink; every text off the
+Cinzel titles is a step of the scale; every transition takes the look's durations and easing; the keyboard's focus
+ring is the one every surface draws. `products/arqade/scripts/check-design.mjs` reads the QML for anything else, in
+CI.
 
 - **The portal** (`qml/Portal.qml`): an astrolabe of physically based gilt rings around an ember core. The homepage's
   triangle and square turn inside it. Embers rise through it and lean toward the pointer, and the camera follows the
@@ -76,7 +83,9 @@ pwsh products/arqade/qt/build.ps1 -Shots dir   # and save what the interface tes
 - `tst_arqadeserver`: the sign-in and the rankings, against a stand-in server and a stand-in launcher. An answer that
   leads elsewhere is not followed. A session that ends is renewed once, never in a loop.
 - `tst_interface`: the module loads without a warning and draws on the graphics card. It checks the player and their
-  Sparks, every game and arena, reduced motion holding it still, and a narrow window. It needs a desktop session.
+  Sparks, every game and arena, reduced motion holding it still, and a narrow window; and the one look: Theme equal to
+  `tokens.json` value by value, every text the window shows in the look's faces, scale and colours (Barlow carried
+  and drawn at its Regular), the primary's dark ink on ember and its focus ring. It needs a desktop session.
 
 The launcher's side is in `tools/qor-launcher/src-tauri/src/arqade/app.rs`. Its tests include one that starts the real
 app, deployed by `-Deploy`, and is run only when asked:

@@ -28,23 +28,23 @@ AbstractButton {
 
     transform: Translate {
         y: card.lit && !Theme.reducedMotion ? -6 : 0
-        Behavior on y { NumberAnimation { duration: 380; easing.type: Easing.OutCubic } }
+        Behavior on y { NumberAnimation { duration: Theme.enter; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.ease } }
     }
     scale: pressed ? 0.985 : 1
-    Behavior on scale { NumberAnimation { duration: 120 } }
+    Behavior on scale { NumberAnimation { duration: Theme.quick; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.ease } }
 
     background: Item {
         Rectangle {
             id: plate
             anchors.fill: parent
-            radius: 14
+            radius: Theme.radiusPanel
             gradient: Gradient {
                 GradientStop { position: 0; color: Qt.rgba(Theme.surface.r, Theme.surface.g, Theme.surface.b, 0.86) }
                 GradientStop { position: 1; color: Qt.rgba(Theme.void_.r, Theme.void_.g, Theme.void_.b, 0.94) }
             }
             border.width: 1
             border.color: card.lit ? Theme.lineStrong : Theme.line
-            Behavior on border.color { ColorAnimation { duration: 300 } }
+            Behavior on border.color { ColorAnimation { duration: Theme.standard } }
 
             layer.enabled: true
             layer.effect: MultiEffect {
@@ -53,7 +53,7 @@ AbstractButton {
                 shadowBlur: 1.0
                 shadowOpacity: card.lit ? 0.28 : 0.0
                 shadowVerticalOffset: 10
-                Behavior on shadowOpacity { NumberAnimation { duration: 380 } }
+                Behavior on shadowOpacity { NumberAnimation { duration: Theme.enter; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.ease } }
             }
         }
         // An ember glow rising from the card's foot when it is hovered.
@@ -63,9 +63,9 @@ AbstractButton {
             anchors.bottom: parent.bottom
             anchors.margins: 1
             height: parent.height * 0.55
-            radius: 13
+            radius: Theme.radiusPanel - 1
             opacity: card.lit ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: 420 } }
+            Behavior on opacity { NumberAnimation { duration: Theme.enter; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.ease } }
             gradient: Gradient {
                 GradientStop { position: 0; color: "transparent" }
                 GradientStop { position: 1; color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.14) }
@@ -83,6 +83,16 @@ AbstractButton {
                 GradientStop { position: 0.5; color: card.lit ? Theme.giltBright : Theme.gilt }
                 GradientStop { position: 1; color: "transparent" }
             }
+        }
+        // The focus ring, for the keyboard only.
+        Rectangle {
+            anchors.fill: plate
+            anchors.margins: -(Theme.focusWidth + 2)
+            radius: plate.radius + Theme.focusWidth + 2
+            color: "transparent"
+            visible: card.visualFocus
+            border.width: Theme.focusWidth
+            border.color: Theme.focus
         }
     }
 
@@ -103,7 +113,7 @@ AbstractButton {
             anchors.margins: 16
             text: card.number
             font.family: Theme.display
-            font.pixelSize: 13
+            font.pixelSize: Theme.sizeBody
             font.weight: Font.DemiBold
             color: Theme.gilt
             opacity: 0.8
@@ -120,9 +130,9 @@ AbstractButton {
             Text {
                 text: card.tag.toUpperCase()
                 font.family: Theme.ui
-                font.pixelSize: 11
+                font.pixelSize: Theme.sizeCaption
                 font.weight: Font.DemiBold
-                font.letterSpacing: 2.2
+                font.letterSpacing: Theme.sizeCaption * Theme.trackingEyebrow
                 color: Theme.gilt
             }
             Text {
@@ -138,8 +148,8 @@ AbstractButton {
             Text {
                 width: parent.width
                 text: card.line
-                font.family: Theme.ui
-                font.pixelSize: 15
+                font.family: Theme.body
+                font.pixelSize: Theme.sizeBody
                 color: Theme.inkMuted
                 wrapMode: Text.WordWrap
                 maximumLineCount: 2
@@ -156,7 +166,7 @@ AbstractButton {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 6
                 height: 6
-                radius: 3
+                radius: width / 2
                 color: Theme.accent
                 SequentialAnimation on opacity {
                     running: !Theme.reducedMotion && card.visible
@@ -168,11 +178,11 @@ AbstractButton {
             Text {
                 text: card.lit ? qsTr("Play today's version") : card.status
                 font.family: Theme.ui
-                font.pixelSize: 12
+                font.pixelSize: Theme.sizeUi
                 font.weight: Font.Medium
-                font.letterSpacing: 1.4
+                font.letterSpacing: Theme.sizeUi * Theme.trackingLabel
                 color: card.lit ? Theme.accentBright : Theme.inkMuted
-                Behavior on color { ColorAnimation { duration: 250 } }
+                Behavior on color { ColorAnimation { duration: Theme.standard } }
             }
         }
     }
