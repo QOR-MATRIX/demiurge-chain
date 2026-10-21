@@ -160,6 +160,9 @@ Node {
             recorder.clear()
             recorder.scene = name
             recorder.seed = playSeed
+            // The store as this run finds it (P3.16): a replay plays from this copy and never touches the store.
+            const store = SceneIO.storeOf(root)
+            recorder.store = store ? store.contents() : ({})
         }
     }
 

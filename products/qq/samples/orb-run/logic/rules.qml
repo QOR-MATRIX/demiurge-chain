@@ -14,6 +14,9 @@
 //
 // Its orbs are a prefab (P3.15), prefabs/orb.qml: a glow and the trigger that hears the player, placed whole and taken
 // away whole; the arena's walls are a group.
+//
+// What it keeps (P3.16): the most orbs gathered in one play, shown on the HUD, and whether the music is on, both kept
+// from one play to the next in the game's store. A store is the player's, so what comes back from it is checked.
 
 import QQ
 
@@ -23,11 +26,25 @@ Logic {
     /// Orbs gathered, and the most there have been at once.
     property int score: 0
     property int orbsOut: 0
+    /// The most orbs gathered in one play, kept from one play to the next.
+    property int best: 0
 
     /// Where orbs appear, in turn: around the arena, a metre up.
     readonly property var spots: [Qt.vector3d(0, 1, -4), Qt.vector3d(5, 1, -2), Qt.vector3d(-5, 1, -2),
                                   Qt.vector3d(4, 1, 4), Qt.vector3d(-4, 1, 4), Qt.vector3d(0, 1, -8)]
     property int placed: 0
+
+    function showBest() {
+        const shown = entity("Best")
+        if (shown)
+            shown.text = "BEST " + best
+    }
+
+    function showMusic() {
+        const button = entity("Music switch")
+        if (button)
+            button.text = volumeOf("music") > 0 ? "Music: on" : "Music: off"
+    }
 
     /// An orb: the prefab, a glowing sphere that nothing touches and a trigger around it that hears the player.
     function placeOrb() {
@@ -45,6 +62,11 @@ Logic {
                 return
             score += 1
             orbsOut -= 1
+            if (score > best) {
+                best = score
+                save("best", best)
+                showBest()
+            }
             const shown = entity("Score")
             if (shown) {
                 shown.text = "ORBS " + score
@@ -114,10 +136,17 @@ Logic {
         })
         button("Resume", () => { hideScreen("pause"); resume() })
         button("Music switch", () => {
-            const on = volumeOf("music") > 0
-            setVolume("music", on ? 0 : 1)
-            entity("Music switch").text = on ? "Music: off" : "Music: on"
+            const level = volumeOf("music") > 0 ? 0 : 1
+            setVolume("music", level)
+            save("music", level)
+            showMusic()
         })
+        // As the player left them; anything else in the store (it is theirs to change) counts as nothing kept.
+        const kept = Number(saved("best", 0))
+        best = Number.isInteger(kept) && kept > 0 ? kept : 0
+        showBest()
+        setVolume("music", saved("music", 1) === 0 ? 0 : 1)
+        showMusic()
         placeOrb()
         placeOrb()
     }

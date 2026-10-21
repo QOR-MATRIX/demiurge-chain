@@ -68,6 +68,8 @@ class RunRecord : public QObject
     Q_PROPERTY(int seed READ seed WRITE setSeed NOTIFY changed)
     Q_PROPERTY(int ticks READ ticks WRITE setTicks NOTIFY changed)
     Q_PROPERTY(QVariantMap outcome READ outcome WRITE setOutcome NOTIFY changed)
+    /// The game's store as the run found it (P3.16): a replay plays from this copy, never from the store itself.
+    Q_PROPERTY(QVariantMap store READ store WRITE setStore NOTIFY changed)
 
 public:
     explicit RunRecord(QObject *parent = nullptr);
@@ -80,6 +82,8 @@ public:
     void setTicks(int ticks);
     QVariantMap outcome() const { return m_outcome; }
     void setOutcome(const QVariantMap &outcome);
+    QVariantMap store() const { return m_store; }
+    void setStore(const QVariantMap &store);
 
     /// What tick `tick` took: the hands (move, look, held, edges) and the buttons clicked, by name. Only what changed is
     /// kept: the hands' state when it differs from the tick before, the edges and clicks when there are any.
@@ -103,6 +107,7 @@ private:
     int m_seed = 0;
     int m_ticks = 0;
     QVariantMap m_outcome;
+    QVariantMap m_store;
     QMap<int, QVariantMap> m_states;
     QMap<int, QVariantList> m_edges;
     QMap<int, QStringList> m_clicks;

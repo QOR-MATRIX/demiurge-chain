@@ -1408,8 +1408,11 @@ P3.2 and on nothing on chain, and run in this order:
         a spot light's cone ignored, the sky never turned, the ground drawn a hundred times its size, bloom washing a
         sky image out, a confined game reading pictures from outside its package (by `tst_lockdown`), and saving
         bringing in only the entities' files (by `tst_studio`).
-15. [ ] **The Studio's basics.** Undo and redo, duplicate, snapping, a hierarchy with parenting and prefabs, an asset
+15. [x] **The Studio's basics.** Undo and redo, duplicate, snapping, a hierarchy with parenting and prefabs, an asset
     browser, a logic editor, and a statistics overlay with physics shown.
+
+    **Done 20 October 2026, merged 21 October in three pull requests** (#65 at `f75d082`, #66 at `bc107d8`, #67 at
+    `d2357c1`; CI passed every job on each head and on each merge).
 
     Built in three parts, each its own pull request: editing (undo and redo, duplicate, snapping); the hierarchy with
     parenting and prefabs; and the asset browser, the logic editor and the statistics overlay.
@@ -1472,8 +1475,8 @@ P3.2 and on nothing on chain, and run in this order:
       - `build.ps1 -Web` plays the playground in headless Chrome with no problem on the page (first frame 7.1 s, 318 frames a second, 12.06 MB brotli): kinematic and static bodies made the new way, from the world place.
       - Ten planted faults were each caught: the entity list not walking into groups, a prefab's parts written into the scene, a group not passing on that the scene plays, a body made inside its group, kinematics measuring only the entity's own place, a prefab's logic finding its target in the scene first, moving between groups not keeping the world place, a click on a prefab's part picking the part, logic unable to remove what is in a group or a prefab, and an unpacked prefab kept as a new file. Two did not fail at first: the crate's rest on the deck was checked as it fell past (it is now checked again after a wait), and logic's refusal to remove a part did no harm in Orb Run's walk (logic now removes a part directly in the prefab case).
 
-    **Part three, the Studio's tools, built 20 October 2026** (branch `session/qq-studio-tools`, on `main` at `bc107d8` since
-    #66's merge, whose tree it was built and checked on; pull request #67, not yet merged; its merge completes P3.15):
+    **Part three, the Studio's tools, built 20 October 2026, merged 21 October** (#67, at `d2357c1`; CI passed every job on
+    its head and on the merge, runs 39529063480 and 39546833889):
     - **The project's files** under the scene list (`studio/ProjectPanel.qml`): scenes, prefabs and logic, and the
       assets a scene can use, listed by kind from `assets/` and its folders (`SceneIO.project`'s `assets`: models,
       pictures shown as themselves, sounds, skies, maps), with a filter. A click uses a file as its kind says: a scene
@@ -1494,6 +1497,36 @@ P3.2 and on nothing on chain, and run in this order:
       - Eight planted faults were each caught: assets in folders under `assets/` not listed, logic never found wanting, a model from the list added as a sound, Ctrl+S saving the scene while the logic has the keys, a saved file still shown unsaved, colliders not drawn in play, draw calls not counted, and the filter ignored.
       - The Studio looked at with the project's files, the editor open and the statistics showing.
 16. [ ] **Saving.** One small store per game, the one the lockdown allows.
+
+    **Built 20 October 2026** (branch `session/qq-saving`, on `main` at `d2357c1` since #67's merge, whose tree it was built and checked on; pull
+    request #68, not yet merged). With it, every step ADR-105 set out (P3.7 to P3.16) is built.
+    - **A game's store** (`runtime/store.h`, `GameStore`): logic's `save(key, value)`, `saved(key, fallback)` and
+      `forget(key)`. It keeps numbers, text, true and false, null, and lists and objects of them, 64 KiB in all, under
+      keys of 1 to 100 characters. Anything else is refused with its reason in the log, and `save` returns false. The
+      runtime writes it a moment after a change and as the Player closes: on a computer, a JSON file named for the
+      game in `Demiurge/QQ/saves/` in the system's data folder; in a browser, the page's local storage. A game is its
+      package: its folder's name and a hash of where it is. A store that cannot be read is kept aside, not written over.
+    - **The one store the lockdown allows** (ADR-087): confined, `SceneIO.storeOf` gives only the confined package's
+      store, whatever scene it is asked about, so a scene a game makes up as though from another game's folder reaches
+      nothing of that game's.
+    - **Replays** (P3.11): a run's record keeps the store as the run found it (`RunRecord.store`, in the run's file),
+      and a replay plays from that copy, in memory, and writes nothing, so a server checking a run needs nothing from
+      the player's machine. Nothing rewarded rests on a store, which is the player's own.
+    - **The Studio** says under the project's files what the game keeps between plays, and offers **Forget**.
+    - **Orb Run** keeps its best play, shown on the HUD, and whether the music is on, and checks what comes back from
+      the store; the playground counts its visits.
+    - **Found on the way, fixed:** the playground's logic had stopped building, because it used
+      `Component.onCompleted`, which a logic file (importing only QQ) does not have. Its orb neither turned nor rose,
+      and nothing said so. The Player's measurement now lists logic that does not build, and the native and browser
+      checks fail on any.
+    - **Evidence, on the owner's PC:**
+      - All eight suites pass in one run of `build.ps1`: 156 cases, 10 new (`tst_scene` 4, `tst_play` 2, `tst_lockdown`
+        2, `tst_studio` 1, `tst_player` 1). The Player's case starts the real executable twice and finds what the
+        first start kept.
+      - `build.ps1 -Web` plays the playground in headless Chrome with no problem on the page: first frame 7.5 s, 315
+        frames a second. Its store is kept in the page's local storage and found again after a reload (visits 1, then 2).
+      - Fourteen planted faults were each caught: a confined game's store following a scene the game made up as though from another game's folder (it then read that game's store), a replay using the real store, a run's record keeping no store, a vector kept as though it were an object, no size limit, a store emptied leaving its file, an unreadable store not kept aside, a folder's letter case making it another game, Orb Run keeping no best, nothing written as the Player closes, Forget forgetting nothing, `saved` giving only the fallback, the playground's logic as it was, and a browser's local storage never written.
+      - Orb Run's HUD looked at, its best under the score.
 
 #### P4: GNOSIS (P4.1 depends on nothing)
 

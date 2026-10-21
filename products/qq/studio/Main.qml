@@ -971,6 +971,7 @@ ApplicationWindow {
                     Layout.preferredHeight: 260
                     studio: window
                     info: window.projectInfo
+                    store: window.scene ? SceneIO.storeOf(window.scene) : null
                 }
             }
         }

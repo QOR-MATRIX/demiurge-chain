@@ -1,6 +1,8 @@
 #include "sceneio.h"
+#include "confinement.h"
 #include "kinematics.h"
 #include "run.h"
+#include "store.h"
 #include "tilemap.h"
 
 #include <QColor>
@@ -209,6 +211,7 @@ QString SceneIO::write(QObject *scene, const QUrl &file) const
 void SceneIO::confineTo(const QUrl &package)
 {
     m_confined = true;
+    m_packageUrl = package;
     m_package = package.scheme() == QStringLiteral("qrc") ? QStringLiteral("qrc:") + QDir::cleanPath(package.path())
                                                          : QDir::cleanPath(package.toLocalFile());
 }
@@ -506,6 +509,29 @@ QVariantList SceneIO::everyEntity(QObject *scene) const
     if (const auto *node = qobject_cast<const QQuick3DObject *>(scene))
         collect(node, true, out);
     return out;
+}
+
+QObject *SceneIO::storeOf(QObject *entity)
+{
+    QObject *scene = sceneOf(entity);
+    if (!scene)
+        return nullptr;
+    GameStore *store = nullptr;
+    if (scene->property("replaying").toBool()) {
+        // Made once for this replay, from its record, and gone with the scene: nothing it does reaches the real one.
+        store = scene->findChild<GameStore *>(QString(), Qt::FindDirectChildrenOnly);
+        if (!store) {
+            const auto *record = qobject_cast<RunRecord *>(scene->property("recorder").value<QObject *>());
+            store = new GameStore(record ? record->store() : QVariantMap(), scene);
+        }
+    } else {
+        const QQmlContext *context = qmlContext(scene);
+        store = GameStore::storeFor(m_confined ? m_packageUrl
+                                               : Confinement::packageOf(context ? context->baseUrl() : QUrl()));
+    }
+    if (store)
+        QQmlEngine::setObjectOwnership(store, QQmlEngine::CppOwnership);
+    return store;
 }
 
 QObject *SceneIO::sceneOf(QObject *entity) const

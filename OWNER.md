@@ -27,15 +27,16 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
    **replay** to the same result, so a server can check a score before any reward;
    **animation** (#62); **sound** (#63); **materials** (#64): pictures on any wall, spot
    lights, **HDR skies** — *360° images that light the world*; and the Studio's **editing**
-   (#65): undo and redo, duplicate, snapping; and **groups** and **prefabs** (#66) — *a group
-   saved once and placed many times*. *Orb Run* and *Ember Climb* prove it.
+   (#65): undo and redo, duplicate, snapping; **groups** and **prefabs** (#66) — *a group
+   saved once and placed many times*; and the Studio's tools (#67). *Orb Run* and *Ember
+   Climb* prove it.
 4. **#65 also fixed three security advisories** — *published flaws in libraries we use*;
    one, in a wrapper never built, is ignored while CI proves it, as you chose (ADR-107).
 
-**For your merge: the Studio's tools, pull request #67** (P3.15, last of three parts):
-the project's files in a list, a logic editor that says which line is wrong, and F3
-statistics. **Built, to follow it:** **saving** — *a game keeps scores and settings
-between plays*.
+**For your merge: saving, pull request #68** — *a game keeps scores and settings between
+plays*, never read by a replay. With it, every step of QQ's plan for real games is built.
+**Next, as you chose: one look everywhere** — obsidian and gilt from one shared source, a
+showcase register (homepage, ARQADE, games) and a tool register (launcher, Studio, Media).
 
 ## Toward a worldwide beta: what only you can do
 

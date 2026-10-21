@@ -7,6 +7,7 @@
 // that keeps to its own files plays, and nothing of it is refused.
 
 #include <QDir>
+#include <QDirIterator>
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
@@ -14,6 +15,7 @@
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickWindow>
+#include <QStandardPaths>
 #include <QTcpServer>
 #include <QTemporaryDir>
 #include <QTest>
@@ -24,6 +26,7 @@
 #include "confinement.h"
 #include "gpu.h"
 #include "sceneio.h"
+#include "store.h"
 
 static const QString chosenGpu = qq::preferHighPerformanceGpu();
 
@@ -128,6 +131,12 @@ class TstLockdown : public QObject
     Q_OBJECT
 
 private slots:
+    void initTestCase()
+    {
+        // Games' stores (P3.16) go to the test's own folders, never a person's.
+        QStandardPaths::setTestModeEnabled(true);
+    }
+
     void aGameThatKeepsToItsOwnFilesPlaysAndNothingIsRefused()
     {
         Game g;
@@ -377,6 +386,71 @@ private slots:
         QCOMPARE(refused.filter(QStringLiteral("request to open: ")).size(), 2);
         QVERIFY2(refused.join(QLatin1Char('\n')).contains(QStringLiteral("https://example.invalid/")),
                  qPrintable(refused.join(QLatin1Char('\n'))));
+    }
+
+    void aGameKeepsOneStoreAndNamesNoFileOfIt()
+    {
+        // The one thing written for a game (P3.16): its store, kept by the runtime in QQ's saves under the game's name.
+        // A key is only a key, whatever it looks like.
+        Game g;
+        const QString aimed = g.out(QStringLiteral("aimed.json"));
+        QVERIFY(g.play(QStringLiteral(
+            "import QtQml\nimport QQ\nLogic {\n    property string kept: \"\"\n"
+            "    onStarted: kept = [save(\"../../../escape.json\", 1), save(\"%1\", 2), save(\"best\", 3)].join()\n"
+            "}\n").arg(aimed).toUtf8()));
+        QObject *logic = g.logic();
+        QVERIFY2(logic, qPrintable(g.behaviour()->property("error").toString()));
+        QTRY_COMPARE(logic->property("kept").toString(), QStringLiteral("true,true,true"));
+        qq::GameStore *store = qq::GameStore::storeFor(QUrl::fromLocalFile(g.package.path()));
+        QCOMPARE(store->value(QStringLiteral("best")).toInt(), 3);
+        QCOMPARE(store->value(aimed).toInt(), 2);
+        store->flush();
+        // Written where QQ keeps stores, named for the game; nothing beside it, in the package or outside it.
+        const QString file = qq::GameStore::placeOf(store->game());
+        QVERIFY(QFileInfo::exists(file));
+        QVERIFY(file.startsWith(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)));
+        QVERIFY(!QFileInfo::exists(aimed));
+        QVERIFY(!QFileInfo::exists(QDir(QFileInfo(file).absolutePath()).filePath(QStringLiteral("../../../escape.json"))));
+        QVERIFY(QDir(g.outside.path()).entryList(QDir::NoDotAndDotDot | QDir::AllEntries).isEmpty());
+        QStringList inPackage;
+        for (QDirIterator it(g.package.path(), QDir::Files, QDirIterator::Subdirectories); it.hasNext();)
+            inPackage << QDir(g.package.path()).relativeFilePath(it.next());
+        inPackage.sort();
+        QCOMPARE(inPackage, (QStringList{QStringLiteral("logic/probe.qml"), QStringLiteral("scenes/game.qml")}));
+        QVERIFY(g.newRefusals().isEmpty());
+        store->clear();
+        store->flush();
+    }
+
+    void aGameReachesNoOtherGamesStore()
+    {
+        // Another game on this computer, with something it keeps.
+        QTemporaryDir other;
+        qq::GameStore *theirs = qq::GameStore::storeFor(QUrl::fromLocalFile(other.path()));
+        QVERIFY(theirs->setValue(QStringLiteral("secret"), QJSValue(QStringLiteral("theirs"))));
+        // The game asks every way it can: through its own scene, and through a scene it makes up as though it were from
+        // the other's folder. Confined, every way leads to its own store.
+        Game g;
+        const QString madeUp = QUrl::fromLocalFile(QDir(other.path()).filePath(QStringLiteral("scenes/x.qml"))).toString();
+        QVERIFY(g.play(QStringLiteral(
+            "import QtQml\nimport QQ\nLogic {\n"
+            "    property string mine: \"\"\n    property string reached: \"\"\n    property string read: \"\"\n"
+            "    onStarted: {\n"
+            "        mine = SceneIO.storeOf(scene).game\n"
+            "        let made = null\n"
+            "        try { made = Qt.createQmlObject(\"import QQ\\nScene {}\", scene, \"%1\") } catch (e) {}\n"
+            "        const store = made ? SceneIO.storeOf(made) : null\n"
+            "        reached = store ? store.game : \"none\"\n"
+            "        read = String(store ? store.value(\"secret\", \"absent\") : \"absent\") + \"/\" + saved(\"secret\", \"absent\")\n"
+            "    }\n}\n").arg(madeUp).toUtf8()));
+        QObject *logic = g.logic();
+        QVERIFY2(logic, qPrintable(g.behaviour()->property("error").toString()));
+        QTRY_VERIFY(!logic->property("read").toString().isEmpty());
+        QCOMPARE(logic->property("mine").toString(), qq::GameStore::gameOf(QUrl::fromLocalFile(g.package.path())));
+        QVERIFY2(logic->property("reached").toString() != theirs->game(), qPrintable(logic->property("reached").toString()));
+        QCOMPARE(logic->property("read").toString(), QStringLiteral("absent/absent"));
+        theirs->clear();
+        theirs->flush();
     }
 };
 

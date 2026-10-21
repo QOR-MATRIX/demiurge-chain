@@ -228,6 +228,18 @@ Scene {
     }
 
     ScreenText {
+        name: "Best"
+        screen: "hud"
+        anchor: "top-left"
+        insetX: 42
+        insetY: 80
+        text: "BEST 0"
+        size: 18
+        colour: "#c9a45c"
+        typeface: "ui"
+    }
+
+    ScreenText {
         name: "Hint"
         screen: "hud"
         anchor: "bottom"

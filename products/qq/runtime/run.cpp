@@ -124,6 +124,14 @@ void RunRecord::setOutcome(const QVariantMap &outcome)
     }
 }
 
+void RunRecord::setStore(const QVariantMap &store)
+{
+    if (store != m_store) {
+        m_store = store;
+        emit changed();
+    }
+}
+
 void RunRecord::capture(int tick, const QVariantMap &hands, const QStringList &clicks)
 {
     QVariantMap state = hands;
@@ -169,6 +177,7 @@ void RunRecord::clear()
     m_clicks.clear();
     m_last.clear();
     m_outcome.clear();
+    m_store.clear();
     m_ticks = 0;
     emit changed();
 }
@@ -189,6 +198,7 @@ QByteArray RunRecord::toJson() const
                           {QStringLiteral("seed"), m_seed},
                           {QStringLiteral("ticks"), m_ticks},
                           {QStringLiteral("outcome"), QJsonObject::fromVariantMap(m_outcome)},
+                          {QStringLiteral("store"), QJsonObject::fromVariantMap(m_store)},
                           {QStringLiteral("hands"), states},
                           {QStringLiteral("edges"), edges},
                           {QStringLiteral("clicks"), clicks}};
@@ -213,6 +223,8 @@ bool RunRecord::fromJson(const QByteArray &json, QString *why)
     m_seed = run.value(QStringLiteral("seed")).toInt();
     m_ticks = run.value(QStringLiteral("ticks")).toInt();
     m_outcome = run.value(QStringLiteral("outcome")).toObject().toVariantMap();
+    // A run kept before P3.16 has none: its game started with nothing kept, as far as a replay knows.
+    m_store = run.value(QStringLiteral("store")).toObject().toVariantMap();
     for (const QJsonValue &v : run.value(QStringLiteral("hands")).toArray())
         m_states.insert(v.toArray().at(0).toInt(), v.toArray().at(1).toObject().toVariantMap());
     for (const QJsonValue &v : run.value(QStringLiteral("edges")).toArray())

@@ -14,6 +14,9 @@
 // brotli compressed, which is what a web server would send), the Player's measurement, the renderer WebGL reported,
 // and how many colours the first frame has. Exit code 0 measured, 1 not (the reason is printed), and 1 too when a model
 // in the scene failed to load: the game settles without it, and sooner, so its time would not be the game's.
+//
+// Then the page is loaded again, for the game's store (P3.16): the playground counts its visits in the page's local
+// storage, and the second load must find 1 there and leave 2. Exit code 1 when it does not.
 
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -196,6 +199,7 @@ try {
   let nextId = 0;
   const pending = new Map();
   let measured = null;
+  let measuredAgain = null;  // the page loaded a second time, for the game's store
   const problems = [];
   const consoleLines = [];
   // Each of Qt's threads is a Web Worker, whose errors reach only its own console: every worker is attached to
@@ -224,7 +228,9 @@ try {
       consoleLines.push(text);
       const at = text.indexOf('QQ-MEASURE ');
       if (at >= 0) {
-        measured = JSON.parse(text.slice(at + 'QQ-MEASURE '.length));
+        const line = JSON.parse(text.slice(at + 'QQ-MEASURE '.length));
+        if (measured) measuredAgain = line;
+        else measured = line;
       } else if (msg.params.type === 'error' || /could not|error/i.test(text)) {
         problems.push(text);
       }
@@ -272,6 +278,27 @@ try {
   if (frameFile) writeFileSync(frameFile, shot);
   const frameColours = colours(shot);
 
+  // The game's store (P3.16): the playground counts its visits in the page's local storage. Loaded again, the page must
+  // find the count it left and add one, so what a game keeps outlives the page.
+  const readStore = () =>
+    evaluate(`Object.keys(localStorage).filter((k) => k.startsWith('qq-store/')).map((k) => [k, localStorage.getItem(k)])`);
+  const visits = (kept) => {
+    try {
+      return JSON.parse(kept?.[0]?.[1] ?? 'null')?.visits ?? null;
+    } catch {
+      return null;
+    }
+  };
+  const storeFirst = measured ? await readStore() : null;
+  let storeAgain = null;
+  if (measured) {
+    await send('Page.reload');
+    const until = Date.now() + 120000;
+    while (!measuredAgain && Date.now() < until) await sleep(250);
+    storeAgain = await readStore();
+  }
+  const store = { first: visits(storeFirst), again: visits(storeAgain), keys: (storeAgain ?? []).map((e) => e[0]) };
+
   console.log(
     JSON.stringify({
       bytes: total('bytes'),
@@ -282,6 +309,7 @@ try {
       measured,
       frameColours,
       audio,
+      store,
       problems,
     }),
   );
@@ -290,9 +318,12 @@ try {
     console.error(`The console's last lines:\n${consoleLines.slice(-30).join('\n')}`);
   } else if (measured.problem) fail(`the scene could not play: ${measured.problem}`);
   else if (measured.unloaded?.length) fail(`models did not load: ${measured.unloaded.join(' | ')}`);
+  else if (measured.logicErrors?.length) fail(`logic did not build: ${measured.logicErrors.join(' | ')}`);
   else if (frameColours <= 200) fail(`the page shows ${frameColours} colours, not a world`);
   else if (!audio || !audio.voices.some((v) => v.decoded && v.panner))
     fail(`no sound on the page's Web Audio, decoded and panned: ${JSON.stringify(audio)}`);
+  else if (store.first !== 1 || store.again !== 2)
+    fail(`the game's store did not outlive the page (visits ${store.first}, then ${store.again} after a reload)`);
   ws.close();
 } catch (e) {
   fail(e.message);
