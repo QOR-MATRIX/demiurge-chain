@@ -1051,8 +1051,8 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      policy allows styles and fonts only from itself. Its colours do not change; its buttons and panels take the shared
      8 and 12 pixel corners, and its status tags the round pill. The share image renders the same from the local faces.
 
-   **The second slice, QQ, built 21 October 2026** (branch `session/qq-one-look`, on #69's merge; pull request #70,
-   not yet merged):
+   **The second slice, QQ, built 21 October 2026** (branch `session/qq-one-look`, on #69's merge; merged in #70 at
+   `e779957` the same day):
    - `products/qq/runtime/tokens.h`, generated: QQ's `Look` takes every value from it, for the Studio and a game's
      screens alike: the whole palette (`Look.deepest` is the token `void`, a keyword in C++ and JavaScript), the four
      faces, the type scale and tracking, the corners, the durations (0 with reduced motion) and the easing. A game
@@ -1087,7 +1087,7 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      - The Studio looked at, as painted in its case.
 
    **The third slice, ARQADE, the web and then its Qt application, built 21 October 2026** (branch
-   `session/arqade-one-look`, on the second; kept back until the slices before it are merged). The web:
+   `session/arqade-one-look`, on #70's merge; pull request #71, not yet merged). The web:
    - `products/arqade/app/tokens.css` and `products/arqade/public/fonts/`, generated; `app/globals.css` imports them.
      **The showcase register:** every colour of the interface is a token, shadcn's sixteen variables included. Colours
      were written 501 times in the stylesheet and are now written 127 times, every one the games' own art (121
