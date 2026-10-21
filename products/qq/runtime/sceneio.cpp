@@ -6,6 +6,8 @@
 #include <QColor>
 #include <QCryptographicHash>
 #include <QDir>
+#include <QDirIterator>
+#include <QHash>
 #include <QFile>
 #include <QFileInfo>
 #include <QImageReader>
@@ -22,6 +24,7 @@
 #include <QVector3D>
 #include <QtQuick3D/qquick3dobject.h>
 
+#include <algorithm>
 #include <cmath>
 #include <numbers>
 
@@ -922,6 +925,43 @@ void SceneIO::discard(QObject *scene)
     scene->deleteLater();
 }
 
+namespace {
+
+/// What a project's assets/ holds that a scene can use, by kind, with its path in the project (the Studio's asset
+/// browser, P3.15). A glTF model's buffers and pictures it names are its own, so they are listed as pictures only if
+/// they are pictures.
+QVariantList assetsOf(const QDir &root)
+{
+    static const QHash<QString, QString> kinds = {
+        {QStringLiteral("gltf"), QStringLiteral("model")},   {QStringLiteral("glb"), QStringLiteral("model")},
+        {QStringLiteral("png"), QStringLiteral("picture")},  {QStringLiteral("jpg"), QStringLiteral("picture")},
+        {QStringLiteral("jpeg"), QStringLiteral("picture")}, {QStringLiteral("webp"), QStringLiteral("picture")},
+        {QStringLiteral("wav"), QStringLiteral("sound")},    {QStringLiteral("mp3"), QStringLiteral("sound")},
+        {QStringLiteral("ogg"), QStringLiteral("sound")},    {QStringLiteral("flac"), QStringLiteral("sound")},
+        {QStringLiteral("hdr"), QStringLiteral("sky")},      {QStringLiteral("tmj"), QStringLiteral("map")}};
+    QVariantList out;
+    const QString folder = root.filePath(QStringLiteral("assets"));
+    QDirIterator it(folder, QDir::Files, QDirIterator::Subdirectories);
+    QList<QVariantMap> found;
+    while (it.hasNext()) {
+        const QFileInfo file(it.next());
+        const QString kind = kinds.value(file.suffix().toLower());
+        if (kind.isEmpty())
+            continue;
+        found << QVariantMap{{QStringLiteral("path"), root.relativeFilePath(file.filePath())},
+                             {QStringLiteral("kind"), kind},
+                             {QStringLiteral("url"), QUrl::fromLocalFile(file.filePath())}};
+    }
+    std::sort(found.begin(), found.end(), [](const QVariantMap &a, const QVariantMap &b) {
+        return a.value(QStringLiteral("path")).toString() < b.value(QStringLiteral("path")).toString();
+    });
+    for (const QVariantMap &f : std::as_const(found))
+        out << f;
+    return out;
+}
+
+}  // namespace
+
 QVariantMap SceneIO::project(const QUrl &folder) const
 {
     if (outside(folder))
@@ -938,7 +978,38 @@ QVariantMap SceneIO::project(const QUrl &folder) const
             {QStringLiteral("repository"), QFileInfo(root.filePath(QStringLiteral(".git"))).exists()},
             {QStringLiteral("scenes"), names(QStringLiteral("scenes"))},
             {QStringLiteral("logic"), names(QStringLiteral("logic"))},
-            {QStringLiteral("prefabs"), names(QStringLiteral("prefabs"))}};
+            {QStringLiteral("prefabs"), names(QStringLiteral("prefabs"))},
+            {QStringLiteral("assets"), assetsOf(root)}};
+}
+
+QVariant SceneIO::readText(const QUrl &file)
+{
+    if (outside(file)) {
+        fail(QStringLiteral("A game reads only its own files."));
+        return {};
+    }
+    QFile f(file.isLocalFile() ? file.toLocalFile() : QString());
+    if (!file.isLocalFile() || !f.open(QIODevice::ReadOnly)) {
+        fail(QStringLiteral("%1 could not be read.").arg(file.fileName()));
+        return {};
+    }
+    return QString::fromUtf8(f.readAll());
+}
+
+QVariantList SceneIO::checkLogic(const QString &text, const QUrl &file)
+{
+    QVariantList problems;
+    QQmlEngine *qml = engine();
+    if (!qml)
+        return problems;
+    QQmlComponent component(qml);
+    component.setData(text.toUtf8(), file);
+    for (const QQmlError &e : component.errors()) {
+        problems << QVariantMap{{QStringLiteral("line"), e.line()},
+                                {QStringLiteral("column"), e.column()},
+                                {QStringLiteral("message"), e.description()}};
+    }
+    return problems;
 }
 
 QVariantMap SceneIO::importQqJson(const QUrl &file)

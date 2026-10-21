@@ -243,11 +243,14 @@ ColumnLayout {
                     flat: true
                     onClicked: fileChooser.open()
                 }
-                // Logic is edited in the creator's own editor; a save there reloads it in play.
+                // A QML file (logic, a prefab) can also be opened in the creator's own editor; a save there reloads it
+                // in play. The Studio's own logic editor is the inspector's Edit logic (P3.15).
                 Button {
                     visible: inspector.target !== null && /\.qml$/i.test(String(inspector.target[urlRow.field]))
-                    text: qsTr("Edit")
+                    text: qsTr("Open outside")
                     flat: true
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("In your own editor")
                     onClicked: Qt.openUrlExternally(SceneIO.resolvedUrl(inspector.target, inspector.target[urlRow.field]))
                 }
             }

@@ -302,6 +302,8 @@ Node {
 
     /// The physics world while playing, or null.
     readonly property QtObject physicsWorld: physics.object
+    /// Draw every body as its collider (the Studio's statistics, P3.15). Not a field.
+    property bool debugPhysics: false
 
     // One physics world, made when play starts and gone when it stops. QQ's unit is the metre.
     Instantiator {
@@ -311,6 +313,7 @@ Node {
             scene: root
             running: !root.paused
             gravity: Qt.vector3d(0, -root.gravity, 0)
+            forceDebugDraw: root.debugPhysics
             typicalLength: 1
             typicalSpeed: 10
             defaultDensity: 1000

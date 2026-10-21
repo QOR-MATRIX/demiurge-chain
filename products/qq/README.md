@@ -103,6 +103,17 @@ it; the QQ Player plays a scene on its own, natively and in a browser.
   `prefabs/<name>.qml` and places a **Prefab** of it where the group stood; **Add → Prefab…** places another. A
   prefab's parts come from its file, so the scene keeps only where each prefab stands and which file it is, a change to
   the file reaches every one the next time the scene opens or plays, and a click on a part picks the prefab.
+  **Unpack** turns a prefab back into a group of its parts to change them; keeping it as a prefab again writes over its
+  own file, and the scene's other prefabs of it are made again at once.
+  **The Studio's tools (P3.15, third part, built 20 October 2026):** the **project's files** under the scene list
+  (`studio/ProjectPanel.qml`): its scenes, prefabs and logic, and the assets a scene can use by kind (models, pictures
+  shown as themselves, sounds, skies, maps), with a filter; a click uses one as its kind says (a model added, a
+  picture put on the selection, a sky made the scene's, a prefab placed, a logic file opened). The **logic editor**
+  under the world (`studio/LogicEditor.qml`): a logic file with its lines numbered and coloured, built as you pause
+  (`SceneIO.checkLogic`), what does not build listed by line, and saved with its button or Ctrl+S while it has the
+  keys, so a scene that is playing picks it up at once; a Behaviour's **Edit logic** opens its file there. **F3**
+  (or Stats) shows what the world costs (`studio/StatsOverlay.qml`): frames a second and a frame's time, draw calls
+  and the graphics API, entities and bodies, and in play every body drawn as its collider.
 - **The files:** a scene is `scenes/<name>.qml` in the project, in one canonical layout: read and written back it is
   the same bytes, and one changed value is one changed line in Projects. Models and sounds are copied into `assets/`
   and logic into `logic/`, so the project is whole on its own; a Tiled map brings its tileset and image, and one whose
@@ -138,7 +149,7 @@ description with no human edit, made by whoever runs it with their own key.
 | Path | What it is |
 | --- | --- |
 | `runtime/` | The QML module `QQ`: `World` (the viewport, its sky, light, look and hearing), `Scene` (the root a file holds), `Game` (a world playing one scene file: what the Player shows), the entities `Sun`, `Lamp`, `Ground`, `Shape`, `Prop`, `Player`, `Emitter`, `Sound`, `Behaviour`, `Trigger` (a volume that hears what enters and leaves it, P3.7), the screen kinds `ScreenText`, `ScreenBar`, `ScreenButton`, `ScreenImage` and `ScreenPanel` (the game's interface, drawn over the world on the World's overlay, each in a named screen; built on `ScreenPart`, P3.8), `Music` (a scene's music, fading from track to track, P3.13), `Spotlight` (a cone of light, P3.14), `Group` and `Prefab` (entities kept together, and a group kept in a file of its own and placed as often as wanted, P3.15), `InputAction` (an action a player can take, with its keys, mouse buttons and pad buttons, P3.9), the 2D kinds `Sprite`, `TileMap` and `Player2D` (P3.10), and `Logic` (what a logic file is, with the gameplay API of P3.7: `onStarted`, `onContact`, `onEntered`, `onExited`, `ray`, `spawn`, `remove`, `after`, `every`, `cancel`; and for the interface, P3.8, `onClicked`, `showScreen`, `hideScreen`, `onlyScreen`, `pause` and `resume`; and for actions, P3.9, `onPressed`, `onReleased`, `held`, `rebind`, `bindingOf` and `pointing`; and for steps and runs, P3.11, `onStep`, `steps`, `random`, `randomInt`, `overlaps` and `outcome`; and for animation, P3.12, `tween` and `machine`; and for sound, P3.13, `play`, `setVolume` and `volumeOf`; and since P3.15 `spawn` places a prefab, or puts what it makes in a group, and `remove` takes a group or a prefab away whole). `Look` is the interface's style: the faces Cinzel and Barlow Semi Condensed (carried in `runtime/fonts/`, under the SIL Open Font License), the launcher's inks and ARQADE's gilt, and the system's reduced-motion setting. In C++: `SceneIO` (canonical writing, loading, saving, playing a copy, adopting files, importing 2D scenes, and the editing operations the Studio uses and the agent will, P3.3), `Input` (keyboard, mouse and gamepad as intentions), `LogicFile` (builds a logic file and rebuilds it on each save), `tilemap` (Tiled's maps read, their solid tiles merged into colliders, and `TileGeometry`, a layer as one mesh), `kinematics` (QQ's own: boxes swept against boxes, P3.11), `run` (`Random`, seeded and the same everywhere; `RunRecord`, a run kept; `replayRun`, a run played again with no window), `clips` (a glTF model's animations, taken from Qt's own wall-clock playing and posed on the game's steps, P3.12), `Mixer` (the volume groups, and a sound file's length, P3.13), `shaders/surface.vert` and `surface.frag` (a Shape's pictured surface, P3.14), `SoftDot` (the particles' sprite, made in memory) `gpu` (draw with the faster of two GPUs), `Confinement` (what a game may reach in the Player, ADR-087) and `WebVoice` (a sound in a browser, on the page's Web Audio and panned, so a game never needs Qt Multimedia's QML) |
-| `studio/` | QQ Studio. `qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>] [--launcher-channel <name>]`; `LauncherLink`, its side of the QOR host protocol (publishing through the launcher that started it, ADR-088) |
+| `studio/` | QQ Studio. `qq-studio [model.gltf] [--project <folder>] [--capture <frame.png>] [--launcher-channel <name>]`; `LauncherLink`, its side of the QOR host protocol (publishing through the launcher that started it, ADR-088); `History.qml` (undo and redo), `ProjectPanel.qml` (the project's files), `LogicEditor.qml` with `LogicHighlighter` (the logic editor) and `StatsOverlay.qml` (F3), P3.15 |
 | `agent/` | The agent's side of the Studio (P3.3): `McpServer` (MCP's JSON-RPC, served on a local pipe only this user can open), `StudioTools` (the fourteen tools, working the Studio's own window functions, and `StudioLog`, what the Studio has said), `DesignLoop` (a description designed, built, played and judged by Claude through those tools; ADR-085), `keychain` (the provider's key in Windows Credential Manager) and `qq-mcp` (the program an MCP client starts, relaying its standard input and output to the running Studio) |
 | `player/` | The QQ Player. `qq-player [scene.qml] [--capture <frame.png>] [--measure <result.json>] [--seed <n>] [--record <run.json> [--ticks <n>]] [--replay <run.json>]` (a replay has no window and exits 0 when it reaches the outcome kept, 4 when it does not); its playground (a small game with everything P3.2 plays) bundled inside it; `measure-web.mjs`, which plays the browser build in a headless browser and measures it |
 | `tests/` | `tst_world` (rendering, judged by pixels), `tst_scene` (scene files), `tst_studio` (the real Studio window, worked by clicks, drags and keys), `tst_play` (physics, the player, input, particles, sound, logic and gameplay in logic, 2D pixel for pixel, in real frames, and the Orb Run and Ember Climb samples played), `tst_player` (the real Player executable), `tst_lockdown` (what a game's logic may reach in the Player, ADR-087), `tst_publish` (publishing through a stand-in launcher, P3.4), `tst_agent` (the tools over MCP, in the real Studio and through the real `qq-mcp`) |
@@ -232,7 +243,10 @@ drew about 12 frames a second.
   refused for a player, never into themselves, and removed with what is in them; QQ's kinematics measuring a wall
   through a moved group turned a quarter about the depth axis, in doubles; and a prefab made of its file where it
   stands, never written into the scene, its part found by name, refused when its file's root is not a Group, a group
-  written as one at the origin and never over a file, and a prefab brought into a project's `prefabs/`.
+  written as one at the origin and never over a file, and a prefab brought into a project's `prefabs/`. **Since its
+  third part, 27 cases (32 checks):** a project's assets listed by kind, in folders too, a model's buffer not among
+  them; logic built where its file is, an error by its line, an unknown type where it is written; and a text file read,
+  or said not to be.
 - **`tst_studio`** (10 cases, the real window): a new Studio opens a lit scene in its project; a click on the model
   selects it and a click on the sky selects nothing; dragging the X handle moves along X only; dragging the centre
   handle scales evenly and leaves the position alone; saving writes a canonical scene and carries the model into the
@@ -253,7 +267,10 @@ drew about 12 frames a second.
   moved with its group, out and back in by the inspector's choice, ungrouped with Ctrl+Shift+G and that undone; a group
   kept as a prefab, placed where it stood, its part not in the list and picked as the prefab, saved without its parts,
   and placed again; and unpacked, changed and kept back over its own file, the other prefab of it made again with the
-  change.
+  change. **Since its third part, 18 cases:** the project's files listed by kind, a model added by a click in the list,
+  a picture put on the selection, a sky made the scene's, a sound added, and the filter; a Behaviour's logic opened in
+  the editor, a brace taken away said to be wrong by line, mended and saved with Ctrl+S (the file written, the scene
+  not); and F3's frames, draw calls and bodies, every body drawn as its collider in play, and gone with F3 again.
 
   Eight planted faults were each caught: quick edits of one field never merged, an edit after an undo keeping what
   could be redone, undo forgetting what was last saved, undo losing the selection, saving made a step to undo, a copy
@@ -471,6 +488,11 @@ the web has no audio, so in a browser sound is QQ's own, on the page's Web Audio
   looks at the scene's own first. A prefab brought in from another project comes alone, without the files it names. A
   prefab is changed by unpacking it in a scene and keeping it back; the Studio does not open a prefab's file on its
   own.
+- **The Studio's tools, as built in P3.15:** the logic editor builds what is written without running it, so an
+  error that shows only in play (a name logic reaches that is not there) is said in play, as before; it has no
+  completion or search yet. The statistics' frames a second count frames drawn, and the Studio draws only when
+  something changes, so an idle Studio shows few. A picture from the list goes on the selection only if it takes one
+  (a shape or the ground), or becomes a sprite in a 2D scene.
 - **Undo, as built in P3.15:** it covers the scene that is open, back to when it was opened; opening another starts
   afresh. A logic file's text and the files saving brought into the project are not taken back with it.
 - **Materials, as built in P3.14:** a shape's picture is projected along its three axes, so on a sphere, cylinder or

@@ -14,7 +14,9 @@
 // and scales by tenths. The list is the scene's tree: Ctrl+G puts the selection in a new group, Ctrl+Shift+G takes a
 // group's contents out of it, the inspector moves the selection between groups, and a group can be kept as a prefab,
 // prefabs/<name>.qml, placed as often as wanted. A click in the world picks what is innermost, but a prefab's parts
-// pick the prefab.
+// pick the prefab. The project's files are listed under the scene, each used by a click (ProjectPanel.qml); a logic
+// file opens in the editor under the world (LogicEditor.qml); and F3 shows what the world costs, with every body drawn
+// as its collider while it plays (StatsOverlay.qml).
 //
 // Play (F5) runs the scene (DIRECTION P3.2): a copy is built from the scene's canonical text and played in its place,
 // with physics, the player under the keyboard, mouse and gamepad, particles, sound and logic that reloads when its file
@@ -87,6 +89,9 @@ ApplicationWindow {
     readonly property QtObject history: History {}
     /// What the next refresh() records as: an edit's key, so quick edits of one field are one step ("" for none).
     property string editKey: ""
+    /// The statistics over the world, and the colliders drawn in play (F3).
+    property bool showStats: false
+
     /// Snapping (P3.15): the grid a handle moves along, in units; 0 is off. A handle then turns by `snapAngle` degrees
     /// and scales by tenths.
     property real snapStep: 0
@@ -301,6 +306,77 @@ ApplicationWindow {
         selection = made
         refresh()
         return made
+    }
+
+    // ── the project's files (P3.15) ──
+
+    /// What a click on one of the project's files does (ProjectPanel.qml).
+    function useHint(f) {
+        switch (f.kind) {
+        case "scene": return qsTr("Open it")
+        case "prefab": return qsTr("Place one")
+        case "logic": return qsTr("Open it in the logic editor")
+        case "model": return qsTr("Add it as a model")
+        case "sound": return qsTr("Add it as a sound")
+        case "sky": return qsTr("Make it the scene's sky")
+        case "map": return qsTr("Add it as a tile map")
+        case "picture": return qsTr("Put it on the selection, or add it as a sprite in a 2D scene")
+        }
+        return ""
+    }
+
+    /// Use one of the project's files, as its kind says (useHint).
+    function useFile(f) {
+        if (playing || !scene)
+            return null
+        const base = String(f.name).split("/").pop().replace(/\.[a-z0-9]+$/i, "")
+        const here = scene.view === "2d" ? Qt.vector3d(target.x, target.y, 0) : undefined
+        switch (f.kind) {
+        case "scene":
+            openScene(f.name)
+            return scene
+        case "prefab":
+            return add("Prefab", { name: base, source: f.url })
+        case "logic":
+            return openLogic(f.name) ? f : null
+        case "model":
+            return add("Prop", { name: base, source: f.url })
+        case "sound":
+            return add("Sound", { name: base, source: f.url })
+        case "map":
+            return add("TileMap", { name: base, source: f.url, position: here ?? Qt.vector3d(0, 0, 0) })
+        case "sky":
+            scene.sky = f.url
+            refresh()
+            say(qsTr("%1 is the scene's sky.").arg(f.name))
+            return scene
+        case "picture":
+            if (selection && selection !== scene && selection.fields.indexOf("image") >= 0) {
+                selection.image = f.url
+                refresh()
+                say(qsTr("%1 is on %2.").arg(f.name).arg(selection.name))
+                return selection
+            }
+            if (scene.view === "2d")
+                return add("Sprite", { name: base, source: f.url, position: here })
+            say(qsTr("Select a shape or the ground to put %1 on it.").arg(f.name), true)
+            return null
+        }
+        return null
+    }
+
+    /// Open logic/<name>.qml in the editor under the world.
+    function openLogic(name) {
+        if (String(project) === "")
+            return false
+        return logicEditor.open(name)
+    }
+
+    /// The logic file a Behaviour runs, by name, if it is in the project's logic/; or "".
+    function logicNameOf(behaviour) {
+        const url = String(SceneIO.resolvedUrl(behaviour, behaviour.source))
+        const folder = String(project) + "/logic/"
+        return url.startsWith(folder) ? url.slice(folder.length).replace(/\.qml$/i, "") : ""
     }
 
     // ── the scene's tree (P3.15) ──
@@ -583,7 +659,9 @@ ApplicationWindow {
         newScene()
     }
 
-    Shortcut { sequences: [StandardKey.Save]; onActivated: window.saveScene() }
+    // Ctrl+S saves what has the keys: the logic open in the editor, or the scene.
+    Shortcut { sequences: [StandardKey.Save]; onActivated: logicEditor.typing ? logicEditor.save() : window.saveScene() }
+    Shortcut { sequence: "F3"; onActivated: window.showStats = !window.showStats }
     Shortcut { sequences: [StandardKey.Delete]; enabled: !window.playing; onActivated: window.removeSelection() }
     Shortcut { sequences: [StandardKey.Undo]; enabled: !window.playing; onActivated: window.undo() }
     // The platform's redo keys: Ctrl+Y and Ctrl+Shift+Z on Windows. Naming one again would make it ambiguous, and an
@@ -688,6 +766,15 @@ ApplicationWindow {
                 onActivated: (i) => window.snapStep = steps[i]
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Handles move along this grid, turn by 15 degrees and scale by tenths")
+            }
+            ToolButton {
+                objectName: "statsButton"
+                text: qsTr("Stats")
+                checkable: true
+                checked: window.showStats
+                onToggled: window.showStats = checked
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("What the world costs, and colliders in play (F3)")
             }
             ToolButton { text: qsTr("New"); enabled: !window.playing; onClicked: window.newScene() }
             ToolButton { text: qsTr("Import 2D…"); enabled: !window.playing; onClicked: importChooser.open() }
@@ -877,26 +964,47 @@ ApplicationWindow {
                     text: window.projectInfo.repository ? qsTr("Versioned with Qontrol")
                                                         : qsTr("Not versioned yet: open it in Projects")
                 }
-                Repeater {
-                    model: window.projectInfo.scenes
-                    delegate: ItemDelegate {
-                        required property string modelData
-                        Layout.fillWidth: true
-                        text: modelData
-                        font.pixelSize: 13
-                        highlighted: modelData === window.sceneName && !window.dirty
-                        onClicked: window.openScene(modelData)
-                    }
+                ProjectPanel {
+                    objectName: "projectPanel"
+                    visible: String(window.project) !== ""
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 260
+                    studio: window
+                    info: window.projectInfo
                 }
             }
         }
 
-        // ── middle: the world ──
+        // ── middle: the world, and the logic editor under it when a file is open ──
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: 0
+
         Item {
             id: viewport
             objectName: "viewport"
             Layout.fillWidth: true
             Layout.fillHeight: true
+
+            StatsOverlay {
+                objectName: "statsOverlay"
+                visible: window.showStats
+                z: 10
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: 12
+                world: world
+                scene: window.playScene ?? window.scene
+            }
+            // Its draw calls are counted only while it shows; and in play every body is drawn as its collider.
+            Binding { target: world.renderStats; property: "extendedDataCollectionEnabled"; value: window.showStats }
+            Binding {
+                target: window.playScene
+                when: window.playScene !== null
+                property: "debugPhysics"
+                value: window.showStats
+            }
 
             World {
                 id: world
@@ -1130,6 +1238,16 @@ ApplicationWindow {
             }
         }
 
+        LogicEditor {
+            id: logicEditor
+            objectName: "logicEditor"
+            visible: name !== ""
+            Layout.fillWidth: true
+            Layout.preferredHeight: 280
+            studio: window
+        }
+        }
+
         // ── right: the selection's fields ──
         Pane {
             Layout.preferredWidth: 320
@@ -1214,6 +1332,13 @@ ApplicationWindow {
                             currentIndex: window.selection ? Math.max(0, choices.indexOf(window.selection.parent)) : 0
                             onActivated: (i) => window.moveSelectionInto(choices[i])
                         }
+                    }
+                    Button {
+                        objectName: "editLogicButton"
+                        visible: window.selection !== null && window.selection.kind === "Behaviour"
+                                 && window.logicNameOf(window.selection) !== ""
+                        text: qsTr("Edit logic")
+                        onClicked: window.openLogic(window.logicNameOf(window.selection))
                     }
                     Button {
                         objectName: "unpackButton"

@@ -5,6 +5,8 @@
 qt_add_library(qqstudio STATIC
     # The Studio's side of the QOR host protocol: publishing asks the launcher that started it (ADR-088).
     launcherlink.h launcherlink.cpp
+    # The logic editor's colours (P3.15).
+    logichighlighter.h logichighlighter.cpp
 )
 
 qt_add_qml_module(qqstudio
@@ -16,6 +18,9 @@ qt_add_qml_module(qqstudio
         Gizmo.qml
         AgentPanel.qml
         History.qml
+        ProjectPanel.qml
+        LogicEditor.qml
+        StatsOverlay.qml
 )
 
 # The model a new scene opens with: the same fixture the tests render, so what is checked is what is shown.
