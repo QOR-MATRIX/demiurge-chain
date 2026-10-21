@@ -1,4 +1,4 @@
-# cargo audit configuration for tools/qor-launcher/src-tauri (ADR-089).
+# cargo audit configuration for tools/qor-launcher/src-tauri (ADR-089, ADR-107).
 #
 # RUSTSEC-2026-0344 (ruzstd 0.8.3, a decompression bomb: a tiny input can
 # exhaust memory) is fixed only on ruzstd's 0.9 line, and no published smoldot
@@ -15,7 +15,29 @@
 # lockfile update removes ruzstd 0.8, which CI also reports.
 #
 # Approved by the owner on 2026-10-15 (ADR-089, option A) and logged in
-# docs/GATES.toml [[change_log]]. This is the launcher's only ignore.
+# docs/GATES.toml [[change_log]].
+#
+# RUSTSEC-2026-0383 (webpki-root-certs, bundled root certificates that trust
+# distrusted emSign intermediates) is fixed in 1.0.10 and has no fix on the 0.26
+# line, which rustls-platform-verifier 0.5 requires, which jsonrpsee 0.24
+# requires, which subxt 0.51, the newest, requires.
+#
+# JUSTIFICATION: 0.26.11 holds no certificates. It is a "semver trick" whose
+# whole content is `pub use parent::TLS_SERVER_ROOT_CERTS;`, re-exporting the
+# 1.x crate, which Cargo.lock holds at 1.0.10, the fixed release. And it is
+# never built for the launcher: rustls-platform-verifier depends on it only
+# for wasm32, so `cargo tree --locked -i webpki-root-certs@0.26 -e all
+# --target <t>` prints nothing for each Windows, Linux and macOS target
+# (verified 2026-10-20) and prints its path for wasm32-unknown-unknown.
+#
+# MUST BE REVISITED if the 1.x crate under it falls below 1.0.10, or if 0.26
+# enters the graph of any target the launcher builds. CI enforces both: the
+# security job fails on either, so this ignore cannot cover certificates that
+# are actually built. Delete it when a lockfile update removes 0.26, which CI
+# also reports.
+#
+# Approved by the owner on 2026-10-20 (ADR-107) and logged in
+# docs/GATES.toml [[change_log]]. Every other advisory still fails the audit.
 
 [advisories]
-ignore = ["RUSTSEC-2026-0344"]
+ignore = ["RUSTSEC-2026-0344", "RUSTSEC-2026-0383"]

@@ -9,6 +9,10 @@
 // The viewport: click to select, drag a handle to move along its axis, turn about the vertical or scale evenly, drag
 // anywhere else to orbit, scroll to zoom, F to frame the selection, Delete to remove it, Ctrl+S to save.
 //
+// Editing (P3.15): Ctrl+Z undoes an edit and Ctrl+Y (or Ctrl+Shift+Z) does it again, whatever made it (History.qml);
+// Ctrl+D duplicates the selection beside itself; and with snapping on, a handle moves along a grid, turns by 15 degrees
+// and scales by tenths.
+//
 // Play (F5) runs the scene (DIRECTION P3.2): a copy is built from the scene's canonical text and played in its place,
 // with physics, the player under the keyboard, mouse and gamepad, particles, sound and logic that reloads when its file
 // is saved. Stop (Esc) discards the copy, so the scene comes back exactly as it was; nothing play does can reach it.
@@ -76,6 +80,15 @@ ApplicationWindow {
     /// Whether the Agent panel is open.
     property bool agentOpen: false
 
+    /// Undo and redo (History.qml): the scene's canonical text after each edit.
+    readonly property QtObject history: History {}
+    /// What the next refresh() records as: an edit's key, so quick edits of one field are one step ("" for none).
+    property string editKey: ""
+    /// Snapping (P3.15): the grid a handle moves along, in units; 0 is off. A handle then turns by `snapAngle` degrees
+    /// and scales by tenths.
+    property real snapStep: 0
+    readonly property real snapAngle: 15
+
     /// True once a scene is shown and every model in it has loaded or failed: what a capture waits for.
     readonly property bool settled: scene !== null
                                     && entityList.every(e => e.kind !== "Prop" || e.status !== Prop.Empty)
@@ -97,9 +110,70 @@ ApplicationWindow {
         noticeIsProblem = !!problem
     }
 
+    /// After every edit: the entity list and the unsaved state brought up to date, and the edit kept for undo.
     function refresh() {
         entityList = scene ? SceneIO.entities(scene) : []
-        dirty = scene ? SceneIO.write(scene, sceneFile) !== savedText : false
+        const key = editKey
+        editKey = ""
+        if (!scene) {
+            dirty = false
+            return
+        }
+        const text = SceneIO.write(scene, sceneFile)
+        dirty = text !== savedText
+        history.note(text, key)
+    }
+
+    /// Undo and redo: the scene put back to the text before or after, its file, saved state, view and selection kept.
+    function undo() { return travel(history.undo()) }
+    function redo() { return travel(history.redo()) }
+    function travel(text) {
+        if (playing || !scene || text === "")
+            return false
+        const keepSaved = savedText
+        const keepDistance = distance
+        const keepTarget = target
+        const chosen = selection === scene ? scene : selection ? selection.name : ""
+        if (!show(SceneIO.loadText(text, sceneFile, stage), sceneFile, sceneName, false))
+            return false
+        savedText = keepSaved
+        distance = keepDistance
+        target = keepTarget
+        refresh()
+        selection = chosen === "" ? null : chosen === scene ? scene : entityList.find(e => e.name === chosen) ?? null
+        return true
+    }
+
+    /// A copy of the selection beside it, every field the same but its name, and selected.
+    function duplicateSelection() {
+        if (playing || !selection || selection === scene)
+            return null
+        if (selection.kind === "Player" || selection.kind === "Player2D") {
+            say(qsTr("A scene has one player."), true)
+            return null
+        }
+        const copy = {}
+        for (const field of selection.fields) {
+            const value = selection[field]
+            const type = SceneIO.fieldType(selection, field)
+            // Read values are live references to the original's: copied out, so the two stay apart.
+            copy[field] = type === "vector3d" ? Qt.vector3d(value.x, value.y, value.z)
+                        : type === "color" ? String(value)
+                        : type === "url" ? (String(value) === "" ? "" : SceneIO.resolvedUrl(selection, value))
+                        : value
+        }
+        copy.name = String(selection.name).replace(/ \d+$/, "")
+        if (copy.position !== undefined)
+            copy.position = copy.position.plus(Qt.vector3d(1, 0, 0))
+        const made = add(selection.kind, copy)
+        if (made)
+            say(qsTr("Duplicated as %1.").arg(made.name))
+        return made
+    }
+
+    /// A value on the snapping grid (or as it is, with snapping off).
+    function snapped(v) {
+        return snapStep > 0 ? Math.round(v / snapStep) * snapStep : v
     }
 
     function fileFor(name) {
@@ -133,13 +207,17 @@ ApplicationWindow {
                    + 'colour: "#2b3140"; roughness: 0.6 }\n'
                    + '    Prop { name: "Orb"; position: Qt.vector3d(0, 1.75, 0); source: ' + JSON.stringify(String(model))
                    + ' }\n}\n'
-        if (show(SceneIO.loadText(text, fileFor("untitled"), stage), fileFor("untitled"), "untitled", false))
+        if (show(SceneIO.loadText(text, fileFor("untitled"), stage), fileFor("untitled"), "untitled", false)) {
+            history.reset(SceneIO.write(scene, sceneFile))
             say(qsTr("A new scene. Save it to keep it in the project."))
+        }
     }
 
     function openScene(name) {
-        if (show(SceneIO.load(fileFor(name), stage), fileFor(name), name, true))
+        if (show(SceneIO.load(fileFor(name), stage), fileFor(name), name, true)) {
+            history.reset(SceneIO.write(scene, sceneFile))
             say(qsTr("Opened scenes/%1.qml").arg(name))
+        }
     }
 
     function chooseProject(folder) {
@@ -183,6 +261,8 @@ ApplicationWindow {
         sceneName = name
         sceneFile = file
         savedText = SceneIO.write(scene, file)
+        // What saving changed (the name, files brought into the project) is part of the step it saved, not one to undo.
+        history.amend(savedText)
         projectInfo = SceneIO.project(project)
         refresh()
         say(projectInfo.repository ? qsTr("Saved scenes/%1.qml. Commit it in Projects.").arg(name)
@@ -199,6 +279,7 @@ ApplicationWindow {
         const name = String(file).split("/").pop().replace(/\.qq\.json$/, "").toLowerCase()
         if (!show(SceneIO.loadText(result.qml, fileFor(name), stage), fileFor(name), name, false))
             return
+        history.reset(SceneIO.write(scene, sceneFile))
         say(qsTr("Imported %1 entities.").arg(result.imported)
             + (result.skipped.length ? " " + qsTr("Not brought in: %1.").arg(result.skipped.join("; ")) : ""))
     }
@@ -355,6 +436,11 @@ ApplicationWindow {
 
     Shortcut { sequences: [StandardKey.Save]; onActivated: window.saveScene() }
     Shortcut { sequences: [StandardKey.Delete]; enabled: !window.playing; onActivated: window.removeSelection() }
+    Shortcut { sequences: [StandardKey.Undo]; enabled: !window.playing; onActivated: window.undo() }
+    // The platform's redo keys: Ctrl+Y and Ctrl+Shift+Z on Windows. Naming one again would make it ambiguous, and an
+    // ambiguous shortcut does nothing.
+    Shortcut { sequences: [StandardKey.Redo]; enabled: !window.playing; onActivated: window.redo() }
+    Shortcut { sequence: "Ctrl+D"; enabled: !window.playing; onActivated: window.duplicateSelection() }
     Shortcut { sequence: "F"; enabled: !window.playing; onActivated: window.frameSelection() }
     Shortcut { sequence: "F5"; onActivated: window.playing ? window.stop() : window.play() }
     Shortcut { sequence: "Escape"; enabled: window.playing; onActivated: window.stop() }
@@ -422,6 +508,35 @@ ApplicationWindow {
                 checkable: true
                 checked: window.agentOpen
                 onToggled: window.agentOpen = checked
+            }
+            ToolButton {
+                objectName: "undoButton"
+                text: qsTr("Undo")
+                enabled: !window.playing && window.history.canUndo
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Undo (Ctrl+Z)")
+                onClicked: window.undo()
+            }
+            ToolButton {
+                objectName: "redoButton"
+                text: qsTr("Redo")
+                enabled: !window.playing && window.history.canRedo
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Redo (Ctrl+Y)")
+                onClicked: window.redo()
+            }
+            ComboBox {
+                objectName: "snapChoice"
+                enabled: !window.playing
+                Layout.preferredWidth: 128
+                Accessible.name: qsTr("Snapping")
+                // One art pixel is a unit over the scene's pixels to a unit.
+                readonly property var steps: [0, window.scene ? 1 / window.scene.pixelsPerUnit : 0.0625, 0.1, 0.25, 0.5, 1]
+                model: [qsTr("Snap off"), qsTr("Snap 1 px"), qsTr("Snap 0.1"), qsTr("Snap 0.25"), qsTr("Snap 0.5"),
+                        qsTr("Snap 1")]
+                onActivated: (i) => window.snapStep = steps[i]
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Handles move along this grid, turn by 15 degrees and scale by tenths")
             }
             ToolButton { text: qsTr("New"); enabled: !window.playing; onClicked: window.newScene() }
             ToolButton { text: qsTr("Import 2D…"); enabled: !window.playing; onClicked: importChooser.open() }
@@ -760,17 +875,22 @@ ApplicationWindow {
                         return
                     }
                     if (handle === 4) {
-                        // Even scaling: right grows, left shrinks, by the same factor on every axis.
-                        window.selection.scale = startScale.times(Math.exp(translation.x * 0.01))
+                        // Even scaling: right grows, left shrinks, by the same factor on every axis; snapping, by tenths.
+                        const factor = Math.exp(translation.x * 0.01)
+                        window.selection.scale = startScale.times(window.snapStep > 0 ? Math.max(0.1, Math.round(factor * 10) / 10)
+                                                                                      : factor)
                         return
                     }
+                    // Turning: snapping, to whole steps of snapAngle.
+                    const turned = (from, by) => window.snapStep > 0 ? Math.round((from + by) / window.snapAngle) * window.snapAngle
+                                                                     : from + by
                     if (handle === 3 && world.flat) {
                         window.selection.eulerRotation = Qt.vector3d(startRotation.x, startRotation.y,
-                                                                     startRotation.z - translation.x * 0.5)
+                                                                     turned(startRotation.z, -translation.x * 0.5))
                         return
                     }
                     if (handle === 3) {
-                        window.selection.eulerRotation = Qt.vector3d(startRotation.x, startRotation.y + translation.x * 0.5,
+                        window.selection.eulerRotation = Qt.vector3d(startRotation.x, turned(startRotation.y, translation.x * 0.5),
                                                                      startRotation.z)
                         return
                     }
@@ -785,7 +905,11 @@ ApplicationWindow {
                     if (length2 < 1)
                         return
                     const along = (translation.x * dx + translation.y * dy) / length2
-                    window.selection.position = startPosition.plus(axis.times(along))
+                    const moved = startPosition.plus(axis.times(along))
+                    // Snapping: the axis dragged along lands on the grid; the others stay where they were.
+                    window.selection.position = Qt.vector3d(handle === 0 ? window.snapped(moved.x) : moved.x,
+                                                            handle === 1 ? window.snapped(moved.y) : moved.y,
+                                                            handle === 2 ? window.snapped(moved.z) : moved.z)
                 }
             }
 
@@ -885,6 +1009,14 @@ ApplicationWindow {
                             }
                         }
                         ToolButton {
+                            objectName: "duplicateButton"
+                            visible: window.selection !== null && window.selection !== window.scene
+                            text: qsTr("Duplicate")
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTr("Duplicate (Ctrl+D)")
+                            onClicked: window.duplicateSelection()
+                        }
+                        ToolButton {
                             visible: window.selection !== null && window.selection !== window.scene
                             text: qsTr("Delete")
                             onClicked: window.removeSelection()
@@ -900,9 +1032,14 @@ ApplicationWindow {
                     }
 
                     Inspector {
+                        id: inspector
+                        objectName: "inspector"
                         Layout.fillWidth: true
                         target: window.selection
-                        onEdited: window.refresh()
+                        onEdited: {
+                            window.editKey = inspector.lastEdit
+                            window.refresh()
+                        }
                     }
                 }
             }

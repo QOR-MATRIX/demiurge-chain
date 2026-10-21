@@ -14,6 +14,10 @@ ColumnLayout {
 
     property QtObject target: null
     signal edited()
+    /// What was edited last, as the target's name and the field ("Crate/colour"): the Studio's undo makes quick edits of
+    /// one field a single step.
+    property string lastEdit: ""
+
 
     spacing: 10
 
@@ -39,7 +43,11 @@ ColumnLayout {
             return fileLabels[target.kind]
         return labels[field] ?? field
     }
-    function set(field, value) { target[field] = value; inspector.edited() }
+    function set(field, value) {
+        target[field] = value
+        lastEdit = target.name + "/" + field
+        inspector.edited()
+    }
 
     Repeater {
         model: inspector.target ? inspector.target.fields : []

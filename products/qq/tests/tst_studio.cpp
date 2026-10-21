@@ -17,6 +17,7 @@
 #include <QTest>
 #include <QVector3D>
 #include <QWheelEvent>
+#include <cmath>
 #include <QtQml/qqmlextensionplugin.h>
 
 #include "gpu.h"
@@ -467,6 +468,160 @@ private slots:
         const QObject *again = s.played(QStringLiteral("Crate"))->property("physics").value<QObject *>();
         QVERIFY(again->property("scenePosition").value<QVector3D>().y() > 3.0f);
         QVERIFY(s.call("stop").toBool());
+    }
+
+    // ── editing (P3.15) ──
+
+    void everyEditIsUndoneAndRedoneWithTheKeys()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        s.window->setProperty("sceneName", QStringLiteral("edits"));
+        QVERIFY(s.call("saveScene").toBool());
+        auto *io = s.engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO");
+        const QUrl file = s.window->property("sceneFile").toUrl();
+        auto text = [&] { return io->write(s.scene(), file); };
+        auto key = [&](Qt::Key k, Qt::KeyboardModifiers m) {
+            QTest::keyClick(s.window, k, m);
+            s.settle(2);
+        };
+        auto history = [&](const char *which) {
+            return s.window->property("history").value<QObject *>()->property(which).toBool();
+        };
+        const QString saved = text();
+        QVERIFY(!history("canUndo"));
+
+        // A handle dragged: one step.
+        QObject *plinth = s.entity(QStringLiteral("Plinth"));
+        s.window->setProperty("selection", QVariant::fromValue(plinth));
+        s.settle();
+        const QVector3D at = plinth->property("position").value<QVector3D>();
+        const double size = s.window->findChild<QObject *>(QStringLiteral("gizmo"))->property("size").toDouble();
+        const QPointF from = s.onScreen("overlay", at + QVector3D(float(size * 0.6), 0, 0));
+        s.drag(from, from + (s.onScreen("overlay", at + QVector3D(1, 0, 0)) - s.onScreen("overlay", at)));
+        const QString moved = text();
+        QVERIFY(moved != saved);
+        QVERIFY(history("canUndo"));
+
+        // An entity added: another.
+        QVERIFY(s.call("add", QStringLiteral("Shape"), QVariantMap{{QStringLiteral("name"), QStringLiteral("Crate")}})
+                    .value<QObject *>());
+        const QString added = text();
+
+        // Three quick changes of one field in the inspector, as a slider drag makes them: one step.
+        QObject *inspector = s.window->findChild<QObject *>(QStringLiteral("inspector"));
+        for (const char *colour : {"#ff0000", "#00ff00", "#0000ff"})
+            QMetaObject::invokeMethod(inspector, "set", Q_ARG(QVariant, QStringLiteral("colour")),
+                                      Q_ARG(QVariant, QString::fromLatin1(colour)));
+        const QString coloured = text();
+        QVERIFY(coloured.contains(QStringLiteral("colour: \"#0000ff\"")));
+
+        // Back, step by step, with Ctrl+Z: the colour, the crate, the move; and unsaved no more.
+        key(Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(text(), added);
+        QVERIFY(s.selection());  // still selected, by name
+        QCOMPARE(s.selection()->property("name").toString(), QStringLiteral("Crate"));
+        key(Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(text(), moved);
+        QVERIFY(!s.entity(QStringLiteral("Crate")));
+        QVERIFY(s.window->property("dirty").toBool());
+        key(Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(text(), saved);
+        QVERIFY(!s.window->property("dirty").toBool());
+        QVERIFY(!history("canUndo"));
+        key(Qt::Key_Z, Qt::ControlModifier);  // nothing further back
+        QCOMPARE(text(), saved);
+
+        // And forward again with Ctrl+Y and Ctrl+Shift+Z.
+        key(Qt::Key_Y, Qt::ControlModifier);
+        QCOMPARE(text(), moved);
+        key(Qt::Key_Z, Qt::ControlModifier | Qt::ShiftModifier);
+        QCOMPARE(text(), added);
+        s.click("redoButton");
+        s.settle(2);
+        QCOMPARE(text(), coloured);
+        QVERIFY(!history("canRedo"));
+
+        // An edit after an undo leaves nothing to redo.
+        key(Qt::Key_Z, Qt::ControlModifier);
+        QVERIFY(history("canRedo"));
+        s.entity(QStringLiteral("Crate"))->setProperty("roughness", 0.9);
+        s.call("refresh");
+        QVERIFY(!history("canRedo"));
+        QVERIFY(text().contains(QStringLiteral("roughness: 0.9")));
+        // and undoing it goes back to before it, not to what was undone.
+        key(Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(text(), added);
+    }
+
+    void aSelectionIsDuplicatedBesideItself()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        auto *io = s.engine.singletonInstance<qq::SceneIO *>("QQ", "SceneIO");
+        QObject *plinth = s.entity(QStringLiteral("Plinth"));
+        s.window->setProperty("selection", QVariant::fromValue(plinth));
+        QTest::keyClick(s.window, Qt::Key_D, Qt::ControlModifier);
+        s.settle(2);
+        QObject *copy = s.entity(QStringLiteral("Plinth 2"));
+        QVERIFY(copy);
+        QCOMPARE(s.selection(), copy);
+        // Every field the same but its name, and a unit along X.
+        for (const char *field : {"scale", "eulerRotation", "form", "colour", "roughness", "metalness", "body"})
+            QCOMPARE(copy->property(field), plinth->property(field));
+        QCOMPARE(copy->property("position").value<QVector3D>(),
+                 plinth->property("position").value<QVector3D>() + QVector3D(1, 0, 0));
+        // The two stay apart: the copy moved, the original stays.
+        copy->setProperty("position", QVector3D(5, 0, 0));
+        QCOMPARE(plinth->property("position").value<QVector3D>(), QVector3D(0, 0.25f, 0));
+        // A copy of the copy is the third, and a model's file comes along.
+        s.click("duplicateButton");
+        s.settle(2);
+        QVERIFY(s.entity(QStringLiteral("Plinth 3")));
+        QObject *orb = s.entity(QStringLiteral("Orb"));
+        s.window->setProperty("selection", QVariant::fromValue(orb));
+        QVERIFY(s.call("duplicateSelection").value<QObject *>());
+        QObject *orb2 = s.entity(QStringLiteral("Orb 2"));
+        QCOMPARE(io->resolvedUrl(orb2, orb2->property("source").toUrl()),
+                 io->resolvedUrl(orb, orb->property("source").toUrl()));
+        // Undone, it is gone.
+        QTest::keyClick(s.window, Qt::Key_Z, Qt::ControlModifier);
+        s.settle(2);
+        QVERIFY(!s.entity(QStringLiteral("Orb 2")));
+        QVERIFY(s.entity(QStringLiteral("Plinth 3")));
+    }
+
+    void withSnappingHandlesMoveAlongTheGridTurnAndScaleByWholeSteps()
+    {
+        Studio s;
+        QVERIFY(s.open());
+        s.window->setProperty("snapStep", 0.25);
+        QObject *plinth = s.entity(QStringLiteral("Plinth"));
+        s.window->setProperty("selection", QVariant::fromValue(plinth));
+        s.settle();
+        const QVector3D at = plinth->property("position").value<QVector3D>();
+        const double size = s.window->findChild<QObject *>(QStringLiteral("gizmo"))->property("size").toDouble();
+        // Along X by about 0.9 of a unit (a hand's drag is never exact): it lands on the grid; Y and Z as they were.
+        QPointF from = s.onScreen("overlay", at + QVector3D(float(size * 0.6), 0, 0));
+        s.drag(from, from + (s.onScreen("overlay", at + QVector3D(0.9f, 0, 0)) - s.onScreen("overlay", at)));
+        QVector3D now = plinth->property("position").value<QVector3D>();
+        QVERIFY2(now.x() >= 0.5f && now.x() <= 1.25f && std::fmod(double(now.x()), 0.25) == 0.0,
+                 qPrintable(QString::number(now.x())));
+        QCOMPARE(now.y(), at.y());
+        QCOMPARE(now.z(), at.z());
+        // Turned by the knob: a whole number of 15-degree steps.
+        s.settle();
+        now = plinth->property("position").value<QVector3D>();
+        from = s.onScreen("overlay", now + QVector3D(float(size * 0.55), float(size * 0.55), 0));
+        s.drag(from, from + QPointF(53, 0));
+        const double turned = plinth->property("eulerRotation").value<QVector3D>().y();
+        QVERIFY2(turned != 0 && std::fmod(std::abs(turned), 15.0) < 1e-6, qPrintable(QString::number(turned)));
+        // Scaled by the centre: by tenths.
+        const QVector3D scale = plinth->property("scale").value<QVector3D>();
+        from = s.onScreen("overlay", now);
+        s.drag(from, from + QPointF(47, 0));
+        const double factor = plinth->property("scale").value<QVector3D>().x() / scale.x();
+        QVERIFY2(factor > 1.05 && std::abs(factor * 10 - std::round(factor * 10)) < 1e-4, qPrintable(QString::number(factor)));
     }
 
     void aNewBehaviourIsWrittenIntoTheProjectAndNeverOverAFile()

@@ -89,6 +89,13 @@ it; the QQ Player plays a scene on its own, natively and in a browser.
   **Play** (F5) plays a copy built from the scene's canonical text; **Stop** (Esc) throws the copy away, so the scene,
   its unsaved state and the selection are exactly as they were. **New behaviour** writes a starter logic file into the
   project, never over one that is there.
+  **Editing (P3.15, first part, built 20 October 2026):** **Undo** (Ctrl+Z) and **Redo** (Ctrl+Y or Ctrl+Shift+Z) step
+  through every edit, whatever made it (a field, a handle, an entity added, duplicated or deleted, a tool the agent
+  used), since each step is the scene's canonical text (`studio/History.qml`); quick edits of one field (a slider
+  dragged, a name typed) are one step, saving is not one, and the view and the selection stay where they were.
+  **Duplicate** (Ctrl+D) puts a copy beside the selection, every field the same but its name. **Snapping** (the
+  toolbar's choice: off, one art pixel, 0.1, 0.25, 0.5 or 1 unit) moves a handle along that grid, turns by 15 degrees
+  and scales by tenths.
 - **The files:** a scene is `scenes/<name>.qml` in the project, in one canonical layout: read and written back it is
   the same bytes, and one changed value is one changed line in Projects. Models and sounds are copied into `assets/`
   and logic into `logic/`, so the project is whole on its own; a Tiled map brings its tileset and image, and one whose
@@ -226,7 +233,17 @@ drew about 12 frames a second.
   **Since P3.10, 11 cases:** a 2D scene opens framed as it plays, its handles see what the world sees, its X handle moves
   along X on the plane, a drag on nothing pans with the pointer, and the wheel shows fewer units, larger. **Since
   P3.13:** Stop puts back the volume levels a play set. **Since P3.14:** saving brings a shape's picture and the scene's
-  own sky in from outside the project, and the file names both relative to itself.
+  own sky in from outside the project, and the file names both relative to itself. **Since P3.15, 14 cases:** a handle
+  drag, an entity added and three quick colour changes undone one step each with Ctrl+Z, back to the saved scene and
+  no further, and done again with Ctrl+Y, Ctrl+Shift+Z and the Redo button, the selection kept by name and an edit after
+  an undo leaving nothing to redo; a duplicate beside its original, every field the same and apart from it, a copy of
+  a copy the third, a model's file carried, and undone; and with snapping, a handle landing on the grid, turning by 15
+  degrees and scaling by tenths.
+
+  Eight planted faults were each caught: quick edits of one field never merged, an edit after an undo keeping what
+  could be redone, undo forgetting what was last saved, undo losing the selection, saving made a step to undo, a copy
+  of a copy named after the copy, turning not snapped, and redo made ambiguous by naming a key the platform's redo
+  already has.
 - **`tst_play`** (11 cases, real frames): a dynamic shape falls and comes to rest on the ground; a static one holds
   what lands on it and one with no body lets it through; a cylinder and a cone collide as their shapes; a fall takes
   the time the scene's gravity says; the player walks, runs, turns and jumps at the keyboard, with the camera behind
@@ -421,6 +438,8 @@ the web has no audio, so in a browser sound is QQ's own, on the page's Web Audio
   costs its decoded size in memory. Volume levels last while the game runs; keeping a player's settings between plays
   comes with saving (P3.16). A one-shot's length is read only from a WAV file's header, so another format is put away
   after ten seconds, whatever its length.
+- **Undo, as built in P3.15:** it covers the scene that is open, back to when it was opened; opening another starts
+  afresh. A logic file's text and the files saving brought into the project are not taken back with it.
 - **Materials, as built in P3.14:** a shape's picture is projected along its three axes, so on a sphere, cylinder or
   cone it blends where two projections meet, and cannot be wrapped round it as a glTF model's texture is (a Prop is for
   that). A shape takes one picture and one relief; roughness and metal come from its fields, not from pictures. A sky is

@@ -1364,10 +1364,10 @@ P3.2 and on nothing on chain, and run in this order:
       - Eight planted faults were each caught: one-shots deaf to their group's level, a one-shot never put away,
         music never letting its old track go, music deaf to its group's level, logic sounding in a replay, a browser
         panning to the wrong side, the Studio's Stop keeping a play's levels, and a replaced file keeping its old length.
-14. [ ] **Materials.** Images on shapes, spot lights and HDR skies.
+14. [x] **Materials.** Images on shapes, spot lights and HDR skies.
 
-    **Built 19 October 2026** (branch `session/qq-materials`, on `main` at `6e37363` since #63's merge, whose tree it was
-    built and checked on; pull request #64, not yet merged):
+    **Done 19 October 2026, merged 20 October (#64, at `f6d230a`; CI passed every job on its head, on a rerun, and on the
+    merge, runs 39422156020 and 39432677902):**
     - **Pictures on shapes.** A Shape gains `image`, `imageSize`, `normalMap` and `crisp`; the Ground gains `image` and
       `imageSize`.
       - A picture lies one copy every `imageSize` units on every face, whatever the shape's size, so a long wall has as
@@ -1410,6 +1410,31 @@ P3.2 and on nothing on chain, and run in this order:
         bringing in only the entities' files (by `tst_studio`).
 15. [ ] **The Studio's basics.** Undo and redo, duplicate, snapping, a hierarchy with parenting and prefabs, an asset
     browser, a logic editor, and a statistics overlay with physics shown.
+
+    Built in three parts, each its own pull request: editing (undo and redo, duplicate, snapping); the hierarchy with
+    parenting and prefabs; and the asset browser, the logic editor and the statistics overlay.
+
+    **Part one, editing, built 20 October 2026** (branch `session/qq-studio-edit`, on `main` at `f6d230a` since #64's merge,
+    whose tree it was built and checked on; pull request #65, not yet merged):
+    - **Undo and redo** (Ctrl+Z; Ctrl+Y or Ctrl+Shift+Z; toolbar buttons). Each step is the scene's canonical text after
+      an edit (`studio/History.qml`, up to 200), noted wherever an edit ends (the window's `refresh()`), so every edit
+      is covered whatever made it: a field in the inspector, a handle let go, an entity added, duplicated or deleted, a
+      tool the agent used. Quick edits of one field (a slider dragged, a name typed) are one step. Saving is not a step:
+      what it changes (the name, files brought into the project) joins the step it saved. Undoing keeps the file, what
+      was last saved, the view and the selection, by name.
+    - **Duplicate** (Ctrl+D, or the inspector's button): a copy beside the selection, a unit along X, every field the
+      same but its name ("Crate 2"), each value copied so the two stay apart. A scene's one player is not duplicated.
+    - **Snapping** (the toolbar's choice: off, one art pixel, 0.1, 0.25, 0.5 or 1 unit): a handle moves along that grid
+      on the axis dragged, turns by 15 degrees, and scales by tenths.
+    - **Evidence, on the owner's PC:**
+      - `tst_studio` passes 14 cases, 3 new: every edit undone and redone with the keys and the buttons, back to the
+        saved scene and no further, quick edits as one step, the selection kept, and an edit after an undo leaving
+        nothing to redo; a duplicate, apart from its original and undone; and snapping on all three handles.
+      - All eight suites pass in one run of `build.ps1`: 136 cases.
+      - Eight planted faults were each caught: quick edits of one field never merged, an edit after an undo keeping
+        what could be redone, undo forgetting what was last saved, undo losing the selection, saving made a step to
+        undo, a copy of a copy named after the copy, turning not snapped, and redo made ambiguous by naming a key the
+        platform's redo already has.
 16. [ ] **Saving.** One small store per game, the one the lockdown allows.
 
 #### P4: GNOSIS (P4.1 depends on nothing)
