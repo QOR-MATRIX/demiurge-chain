@@ -1037,7 +1037,7 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
    default theme, Obsidian; QOR ID's pages and emails; QOR Media and the Android shell.
 
    **The first slice, the source and the homepage, built 21 October 2026** (branch `session/one-look`, on `main` at
-   `b88185a` since #68's merge, whose tree it was built and checked on; pull request #69, not yet merged):
+   `b88185a` since #68's merge, whose tree it was built and checked on; merged in #69 at `b964ce0`, 21 October 2026, and live):
    - `docs/design/tokens.json`: the palette, the four faces, the type scale, tracking, radii, motion and the focus ring.
      `docs/design/tokens.mjs` writes each surface's generated file and copies its faces, and with `--check` (a CI step
      in the security job) fails on a stale file, a face that differs from the source, or a text colour under 4.5:1 on
@@ -1051,8 +1051,8 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      policy allows styles and fonts only from itself. Its colours do not change; its buttons and panels take the shared
      8 and 12 pixel corners, and its status tags the round pill. The share image renders the same from the local faces.
 
-   **The second slice, QQ, built 21 October 2026** (branch `session/qq-one-look`, on #69's head, the first slice;
-   kept back until #69 is merged):
+   **The second slice, QQ, built 21 October 2026** (branch `session/qq-one-look`, on #69's merge; pull request #70,
+   not yet merged):
    - `products/qq/runtime/tokens.h`, generated: QQ's `Look` takes every value from it, for the Studio and a game's
      screens alike: the whole palette (`Look.deepest` is the token `void`, a keyword in C++ and JavaScript), the four
      faces, the type scale and tracking, the corners, the durations (0 with reduced motion) and the easing. A game
