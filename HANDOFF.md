@@ -3710,6 +3710,10 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
 - **A face the stylesheet asks for at a weight it does not carry is thickened by the browser,** and smears. Carry
   each weight the interface uses (Barlow at 400, 500 and 600 since 21 October 2026); `check-look.mjs` asks for the
   SemiBold.
+- **Tailwind 4 puts every `hover:` style under `@media (hover: hover)`,** which a browser without a pointer never matches
+  and DevTools cannot emulate (`Emulation.setEmulatedMedia` leaves it as it was). CI's runner draws no hover at all, so
+  a forced `:hover` passes on a PC and fails there (#72's first run, 39715298276). `check-look.mjs` reads the button's
+  own `hover:` rules from the stylesheet and resolves their colours on a probe.
 
 **ARQADE's Qt application (ADR-108's third slice)**
 - **A QML property named `on` and a capital is a signal handler.** `property color onAccent` reads black, silently;

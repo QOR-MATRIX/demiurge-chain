@@ -250,14 +250,30 @@ try {
   check('the wordmark is Cinzel in gilt', Boolean(mark) && /^"?Cinzel"?/.test(mark.font) && hex(mark.colour) === C.giltBright, JSON.stringify(mark));
 
   // --- closing, under the pointer -------------------------------------------------------------------------------
-  await send('DOM.enable');
-  await send('CSS.enable');
-  const { result: { root } } = await send('DOM.getDocument', { depth: 0 });
-  const { result: { nodeId } } = await send('DOM.querySelector', { nodeId: root.nodeId, selector: 'button[aria-label="Close"]' });
-  await send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['hover'] });
-  await sleep(300);
-  const close = await evaluate(`(() => { const s = getComputedStyle(document.querySelector('button[aria-label="Close"]')); return { fill: s.backgroundColor, ink: s.color }; })()`);
-  await send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] });
+  // Tailwind 4 puts every hover: style under @media (hover: hover), which a browser without a pointer never matches
+  // and which DevTools cannot emulate: CI's runner draws no hover at all. So the button's own hover: rules are read
+  // from the stylesheet, whatever media they sit under, and their colours resolved on a probe, as hovering paints them.
+  const close = await evaluate(`(() => {
+    const button = document.querySelector('button[aria-label="Close"]');
+    const wanted = [...button.classList].filter((c) => c.startsWith('hover:')).map((c) => CSS.escape(c));
+    const found = {};
+    const walk = (rules) => {
+      for (const rule of rules) {
+        if (rule.cssRules) walk(rule.cssRules);
+        if (rule.selectorText && wanted.some((c) => rule.selectorText.includes('.' + c + ':hover')))
+          for (const p of ['background-color', 'color']) if (rule.style.getPropertyValue(p)) found[p] = rule.style.getPropertyValue(p).trim();
+      }
+    };
+    for (const sheet of document.styleSheets) { try { walk(sheet.cssRules); } catch {} }
+    const probe = document.createElement('div');
+    probe.style.backgroundColor = found['background-color'] ?? 'transparent';
+    probe.style.color = found.color ?? 'inherit';
+    document.body.appendChild(probe);
+    const s = getComputedStyle(probe);
+    const painted = { fill: s.backgroundColor, ink: s.color };
+    probe.remove();
+    return painted;
+  })()`);
   check('the close button, under the pointer, is the status red with dark ink, 4.5:1 or more',
     hex(close.fill) === C.bad && ratio(close.ink, close.fill) >= 4.5, `${hex(close.fill)} with ${hex(close.ink)}, ${ratio(close.ink, close.fill).toFixed(2)}:1`);
 
