@@ -71,6 +71,11 @@ arrives through Railway's edge. The address is never stored: `signup_addresses` 
 reports and removals beside them, and served at `/avatars/{hash}` and `/avatars/{hash}/still` (the first frame of an
 animated one). An upload may be up to 4 MB. No volume or storage bucket is needed beyond Postgres's own.
 
+**The pages' faces are in the binary (ADR-108).** The link pages, `/account` and the sign-in page for apps load their
+four faces from QOR ID itself, at `/fonts/{file}`, and their content security policy allows no other source. The files
+are `src/look/fonts/`, written there by `node docs/design/tokens.mjs` and embedded at build time, so the Dockerfile's
+`COPY src` is all they need: there is nothing to configure.
+
 ## Secrets
 
 **A secret is never pasted into a shell, a chat or a document.** It goes in the Railway dashboard, under the

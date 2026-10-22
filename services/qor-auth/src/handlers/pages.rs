@@ -61,30 +61,34 @@ fn plausible(token: &str) -> bool {
     !token.is_empty() && token.len() <= 128
 }
 
-// The Architect theme (`docs/design/DESIGN_SYSTEM.md`), as in the emails.
+// Demiurge's one look in its tool register (ADR-108): every value from the tokens (`crate::look::tokens::CSS`, carried
+// first), Barlow Semi Condensed in tracked capitals for headings and controls, Barlow for reading, IBM Plex Mono for
+// identifiers, Cinzel in gilt for the wordmark alone. No colour, face or corner is written here.
 const STYLE: &str = r#"
 :root { color-scheme: dark; }
 * { box-sizing: border-box; }
-body { margin: 0; padding: 48px 16px; background: #0B0C10; color: #D7D8DA; font-family: 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.6; }
+body { margin: 0; padding: 48px 16px; background: var(--qor-base); color: var(--qor-ink-body); font-family: var(--qor-font-body); font-size: var(--qor-size-title); line-height: 1.6; }
 main { max-width: 480px; margin: 0 auto; }
-.eyebrow { margin: 0 0 16px; font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #93A0AE; }
-.panel { background: #12151C; border: 1px solid #333A47; border-radius: 2px; padding: 32px; }
-h1 { margin: 0 0 16px; font-size: 24px; line-height: 1.3; font-weight: 600; color: #FFFFFF; }
-h2 { margin: 0 0 12px; font-size: 17px; line-height: 1.3; font-weight: 600; color: #FFFFFF; }
-a { color: #FF9142; }
+.eyebrow { margin: 0 0 16px; font-family: var(--qor-font-interface); font-size: var(--qor-size-caption); font-weight: 600; letter-spacing: var(--qor-tracking-eyebrow); text-transform: uppercase; color: var(--qor-ink-muted); }
+.mark { font-family: var(--qor-font-display); font-size: var(--qor-size-ui); color: var(--qor-gilt-bright); }
+.panel { background: var(--qor-surface); border: 1px solid var(--qor-edge); border-top-color: var(--qor-gilt-dim); border-radius: var(--qor-radius-panel); padding: 32px; }
+h1 { margin: 0 0 16px; font-family: var(--qor-font-interface); font-size: var(--qor-size-display); line-height: 1.25; font-weight: 600; letter-spacing: var(--qor-tracking-heading); text-transform: uppercase; color: var(--qor-ink); }
+h2 { margin: 0 0 12px; font-family: var(--qor-font-interface); font-size: var(--qor-size-heading); line-height: 1.3; font-weight: 600; letter-spacing: var(--qor-tracking-heading); color: var(--qor-ink); }
+a { color: var(--qor-accent-bright); }
 p { margin: 0 0 16px; }
-.muted { color: #93A0AE; font-size: 13px; }
+.muted { color: var(--qor-ink-muted); font-size: var(--qor-size-body); }
 .after { margin: 16px 0 0; }
-.id { font-family: 'Cascadia Mono', 'SF Mono', Consolas, Menlo, monospace; color: #FFFFFF; overflow-wrap: anywhere; }
-hr { border: 0; border-top: 1px solid #232936; margin: 24px 0; }
+.id { font-family: var(--qor-font-mono); color: var(--qor-ink); overflow-wrap: anywhere; }
+hr { border: 0; border-top: 1px solid var(--qor-edge-soft); margin: 24px 0; }
 form { margin: 24px 0 0; }
-label { display: block; margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #93A0AE; }
-input[type=password], input[type=text], input[type=email] { display: block; width: 100%; margin: 0 0 16px; padding: 10px 12px; background: #0E1117; border: 1px solid #333A47; border-radius: 2px; color: #FFFFFF; font: inherit; }
-input[type=password]:focus, input[type=text]:focus, input[type=email]:focus { outline: none; border-color: #FF6A00; }
-button { display: inline-block; padding: 12px 24px; background: #FF6A00; border: 0; border-radius: 2px; color: #06070A; font: inherit; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
-button:hover { background: #FF9142; }
-button:focus-visible, input:focus-visible { outline: 3px solid #FF9142; outline-offset: 2px; }
-.problem { margin: 0 0 16px; padding: 10px 12px; border-left: 2px solid #CF6679; background: rgba(207, 102, 121, 0.05); color: #CF6679; font-size: 13px; }
+label { display: block; margin: 0 0 6px; font-family: var(--qor-font-interface); font-size: var(--qor-size-caption); font-weight: 600; letter-spacing: var(--qor-tracking-label); text-transform: uppercase; color: var(--qor-ink-muted); }
+input[type=password], input[type=text], input[type=email] { display: block; width: 100%; margin: 0 0 16px; padding: 10px 12px; background: var(--qor-well); border: 1px solid var(--qor-edge); border-radius: var(--qor-radius-control); color: var(--qor-ink); font: inherit; transition: border-color var(--qor-duration-quick) var(--qor-ease); }
+input[type=password]:focus, input[type=text]:focus, input[type=email]:focus { border-color: var(--qor-accent); }
+button { display: inline-block; padding: 12px 24px; background: var(--qor-accent); border: 1px solid var(--qor-accent-bright); border-radius: var(--qor-radius-control); color: var(--qor-on-accent); font-family: var(--qor-font-interface); font-size: var(--qor-size-body); font-weight: 600; letter-spacing: var(--qor-tracking-label); text-transform: uppercase; cursor: pointer; transition: background var(--qor-duration-quick) var(--qor-ease); }
+button:hover { background: var(--qor-accent-bright); }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: var(--qor-focus-width) solid var(--qor-focus); outline-offset: 2px; box-shadow: 0 0 0 var(--qor-focus-halo) color-mix(in srgb, var(--qor-focus) 22%, transparent); }
+.problem { margin: 0 0 16px; padding: 10px 12px; border-left: 2px solid var(--qor-bad); border-radius: 0 var(--qor-radius-control) var(--qor-radius-control) 0; background: color-mix(in srgb, var(--qor-bad) 6%, transparent); color: var(--qor-bad); font-size: var(--qor-size-body); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 "#;
 
 /// A page, with the headers every link page carries.
@@ -103,6 +107,7 @@ pub(crate) fn page_sending_to(
     origin: Option<&str>,
 ) -> Response {
     let title = escape(title);
+    let tokens = crate::look::tokens::CSS;
     let html = format!(
         r#"<!DOCTYPE html>
 <html lang="en">
@@ -113,11 +118,11 @@ pub(crate) fn page_sending_to(
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>{title} · QOR ID</title>
-<style>{STYLE}</style>
+<style>{tokens}{STYLE}</style>
 </head>
 <body>
 <main>
-<p class="eyebrow">Demiurge &middot; QOR ID</p>
+<p class="eyebrow">Demiurge &middot; <span class="mark">QOR ID</span></p>
 <section class="panel">
 <h1>{title}</h1>
 {body}
@@ -145,14 +150,14 @@ pub(crate) fn page_sending_to(
         HeaderValue::from_static("nosniff"),
     );
     let csp = format!(
-        "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'{}; frame-ancestors 'none'; base-uri 'none'",
+        "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; form-action 'self'{}; frame-ancestors 'none'; base-uri 'none'",
         origin.map(|o| format!(" {o}")).unwrap_or_default()
     );
     headers.insert(
         header::CONTENT_SECURITY_POLICY,
         HeaderValue::from_str(&csp).unwrap_or_else(|_| {
             HeaderValue::from_static(
-                "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+                "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
             )
         }),
     );
@@ -618,6 +623,53 @@ mod tests {
         })
     }
 
+    /// The pages wear the one look (ADR-108): the tokens come first, and the page's own stylesheet writes no colour,
+    /// face or corner of its own, so the look cannot drift here.
+    #[test]
+    fn a_page_wears_the_one_look_and_writes_no_value_of_its_own() {
+        assert!(!STYLE.contains('#'), "a colour written by hand");
+        for function in ["rgb(", "rgba(", "hsl(", "hsla("] {
+            assert!(!STYLE.contains(function), "a colour written by hand");
+        }
+        // One focus ring on every control (ADR-108 decision 5): a field's own focus rule once outranked it.
+        assert!(!STYLE.contains("outline: none"), "a focus ring taken away");
+        for face in [
+            "Segoe",
+            "Arial",
+            "Helvetica",
+            "Roboto",
+            "Cascadia",
+            "monospace",
+            "sans-serif",
+        ] {
+            assert!(!STYLE.contains(face), "a face of its own: {face}");
+        }
+        for rule in STYLE.split('}') {
+            if let Some(at) = rule.find("border-radius:") {
+                let value = rule[at..].split(';').next().unwrap_or_default();
+                assert!(
+                    value.contains("var(--qor-radius-"),
+                    "a corner of its own: {value}"
+                );
+            }
+        }
+        // A property the tokens do not define is dropped by the browser without a word, so each one read is defined.
+        let tokens = crate::look::tokens::CSS;
+        let mut read = 0;
+        for (at, _) in STYLE.match_indices("var(--qor-") {
+            let name: String = STYLE[at + 4..]
+                .chars()
+                .take_while(|c| *c == '-' || c.is_ascii_alphanumeric())
+                .collect();
+            assert!(
+                tokens.contains(&format!("{name}:")),
+                "{name} is not a token"
+            );
+            read += 1;
+        }
+        assert!(read > 30, "{read} properties read");
+    }
+
     #[sqlx::test]
     async fn opening_a_verification_link_changes_nothing_and_shows_a_button(db: PgPool) {
         let state = state(db.clone(), false);
@@ -882,6 +934,9 @@ mod tests {
             assert_eq!(get("referrer-policy"), "no-referrer");
             assert!(get("content-security-policy").contains("default-src 'none'"));
             assert!(get("content-security-policy").contains("frame-ancestors 'none'"));
+            // The one look's faces come from QOR ID itself, and from nowhere else (ADR-108).
+            assert!(get("content-security-policy").contains("font-src 'self';"));
+            assert!(html.contains("src: url(/fonts/"));
             assert!(get("x-robots-tag").contains("noindex"));
             assert!(!html.contains("<script"));
         }

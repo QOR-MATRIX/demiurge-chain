@@ -37,9 +37,12 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 6. **#70: QQ Studio in the same look**, and game menus a keyboard can use.
 7. **#71: ARQADE in the look,** website and app. The website is live with it, and its
    welcome screen fills the window again.
+8. **#72: the launcher in Obsidian**, everyone moved once as you chose (ADR-109). It
+   reaches testers in the next launcher release.
 
-**For your merge: #72, the launcher in Obsidian**, everyone moved once as you chose
-(ADR-109), its four fonts its own, and your Motion setting passed to QQ and QOR Media.
+**For your merge: #73, QOR ID in the same look** — its sign-in pages and emails, its fonts
+served by QOR ID itself, and a keyboard's focus ring now shown on every field. QOR ID is
+redeployed from that merge.
 
 ## Toward a worldwide beta: what only you can do
 

@@ -43,6 +43,7 @@ mod avatar_image;
 mod config;
 mod error;
 mod handlers;
+mod look;
 mod middleware;
 mod models;
 mod services;
@@ -175,6 +176,8 @@ pub(crate) fn router(state: Arc<AppState>) -> Router {
             "/forgot-password",
             post(handlers::pages::request_reset_link),
         )
+        // The faces those pages load (ADR-108), embedded, so a page asks nothing of any other address.
+        .route("/fonts/{file}", get(look::font))
         // A person's own account page (handlers/account.rs): every form asks for the current password.
         .route("/account", get(handlers::account::account))
         .route(

@@ -143,6 +143,32 @@ function ts() {
   return `/**\n${comment}\n */\n\nexport const TOKENS = ${JSON.stringify(values, null, 2).replace(/"([A-Za-z]+)":/g, '$1:').replaceAll('"', "'")} as const;\n`;
 }
 
+/** A Rust module of the values, for a service that renders HTML itself: constants for an email's inline styles, the
+ *  stylesheet a page carries (its faces served from `fontDir`), and the faces themselves, embedded, for the service to
+ *  serve. Font families are quoted with ' so a value fits inside a style="…" attribute. */
+function rust(fontDir) {
+  const upper = (name) => kebab(name).replaceAll('-', '_').toUpperCase();
+  const lines = [];
+  lines.push('/// Colours, as `#rrggbb`.');
+  for (const [name, value] of Object.entries(tokens.color)) lines.push(`pub const ${upper(name)}: &str = "${value}";`);
+  lines.push('', '/// Faces: each family and its fallbacks, as a CSS `font-family` value.');
+  for (const [role, f] of Object.entries(tokens.font))
+    lines.push(`pub const FONT_${upper(role)}: &str = "'${f.family}', ${f.fallback.replaceAll('"', "'")}";`);
+  lines.push('', '/// The type scale, in pixels; tracking, in ems.');
+  for (const [step, px] of Object.entries(tokens.size)) lines.push(`pub const SIZE_${upper(step)}: u32 = ${px};`);
+  for (const [name, value] of Object.entries(tokens.tracking)) lines.push(`pub const TRACKING_${upper(name)}: f32 = ${parseFloat(value)};`);
+  lines.push('', '/// Corners, in pixels.');
+  for (const [name, px] of Object.entries(tokens.radius)) lines.push(`pub const RADIUS_${upper(name)}: u32 = ${px};`);
+  lines.push('', '/// The stylesheet a page carries first: every value as a custom property (`--qor-…`), and the faces.');
+  lines.push(`pub const CSS: &str = r##"${css(fontDir)}"##;`);
+  lines.push('', `/// The faces the stylesheet names, served at \`${fontDir}/<file>\`: each file's name and bytes.`);
+  lines.push('pub const FACES: &[(&str, &[u8])] = &[');
+  for (const f of web.faces) lines.push(`    ("${f.file}", include_bytes!("fonts/${f.file}")),`);
+  lines.push('];');
+  const comment = GENERATED.split('\n').map((l) => `// ${l}`).join('\n');
+  return `${comment}\n\n${lines.join('\n')}\n`;
+}
+
 // Each target: a file this script writes, or a font it copies. A surface joins by adding its own.
 const targets = [
   // The homepage (site/, ADR-100): its stylesheet maps its own names onto these.
@@ -171,6 +197,10 @@ const targets = [
   { file: 'tools/qor-launcher/src/styles/tokens.css', text: () => css('./fonts') },
   { file: 'tools/qor-launcher/src/styles/tokens.ts', text: () => ts() },
   ...web.faces.map((f) => ({ file: `tools/qor-launcher/src/styles/fonts/${f.file}`, copy: `docs/design/fonts/web/${f.file}` })),
+  // QOR ID (P2.9's fifth slice): its pages and emails take their values from src/look/tokens.rs, which embeds the faces
+  // its pages load from /fonts/.
+  { file: 'services/qor-auth/src/look/tokens.rs', text: () => rust('/fonts') },
+  ...web.faces.map((f) => ({ file: `services/qor-auth/src/look/fonts/${f.file}`, copy: `docs/design/fonts/web/${f.file}` })),
 ];
 
 let written = 0;

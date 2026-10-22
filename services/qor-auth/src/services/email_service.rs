@@ -117,20 +117,18 @@ fn base_url_allowed(url: &str) -> bool {
         && parsed.fragment().is_none()
 }
 
-// The Architect theme (`tools/qor-launcher/src/styles/themes.ts`). A message is dark by design and
-// says so with `color-scheme: dark`, so clients that honour it leave these colours alone, and the
-// contrast holds in clients that invert them anyway. The accent is spent once: on the action.
-const BASE: &str = "#0B0C10";
-const SURFACE: &str = "#12151C";
-const WELL: &str = "#0E1117";
-const EDGE: &str = "#333A47";
-const ACCENT: &str = "#FF6A00";
-const ON_ACCENT: &str = "#06070A";
-const INK: &str = "#FFFFFF";
-const INK_BODY: &str = "#D7D8DA";
-const INK_MUTED: &str = "#93A0AE";
-const SANS: &str = "'Segoe UI Variable Text','Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif";
-const MONO: &str = "'Cascadia Mono','SF Mono',Consolas,Menlo,monospace";
+// Demiurge's one look in its tool register (ADR-108), as literal values, since many clients drop `<style>` and
+// custom properties: every one from `crate::look::tokens`, generated from `docs/design/tokens.json`. A message is
+// dark by design and says so with `color-scheme: dark`, so clients that honour it leave these colours alone, and the
+// contrast holds in clients that invert them anyway. The accent is spent once: on the action. The faces are named
+// first in each stack and none is loaded: clients load a web face in a message unreliably, and one that did would tell
+// us when the message was opened. A client without them takes the next face in the stack.
+use crate::look::tokens::{
+    ACCENT, BASE, EDGE, FONT_BODY as SANS, FONT_DISPLAY as MARK, FONT_INTERFACE as HEADING,
+    FONT_MONO as MONO, GILT_BRIGHT, GILT_DIM, INK, INK_BODY, INK_MUTED, ON_ACCENT, RADIUS_CONTROL,
+    RADIUS_PANEL, SIZE_BODY, SIZE_CAPTION, SIZE_DISPLAY, SIZE_TITLE, SIZE_UI, SURFACE,
+    TRACKING_EYEBROW, TRACKING_HEADING, TRACKING_LABEL, WELL,
+};
 
 /// Closes every message. No address at the sending domain receives mail.
 const FOOTER: &str = "You received this because this address was given for a QOR ID on Demiurge. \
@@ -184,7 +182,7 @@ fn render_html(message: &Message) -> String {
             .map(|text| {
                 let text = escape(text);
                 format!(
-                    r#"<p style="margin:0 0 16px 0;font-family:{SANS};font-size:15px;line-height:24px;color:{INK_BODY};">{text}</p>"#
+                    r#"<p style="margin:0 0 16px 0;font-family:{SANS};font-size:{SIZE_TITLE}px;line-height:24px;color:{INK_BODY};">{text}</p>"#
                 )
             })
             .collect()
@@ -199,12 +197,12 @@ fn render_html(message: &Message) -> String {
             let url = escape(&action.url);
             format!(
                 r#"<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px 0;">
-<tr><td bgcolor="{ACCENT}" style="background-color:{ACCENT};border-radius:2px;">
-<a href="{url}" target="_blank" style="display:inline-block;padding:12px 24px;font-family:{SANS};font-size:13px;line-height:16px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:{ON_ACCENT};text-decoration:none;border-radius:2px;">{label}</a>
+<tr><td bgcolor="{ACCENT}" style="background-color:{ACCENT};border-radius:{RADIUS_CONTROL}px;">
+<a href="{url}" target="_blank" style="display:inline-block;padding:12px 24px;font-family:{HEADING};font-size:{SIZE_BODY}px;line-height:16px;font-weight:600;letter-spacing:{TRACKING_LABEL}em;text-transform:uppercase;color:{ON_ACCENT};text-decoration:none;border-radius:{RADIUS_CONTROL}px;">{label}</a>
 </td></tr>
 </table>
-<p style="margin:0 0 8px 0;font-family:{SANS};font-size:12px;line-height:18px;color:{INK_MUTED};">If the button does not work, copy this address into your browser:</p>
-<p style="margin:0 0 24px 0;padding:12px;background-color:{WELL};border:1px solid {EDGE};border-radius:2px;font-family:{MONO};font-size:13px;line-height:20px;word-break:break-all;"><a href="{url}" target="_blank" style="color:{INK};text-decoration:underline;">{url}</a></p>
+<p style="margin:0 0 8px 0;font-family:{SANS};font-size:{SIZE_UI}px;line-height:18px;color:{INK_MUTED};">If the button does not work, copy this address into your browser:</p>
+<p style="margin:0 0 24px 0;padding:12px;background-color:{WELL};border:1px solid {EDGE};border-radius:{RADIUS_CONTROL}px;font-family:{MONO};font-size:{SIZE_BODY}px;line-height:20px;word-break:break-all;"><a href="{url}" target="_blank" style="color:{INK};text-decoration:underline;">{url}</a></p>
 "#
             )
         }
@@ -231,11 +229,11 @@ fn render_html(message: &Message) -> String {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{BASE}" style="background-color:{BASE};">
 <tr><td align="center" style="padding:32px 16px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
-<tr><td style="padding:0 0 16px 0;font-family:{SANS};font-size:11px;line-height:16px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:{INK_MUTED};">Demiurge &middot; QOR ID</td></tr>
-<tr><td bgcolor="{SURFACE}" style="background-color:{SURFACE};border:1px solid {EDGE};border-radius:2px;padding:32px;">
-<h1 style="margin:0 0 16px 0;font-family:{SANS};font-size:24px;line-height:32px;font-weight:600;color:{INK};">{heading}</h1>
+<tr><td style="padding:0 0 16px 0;font-family:{HEADING};font-size:{SIZE_CAPTION}px;line-height:16px;font-weight:600;letter-spacing:{TRACKING_EYEBROW}em;text-transform:uppercase;color:{INK_MUTED};">Demiurge &middot; <span style="font-family:{MARK};font-size:{SIZE_UI}px;color:{GILT_BRIGHT};">QOR ID</span></td></tr>
+<tr><td bgcolor="{SURFACE}" style="background-color:{SURFACE};border:1px solid {EDGE};border-top-color:{GILT_DIM};border-radius:{RADIUS_PANEL}px;padding:32px;">
+<h1 style="margin:0 0 16px 0;font-family:{HEADING};font-size:{SIZE_DISPLAY}px;line-height:30px;font-weight:600;letter-spacing:{TRACKING_HEADING}em;text-transform:uppercase;color:{INK};">{heading}</h1>
 {lead}{action}{after}</td></tr>
-<tr><td style="padding:16px 0 0 0;font-family:{SANS};font-size:12px;line-height:18px;color:{INK_MUTED};">{footer}</td></tr>
+<tr><td style="padding:16px 0 0 0;font-family:{SANS};font-size:{SIZE_UI}px;line-height:18px;color:{INK_MUTED};">{footer}</td></tr>
 </table>
 </td></tr>
 </table>
@@ -735,6 +733,80 @@ mod tests {
                 "{subject}: the text part has no markup"
             );
             assert!(text.contains("Replies to this message are not received."));
+        }
+    }
+
+    /// The one look (ADR-108): every colour a message is painted in is one of the source's, every corner is a
+    /// control's or a panel's, and every size is on the type scale.
+    #[tokio::test]
+    async fn every_colour_corner_and_size_in_a_message_is_the_one_looks() {
+        use crate::look::tokens as look;
+        let palette = [
+            look::VOID,
+            look::BASE,
+            look::WELL,
+            look::SURFACE,
+            look::RAISED,
+            look::EDGE,
+            look::EDGE_SOFT,
+            look::INK,
+            look::INK_BODY,
+            look::INK_MUTED,
+            look::INK_FAINT,
+            look::ACCENT,
+            look::ACCENT_BRIGHT,
+            look::ACCENT_DIM,
+            look::ON_ACCENT,
+            look::GILT,
+            look::GILT_BRIGHT,
+            look::GILT_DIM,
+            look::OK,
+            look::WARN,
+            look::BAD,
+        ];
+        let corners = [
+            format!("{}px", look::RADIUS_CONTROL),
+            format!("{}px", look::RADIUS_PANEL),
+        ];
+        let sizes = [
+            look::SIZE_MICRO,
+            look::SIZE_CAPTION,
+            look::SIZE_UI,
+            look::SIZE_BODY,
+            look::SIZE_TITLE,
+            look::SIZE_HEADING,
+            look::SIZE_DISPLAY,
+            look::SIZE_FIGURE,
+        ]
+        .map(|px| format!("{px}px"));
+        for body in all_four().await {
+            let html = body["html"].as_str().expect("html").to_lowercase();
+            let mut colours = 0;
+            for (at, _) in html.match_indices('#') {
+                let hex: String = html[at..].chars().take(7).collect();
+                if hex.len() == 7 && hex[1..].chars().all(|c| c.is_ascii_hexdigit()) {
+                    assert!(
+                        palette.contains(&hex.as_str()),
+                        "{hex} is not one of the look's colours"
+                    );
+                    colours += 1;
+                }
+            }
+            assert!(colours > 5, "{colours} colours");
+            for after in html.split("border-radius:").skip(1) {
+                let value: String = after
+                    .chars()
+                    .take_while(|c| *c != ';' && *c != '"')
+                    .collect();
+                assert!(corners.contains(&value), "a corner of its own: {value}");
+            }
+            for after in html.split("font-size:").skip(1) {
+                let value: String = after
+                    .chars()
+                    .take_while(|c| *c != ';' && *c != '"')
+                    .collect();
+                assert!(sizes.contains(&value), "a size of its own: {value}");
+            }
         }
     }
 
