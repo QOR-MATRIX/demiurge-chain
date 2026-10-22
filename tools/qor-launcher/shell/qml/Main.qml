@@ -59,25 +59,27 @@ ApplicationWindow {
 
             Text {
                 text: "QOR · DEMIURGE"
-                font.family: Theme.text
-                font.pixelSize: 12
+                font.family: Theme.ui
+                font.pixelSize: Theme.sizeCaption
                 font.weight: Font.DemiBold
-                font.letterSpacing: 2.4
-                color: Theme.accentBright
+                font.letterSpacing: Theme.sizeCaption * Theme.trackingEyebrow
+                color: Theme.inkMuted
             }
+            // The wordmark: Cinzel in gilt, the one place the tool register sets it (ADR-108 decision 2).
             Text {
+                objectName: "wordmark"
                 text: "QOR Launcher"
-                font.family: Theme.text
-                font.pixelSize: 34
+                font.family: Theme.display
+                font.pixelSize: Theme.sizeFigure
                 font.weight: Font.DemiBold
-                color: Theme.ink
+                color: Theme.giltBright
             }
             Text {
                 Layout.fillWidth: true
                 text: "The Android launcher's first build: the Qt shell over the Rust core that holds the keys. The wallet, QOR ID, Social, ARQADE, the Library and the Mesh arrive next."
                 font.family: Theme.text
-                font.pixelSize: 16
-                lineHeight: 1.2
+                font.pixelSize: Theme.sizeTitle
+                lineHeight: 1.3
                 wrapMode: Text.WordWrap
                 color: Theme.inkMuted
             }
@@ -90,17 +92,17 @@ ApplicationWindow {
                     spacing: 8
                     Text {
                         text: "THE CORE ANSWERS"
-                        font.family: Theme.text
-                        font.pixelSize: 11
+                        font.family: Theme.ui
+                        font.pixelSize: Theme.sizeCaption
                         font.weight: Font.DemiBold
-                        font.letterSpacing: 1.8
+                        font.letterSpacing: Theme.sizeCaption * Theme.trackingLabel
                         color: Theme.inkMuted
                     }
                     Text {
                         objectName: "coreVersion"
                         text: "Core " + Core.version
                         font.family: Theme.mono
-                        font.pixelSize: 15
+                        font.pixelSize: Theme.sizeTitle
                         color: Theme.ink
                     }
                     Text {
@@ -108,7 +110,7 @@ ApplicationWindow {
                         objectName: "units"
                         text: root.units.symbol ? "1 " + root.units.symbol + " = 1,000 " + root.units.sub_unit + "s = 10^" + root.units.decimals + " " + root.units.atomic_unit + "s" : "The core did not answer."
                         font.family: Theme.text
-                        font.pixelSize: 15
+                        font.pixelSize: Theme.sizeTitle
                         wrapMode: Text.WordWrap
                         color: Theme.inkBody
                     }
@@ -124,10 +126,10 @@ ApplicationWindow {
                     spacing: 12
                     Text {
                         text: "AN AMOUNT, READ BY THE CORE"
-                        font.family: Theme.text
-                        font.pixelSize: 11
+                        font.family: Theme.ui
+                        font.pixelSize: Theme.sizeCaption
                         font.weight: Font.DemiBold
-                        font.letterSpacing: 1.8
+                        font.letterSpacing: Theme.sizeCaption * Theme.trackingLabel
                         color: Theme.inkMuted
                     }
                     TextField {
@@ -136,17 +138,19 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         implicitHeight: 52
                         placeholderText: "250 Sparks or 1.25 CGT"
-                        placeholderTextColor: Theme.inkMuted
+                        placeholderTextColor: Theme.inkFaint
                         inputMethodHints: Qt.ImhNoPredictiveText
                         font.family: Theme.text
-                        font.pixelSize: 17
+                        font.pixelSize: Theme.sizeHeading
                         color: Theme.ink
+                        selectionColor: Theme.accent
+                        selectedTextColor: Theme.void_
                         leftPadding: 14
                         background: Rectangle {
-                            radius: 6
-                            color: Theme.base
-                            border.width: amount.activeFocus ? 2 : 1
-                            border.color: amount.activeFocus ? Theme.accent : Theme.edge
+                            radius: Theme.radiusControl
+                            color: Theme.well
+                            border.width: amount.activeFocus ? Theme.focusWidth : 1
+                            border.color: amount.activeFocus ? Theme.focus : Theme.edge
                         }
                         onTextChanged: root.read(text)
                         Accessible.name: "An amount in Sparks or CGT"
@@ -158,7 +162,7 @@ ApplicationWindow {
                         text: root.reading.ok ? root.reading.ok.sparks + "\n" + root.reading.ok.cgt + " CGT\n" + root.reading.ok.embers + " embers"
                             : root.reading.error ? root.reading.error.message : ""
                         font.family: Theme.mono
-                        font.pixelSize: 15
+                        font.pixelSize: Theme.sizeTitle
                         lineHeight: 1.3
                         wrapMode: Text.WrapAnywhere
                         color: root.reading.error ? Theme.bad : Theme.ink
@@ -180,7 +184,7 @@ ApplicationWindow {
 
     component Panel: Rectangle {
         implicitHeight: (children[0]?.implicitHeight ?? 0) + 36
-        radius: 10
+        radius: Theme.radiusPanel
         color: Theme.surface
         border.width: 1
         border.color: Theme.edge

@@ -951,6 +951,12 @@ type = "ci-scope"
 change = "tools/qor-launcher/scripts/check-accessibility.mjs, which suite qfx_ambience runs: 'the app applied a theme at startup' expects obsidian where it expected architect, and 'normal contrast: --ink-muted is the theme value' expects Obsidian's --ink-muted, read from docs/design/tokens.json, where it expected Architect's #93a0ae. Every other case is unchanged."
 reason = "A scope change rather than a loosening: the launcher's default theme changed (ADR-108 decision 6, ADR-109), and the check names the default. What it holds is unchanged: that a theme is applied at startup, and that at normal contrast the theme's own value is in force, which the contrast cases after it then raise. Reading the value from the source means a later change of the palette cannot leave the check behind."
 
+[[change_log]]
+date = "2026-10-22"
+type = "tightening"
+change = "CI's step 'One look, from one source (ADR-108)' also runs docs/design/check-qml.mjs, over the QML of QOR Media (tools/qor-media/qml/) and the QOR Launcher for Android (tools/qor-launcher/shell/qml/), but their generated Tokens.qml. It fails when Tokens.qml is missing, or Theme.qml writes a colour or does not bind to Tokens; when a face is not one of Theme's; when a text size is not one of Theme's steps, or tracking is not a step times one of Theme's; when a colour is written, as a string or as Qt.rgba() and the like of numbers; when a corner is not Theme's, another item's, a circle or a hairline of 2 pixels or less; when a duration is not Theme's, but for the music's slow glow in QOR Media's player, or an easing is not Easing.BezierSpline on Theme.ease; or when a control is kept from the keyboard (focusPolicy: Qt.NoFocus). tokens.mjs --check gains their generated files and bundled faces. [ci].quality_gates records it."
+reason = "A tightening: more of the tree must pass the same step, nothing relaxed. Proven to fail first, against a planted fault each: Theme's raised written as #1a1f29, an icon button with Qt.NoFocus, a title in Segoe UI, a dialog's title at 17 pixels, the find bar's corner at 10, the viewer's zoom at 140 ms, its turn eased with Easing.OutCubic, the player's backdrop in \"black\", the shell's eyebrow tracked 2.4 pixels, and a panel filled with Qt.rgba(0.07, 0.09, 0.13, 1). The applications' own tests, run on the owner's PC since CI has no licensed Qt, caught more the static check cannot see; HANDOFF §4 item 122 lists them."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1005,7 +1011,7 @@ quality_gates = [
   "framework/ stays retired: the security job fails if the directory returns, and with it the six advisories its audit.toml exempted until M3.5",
   "no private key material tracked in git",
   "no credentials committed in configuration files",
-  "one look from one source (ADR-108): node docs/design/tokens.mjs --check, every generated file current, every bundled face the source's, every text colour 4.5:1 or more on every background. Since 2026-10-21",
+  "one look from one source (ADR-108): node docs/design/tokens.mjs --check, every generated file current, every bundled face the source's, every text colour 4.5:1 or more on every background. Since 2026-10-21. Then node docs/design/check-qml.mjs: QOR Media's and the Android shell's QML in the look, every control within the keyboard's reach. Since 2026-10-22",
   "the language rule (ADR-008, AGENTS.md section 6) over what people read in the active scope: site/scripts/check-site.mjs, then no APY, ROI, passive income, investment or staking rewards in the site, ARQADE, the launcher, QOR Media, QQ, Social and QOR ID, and no yield in their copy. Since 2026-10-19",
   "no log call in services/qor-auth/src interpolates a token, key, secret, password, link or address, and no request span records the URI",
   "no [patch] section in any tracked manifest, and no reference to a personal Substrate fork anywhere tracked, excluding only ci.yml itself and HANDOFF.md",

@@ -3,22 +3,26 @@
 #include <QColor>
 #include <QFont>
 
+#include "tokens.h"
+
 namespace qormedia {
 
 namespace {
 
-QColor color(const QVariantMap &colors, const char *name, const char *fallback)
+// The launcher's colour by its name, or the one look's (tokens.h) until the launcher sends its theme.
+QColor color(const QVariantMap &colors, const char *name, QRgb fallback)
 {
     const QColor c(colors.value(QString::fromLatin1(name)).toString());
-    return c.isValid() ? c : QColor(QString::fromLatin1(fallback));
+    return c.isValid() ? c : QColor::fromRgb(fallback);
 }
 
 QTextCharFormat styled(const QColor &c, bool bold = false, bool italic = false)
 {
     QTextCharFormat f;
     f.setForeground(c);
+    // Medium, the heaviest weight QOR Media carries of Barlow and IBM Plex Mono: a heavier one would be thickened.
     if (bold)
-        f.setFontWeight(QFont::DemiBold);
+        f.setFontWeight(QFont::Medium);
     f.setFontItalic(italic);
     return f;
 }
@@ -45,11 +49,11 @@ void Highlighter::setColors(const QVariantMap &colors)
 void Highlighter::build()
 {
     m_rules.clear();
-    const QColor accent = color(m_colors, "accent-bright", "#ff8a33");
-    const QColor strong = color(m_colors, "ink", "#ffffff");
-    const QColor muted = color(m_colors, "ink-muted", "#9aa3b2");
-    const QColor quiet = color(m_colors, "ink-faint", "#6b7385");
-    const QColor warm = color(m_colors, "accent", "#ff6a00");
+    const QColor accent = color(m_colors, "accent-bright", tokens::colorAccentBright);
+    const QColor strong = color(m_colors, "ink", tokens::colorInk);
+    const QColor muted = color(m_colors, "ink-muted", tokens::colorInkMuted);
+    const QColor quiet = color(m_colors, "ink-faint", tokens::colorInkFaint);
+    const QColor warm = color(m_colors, "accent", tokens::colorAccent);
     m_comment = styled(quiet, false, true);
 
     const auto add = [this](const char *pattern, const QTextCharFormat &f) {

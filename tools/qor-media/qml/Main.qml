@@ -23,6 +23,22 @@ Window {
     title: path ? Files.nameOf(path) + " — QOR Media" : "QOR Media"
     flags: launched ? Qt.FramelessWindowHint : Qt.Window
 
+    // The stock controls (scroll bars, tool tips, the find field's caret and selection) take Theme's colours, never the
+    // style's own.
+    palette.window: Theme.void_
+    palette.base: Theme.well
+    palette.text: Theme.ink
+    palette.windowText: Theme.ink
+    palette.button: Theme.raised
+    palette.buttonText: Theme.ink
+    palette.mid: Theme.edge
+    palette.dark: Theme.inkMuted
+    palette.toolTipBase: Theme.raised
+    palette.toolTipText: Theme.ink
+    palette.highlight: Theme.accent
+    palette.highlightedText: Theme.inkOnAccent
+    palette.placeholderText: Theme.inkFaint
+
     function open(filePath, fileKind, position) {
         // Unsaved words are asked about first.
         if (stage.item && stage.item.dirty) {

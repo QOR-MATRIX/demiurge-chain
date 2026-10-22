@@ -11,6 +11,7 @@ import QOR.Media
 // Library where it stopped and how long the file is.
 FocusScope {
     id: player
+    objectName: "player"
     required property string path
     required property string kind
     required property real resumeAt
@@ -40,6 +41,21 @@ FocusScope {
     function wake() {
         chrome = true
         rest.restart()
+    }
+    // Whether the keyboard is on one of the controls: they stay while it is, so Tab never lands on something hidden.
+    function steering() {
+        for (let item = player.Window.activeFocusItem; item; item = item.parent)
+            if (item === controls || item === top)
+                return true
+        return false
+    }
+    // The keyboard back from a control to the player, so its keys work and the controls rest again. Focusing the scope
+    // alone would hand it back to the control that had it last.
+    function release() {
+        const item = player.Window.activeFocusItem
+        if (item && item !== player && steering())
+            item.focus = false
+        player.forceActiveFocus()
     }
     function seekBy(delta) {
         media.position = Math.max(0, Math.min(media.duration, media.position + delta * 1000))
@@ -104,12 +120,17 @@ FocusScope {
     Timer {
         id: rest
         interval: 2600
-        onTriggered: if (player.playing) player.chrome = false
+        onTriggered: if (player.playing && !player.steering()) player.chrome = false
+    }
+    Connections {
+        target: player.Window
+        // On a control, they show and stay; leaving them, they rest as after the pointer stops.
+        function onActiveFocusItemChanged() { player.steering() ? player.wake() : rest.restart() }
     }
 
     Rectangle {
         anchors.fill: parent
-        color: "black"
+        color: Theme.void_
     }
 
     VideoOutput {
@@ -119,7 +140,7 @@ FocusScope {
         visible: media.hasVideo
     }
 
-    // Music: its title, its artist, and a slow glow in the theme's accent.
+    // Music: its title, its artist, and a slow glow in the theme's accent, which stays still for less motion.
     Item {
         anchors.fill: parent
         visible: !media.hasVideo
@@ -133,7 +154,7 @@ FocusScope {
                 GradientStop { position: 1; color: "transparent" }
             }
             SequentialAnimation on scale {
-                running: player.playing
+                running: player.playing && !Theme.reducedMotion
                 loops: Animation.Infinite
                 NumberAnimation { to: 1.08; duration: 1800; easing.type: Easing.InOutSine }
                 NumberAnimation { to: 0.96; duration: 1800; easing.type: Easing.InOutSine }
@@ -146,8 +167,8 @@ FocusScope {
                 Layout.alignment: Qt.AlignHCenter
                 text: media.metaData.stringValue(MediaMetaData.Title) || Files.nameOf(player.path)
                 color: Theme.ink
-                font.family: Theme.display
-                font.pixelSize: 34
+                font.family: Theme.ui
+                font.pixelSize: Theme.sizeFigure
                 font.weight: Font.DemiBold
             }
             Text {
@@ -155,7 +176,7 @@ FocusScope {
                 text: [media.metaData.stringValue(MediaMetaData.ContributingArtist), media.metaData.stringValue(MediaMetaData.AlbumTitle)].filter(Boolean).join(" · ")
                 color: Theme.inkMuted
                 font.family: Theme.text
-                font.pixelSize: 16
+                font.pixelSize: Theme.sizeTitle
             }
         }
     }
@@ -166,7 +187,7 @@ FocusScope {
         visible: text.length > 0
         color: Theme.inkBody
         font.family: Theme.text
-        font.pixelSize: 16
+        font.pixelSize: Theme.sizeTitle
     }
 
     MouseArea {
@@ -174,17 +195,18 @@ FocusScope {
         hoverEnabled: true
         cursorShape: player.chrome ? Qt.ArrowCursor : Qt.BlankCursor
         onPositionChanged: player.wake()
-        onClicked: { player.forceActiveFocus(); player.playing ? media.pause() : media.play(); player.wake() }
+        onClicked: { player.release(); player.playing ? media.pause() : media.play(); player.wake() }
         onDoubleClicked: player.fullScreenToggled()
     }
 
     TopBar {
+        id: top
         anchors { left: parent.left; right: parent.right; top: parent.top }
         title: media.metaData.stringValue(MediaMetaData.Title) || Files.nameOf(player.path)
         subtitle: [player.length > 0 ? Theme.clock(player.length) : "", media.metaData.value(MediaMetaData.Resolution) ? media.metaData.value(MediaMetaData.Resolution).height + "p" : ""].filter(Boolean).join(" · ")
         opacity: player.chrome ? 1 : 0
         visible: opacity > 0
-        Behavior on opacity { NumberAnimation { duration: 220 } }
+        Behavior on opacity { NumberAnimation { duration: Theme.standard; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.ease } }
         onBack: player.back()
     }
 
@@ -195,7 +217,7 @@ FocusScope {
         height: 118
         opacity: player.chrome ? 1 : 0
         visible: opacity > 0
-        Behavior on opacity { NumberAnimation { duration: 220 } }
+        Behavior on opacity { NumberAnimation { duration: Theme.standard; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.ease } }
         gradient: Gradient {
             GradientStop { position: 0; color: "transparent" }
             GradientStop { position: 1; color: Qt.alpha(Theme.void_, 0.94) }
@@ -214,7 +236,7 @@ FocusScope {
                 height: scrubArea.containsMouse || scrubArea.pressed ? 6 : 4
                 radius: height / 2
                 color: Qt.alpha(Theme.ink, 0.18)
-                Behavior on height { NumberAnimation { duration: 120 } }
+                Behavior on height { NumberAnimation { duration: Theme.quick; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.ease } }
                 Rectangle {
                     width: media.duration > 0 ? parent.width * media.position / media.duration : 0
                     height: parent.height
@@ -226,7 +248,7 @@ FocusScope {
                     anchors.verticalCenter: parent.verticalCenter
                     width: 14
                     height: 14
-                    radius: 7
+                    radius: width / 2
                     color: Theme.accentBright
                     visible: scrubArea.containsMouse || scrubArea.pressed
                 }
@@ -237,7 +259,7 @@ FocusScope {
                 y: -30
                 width: hoverText.implicitWidth + 14
                 height: 24
-                radius: 6
+                radius: Theme.radiusControl
                 color: Theme.raised
                 border.color: Theme.edge
                 Text {
@@ -245,8 +267,8 @@ FocusScope {
                     anchors.centerIn: parent
                     text: Theme.clock(scrub.hoverAt * player.length)
                     color: Theme.ink
-                    font.family: Theme.text
-                    font.pixelSize: 12
+                    font.family: Theme.mono
+                    font.pixelSize: Theme.sizeUi
                 }
             }
             MouseArea {
@@ -286,7 +308,8 @@ FocusScope {
                 from: 0; to: 1
                 value: settings.volume
                 onMoved: { settings.volume = value; settings.muted = false }
-                focusPolicy: Qt.NoFocus
+                focusPolicy: Qt.TabFocus
+                Accessible.name: qsTr("Volume")
                 background: Rectangle {
                     x: volume.leftPadding; y: volume.topPadding + volume.availableHeight / 2 - height / 2
                     width: volume.availableWidth; height: 4; radius: 2
@@ -296,25 +319,34 @@ FocusScope {
                 handle: Rectangle {
                     x: volume.leftPadding + volume.visualPosition * (volume.availableWidth - width)
                     y: volume.topPadding + volume.availableHeight / 2 - height / 2
-                    width: 12; height: 12; radius: 6; color: Theme.ink
+                    width: 12; height: 12; radius: width / 2; color: Theme.ink
+                    FocusRing { visible: volume.visualFocus; radius: parent.radius }
                 }
             }
             Text {
                 text: Theme.clock(player.seconds) + "  /  " + Theme.clock(player.length)
                 color: Theme.inkBody
-                font.family: Theme.text
-                font.pixelSize: 13
-                font.features: { "tnum": 1 }
+                font.family: Theme.mono
+                font.pixelSize: Theme.sizeBody
                 Layout.leftMargin: 10
             }
             Item { Layout.fillWidth: true }
             Button {
                 id: speed
                 flat: true
-                focusPolicy: Qt.NoFocus
+                focusPolicy: Qt.TabFocus
                 text: media.playbackRate + "×"
-                contentItem: Text { text: speed.text; color: media.playbackRate === 1 ? Theme.inkBody : Theme.accentBright; font.family: Theme.text; font.pixelSize: 13; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                background: Rectangle { radius: 8; color: speed.hovered ? Qt.alpha(Theme.ink, 0.12) : "transparent" }
+                Accessible.name: qsTr("Speed %1").arg(text)
+                ToolTip.visible: (hovered || visualFocus) && ToolTip.text.length > 0
+                ToolTip.text: qsTr("Speed ([ and ])")
+                contentItem: Text { text: speed.text; color: media.playbackRate === 1 ? Theme.inkBody : Theme.accentBright; font.family: Theme.mono; font.pixelSize: Theme.sizeBody; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                background: Rectangle {
+                    radius: Theme.radiusControl
+                    color: speed.hovered || speed.visualFocus ? Qt.alpha(Theme.ink, 0.12) : "transparent"
+                    FocusRing { visible: speed.visualFocus }
+                }
+                Keys.onReturnPressed: clicked()
+                Keys.onEnterPressed: clicked()
                 onClicked: { const i = player.rates.indexOf(media.playbackRate); media.playbackRate = player.rates[(i + 1) % player.rates.length] }
             }
             IconButton {

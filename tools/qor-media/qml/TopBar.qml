@@ -31,8 +31,8 @@ Rectangle {
                 Layout.fillWidth: true
                 text: bar.title
                 color: Theme.ink
-                font.family: Theme.display
-                font.pixelSize: 17
+                font.family: Theme.ui
+                font.pixelSize: Theme.sizeHeading
                 font.weight: Font.DemiBold
                 elide: Text.ElideMiddle
             }
@@ -42,7 +42,7 @@ Rectangle {
                 text: bar.subtitle
                 color: Theme.inkMuted
                 font.family: Theme.text
-                font.pixelSize: 12
+                font.pixelSize: Theme.sizeUi
                 elide: Text.ElideRight
             }
         }

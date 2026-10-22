@@ -169,6 +169,13 @@ function rust(fontDir) {
   return `${comment}\n\n${lines.join('\n')}\n`;
 }
 
+// The faces a Qt application in the tool register carries: Barlow for reading, Barlow Semi Condensed for headings and
+// controls, IBM Plex Mono for code and numbers, each weight it asks for (a weight not carried is answered by another,
+// drawn wider or thicker), and each family's licence.
+const TOOL_FACES = ['Barlow-Regular.ttf', 'Barlow-Medium.ttf', 'BarlowSemiCondensed-Regular.ttf',
+  'BarlowSemiCondensed-Medium.ttf', 'BarlowSemiCondensed-SemiBold.ttf', 'IBMPlexMono-Regular.ttf',
+  'IBMPlexMono-Medium.ttf', 'Barlow-OFL.txt', 'BarlowSemiCondensed-OFL.txt', 'IBMPlexMono-OFL.txt'];
+
 // Each target: a file this script writes, or a font it copies. A surface joins by adding its own.
 const targets = [
   // The homepage (site/, ADR-100): its stylesheet maps its own names onto these.
@@ -201,6 +208,15 @@ const targets = [
   // its pages load from /fonts/.
   { file: 'services/qor-auth/src/look/tokens.rs', text: () => rust('/fonts') },
   ...web.faces.map((f) => ({ file: `services/qor-auth/src/look/fonts/${f.file}`, copy: `docs/design/fonts/web/${f.file}` })),
+  // QOR Media (P2.9's sixth slice): its Theme binds to Tokens.qml, its highlighter colours from tokens.h until the
+  // launcher sends its theme, and it carries the tool register's faces, with each family's licence.
+  { file: 'tools/qor-media/qml/Tokens.qml', text: () => qml() },
+  { file: 'tools/qor-media/src/tokens.h', text: () => cpp('qormedia::tokens') },
+  ...TOOL_FACES.map((name) => ({ file: `tools/qor-media/fonts/${name}`, copy: `docs/design/fonts/${name}` })),
+  // The QOR Launcher for Android (P2.9's sixth slice): the same, and Cinzel for its wordmark.
+  { file: 'tools/qor-launcher/shell/qml/Tokens.qml', text: () => qml() },
+  ...[...TOOL_FACES, 'Cinzel.ttf', 'Cinzel-OFL.txt']
+    .map((name) => ({ file: `tools/qor-launcher/shell/fonts/${name}`, copy: `docs/design/fonts/${name}` })),
 ];
 
 let written = 0;

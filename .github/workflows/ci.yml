@@ -718,10 +718,14 @@ jobs:
           echo "No financial language in the active scope."
 
       # Demiurge's one look (ADR-108): every file written from docs/design/tokens.json is current, every bundled face is
-      # the one in docs/design/fonts/, and every text colour reads at 4.5:1 or more on every background.
+      # the one in docs/design/fonts/, and every text colour reads at 4.5:1 or more on every background. Then the QML of
+      # QOR Media and the Android shell, which CI cannot build (no licensed Qt): every face, size, colour, corner and
+      # timing Theme's, and no control kept from the keyboard.
       - name: "One look, from one source (ADR-108)"
         if: always()
-        run: node docs/design/tokens.mjs --check
+        run: |
+          node docs/design/tokens.mjs --check
+          node docs/design/check-qml.mjs
 
       # chain/ is audited as a REPORT, not a gate, and that is deliberate.
       #

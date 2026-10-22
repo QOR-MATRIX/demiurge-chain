@@ -35,9 +35,10 @@ FocusScope {
             Layout.alignment: Qt.AlignHCenter
             text: elsewhere.extension.toUpperCase()
             color: Theme.accentBright
-            font.family: Theme.display
-            font.pixelSize: 44
-            font.weight: Font.Bold
+            font.family: Theme.ui
+            font.pixelSize: Theme.sizeFigure
+            font.weight: Font.DemiBold
+            font.letterSpacing: Theme.sizeFigure * Theme.trackingHeading
         }
         Text {
             Layout.fillWidth: true
@@ -46,19 +47,17 @@ FocusScope {
             wrapMode: Text.WordWrap
             color: Theme.inkBody
             font.family: Theme.text
-            font.pixelSize: 16
+            font.pixelSize: Theme.sizeTitle
         }
-        Button {
+        TextButton {
             id: open
+            objectName: "openElsewhere"
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 8
-            focusPolicy: Qt.StrongFocus
+            primary: true
             focus: true
             text: qsTr("Open with another program")
-            contentItem: Text { text: open.text; color: Theme.ink; font.family: Theme.text; font.pixelSize: 15; font.weight: Font.DemiBold; horizontalAlignment: Text.AlignHCenter }
-            background: Rectangle { implicitHeight: 44; implicitWidth: 260; radius: 22; color: open.down ? Theme.accentDim : open.hovered ? Theme.accentBright : Theme.accent }
             onClicked: Files.openElsewhere(elsewhere.path)
-            Keys.onReturnPressed: clicked()
         }
     }
 }

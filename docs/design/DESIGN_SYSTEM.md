@@ -16,16 +16,23 @@ launcher moved to once, ADR-109; held by `scripts/check-look.mjs`); QOR ID's pag
 (`services/qor-auth/src/look/tokens.rs` and `look/fonts/`, the faces embedded and served by QOR ID at `/fonts/`; held
 by its tests: a page's stylesheet writes no colour, face or corner and reads only defined tokens, and a message's every
 colour, corner and size is the source's). An email names the faces first and loads none, since a web face in a message
-would also tell the sender when it was opened; a reader without them sees the next face in each stack. **Not yet
-joined, each keeping its own values until its slice:** QOR Media and the Android shell.
-Their faces in Qt are already the source's (Cinzel and Barlow Semi Condensed, checked).
+would also tell the sender when it was opened; a reader without them sees the next face in each stack. QOR Media and the
+QOR Launcher for Android (`tools/qor-media/qml/Tokens.qml`, `src/tokens.h` and `fonts/`; `tools/qor-launcher/shell/qml/
+Tokens.qml` and `fonts/`, each read by its `Theme`), held by `docs/design/check-qml.mjs` in CI and, on the owner's PC,
+by their own tests (`tst_look`, `tst_core`). **Every surface has joined** (pull request #74, the last slice).
+
+**In the tool register's Qt applications,** a control the keyboard can reach shows the one focus ring (QOR Media's
+`FocusRing.qml`: a halo and 2 pixels of bright ember just outside it) while `visualFocus`; `focusPolicy: Qt.NoFocus` is
+refused. An icon button takes `Qt.TabFocus`, so a click leaves the keyboard where it was and a view's own keys keep
+working; a button with words takes `Qt.StrongFocus`. Each weight a face is asked for is carried, since Qt answers a
+missing weight with another (Barlow's Medium for its Regular, drawn wide), and the tests ask which style was drawn.
 
 **In QML,** a property is never named `on` and a capital (`onAccent`): QML reads it as a signal handler. The ink on a
 filled control is `inkOnAccent` there.
 
 The QOR Launcher stays the reference for behaviour: its components (`src/components/ui`, `src/views/parts.tsx`), its
 accessibility settings and its checks are the most complete implementation of the rules below, and its theme table
-(`src/styles/themes.ts`) gains the Obsidian theme, made from the tokens, as its default when it joins.
+(`src/styles/themes.ts`) has the Obsidian theme, made from the tokens, as its default (ADR-109).
 
 When this document and a joined surface disagree, fix one of them in the same change.
 

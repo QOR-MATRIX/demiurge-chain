@@ -2,7 +2,9 @@
 # into. Qt 6, C++20 and Qt Quick, over the Rust core (../core), which it links through the core's C bridge.
 #
 #   src/    Core, the core's bridge as QML sees it
-#   qml/    the module "QOR": the window and its screens
+#   qml/    the module "QOR": the window and its screens; Tokens.qml, which docs/design/tokens.mjs generates from
+#           docs/design/tokens.json, and Theme, which binds to it (ADR-108)
+#   fonts/  Cinzel, Barlow, Barlow Semi Condensed and IBM Plex Mono, under the SIL Open Font License, copied by tokens.mjs
 #   tests/  Qt Test suites (on the desktop build)
 #
 # build.ps1 does all of it: `-Android` for the phone's APK (arm64-v8a), nothing for the desktop build and its tests.
@@ -40,19 +42,30 @@ corrosion_import_crate(MANIFEST_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../core/Cargo.t
 # Everything but main(), so the tests use exactly what the application does.
 qt_add_library(shell_core STATIC
     src/core.h src/core.cpp
+    src/fonts.h
 )
 target_include_directories(shell_core PUBLIC src ${CMAKE_CURRENT_SOURCE_DIR}/../core/include)
 target_link_libraries(shell_core PUBLIC Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick qor_launcher_core)
 
 # Before the module, or Theme is registered as an ordinary type.
-set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(qml/Theme.qml qml/Tokens.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 qt_add_qml_module(shell_core
     URI QOR
     VERSION 1.0
     QML_FILES
         qml/Main.qml
+        qml/Tokens.qml
         qml/Theme.qml
+    RESOURCES
+        fonts/Cinzel.ttf
+        fonts/Barlow-Regular.ttf
+        fonts/Barlow-Medium.ttf
+        fonts/BarlowSemiCondensed-Regular.ttf
+        fonts/BarlowSemiCondensed-Medium.ttf
+        fonts/BarlowSemiCondensed-SemiBold.ttf
+        fonts/IBMPlexMono-Regular.ttf
+        fonts/IBMPlexMono-Medium.ttf
 )
 
 qt_add_executable(qor-launcher src/main.cpp)
@@ -72,5 +85,7 @@ else()
     enable_testing()
     qt_add_executable(tst_core tests/tst_core.cpp)
     target_link_libraries(tst_core PRIVATE shell_core shell_coreplugin Qt6::Test)
+    # The look's test reads the source itself, not the file generated from it.
+    target_compile_definitions(tst_core PRIVATE SHELL_TOKENS="${CMAKE_CURRENT_SOURCE_DIR}/../../../docs/design/tokens.json")
     add_test(NAME core COMMAND tst_core)
 endif()
