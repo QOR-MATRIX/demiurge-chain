@@ -38,7 +38,7 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
    ID's pages and emails (#73, live since its redeploy), and QOR Media and the Android app
    (#74). **Done: every surface wears the one look.** QOR Media on this PC is the new one.
 
-**For your merge: #75, the records** of #74's merge, with a fix to SYSTEMS.md's table.
+**Nothing waits for your merge.** What comes after the one look is your choice.
 
 ## Toward a worldwide beta: what only you can do
 
