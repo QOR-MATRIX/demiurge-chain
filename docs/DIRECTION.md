@@ -1141,8 +1141,8 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      parchment ink on the primary). The unloaded face passed its first version, since Barlow's Medium answered for
      its Regular; the test now asks which face is drawn. Every screen the test saves looked at, before and after.
 
-   **The fourth slice, the launcher, built 21 October 2026** (branch `session/launcher-one-look`, on #71's merge; pull
-   request #72, not yet merged):
+   **The fourth slice, the launcher, built 21 October 2026** (branch `session/launcher-one-look`, on #71's merge; merged
+   in #72 at `615829e`, 22 October 2026):
    - `tools/qor-launcher/src/styles/tokens.css`, `tokens.ts` and `fonts/`, generated (a TypeScript target joins
      `docs/design/tokens.mjs`). **Obsidian** is the launcher's first theme and its default, every colour from
      `tokens.ts`, its structural colour (`counter`) the gilt. **Every launcher moves to it once** (ADR-109, the
@@ -1173,7 +1173,7 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      The screens were looked at in Obsidian and in Architect.
 
    **The fifth slice, QOR ID's pages and emails, built 22 October 2026** (branch `session/qor-id-one-look`, on #72's
-   head; kept back until #72 is merged):
+   merge; pull request #73, not yet merged):
    - `services/qor-auth/src/look/tokens.rs` and `look/fonts/`, generated (a Rust target joins `docs/design/tokens.mjs`):
      every colour, face, size, tracking and corner as a constant, the stylesheet with every token as a custom property,
      and the faces embedded in the binary. QOR ID serves them itself at `/fonts/{file}` (WOFF2, kept a year, nothing
