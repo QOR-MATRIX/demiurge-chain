@@ -724,7 +724,27 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 #### L6: Distribution (no chain dependency; before the public testnet)
 
 1. [ ] Signed installers for Windows, macOS and Linux.
-2. [ ] An update channel that verifies signatures before installing.
+2. [ ] An update channel that verifies signatures before installing. **Built 22 October 2026 (ADR-111), on branch
+   `session/update-channel`, not merged.** Ticked when a release reaches a tester's launcher through it.
+   - **The channel:** one fixed address,
+     `https://github.com/QOR-MATRIX/demiurge-chain/releases/download/launcher-channel/latest.json`, which the release
+     script replaces at each release; each installer stays in its own pre-release.
+   - **Verified twice before anything runs:** Tauri's updater checks the installer against the public key built into
+     the launcher; the host (`src-tauri/src/update.rs`) checks it again, refusing a legacy signature, and requires the
+     signed file to be the announced version's installer, since the Tauri CLI this launcher is built with signs a
+     file's name, not its version. HTTPS only, no downgrades, nothing "dangerous" in any release configuration.
+   - **The person decides:** the host checks fifteen seconds after start and every six hours (a switch in Settings,
+     on by default), says what it found in Settings and in the title bar, and installs only on *Update and restart*.
+     The interface can ask to check and to install, never name an address, a key or a file.
+   - **The key** is on the PC that builds releases (`scripts/updater-key.ps1`), never in the repository.
+     `scripts/release.mjs` builds, checks its own signature and file name, writes the manifest, and publishes only
+     when asked. Without the updater's `zip` feature: a Windows update is the installer itself, and zip 4 has three
+     open advisories.
+   - **Checks:** the host's tests (a release accepted only with the key and its own name; a changed byte, another
+     version's installer and another key refused; the configuration naming the channel and nothing dangerous),
+     `check-updates-view.mjs` (27) and `release.mjs --self-test` (3) in `npm run check`, and an end-to-end run on this
+     PC, `scripts/update-e2e.mjs`: a test product installed, a tampered installer and a mislabelled one refused, and
+     the real update installed without a question and the launcher reopened on it.
 3. [ ] The QOR Installer, sharing the launcher's Rust core.
 
 #### L7: Platform surfaces (depends on M8)

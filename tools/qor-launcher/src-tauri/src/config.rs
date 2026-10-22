@@ -48,10 +48,18 @@ pub struct Settings {
     /// Social's socket (ADR-091, L8.5): `wss://`, or `ws://` on this machine. Absent from settings written before it.
     #[serde(default = "default_social")]
     pub social_url: String,
+    /// Whether the launcher checks its update channel by itself (ADR-111). On unless the person turned it off, as
+    /// fixes are; absent from settings written before it, and then on.
+    #[serde(default = "checks_updates")]
+    pub check_updates: bool,
 }
 
 fn default_social() -> String {
     crate::social::DEFAULT_SOCIAL.to_string()
+}
+
+fn checks_updates() -> bool {
+    true
 }
 
 impl Default for Settings {
@@ -60,6 +68,7 @@ impl Default for Settings {
             rpc_url: crate::chain::DEFAULT_RPC.to_string(),
             auth_url: crate::identity::DEFAULT_AUTH.to_string(),
             social_url: default_social(),
+            check_updates: checks_updates(),
         }
     }
 }
@@ -190,6 +199,7 @@ mod tests {
             rpc_url: crate::chain::LOCAL_RPC.into(),
             auth_url: "http://127.0.0.1:8080/api/v1".into(),
             social_url: "wss://social.example/v1/socket".into(),
+            check_updates: false,
         };
         saved.save(&dir).unwrap();
 
@@ -197,6 +207,7 @@ mod tests {
         assert_eq!(loaded.rpc_url, saved.rpc_url);
         assert_eq!(loaded.auth_url, saved.auth_url);
         assert_eq!(loaded.social_url, saved.social_url);
+        assert!(!loaded.check_updates);
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -213,6 +224,8 @@ mod tests {
         let loaded = Settings::load(&dir);
         assert_eq!(loaded.social_url, crate::social::DEFAULT_SOCIAL);
         assert_eq!(loaded.rpc_url, "ws://127.0.0.1:9944");
+        // Nor any update setting (ADR-111): the launcher checks by itself.
+        assert!(loaded.check_updates);
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -229,6 +242,7 @@ mod tests {
             rpc_url: "http://127.0.0.1:9944".into(),
             auth_url: "http://127.0.0.1:8080/api/v1".into(),
             social_url: default_social(),
+            check_updates: true,
         }
         .save(&dir)
         .unwrap();
@@ -248,6 +262,7 @@ mod tests {
             auth_url: "ws://localhost".into(),
             // Words and a token in the clear, across a network.
             social_url: "ws://social.example/v1/socket".into(),
+            check_updates: true,
         }
         .save(&dir)
         .unwrap();

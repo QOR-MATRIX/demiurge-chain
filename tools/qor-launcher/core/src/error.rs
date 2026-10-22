@@ -106,6 +106,11 @@ pub enum QorError {
     #[error("{0}")]
     Pin(String),
 
+    /// The update channel could not check, fetch or verify an update, or none is ready (ADR-111). The sentence is for
+    /// the person.
+    #[error("{0}")]
+    Update(String),
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -141,6 +146,7 @@ impl QorError {
             Self::Mesh(_) => "mesh",
             Self::NoProfile => "no_profile",
             Self::Pin(_) => "pin",
+            Self::Update(_) => "update",
             Self::Internal(_) => "internal",
         }
     }

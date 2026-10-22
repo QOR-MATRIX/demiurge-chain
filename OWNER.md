@@ -40,7 +40,9 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 
 **Logged for later, as you asked: ADR-110, emulated play in ARQADE.** The whole recommendation
 and its six questions are kept there; nothing is built on it. **For your merge: #76**, carrying
-it and the records. **Next on the roadmap:** the launcher's update channel (L6.2).
+it and the records. **Built, waiting behind it: the launcher updates itself** (L6.2): it
+checks for a new version, says so, and installs only when you press *Update and restart*,
+every installer checked against our own signing key first. Proven end to end on this PC.
 
 ## Toward a worldwide beta: what only you can do
 
@@ -51,6 +53,8 @@ it and the records. **Next on the roadmap:** the launcher's update channel (L6.2
 3. **The economic numbers** — *issuance, the genesis split, the decay curve, fee and burn
    shares* (OPEN-1 to OPEN-4, U-4, U-11). Most of the Beta gate waits on them.
 4. **Code-signing certificates** for Windows and Apple, and an **external security review**.
+   **Back up the update key now:** `pwsh tools/qor-launcher/scripts/updater-key.ps1 -Backup`
+   says which file and password to keep offline; lose them and testers reinstall by hand once.
 5. **Names** for the indexer and explorer, the SDK and the agents' MCP server.
 6. **Still open:** godmode's 100,000,000 CGT (its address); Social's report rules; the
    Android app on your phone; ARQADE in 0.1.14; the gate change in #46; the reward pool's

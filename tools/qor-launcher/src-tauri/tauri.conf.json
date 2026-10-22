@@ -74,6 +74,11 @@
   "plugins": {
     "deep-link": {
       "desktop": { "schemes": ["qor"] }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJEODVGRjhGMUY4N0IxMjQKUldRa3NZY2ZqLytGTGNKejNtVGJyM1ZrSHlZamRkamZNbW82aFVRckdMU29uKzVORVc3MFpERmEK",
+      "endpoints": ["https://github.com/QOR-MATRIX/demiurge-chain/releases/download/launcher-channel/latest.json"],
+      "windows": { "installMode": "passive" }
     }
   }
 }

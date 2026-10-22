@@ -46,6 +46,7 @@ export type QorErrorKind =
   | 'unfunded'
   | 'no_profile'
   | 'pin'
+  | 'update'
   | 'internal';
 
 /** An account's level and XP, as QOR ID keeps them (ADR-078). */
@@ -308,6 +309,53 @@ export function explain(error: unknown): string {
 
 const call = <T,>(command: string, args?: Record<string, unknown>): Promise<T> =>
   invoke<T>(command, args);
+
+/** What the launcher's update channel knows (ADR-111). */
+export type UpdateStatus =
+  | { state: 'unchecked' }
+  | { state: 'checking' }
+  | { state: 'up_to_date' }
+  | { state: 'available'; version: string; notes: string | null; date: string | null }
+  | { state: 'downloading'; version: string; received: number; total: number | null }
+  | { state: 'installing'; version: string }
+  | { state: 'failed'; message: string };
+
+export interface UpdateView {
+  /** The running launcher's version. */
+  current: string;
+  status: UpdateStatus;
+  /** Whether the launcher checks by itself. */
+  automatic: boolean;
+  /** When the last check finished, in seconds since 1970. */
+  checked_at: number | null;
+}
+
+/**
+ * The update channel (L6.2, ADR-111). The host checks, verifies and installs; the interface can only ask it to check, to
+ * install what it found, and whether to check by itself. It never names the address, the key or the file.
+ */
+export const updates = {
+  status: () => call<UpdateView>('update_status'),
+  check: () => call<UpdateView>('update_check'),
+  /** Fetch, verify and install the update the last check found. On Windows the launcher closes and reopens. */
+  install: () => call<void>('update_install'),
+  setAutomatic: (on: boolean) => call<UpdateView>('update_set_automatic', { on }),
+  /** Told at every change of the channel's status. Returns how to stop listening. */
+  onStatus: (handler: (status: UpdateStatus) => void): (() => void) => {
+    let stop: (() => void) | null = null;
+    let stopped = false;
+    listen<UpdateStatus>('update-status', (event) => handler(event.payload))
+      .then((unlisten) => {
+        if (stopped) unlisten();
+        else stop = unlisten;
+      })
+      .catch(() => {});
+    return () => {
+      stopped = true;
+      stop?.();
+    };
+  },
+};
 
 export const shell = {
   state: () => call<LauncherState>('launcher_state'),

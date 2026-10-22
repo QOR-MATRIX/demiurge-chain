@@ -4,7 +4,7 @@ The sovereign gateway to the Demiurge ecosystem. One desktop application through
 which every chain and engine system is reached: QOR ID, the CGT Vault, the game
 library, community, peer-to-peer distribution and the node itself.
 
-**Status:** Version 0.1.14 (unsigned, no update channel; 18 October 2026: the ARQADE screen docks ARQADE's Qt
+**Status:** Version 0.1.14 (unsigned; an update channel is built for the next release, ADR-111, L6.2; 18 October 2026: the ARQADE screen docks ARQADE's Qt
 app, a 3D home with the games, the player's Sparks and the rankings, signed in through the launcher (ADR-102, P7.19);
 and amounts are shown and typed in Sparks, 1,000 to a CGT (ADR-101). 0.1.13 the same day made each QOR ID on a PC a
 profile of its own, with its own wallet and data, opened with its PIN and closed completely when it signs out
@@ -491,8 +491,27 @@ npm install
 npm run app:dev        # dev, with hot reload
 npm run app:build      # release bundle (msi, nsis, deb, appimage, dmg)
 npm run icons          # regenerate the icon set from scripts/make_icons.py
-npm run check          # design, accessibility, gates view, Projects view, Inventory view, Market view, QQ view, Social view, Library view, Mesh view, the Gate's restore and Hello, QFX contrast, readability (needs npm run build first)
+npm run check          # design, accessibility, gates view, Projects view, Inventory view, Market view, QQ view, Social view, Library view, Mesh view, updates view, the release script's signature check, the Gate's restore and Hello, QFX contrast, readability (needs npm run build first)
 ```
+
+### Updates and releases (ADR-111)
+
+The launcher checks one address for a signed manifest,
+`https://github.com/QOR-MATRIX/demiurge-chain/releases/download/launcher-channel/latest.json`, fifteen seconds after
+start and every six hours (Settings, *Check for updates by itself*), and installs only when the person presses *Update
+and restart*. Tauri's updater verifies the installer against the key in `tauri.conf.json`; the host verifies it again
+and requires it to be the announced version's installer (`src-tauri/src/update.rs`).
+
+```powershell
+pwsh scripts/updater-key.ps1 -Create              # once, on the PC that builds releases; -Backup says what to keep offline
+node scripts/release.mjs --notes notes.md         # build, sign, check the signature and the file's name, write latest.json
+node scripts/release.mjs --notes notes.md --publish   # and publish launcher-v<version>, then replace the channel's manifest
+node scripts/update-e2e.mjs                       # the whole path on this PC, with a test product of its own (minutes)
+```
+
+The key is in `%APPDATA%\Demiurge\updater\`, never in the repository; its password is sealed by Windows beside it. A
+lost key means testers reinstall by hand once. `QOR_UPDATE_ENDPOINT` names another channel for testing; whatever it
+serves must still verify against the launcher's key, and a release build accepts only HTTPS.
 
 Rust tests. Build Qontrol's helper first, or its tests that commit skip:
 

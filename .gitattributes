@@ -153,3 +153,7 @@ chain/specs/*.json -text
 # fresh clone. LF on every platform.
 products/qq/tests/fixtures/**/*.qml text eol=lf
 products/qq/samples/**/*.qml text eol=lf
+
+# The update channel's test fixtures (ADR-111) are signed bytes: a stand-in installer and its signature, compared
+# byte for byte. A Windows checkout must not change them.
+tools/qor-launcher/src-tauri/tests/fixtures/update/** binary
