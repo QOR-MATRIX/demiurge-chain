@@ -22,6 +22,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { devtoolsPort } from './chrome.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 if (!existsSync(join(root, '.next', 'BUILD_ID'))) {
@@ -60,16 +61,15 @@ const site = spawn(process.execPath, [join(root, 'node_modules', 'next', 'dist',
 const url = `http://localhost:${sitePort}/`;
 
 const userData = await mkdtemp(join(tmpdir(), 'arqade-phone-'));
-const port = 9800 + Math.floor(Math.random() * 400);
 const browser = spawn(
   BROWSER,
   [
     '--headless=new',
     ...(process.env.QOR_CHECK_NO_SANDBOX === '1' ? ['--no-sandbox'] : []),
     '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--hide-scrollbars',
-    `--remote-debugging-port=${port}`, `--user-data-dir=${userData}`, 'about:blank',
+    '--remote-debugging-port=0', `--user-data-dir=${userData}`, 'about:blank',
   ],
-  { stdio: 'ignore' },
+  { stdio: ['ignore', 'ignore', 'pipe'] },
 );
 const finish = async () => {
   try { browser.kill(); } catch {}
@@ -85,6 +85,7 @@ try {
     await sleep(100);
   }
   let target;
+  const port = await devtoolsPort(browser);
   for (let i = 0; i < 300 && !target; i++) {
     if (i > 0) await sleep(100);
     try {

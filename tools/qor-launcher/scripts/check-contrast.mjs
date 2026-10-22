@@ -38,6 +38,7 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { devtoolsPort } from './chrome.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dist = resolve(process.argv[2] ?? join(here, '..', 'dist'));
@@ -122,7 +123,6 @@ const appUrl = `http://127.0.0.1:${server.address().port}/`;
 // --- drive a real rendering engine ----------------------------------------
 
 const profile = await mkdtemp(join(tmpdir(), 'qor-contrast-'));
-const port = 9400 + Math.floor(Math.random() * 300);
 const browser = spawn(
   BROWSER,
   [
@@ -130,9 +130,9 @@ const browser = spawn(
     // CI's container cannot give Chromium a sandbox (.woodpecker/launcher.yaml).
     ...(process.env.QOR_CHECK_NO_SANDBOX === '1' ? ['--no-sandbox'] : []),
     '--disable-gpu', '--no-first-run', '--no-default-browser-check',
-    `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, 'about:blank',
+    '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank',
   ],
-  { stdio: 'ignore' },
+  { stdio: ['ignore', 'ignore', 'pipe'] },
 );
 
 const finish = async () => {
@@ -144,6 +144,7 @@ const finish = async () => {
 try {
   let target;
   // About 30 s: a CI runner has taken more than 10 s to give Chrome its first page (6 October 2026).
+  const port = await devtoolsPort(browser);
   for (let i = 0; i < 300 && !target; i++) {
     // Pause before every retry, not only after a refused connection: the browser can answer before its page
     // exists, and the loop then gave up within milliseconds on a slow runner (CI, 6 October 2026).

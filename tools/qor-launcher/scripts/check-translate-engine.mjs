@@ -19,6 +19,7 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { devtoolsPort } from './chrome.mjs';
 
 const files = process.argv[2] ? resolve(process.argv[2]) : null;
 const dist = resolve(process.argv[3] ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'dist'));
@@ -73,16 +74,16 @@ const server = createServer(async (req, res) => {
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 const userData = await mkdtemp(join(tmpdir(), 'qor-engine-'));
-const port = 9800 + Math.floor(Math.random() * 400);
 const browser = spawn(
   BROWSER,
   ['--headless=new', ...(process.env.QOR_CHECK_NO_SANDBOX === '1' ? ['--no-sandbox'] : []), '--disable-gpu', '--no-first-run',
-    `--remote-debugging-port=${port}`, `--user-data-dir=${userData}`, 'about:blank'],
-  { stdio: 'ignore' },
+    '--remote-debugging-port=0', `--user-data-dir=${userData}`, 'about:blank'],
+  { stdio: ['ignore', 'ignore', 'pipe'] },
 );
 
 try {
   let target;
+  const port = await devtoolsPort(browser);
   for (let i = 0; i < 300 && !target; i++) {
     await sleep(100);
     try {

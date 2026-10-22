@@ -49,6 +49,7 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { devtoolsPort } from './chrome.mjs';
 
 const dist = resolve(process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'dist'));
 // The default theme, Obsidian, is the one look's source (ADR-108, ADR-109): its values are read from there.
@@ -99,7 +100,6 @@ await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
 const appUrl = `http://127.0.0.1:${server.address().port}/`;
 
 const profile = await mkdtemp(join(tmpdir(), 'qor-a11y-'));
-const port = 9300 + Math.floor(Math.random() * 500);
 const browser = spawn(
   BROWSER,
   [
@@ -109,16 +109,17 @@ const browser = spawn(
     '--disable-gpu',
     '--no-first-run',
     '--no-default-browser-check',
-    `--remote-debugging-port=${port}`,
+    '--remote-debugging-port=0',
     `--user-data-dir=${profile}`,
     'about:blank',
   ],
-  { stdio: 'ignore' },
+  { stdio: ['ignore', 'ignore', 'pipe'] },
 );
 
 const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
 let target;
 // About 30 s: a CI runner has taken more than 10 s to give Chrome its first page (6 October 2026).
+const port = await devtoolsPort(browser);
 for (let i = 0; i < 300 && !target; i++) {
   try {
     const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();

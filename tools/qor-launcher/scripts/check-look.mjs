@@ -27,6 +27,7 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { devtoolsPort } from './chrome.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dist = resolve(process.argv[2] ?? join(here, '..', 'dist'));
@@ -87,7 +88,6 @@ await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const appUrl = `http://127.0.0.1:${server.address().port}/`;
 
 const userData = await mkdtemp(join(tmpdir(), 'qor-look-'));
-const port = 9800 + Math.floor(Math.random() * 400);
 const browser = spawn(
   BROWSER,
   [
@@ -95,9 +95,9 @@ const browser = spawn(
     ...(process.env.QOR_CHECK_NO_SANDBOX === '1' ? ['--no-sandbox'] : []),
     '--disable-gpu', '--no-first-run', '--no-default-browser-check',
     '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling',
-    `--remote-debugging-port=${port}`, `--user-data-dir=${userData}`, 'about:blank',
+    '--remote-debugging-port=0', `--user-data-dir=${userData}`, 'about:blank',
   ],
-  { stdio: 'ignore' },
+  { stdio: ['ignore', 'ignore', 'pipe'] },
 );
 const finish = async () => {
   try { browser.kill(); } catch {}
@@ -107,6 +107,7 @@ const finish = async () => {
 
 try {
   let target;
+  const port = await devtoolsPort(browser);
   for (let i = 0; i < 300 && !target; i++) {
     if (i > 0) await sleep(100);
     try {
