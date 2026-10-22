@@ -1030,7 +1030,7 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
    sets it, and the bytes come from the temporary content store until the Mesh (M8). **The model** is a glTF
    or GLB entry rendered in that same canvas, which is the 3D view the owner asked for.
 
-9. [ ] **One look across every surface** (ADR-108, the owner's choice of 21 October 2026): obsidian and gilt in two
+9. [x] **One look across every surface** (ADR-108, the owner's choice of 21 October 2026): obsidian and gilt in two
    registers, every value from `docs/design/tokens.json`, written into each surface by `docs/design/tokens.mjs`. In
    slices, each surface joining in the change that makes it read its generated file and gaining the checks it lacks:
    the source and the homepage; QQ (the Studio and the game screens); ARQADE (the web, then Qt); the launcher's
@@ -1173,7 +1173,7 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      The screens were looked at in Obsidian and in Architect.
 
    **The fifth slice, QOR ID's pages and emails, built 22 October 2026** (branch `session/qor-id-one-look`, on #72's
-   merge; merged in #73 at `28a7f71`, 22 October 2026, and live once QOR ID is redeployed from it):
+   merge; merged in #73 at `28a7f71`, 22 October 2026, and live since QOR ID's redeploy that day):
    - `services/qor-auth/src/look/tokens.rs` and `look/fonts/`, generated (a Rust target joins `docs/design/tokens.mjs`):
      every colour, face, size, tracking and corner as a constant, the stylesheet with every token as a custom property,
      and the faces embedded in the binary. QOR ID serves them itself at `/fonts/{file}` (WOFF2, kept a year, nothing
@@ -1199,7 +1199,8 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      and a verification message, caught by a stand-in for Resend, was looked at.
 
    **The sixth and last slice, QOR Media and the Android shell, built 22 October 2026** (branch
-   `session/media-one-look`, on #73's merge; pull request #74, not yet merged). This item is ticked when it merges.
+   `session/media-one-look`, on #73's merge; merged in #74 at `40f4509`, 22 October 2026, CI green on its head and
+   the merge). With it every surface has joined, and this item is ticked.
    - Generated: `tools/qor-media/qml/Tokens.qml` and `src/tokens.h`, and `tools/qor-launcher/shell/qml/Tokens.qml`
      (QML and C++ targets already in `docs/design/tokens.mjs`). Each carries the tool register's faces in `fonts/`
      (Barlow, Barlow Semi Condensed and IBM Plex Mono, each weight asked for, with their licences; the shell Cinzel

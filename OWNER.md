@@ -35,12 +35,10 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 5. **One look everywhere** (ADR-108, as you chose): one source of colours, fonts and motion,
    checked in CI. The homepage (#69), QQ Studio (#70), ARQADE's site and app (#71), the
    launcher in Obsidian, everyone moved once (#72; testers get it next release), and QOR
-   ID's pages and emails (#73). **QOR ID is not live with it: Railway did not redeploy it
-   from the merge.** Please redeploy `qor-auth` from `main` in Railway.
+   ID's pages and emails (#73, live since its redeploy), and QOR Media and the Android app
+   (#74). **Done: every surface wears the one look.** QOR Media on this PC is the new one.
 
-**For your merge: #74, the last of the one look: QOR Media and the Android app.** Their
-own fonts, the right colours, less motion when you ask for it, and every button reachable
-by the keyboard in QOR Media. After it, every surface wears the one look.
+**For your merge: #75, the records** of #74's merge, with a fix to SYSTEMS.md's table.
 
 ## Toward a worldwide beta: what only you can do
 
