@@ -1087,7 +1087,8 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      - The Studio looked at, as painted in its case.
 
    **The third slice, ARQADE, the web and then its Qt application, built 21 October 2026** (branch
-   `session/arqade-one-look`, on #70's merge; pull request #71, not yet merged). The web:
+   `session/arqade-one-look`, on #70's merge; merged in #71 at `a401c0f` on 22 October 2026, the website live). The
+   web:
    - `products/arqade/app/tokens.css` and `products/arqade/public/fonts/`, generated; `app/globals.css` imports them.
      **The showcase register:** every colour of the interface is a token, shadcn's sixteen variables included. Colours
      were written 501 times in the stylesheet and are now written 127 times, every one the games' own art (121
@@ -1140,8 +1141,8 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      parchment ink on the primary). The unloaded face passed its first version, since Barlow's Medium answered for
      its Regular; the test now asks which face is drawn. Every screen the test saves looked at, before and after.
 
-   **The fourth slice, the launcher, built 21 October 2026** (branch `session/launcher-one-look`, on #71's head; kept
-   back until #71 is merged):
+   **The fourth slice, the launcher, built 21 October 2026** (branch `session/launcher-one-look`, on #71's merge; pull
+   request #72, not yet merged):
    - `tools/qor-launcher/src/styles/tokens.css`, `tokens.ts` and `fonts/`, generated (a TypeScript target joins
      `docs/design/tokens.mjs`). **Obsidian** is the launcher's first theme and its default, every colour from
      `tokens.ts`, its structural colour (`counter`) the gilt. **Every launcher moves to it once** (ADR-109, the
