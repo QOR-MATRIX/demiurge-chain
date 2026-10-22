@@ -1,9 +1,11 @@
 # ADR-110: Emulated play in ARQADE: a host of our own, licensed and homebrew games first, and the economy only on games their makers put there
 
-**Status:** **Proposed**, 22 October 2026, at the owner's request for "your absolute best recommendation for
-developmental support for a complete emulation framework within our Arqade system". Not a decision: nothing is built or
-deployed on its basis until the owner accepts it, amends it or rejects it (`docs/decisions/README.md`). It decides **no
-economic value**: a retro game's price, the creator's share and any reward are set as every other Cartridge's are.
+**Status:** **Deferred**, 22 October 2026, by the owner, the same day it was proposed: "Lets go ahead and log this emulation concept somewhere for future reference. For now lets proceed with our current roadmap objectives". It is kept here as
+the reference for the day the owner returns to it. It is not a decision and not on the roadmap, and nothing is built or
+deployed on its basis until the owner accepts it, amends it or rejects it (`docs/decisions/README.md`). Proposed at the
+owner's request for "your absolute best recommendation for developmental support for a complete emulation framework
+within our Arqade system". It decides **no economic value**: a retro game's price, the creator's share and any reward
+are set as every other Cartridge's are.
 
 **Relates to:** [ADR-069](ADR-069-arqade-the-gaming-platform.md) (ARQADE),
 [ADR-071](ADR-071-arqade-self-publishing.md) and [ADR-088](ADR-088-a-cartridge-holds-a-commit.md) (publishing, and a
