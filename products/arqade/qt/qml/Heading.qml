@@ -17,9 +17,9 @@ ColumnLayout {
         Text {
             text: heading.eyebrow.toUpperCase()
             font.family: Theme.ui
-            font.pixelSize: 12
+            font.pixelSize: Theme.sizeUi
             font.weight: Font.DemiBold
-            font.letterSpacing: 3
+            font.letterSpacing: Theme.sizeUi * Theme.trackingEyebrow
             color: Theme.gilt
         }
         Rectangle {
@@ -49,12 +49,12 @@ ColumnLayout {
     Text {
         visible: heading.line.length > 0
         text: heading.line
-        font.family: Theme.ui
-        font.pixelSize: 16
+        font.family: Theme.body
+        font.pixelSize: Theme.sizeTitle
         color: Theme.inkMuted
         Layout.fillWidth: true
-        Layout.maximumWidth: 720
+        Layout.maximumWidth: 760
         wrapMode: Text.WordWrap
-        lineHeight: 1.15
+        lineHeight: 1.2
     }
 }

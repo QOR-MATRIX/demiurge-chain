@@ -34,10 +34,10 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
    one, in a wrapper never built, is ignored while CI proves it, as you chose (ADR-107).
 5. **#69: one look everywhere** (ADR-108, as you chose) — one shared source of colours,
    faces and motion, checked in CI. The homepage is on it and live, its fonts its own.
+6. **#70: QQ Studio in the same look**, and game menus a keyboard can use.
 
-**For your merge: #70, QQ Studio in the same look**, and game menus a keyboard can use.
-**Built, to follow it:** ARQADE's website in the look, held there by a CI check, and its
-welcome screen fixed (live, it sits in a corner instead of filling the window).
+**For your merge: #71, ARQADE in the look**, its website and its app in the launcher, held
+there by a CI check, and the website's welcome screen fixed (live, it sits in a corner).
 
 ## Toward a worldwide beta: what only you can do
 

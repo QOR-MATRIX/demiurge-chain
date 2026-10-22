@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+# scripts/shots.mjs, when no folder is given
+/.shots/
 
 # next.js
 /.next/

@@ -1051,8 +1051,8 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      policy allows styles and fonts only from itself. Its colours do not change; its buttons and panels take the shared
      8 and 12 pixel corners, and its status tags the round pill. The share image renders the same from the local faces.
 
-   **The second slice, QQ, built 21 October 2026** (branch `session/qq-one-look`, on #69's merge; pull request #70,
-   not yet merged):
+   **The second slice, QQ, built 21 October 2026** (branch `session/qq-one-look`, on #69's merge; merged in #70 at
+   `e779957` the same day):
    - `products/qq/runtime/tokens.h`, generated: QQ's `Look` takes every value from it, for the Studio and a game's
      screens alike: the whole palette (`Look.deepest` is the token `void`, a keyword in C++ and JavaScript), the four
      faces, the type scale and tracking, the corners, the durations (0 with reduced motion) and the easing. A game
@@ -1080,8 +1080,65 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
        screen button pressed from the keyboard and replayed.
      - `build.ps1 -Web` plays the playground in headless Chrome with no problem on the page: first frame 7.6 s, 305
        frames a second, its store kept across a reload.
-     - Nine planted faults were each caught: Look's accent written by hand, the launcher's word on motion ignored, reduced motion leaving a duration running, white ink on the ember primary, Play not the primary, a notice that cannot give way (the toolbar overflowing a 1539-point window), the Studio's faces not bundled, a screen button deaf to the keyboard, and a keyboard press that skips the scene's tick.
+     - Nine planted faults were each caught: Look's accent written by hand, the launcher's word on motion ignored,
+       reduced motion leaving a duration running, white ink on the ember primary, Play not the primary, a notice that
+       cannot give way (the toolbar overflowing a 1539-point window), the Studio's faces not bundled, a screen button
+       deaf to the keyboard, and a keyboard press that skips the scene's tick.
      - The Studio looked at, as painted in its case.
+
+   **The third slice, ARQADE, the web and then its Qt application, built 21 October 2026** (branch
+   `session/arqade-one-look`, on #70's merge; pull request #71, not yet merged). The web:
+   - `products/arqade/app/tokens.css` and `products/arqade/public/fonts/`, generated; `app/globals.css` imports them.
+     **The showcase register:** every colour of the interface is a token, shadcn's sixteen variables included. Colours
+     were written 501 times in the stylesheet and are now written 127 times, every one the games' own art (121
+     colours, their palettes and glows); the stylesheet reads the tokens 536 times. Headlines are Cinzel, the eyebrows
+     gilt capitals, the brand a gilt nameplate, and so is a game's title in its dialog; the ember buttons carry dark
+     ink (7:1) in tracked capitals, and the secondary ones the same face in sentence case. Panels take the 12 pixel
+     corner (the chat window too) and controls the 8; the body is Barlow where it was Arial, and the smallest mono
+     text comes up to the scale's floor of 10 pixels. Every transition, and the chat's entrance, is timed by the
+     duration tokens and the shared easing; the disc's drop and the intro's glitch and fades keep their own, as the
+     games' choreography. Focus is the shared ring.
+   - **Two faults found on the live site, fixed:** the welcome filled only a quarter of the window, pushed off its
+     corner: Tailwind 4 centres a dialog with `translate`, and the stylesheet's minifier folded it into the
+     `transform: none` beside it, so the offset stayed. And the ground rules' last lines were cut by the panel's edge;
+     they now fade under it, so the panel says it scrolls. The hero's headline follows the window's width, so it holds
+     one line on a phone.
+   - **A check, `scripts/check-design.mjs`** (`npm run check:design`, a step in CI's ARQADE job): it fails if
+     `globals.css` does not import the tokens, if one of shadcn's variables is not a token, if a font is set to a face
+     not the look's, if a colour is written that is not one of the games' 121, or written as a function of numbers
+     (`rgb()`, `oklch()` …), if a transition, or an animation not the games', is timed by anything but the tokens, or
+     if a corner is not a token, a circle, a pill, square, or the 2 pixels of a meter's track and a key's cap.
+   - **`scripts/shots.mjs`:** every screen as it is drawn, at a desktop's size and a phone's, for design review.
+   - **Evidence, on the owner's PC:** type check; lint with no errors (the four warnings it had); 49 tests; the
+     production build; the phone check, 17 of 17; `node docs/design/tokens.mjs --check`, 56 targets. Twelve planted
+     faults were each caught by the design check (in `docs/GATES.toml`'s log), one only after the rule was tightened
+     to read each part of a timing. Every screen looked at, before and after, on a desktop and a phone.
+
+   Its Qt application (`products/arqade/qt/`, docked in the launcher):
+   - `qml/Tokens.qml`, generated (a new kind of target in `docs/design/tokens.mjs`: a QML singleton, which QOR Media
+     can take too), and Barlow with each family's licence copied into `fonts/`. `Theme` binds every value to it, the
+     launcher's theme still laid over its grounds, accent and inks when the launcher sends one. Three values change:
+     `raised` and `edge` move to the source's, and `inkFaint`, `#6b7385`, which read under 4.5:1, becomes `#868f9d`.
+   - The showcase register, as on the web: buttons and the rankings' tabs take the 8 pixel corner where they were
+     pills, panels the 12; the primary is ember lit from above with a glow and dark ink, written by hand until now;
+     Barlow for reading where Barlow Semi Condensed was; every text off the showcase's Cinzel titles a step of the
+     scale, the balance at the figure step and shrinking to fit; the status green the source's `ok`; every
+     transition on the durations and the easing, 0 under reduced motion; the shared focus ring on the buttons, the
+     tabs and the game cards. The 3D portal and emblems keep their own lights, metals and motion, as art.
+   - **Found on the way:** a QML property named `onAccent` is read as a signal handler and came out black; Theme calls
+     it `inkOnAccent`. Barlow, being wider, wrapped single words onto lines of their own; two measures widened.
+   - **Checks:** `scripts/check-design.mjs` also reads the application's QML, in CI, which has no licensed Qt: a face
+     not Theme's, a size under the titles off the scale, a written colour, a corner, a duration or an easing of its
+     own each fail it. `tests/tst_interface.cpp` checks the same as painted, on the owner's PC: Theme equal to
+     `tokens.json` value by value; every text the window shows in the look's faces, scale and colours, with Barlow
+     carried and drawn at its Regular; the primary's ink dark on ember and lit ember (4.5:1 or more) and its focus
+     ring the shared one; every duration 0 under reduced motion.
+   - **Evidence, on the owner's PC:** the three Qt Test suites pass, 35 tests where there were 32, 3 new. Thirteen
+     planted faults caught: ten by the design check (Theme's own colour, ink written by hand, a system face, a size
+     off the scale, a pill tab, a duration and an easing of their own, `Qt.rgba` of numbers, a named colour, the old
+     status green) and three by the interface test (the reading face unloaded, a colour computed off the palette,
+     parchment ink on the primary). The unloaded face passed its first version, since Barlow's Medium answered for
+     its Regular; the test now asks which face is drawn. Every screen the test saves looked at, before and after.
 
 #### P3: QOR Engine / QQ (P3.1 depends on nothing on chain)
 

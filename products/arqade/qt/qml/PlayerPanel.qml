@@ -33,7 +33,7 @@ Glass {
             Rectangle {
                 Layout.preferredWidth: 48
                 Layout.preferredHeight: 48
-                radius: 24
+                radius: width / 2
                 color: Theme.raised
                 border.width: 1
                 border.color: Theme.gilt
@@ -41,7 +41,7 @@ Glass {
                     anchors.centerIn: parent
                     text: (panel.player.name ?? "?").charAt(0).toUpperCase()
                     font.family: Theme.display
-                    font.pixelSize: 22
+                    font.pixelSize: Theme.sizeDisplay
                     font.weight: Font.Bold
                     color: Theme.giltBright
                 }
@@ -52,7 +52,7 @@ Glass {
                 Text {
                     text: panel.player.name ?? ""
                     font.family: Theme.display
-                    font.pixelSize: 20
+                    font.pixelSize: Theme.sizeHeading
                     font.weight: Font.DemiBold
                     color: Theme.ink
                     elide: Text.ElideRight
@@ -62,9 +62,9 @@ Glass {
                     visible: (panel.player.level ?? 0) > 0
                     text: qsTr("Level %1").arg(panel.player.level ?? 0)
                     font.family: Theme.ui
-                    font.pixelSize: 13
+                    font.pixelSize: Theme.sizeUi
                     font.weight: Font.DemiBold
-                    font.letterSpacing: 1.6
+                    font.letterSpacing: Theme.sizeUi * Theme.trackingLabel
                     color: Theme.gilt
                 }
             }
@@ -85,9 +85,9 @@ Glass {
             Text {
                 text: qsTr("YOUR SPARKS")
                 font.family: Theme.ui
-                font.pixelSize: 12
+                font.pixelSize: Theme.sizeUi
                 font.weight: Font.DemiBold
-                font.letterSpacing: 3
+                font.letterSpacing: Theme.sizeUi * Theme.trackingEyebrow
                 color: Theme.gilt
             }
             RowLayout {
@@ -96,18 +96,19 @@ Glass {
                 Text {
                     text: panel.amount
                     font.family: Theme.display
-                    font.pixelSize: panel.amount.length > 12 ? 30 : 40
+                    font.pixelSize: Theme.sizeFigure
+                    fontSizeMode: Text.HorizontalFit
+                    minimumPixelSize: Theme.sizeDisplay
                     font.weight: Font.Bold
                     color: Theme.giltBright
                     Layout.maximumWidth: panel.width - 64
-                    elide: Text.ElideRight
                     Accessible.name: panel.sparks
                 }
                 Text {
                     visible: panel.unit.length > 0
                     text: panel.unit
                     font.family: Theme.ui
-                    font.pixelSize: 16
+                    font.pixelSize: Theme.sizeTitle
                     font.weight: Font.Medium
                     color: Theme.inkMuted
                     Layout.alignment: Qt.AlignBaseline
@@ -116,8 +117,8 @@ Glass {
             Text {
                 visible: (panel.player.cgt ?? "").length > 0
                 text: qsTr("%1 CGT in your wallet. A Spark is a thousandth of a CGT.").arg(panel.player.cgt ?? "")
-                font.family: Theme.ui
-                font.pixelSize: 14
+                font.family: Theme.body
+                font.pixelSize: Theme.sizeBody
                 color: Theme.inkMuted
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
@@ -129,8 +130,8 @@ Glass {
             text: panel.launched
                 ? qsTr("Sign in to the launcher with your QOR ID to play signed in and see your Sparks here.")
                 : qsTr("Open ARQADE from the QOR Launcher to play signed in and see your Sparks here.")
-            font.family: Theme.ui
-            font.pixelSize: 16
+            font.family: Theme.body
+            font.pixelSize: Theme.sizeTitle
             color: Theme.inkBody
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
@@ -140,7 +141,7 @@ Glass {
         Rectangle {
             Layout.fillWidth: true
             implicitHeight: devnet.implicitHeight + 24
-            radius: 10
+            radius: Theme.radiusControl
             color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.07)
             border.width: 1
             border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.28)
@@ -149,11 +150,11 @@ Glass {
                 anchors.fill: parent
                 anchors.margins: 12
                 text: qsTr("Rewards for play arrive with the rebuilt games: Sparks from ARQADE's reward pool, for runs its server confirms. On the devnet they are test CGT, with no value.")
-                font.family: Theme.ui
-                font.pixelSize: 14
+                font.family: Theme.body
+                font.pixelSize: Theme.sizeBody
                 color: Theme.inkBody
                 wrapMode: Text.WordWrap
-                lineHeight: 1.1
+                lineHeight: 1.2
             }
         }
     }

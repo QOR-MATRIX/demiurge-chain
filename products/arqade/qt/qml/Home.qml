@@ -98,9 +98,9 @@ Item {
                     Text {
                         text: qsTr("THE QOR ARCADE")
                         font.family: Theme.ui
-                        font.pixelSize: 13
+                        font.pixelSize: Theme.sizeBody
                         font.weight: Font.DemiBold
-                        font.letterSpacing: 4
+                        font.letterSpacing: Theme.sizeBody * Theme.trackingEyebrow
                         color: Theme.gilt
                     }
                     Wordmark {
@@ -108,11 +108,11 @@ Item {
                     }
                     Text {
                         text: qsTr("Play the games of the Demiurge devnet, climb the arenas' rankings, and be rewarded in Sparks for runs ARQADE confirms.")
-                        font.family: Theme.ui
-                        font.pixelSize: 20
+                        font.family: Theme.body
+                        font.pixelSize: Theme.sizeHeading
                         color: Theme.inkBody
                         wrapMode: Text.WordWrap
-                        lineHeight: 1.12
+                        lineHeight: 1.25
                         Layout.fillWidth: true
                         Layout.maximumWidth: 560
                     }
@@ -127,9 +127,9 @@ Item {
                     Text {
                         visible: home.webError.length > 0
                         text: home.webError
-                        font.family: Theme.ui
-                        font.pixelSize: 14
-                        color: Theme.accentBright
+                        font.family: Theme.body
+                        font.pixelSize: Theme.sizeBody
+                        color: Theme.bad
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
@@ -144,7 +144,7 @@ Item {
                     player: home.player
                     launched: home.launched
                     Layout.alignment: home.wide ? Qt.AlignBottom : Qt.AlignLeft
-                    Layout.preferredWidth: 380
+                    Layout.preferredWidth: 400
                     Layout.maximumWidth: column.width
                 }
             }
@@ -240,8 +240,8 @@ Item {
 
             Text {
                 text: qsTr("ARQADE runs on the Demiurge devnet. Sparks are thousandths of a CGT; on the devnet they are test CGT, with no value.")
-                font.family: Theme.ui
-                font.pixelSize: 13
+                font.family: Theme.body
+                font.pixelSize: Theme.sizeUi
                 color: Theme.inkMuted
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true

@@ -3,7 +3,7 @@ import ARQADE
 
 // A panel over the portal: dark glass with a gilt hairline, so the scene shows faintly through.
 Rectangle {
-    radius: 16
+    radius: Theme.radiusPanel
     gradient: Gradient {
         GradientStop { position: 0; color: Qt.rgba(Theme.surface.r, Theme.surface.g, Theme.surface.b, 0.78) }
         GradientStop { position: 1; color: Qt.rgba(Theme.base.r, Theme.base.g, Theme.base.b, 0.9) }
