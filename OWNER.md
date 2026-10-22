@@ -38,7 +38,10 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
    ID's pages and emails (#73, live since its redeploy), and QOR Media and the Android app
    (#74). **Done: every surface wears the one look.** QOR Media on this PC is the new one.
 
-**Nothing waits for your merge.** What comes after the one look is your choice.
+**For your decision: ADR-110, emulated play in ARQADE** (proposed, as you asked): a player of
+our own for old machines' games, each emulator locked down; homebrew and licensed games first,
+and CGT only on games their makers put there; your own game files only if the lawyers agree.
+Six questions in it. **For your merge: #76**, carrying it and the records.
 
 ## Toward a worldwide beta: what only you can do
 
