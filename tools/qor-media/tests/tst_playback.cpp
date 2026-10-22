@@ -19,6 +19,7 @@
 #include <QtQml/qqmlextensionplugin.h>
 
 #include "medialink.h"
+#include "tokens.h"
 
 Q_IMPORT_QML_PLUGIN(QOR_MediaPlugin)
 
@@ -26,10 +27,10 @@ using qormedia::MediaLink;
 
 namespace {
 
-// One second of a 440 Hz tone: 16-bit mono PCM at 8 kHz in a WAV file.
-void writeTone(const QString &path)
+// A 440 Hz tone, a second long unless asked otherwise: 16-bit mono PCM at 8 kHz in a WAV file.
+void writeTone(const QString &path, int seconds = 1)
 {
-    const int rate = 8000, samples = rate;
+    const int rate = 8000, samples = rate * seconds;
     QByteArray pcm(samples * 2, '\0');
     for (int i = 0; i < samples; ++i)
         qToLittleEndian(qint16(8000 * qSin(2 * M_PI * 440 * i / rate)), pcm.data() + i * 2);
@@ -82,6 +83,7 @@ private slots:
     {
         QVERIFY(dir.isValid());
         writeTone(dir.filePath("tone.wav"));
+        writeTone(dir.filePath("long.wav"), 10);
         QImage picture(64, 48, QImage::Format_RGB32);
         picture.fill(QColor("#ff6a00"));
         QVERIFY(picture.save(dir.filePath("one.png")));
@@ -198,6 +200,44 @@ private slots:
         QTRY_VERIFY(window->isVisible());
         QVERIFY(QTest::qWaitForWindowActive(window));
         QCOMPARE(window->property("path").toString(), pdf);
+        // Its one action is ember with the dark ink on it (ADR-108): white, as it was, read 2.9:1.
+        QQuickItem *button = nullptr;
+        QTRY_VERIFY((button = window->findChild<QQuickItem *>(QStringLiteral("openElsewhere"))) != nullptr);
+        auto *label = button->property("contentItem").value<QQuickItem *>();
+        QVERIFY(label);
+        QCOMPARE(label->property("color").value<QColor>(), QColor::fromRgb(qormedia::tokens::colorOnAccent));
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!window->isVisible());
+    }
+
+    void the_players_controls_are_reached_by_tab_and_stay_while_the_keyboard_is_on_them()
+    {
+        const QString tone = dir.filePath("long.wav");
+        open(tone, "audio");
+        QTRY_VERIFY(window->isVisible());
+        QVERIFY(QTest::qWaitForWindowActive(window));
+        QQuickItem *player = nullptr;
+        QTRY_VERIFY((player = window->findChild<QQuickItem *>(QStringLiteral("player"))) != nullptr);
+        QTRY_VERIFY_WITH_TIMEOUT(player->property("playing").toBool(), 10000);
+
+        // Tab walks the bar across the top and the controls along the bottom, each shown by the ring.
+        QStringList reached;
+        for (int i = 0; i < 6; ++i) {
+            QTest::keyClick(window, Qt::Key_Tab);
+            QQuickItem *focused = window->activeFocusItem();
+            QVERIFY(focused);
+            QVERIFY2(focused->property("visualFocus").toBool(), qPrintable(focused->objectName()));
+            reached << QString::fromLatin1(focused->metaObject()->className());
+        }
+        QVERIFY2(reached.size() == 6, qPrintable(reached.join(", ")));
+
+        // While the keyboard is on them they stay, playing or not; once it leaves, they rest as before.
+        QTest::qWait(3200);
+        QVERIFY(player->property("chrome").toBool());
+        // As a click on the picture does: the keyboard back to the player.
+        QMetaObject::invokeMethod(player, "release");
+        QCOMPARE(window->activeFocusItem(), player);
+        QTRY_VERIFY_WITH_TIMEOUT(!player->property("chrome").toBool(), 5000);
         QTest::keyClick(window, Qt::Key_Escape);
         QTRY_VERIFY(!window->isVisible());
     }

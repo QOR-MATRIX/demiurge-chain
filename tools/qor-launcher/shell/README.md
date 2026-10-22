@@ -57,4 +57,13 @@ cargo test --manifest-path tools/qor-launcher/core/Cargo.toml   # the core's own
   first.
 - **The APK is signed with Android's debug key**, for testing only. A signed release is L13.8, with a test key kept off
   the repository.
-- **The shell's Qt Test suites run on the owner's PC.** CI has no licensed Qt.
+- **The shell's Qt Test suites run on the owner's PC.** CI has no licensed Qt; it reads the shell's QML with
+  `docs/design/check-qml.mjs`.
+
+## Its look
+
+Demiurge's one look in the tool register (ADR-108), as the Windows launcher's default, Obsidian. `qml/Theme.qml` binds
+every value to `qml/Tokens.qml`, which `docs/design/tokens.mjs` generates from `docs/design/tokens.json`. The faces
+are the app's own, the same on a phone and a PC (`fonts/`, copied by the same script, loaded by `src/fonts.h`): Cinzel
+in gilt for the wordmark alone, Barlow Semi Condensed for labels, Barlow for reading, IBM Plex Mono for numbers.
+`tst_core` checks Theme against `tokens.json` value by value and that each face is drawn from its own file.

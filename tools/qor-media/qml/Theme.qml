@@ -1,27 +1,68 @@
 pragma Singleton
 import QtQuick
 
-// The launcher's colours (ADR-094): its theme's tokens, sent with every theme change. Architect's until the launcher says.
+// QOR Media's look: Demiurge's one look in the tool register (ADR-108). Every value comes from Tokens, which
+// docs/design/tokens.mjs generates from docs/design/tokens.json; nothing here is written by hand. Docked in the launcher
+// it wears the launcher's theme (ADR-094): apply() lays the theme's grounds, accent and inks over these, sent with every
+// theme change.
 QtObject {
     id: theme
-    property color void_: "#06070a"
-    property color base: "#0b0c10"
-    property color surface: "#12151c"
-    property color raised: "#1a1f29"
-    property color well: "#0e1117"
-    property color edge: "#333a47"
-    property color accent: "#ff6a00"
-    property color accentBright: "#ff8a33"
-    property color accentDim: "#7a3a10"
-    property color ink: "#ffffff"
-    property color inkBody: "#d6dbe4"
-    property color inkMuted: "#9aa3b2"
-    property color inkFaint: "#6b7385"
+
+    // Grounds, edges, action and inks: the launcher's theme lays its own over these (apply()).
+    property color void_: Tokens.colorVoid
+    property color base: Tokens.colorBase
+    property color surface: Tokens.colorSurface
+    property color raised: Tokens.colorRaised
+    property color well: Tokens.colorWell
+    property color edge: Tokens.colorEdge
+    property color accent: Tokens.colorAccent
+    property color accentBright: Tokens.colorAccentBright
+    property color accentDim: Tokens.colorAccentDim
+    property color ink: Tokens.colorInk
+    property color inkBody: Tokens.colorInkBody
+    property color inkMuted: Tokens.colorInkMuted
+    property color inkFaint: Tokens.colorInkFaint
+    // The ink on an ember fill: dark, in every theme (white would read 2.9:1).
+    readonly property color inkOnAccent: Tokens.colorOnAccent
     property var tokens: ({})
 
-    readonly property string display: "Segoe UI Variable Display"
-    readonly property string text: "Segoe UI Variable Text"
-    readonly property string mono: "Cascadia Mono"
+    // The faces, carried in the executable (look.h): Barlow Semi Condensed for titles and controls, Barlow for reading,
+    // IBM Plex Mono for code. Each is asked for by its own family name, by which Qt finds its file on every system.
+    readonly property string ui: Tokens.fontInterface
+    readonly property string text: Tokens.fontBody
+    readonly property string mono: Tokens.fontMono
+
+    // The type scale: every text is one of these steps.
+    readonly property int sizeCaption: Tokens.sizeCaption
+    readonly property int sizeUi: Tokens.sizeUi
+    readonly property int sizeBody: Tokens.sizeBody
+    readonly property int sizeTitle: Tokens.sizeTitle
+    readonly property int sizeHeading: Tokens.sizeHeading
+    readonly property int sizeDisplay: Tokens.sizeDisplay
+    readonly property int sizeFigure: Tokens.sizeFigure
+
+    // Tracking, in ems: letterSpacing is the size times one of these.
+    readonly property real trackingHeading: Tokens.trackingHeading
+    readonly property real trackingLabel: Tokens.trackingLabel
+
+    // Corners: a control's and a panel's.
+    readonly property int radiusControl: Tokens.radiusControl
+    readonly property int radiusPanel: Tokens.radiusPanel
+
+    // The person's choice, passed on by the launcher (QOR_REDUCED_MOTION) or read from the system when started by hand
+    // (look.h). On, nothing that is only decoration moves, and every transition is immediate.
+    property bool reducedMotion: false
+
+    // Motion: the durations, 0 with reduced motion, and the one easing (easing.type: Easing.BezierSpline).
+    readonly property int quick: reducedMotion ? 0 : Tokens.motionQuick
+    readonly property int standard: reducedMotion ? 0 : Tokens.motionStandard
+    readonly property int enter: reducedMotion ? 0 : Tokens.motionEnter
+    readonly property var ease: Tokens.easeCurve
+
+    // The focus ring every surface draws, for the keyboard only.
+    readonly property int focusWidth: Tokens.focusWidth
+    readonly property int focusHalo: Tokens.focusHalo
+    readonly property color focus: accentBright
 
     function apply(colors) {
         const set = (name, key) => { if (colors[key]) theme[name] = colors[key] }

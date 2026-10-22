@@ -25,6 +25,7 @@ FocusScope {
     function ask(then) {
         afterAsk = then
         asking.visible = true
+        saveChoice.forceActiveFocus()
     }
     function save() {
         if (file.save(area.text)) {
@@ -104,8 +105,8 @@ FocusScope {
         anchors.centerIn: parent
         visible: file.error.length > 0 && editor.loading === false && area.text.length === 0
         spacing: 14
-        Text { Layout.alignment: Qt.AlignHCenter; text: file.error; color: Theme.inkBody; font.family: Theme.text; font.pixelSize: 16 }
-        Button {
+        Text { Layout.alignment: Qt.AlignHCenter; text: file.error; color: Theme.inkBody; font.family: Theme.text; font.pixelSize: Theme.sizeTitle }
+        TextButton {
             Layout.alignment: Qt.AlignHCenter
             text: qsTr("Open with another program")
             onClicked: Files.openElsewhere(editor.path)
@@ -154,7 +155,7 @@ FocusScope {
                     id: area
                     objectName: "editorArea"
                     font.family: file.language === "code" ? Theme.mono : Theme.text
-                    font.pixelSize: file.language === "code" ? 14 : 16
+                    font.pixelSize: file.language === "code" ? Theme.sizeBody : Theme.sizeTitle
                     color: Theme.inkBody
                     selectionColor: Qt.alpha(Theme.accent, 0.45)
                     selectedTextColor: Theme.ink
@@ -192,7 +193,7 @@ FocusScope {
                 wrapMode: TextEdit.Wrap
                 color: Theme.inkBody
                 font.family: Theme.text
-                font.pixelSize: 16
+                font.pixelSize: Theme.sizeTitle
                 leftPadding: 28
                 rightPadding: 28
                 topPadding: 18
@@ -209,7 +210,7 @@ FocusScope {
         anchors { right: parent.right; top: bar.bottom; rightMargin: 24; topMargin: 8 }
         width: 420
         height: 48
-        radius: 10
+        radius: Theme.radiusPanel
         color: Theme.raised
         border.color: Theme.edge
         RowLayout {
@@ -224,12 +225,12 @@ FocusScope {
                 placeholderTextColor: Theme.inkFaint
                 background: null
                 font.family: Theme.text
-                font.pixelSize: 14
+                font.pixelSize: Theme.sizeBody
                 onTextEdited: { area.select(area.selectionStart, area.selectionStart); editor.find(true) }
                 onAccepted: editor.find(true)
                 Keys.onEscapePressed: { finder.visible = false; area.forceActiveFocus() }
             }
-            Text { id: matches; color: Theme.inkMuted; font.family: Theme.text; font.pixelSize: 12 }
+            Text { id: matches; color: Theme.inkMuted; font.family: Theme.text; font.pixelSize: Theme.sizeUi }
             IconButton { iconName: "prev"; size: 32; ToolTip.text: qsTr("Previous (Shift+F3)"); onClicked: editor.find(false) }
             IconButton { iconName: "next"; size: 32; ToolTip.text: qsTr("Next (F3)"); onClicked: editor.find(true) }
         }
@@ -242,24 +243,25 @@ FocusScope {
         anchors.centerIn: parent
         width: 460
         height: 168
-        radius: 14
+        radius: Theme.radiusPanel
         color: Theme.raised
         border.color: Theme.edge
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: 22
             spacing: 8
-            Text { text: qsTr("Save the changes to %1?").arg(Files.nameOf(editor.path)); color: Theme.ink; font.family: Theme.display; font.pixelSize: 17; font.weight: Font.DemiBold; Layout.fillWidth: true; elide: Text.ElideMiddle }
-            Text { text: qsTr("They are lost if you don't."); color: Theme.inkMuted; font.family: Theme.text; font.pixelSize: 13 }
+            Text { text: qsTr("Save the changes to %1?").arg(Files.nameOf(editor.path)); color: Theme.ink; font.family: Theme.ui; font.pixelSize: Theme.sizeHeading; font.weight: Font.DemiBold; Layout.fillWidth: true; elide: Text.ElideMiddle }
+            Text { text: qsTr("They are lost if you don't."); color: Theme.inkMuted; font.family: Theme.text; font.pixelSize: Theme.sizeBody }
             Item { Layout.fillHeight: true }
             RowLayout {
                 Layout.alignment: Qt.AlignRight
                 spacing: 8
-                Button { text: qsTr("Cancel"); onClicked: { asking.visible = false; editor.afterAsk = null; area.forceActiveFocus() } }
-                Button { text: qsTr("Don't save"); onClicked: { asking.visible = false; editor.dirty = false; const then = editor.afterAsk; editor.afterAsk = null; if (then) then() } }
-                Button {
+                TextButton { text: qsTr("Cancel"); onClicked: { asking.visible = false; editor.afterAsk = null; area.forceActiveFocus() } }
+                TextButton { text: qsTr("Don't save"); onClicked: { asking.visible = false; editor.dirty = false; const then = editor.afterAsk; editor.afterAsk = null; if (then) then() } }
+                TextButton {
+                    id: saveChoice
                     text: qsTr("Save")
-                    highlighted: true
+                    primary: true
                     onClicked: {
                         if (!editor.save()) return
                         asking.visible = false
@@ -283,14 +285,14 @@ FocusScope {
             text: area.text.length < 4 * 1024 * 1024 ? editor.caret() : ""
             color: Theme.inkFaint
             font.family: Theme.text
-            font.pixelSize: 12
+            font.pixelSize: Theme.sizeUi
         }
         Text {
             anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
             text: qsTr("%1 lines").arg(area.lineCount)
             color: Theme.inkFaint
             font.family: Theme.text
-            font.pixelSize: 12
+            font.pixelSize: Theme.sizeUi
         }
     }
 

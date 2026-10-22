@@ -52,8 +52,8 @@ FocusScope {
             mipmap: true
             scale: viewer.zoom
             rotation: viewer.turn
-            Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
-            Behavior on rotation { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: Theme.quick; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.ease } }
+            Behavior on rotation { NumberAnimation { duration: Theme.standard; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.ease } }
             onStatusChanged: if (status === Image.Ready) viewer.link.reportLearned(viewer.current, 0, sourceSize.width, sourceSize.height)
         }
 
@@ -78,7 +78,7 @@ FocusScope {
         text: qsTr("This picture's format is not one QOR Media reads yet.")
         color: Theme.inkBody
         font.family: Theme.text
-        font.pixelSize: 16
+        font.pixelSize: Theme.sizeTitle
     }
 
     TopBar {

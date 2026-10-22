@@ -8,13 +8,16 @@
 
 #include <QCommandLineParser>
 #include <QDir>
+#include <QFont>
 #include <QGuiApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include "look.h"
 #include "medialink.h"
+#include "tokens.h"
 
 // The QOR.Media module is built into this executable (a static library and its plugin).
 Q_IMPORT_QML_PLUGIN(QOR_MediaPlugin)
@@ -26,6 +29,13 @@ int main(int argc, char *argv[])
     QGuiApplication::setOrganizationName(QStringLiteral("Demiurge"));
     QGuiApplication::setApplicationVersion(QStringLiteral("0.1.0"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
+
+    // Demiurge's one look (ADR-108): the faces QOR Media carries, and reading text in Barlow wherever a control does
+    // not say otherwise (a tool tip, a scroll bar's neighbour).
+    qormedia::loadFonts();
+    QFont reading(QString::fromLatin1(qormedia::tokens::fontBody));
+    reading.setPixelSize(qormedia::tokens::sizeBody);
+    QGuiApplication::setFont(reading);
 
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("QOR Media: play, view and edit what the Library holds."));
@@ -49,6 +59,9 @@ int main(int argc, char *argv[])
     });
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, [] { QCoreApplication::exit(1); },
                      Qt::QueuedConnection);
+    // Less motion when the person asked for it: the launcher's setting, or the system's when started by hand.
+    if (auto *theme = engine.singletonInstance<QObject *>("QOR.Media", "Theme"))
+        theme->setProperty("reducedMotion", qormedia::prefersReducedMotion());
     engine.loadFromModule("QOR.Media", "Main");
 
     if (launched) {

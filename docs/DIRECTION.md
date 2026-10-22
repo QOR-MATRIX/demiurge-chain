@@ -1173,7 +1173,7 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      The screens were looked at in Obsidian and in Architect.
 
    **The fifth slice, QOR ID's pages and emails, built 22 October 2026** (branch `session/qor-id-one-look`, on #72's
-   merge; pull request #73, not yet merged):
+   merge; merged in #73 at `28a7f71`, 22 October 2026, and live once QOR ID is redeployed from it):
    - `services/qor-auth/src/look/tokens.rs` and `look/fonts/`, generated (a Rust target joins `docs/design/tokens.mjs`):
      every colour, face, size, tracking and corner as a constant, the stylesheet with every token as a custom property,
      and the faces embedded in the binary. QOR ID serves them itself at `/fonts/{file}` (WOFF2, kept a year, nothing
@@ -1197,6 +1197,48 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      at a desktop's and a phone's size: each page draws in the four faces from QOR ID itself and asks nothing of any
      other address, nothing scrolls sideways, a refusal shows in the problem style, the focus ring draws on a field,
      and a verification message, caught by a stand-in for Resend, was looked at.
+
+   **The sixth and last slice, QOR Media and the Android shell, built 22 October 2026** (branch
+   `session/media-one-look`, on #73's merge; pull request #74, not yet merged). This item is ticked when it merges.
+   - Generated: `tools/qor-media/qml/Tokens.qml` and `src/tokens.h`, and `tools/qor-launcher/shell/qml/Tokens.qml`
+     (QML and C++ targets already in `docs/design/tokens.mjs`). Each carries the tool register's faces in `fonts/`
+     (Barlow, Barlow Semi Condensed and IBM Plex Mono, each weight asked for, with their licences; the shell Cinzel
+     too), built in and loaded at start.
+   - **QOR Media:** Theme binds every value to Tokens, the launcher's theme still laid over it when docked; the
+     highlighter's colours until the launcher sends its theme are `tokens.h`'s, and its bold a weight QOR Media
+     carries. Every size is on the scale, every corner a control's or a panel's, every transition on the look's
+     durations and easing. **The three defects ADR-108's survey named are fixed:** the faintest ink reads 4.94:1 or
+     more, where it read 3.4 to 3.8; less motion (the launcher's Motion setting, `QOR_REDUCED_MOTION`, or, started by
+     hand, Windows' Animation effects) makes every transition immediate and stills the music's glow; and Tab reaches
+     every button, the volume and the speed, each showing the one focus ring, with Return or Space pressing it, while
+     the player's controls stay on screen as long as the keyboard is on them. A click on an icon button leaves the
+     keyboard where it was, so the player's and viewer's keys keep working. **Also fixed:** the "open with another
+     program" button's white ink on ember (2.9:1) is the dark ink; the editor's dialog buttons are the look's, and the
+     scroll bars and tool tips take Theme's colours through the window's palette, where they had Qt's stock style; a
+     button's icons resolve beside it, whichever file places it; and a click on the picture gives the keyboard back
+     to the player, where it had gone back to the control that last held it, so the controls never rested again.
+   - **The QOR Launcher for Android:** Theme binds to Tokens, and its screen is in the tool register: the wordmark in
+     gilt Cinzel, labels in Barlow Semi Condensed tracked from the scale, reading in Barlow, numbers in IBM Plex Mono,
+     the status red the token's, the field's focus border the focus colour. Its faces are its own on a phone, where
+     Roboto stood in. **Also fixed:** the status bar's clock and icons were drawn dark over the obsidian ground on a
+     phone in its light setting, nearly unseen; the shell now says its scheme is dark, and Android draws them light.
+   - **A check in CI, `docs/design/check-qml.mjs`**, in the step 'One look, from one source', reads both applications'
+     QML, which CI cannot build: every face, size, tracking, colour, corner, duration and easing Theme's (the music's
+     slow glow the one listed exception), and no control kept from the keyboard (`Qt.NoFocus`).
+   - **Tests, on the owner's PC:** QOR Media's new `tst_look` (Theme equal to `tokens.json` value by value, and the
+     faint ink and the ember's ink at 4.5:1 or more; each face drawn from its own file, asked which style Qt drew; less
+     motion from the launcher's setting, every duration then 0; Tab reaching each button with its ring, Return
+     pressing, a click leaving the keyboard where it was); `tst_playback` gains the player's controls reached by Tab and
+     kept while held, and the dark ink on Elsewhere's button; the shell's `tst_core` gains Theme against `tokens.json`,
+     its faces, and the wordmark drawn in Cinzel.
+   - **Evidence, on the owner's PC:** QOR Media's five suites, 39 tests (34 before), and the shell's 6 (4 before), all
+     passing; the tokens check (138 targets) and the QML check (10 files). Ten planted faults caught by the QML check
+     and nine by the applications' tests, each in its own build: an icon button kept from the keyboard, the old faint
+     ink, Barlow's Regular not carried, less motion ignored, Elsewhere's button quiet, the controls resting while
+     held, a text button's ring never shown, the shell's old status red, and its Cinzel not carried. Looked at: QOR
+     Media playing with the keyboard on its controls, editing Markdown with its preview, and on a PDF; the shell on
+     the desktop and on the Android 16 emulator (its x86_64 APK) with an amount read; the arm64 APK built, its library
+     holding the faces and the token's status red.
 
 #### P3: QOR Engine / QQ (P3.1 depends on nothing on chain)
 
