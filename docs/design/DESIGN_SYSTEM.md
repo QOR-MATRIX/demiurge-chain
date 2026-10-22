@@ -19,7 +19,7 @@ colour, corner and size is the source's). An email names the faces first and loa
 would also tell the sender when it was opened; a reader without them sees the next face in each stack. QOR Media and the
 QOR Launcher for Android (`tools/qor-media/qml/Tokens.qml`, `src/tokens.h` and `fonts/`; `tools/qor-launcher/shell/qml/
 Tokens.qml` and `fonts/`, each read by its `Theme`), held by `docs/design/check-qml.mjs` in CI and, on the owner's PC,
-by their own tests (`tst_look`, `tst_core`). **Every surface has joined** (pull request #74, the last slice).
+by their own tests (`tst_look`, `tst_core`). **Every surface has joined** (#74, the last slice, merged on 22 October 2026).
 
 **In the tool register's Qt applications,** a control the keyboard can reach shows the one focus ring (QOR Media's
 `FocusRing.qml`: a halo and 2 pixels of bright ember just outside it) while `visualFocus`; `focusPolicy: Qt.NoFocus` is
