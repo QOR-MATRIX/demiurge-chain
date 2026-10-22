@@ -38,7 +38,9 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
    ID's pages and emails (#73, live since its redeploy), and QOR Media and the Android app
    (#74). **Done: every surface wears the one look.** QOR Media on this PC is the new one.
 
-**For your merge: #75, the records** of #74's merge, with a fix to SYSTEMS.md's table.
+**Logged for later, as you asked: ADR-110, emulated play in ARQADE.** The whole recommendation
+and its six questions are kept there; nothing is built on it. **For your merge: #76**, carrying
+it and the records. **Next on the roadmap:** the launcher's update channel (L6.2).
 
 ## Toward a worldwide beta: what only you can do
 
