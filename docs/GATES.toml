@@ -939,6 +939,18 @@ type = "tightening"
 change = "products/arqade/scripts/check-design.mjs, the step 'Design: one look (ADR-108)' in CI's arqade job, also reads ARQADE's Qt application's QML (products/arqade/qt/qml/, but the generated Tokens.qml). It fails when Tokens.qml is missing or Theme.qml writes a colour; when a face is not one of Theme's; when a text size under 18 pixels (the showcase's Cinzel titles) is not one of Theme's steps; when a colour is written, as a string or as Qt.rgba() of numbers, but for the wordmark's sheen and its masks; when a corner is not Theme's, another item's, a circle or a hairline of 2 pixels or less; when a duration is not Theme's, but for three slow loops of light; or when an easing is not Easing.BezierSpline on Theme.ease. The 3D scenes (Emblem.qml, Portal.qml) answer only to the face rule. CI's job name and the step's name are unchanged."
 reason = "A tightening: more of the tree must pass the same step, nothing relaxed. Proven to fail first, against a planted fault each: Theme's raised written as #1a1f29, the primary's ink written as #120a04, a button in Segoe UI, a label at 14 pixels, a rankings tab with a 15 pixel corner, a colour animation of 200 ms, a card easing with Easing.OutCubic, a panel filled with Qt.rgba(0.07, 0.09, 0.13, 0.78), an error in \"red\", and the old status green #5fd38d. The application's own interface test, run on the owner's PC since CI has no licensed Qt, caught three more the static check cannot see: Barlow's Regular not loaded, a label coloured Qt.lighter(Theme.gilt, 1.1), and parchment ink on the ember primary."
 
+[[change_log]]
+date = "2026-10-21"
+type = "tightening"
+change = "Gate qfx: qfx.decisions gains ADR-109 (every launcher moves to Obsidian once, the owner's decision of 2026-10-21), and a new criterion, qfx.look, reads a new suite, qfx_look (tools/qor-launcher/scripts/check-look.mjs, 15 checks): a launcher that had Sanguine stored and no record of the move opens on Obsidian and records it; a theme stored after the move stays; Obsidian's fifteen colours are docs/design/tokens.json's, value by value, its counter the gilt; the four faces load from the build, bold reading text from a face of its own (Barlow SemiBold, which docs/design/fonts/web.json gains), reading text is in Barlow, the rail in Barlow Semi Condensed, numbers in IBM Plex Mono, and nothing is asked of any other address; the wordmark is Cinzel in gilt; the close button under the pointer is the status red with dark ink at 4.5:1 or more; and the person's Motion setting reaches the host for what the launcher starts. The check joins npm run check, so CI's launcher job runs sixteen checks, not fifteen ([ci].quality_gates updated)."
+reason = "A tightening: one more accepted decision, one more criterion and one more failing step, none relaxed. Proven to fail first, against eight planted faults, each in its own build: no move (Sanguine kept), the move made at every launch (a theme picked after it lost), Obsidian's counter the ember instead of the gilt, reading text in a system face, Barlow's SemiBold not carried, the wordmark as it was, the close button on the counter, and the Motion setting kept from the host."
+
+[[change_log]]
+date = "2026-10-21"
+type = "ci-scope"
+change = "tools/qor-launcher/scripts/check-accessibility.mjs, which suite qfx_ambience runs: 'the app applied a theme at startup' expects obsidian where it expected architect, and 'normal contrast: --ink-muted is the theme value' expects Obsidian's --ink-muted, read from docs/design/tokens.json, where it expected Architect's #93a0ae. Every other case is unchanged."
+reason = "A scope change rather than a loosening: the launcher's default theme changed (ADR-108 decision 6, ADR-109), and the check names the default. What it holds is unchanged: that a theme is applied at startup, and that at normal contrast the theme's own value is in force, which the contrast cases after it then raise. Reading the value from the source means a later change of the palette cannot leave the check behind."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -984,7 +996,7 @@ quality_gates = [
   "chain/: two validators agree, finalise and catch up. A job of its own, because it needs a release build with the sudo feature: cargo build -p demiurge-node --release --features sudo --locked, then node scripts/check-two-validators.mjs. It fails the run; criterion alpha.multi-validator reads it. Since 2026-09-21 it runs NIGHTLY (03:00 UTC) and on workflow_dispatch, not on every push",
   "services/qor-auth: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test -- --include-ignored, against a migrated Postgres 16 and a Redis 7.4",
   "services/social: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test, against a Postgres 16 (a database per test) and a real WebSocket on a loopback port; its log, SQL and migration checks run with the tests",
-  "tools/qor-launcher: npm ci, frontend build and npm run check, fifteen checks (design, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the Library view, the Mesh view, the profiles view, the ARQADE view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; the host-proof crate's and the core's (tools/qor-launcher/core, ADR-104) cargo fmt --check, clippy -D warnings and tests; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
+  "tools/qor-launcher: npm ci, frontend build and npm run check, sixteen checks (design, the one look, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the Library view, the Mesh view, the profiles view, the ARQADE view, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; the host-proof crate's and the core's (tools/qor-launcher/core, ADR-104) cargo fmt --check, clippy -D warnings and tests; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
   "cargo audit of services/qor-auth, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside the compiled graph (services/qor-auth/.cargo/audit.toml)",
   "cargo audit of services/social, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside Social's compiled graph (services/social/.cargo/audit.toml)",
   "cargo audit of tools/qor-launcher/src-tauri, ignoring only RUSTSEC-2026-0344 while CI confirms ruzstd is outside the compiled graph and still in the lockfile (tools/qor-launcher/src-tauri/.cargo/audit.toml, ADR-089), and RUSTSEC-2026-0383 while CI confirms webpki-root-certs 0.26 re-exports a fixed 1.x, is built for no Windows, Linux or macOS target, and is still in the lockfile (ADR-107, since 2026-10-20)",
@@ -1072,6 +1084,11 @@ needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH fo
 [suites.qfx_ambience]
 dir = "tools/qor-launcher"
 command = "node scripts/check-accessibility.mjs"
+needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places)"
+
+[suites.qfx_look]
+dir = "tools/qor-launcher"  # The one look in the launcher (ADR-108, ADR-109). Since 2026-10-21.
+command = "node scripts/check-look.mjs"
 needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places)"
 
 [suites.arqade]
@@ -1759,7 +1776,7 @@ weaken."""
   [[gates.criteria]]
   id = "qfx.decisions"
   kind = "adr"
-  adrs = ["ADR-048", "ADR-050", "ADR-051", "ADR-108"]
+  adrs = ["ADR-048", "ADR-050", "ADR-051", "ADR-108", "ADR-109"]
 
   [[gates.criteria]]
   id = "qfx.roadmap"
@@ -1791,6 +1808,17 @@ weaken."""
   id = "qfx.ambience"
   kind = "tests"
   suite = "qfx_ambience"
+  require = []
+
+  # The launcher wears the one look (ADR-108, ADR-109): every launcher moves to
+  # Obsidian once and keeps what is picked after; Obsidian is the source's
+  # palette; the four faces load from the build and nothing else is asked for;
+  # the wordmark, the close button and the Motion setting passed on. Since
+  # 2026-10-21.
+  [[gates.criteria]]
+  id = "qfx.look"
+  kind = "tests"
+  suite = "qfx_look"
   require = []
 
 [[gates]]

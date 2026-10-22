@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+/* Demiurge's one look (ADR-108): its values and its four faces, generated from docs/design/tokens.json. */
+@import './tokens.css';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    QOR LAUNCHER — surface language
@@ -25,23 +27,23 @@
    scripts/check-design.mjs.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Fallbacks so the first frame is painted before the theme script runs. */
+/* Obsidian, the default (ADR-109), so the first frame is painted before the theme script runs. */
 :root {
-  --void: #06070a;
-  --base: #0b0c10;
-  --surface: #12151c;
-  --raised: #1a1f29;
-  --well: #0e1117;
-  --accent: #ff6a00;
-  --accent-bright: #ff9142;
-  --accent-dim: #b44a00;
-  --counter: #8b0000;
-  --ink: #ffffff;
-  --ink-body: #d7d8da;
-  --ink-muted: #93a0ae;
-  --ink-faint: #808e9d;
-  --edge: #333a47;
-  --edge-soft: #232936;
+  --void: var(--qor-void);
+  --base: var(--qor-base);
+  --surface: var(--qor-surface);
+  --raised: var(--qor-raised);
+  --well: var(--qor-well);
+  --accent: var(--qor-accent);
+  --accent-bright: var(--qor-accent-bright);
+  --accent-dim: var(--qor-accent-dim);
+  --counter: var(--qor-gilt-dim);
+  --ink: var(--qor-ink);
+  --ink-body: var(--qor-ink-body);
+  --ink-muted: var(--qor-ink-muted);
+  --ink-faint: var(--qor-ink-faint);
+  --edge: var(--qor-edge);
+  --edge-soft: var(--qor-edge-soft);
 
   /* Accessibility knobs, written by lib/a11y.ts. */
   --ui-scale: 1;
@@ -67,21 +69,27 @@
   --color-edge: var(--edge);
   --color-edge-soft: var(--edge-soft);
 
-  --color-ok: #22c55e;
-  --color-warn: #e6a817;
-  --color-bad: #d57889;
+  --color-ok: var(--qor-ok);
+  --color-warn: var(--qor-warn);
+  --color-bad: var(--qor-bad);
+  /* The brand's metal, the same in every theme: hairlines, numerals, the wordmark. */
+  --color-gilt: var(--qor-gilt);
+  --color-gilt-bright: var(--qor-gilt-bright);
+  --color-gilt-dim: var(--qor-gilt-dim);
+  --color-on-accent: var(--qor-on-accent);
 
-  /* Barlow Semi Condensed, bundled with the launcher (@fontsource), so it renders offline and on first run. */
-  --font-display:
-    'Barlow Semi Condensed', 'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-body:
-    ui-sans-serif, 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Consolas, monospace;
+  /* The one look's faces, carried by the launcher itself (tokens.css), so they render offline and on first run:
+     Barlow Semi Condensed for headings and controls, Barlow for reading, IBM Plex Mono for numbers and addresses, and
+     Cinzel for the wordmark alone (the tool register, DESIGN_SYSTEM.md §1). */
+  --font-display: var(--qor-font-interface);
+  --font-body: var(--qor-font-body);
+  --font-mono: var(--qor-font-mono);
+  --font-wordmark: var(--qor-font-display);
 
-  /* Controls are rounded at 8px and panels at 12px (DESIGN_SYSTEM.md §4, 17 October 2026). */
-  --radius-qor: 8px;
-  --radius-panel: 12px;
-  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Controls are rounded at 8px and panels at 12px (DESIGN_SYSTEM.md §4). */
+  --radius-qor: var(--qor-radius-control);
+  --radius-panel: var(--qor-radius-panel);
+  --ease-expo: var(--qor-ease);
 
   /* Every p-*, gap-*, m-* utility derives from this. The density control
      rewrites it, so one variable re-spaces the entire interface. */
@@ -92,18 +100,18 @@
    every variable even when no utility uses it, because the component classes
    below read them directly. */
 @theme static {
-  --text-micro: 10px;
-  --text-caption: 11px;
-  --text-ui: 12px;
-  --text-body: 13px;
-  --text-title: 15px;
-  --text-heading: 18px;
-  --text-display: 24px;
-  --text-figure: 38px;
+  --text-micro: var(--qor-size-micro);
+  --text-caption: var(--qor-size-caption);
+  --text-ui: var(--qor-size-ui);
+  --text-body: var(--qor-size-body);
+  --text-title: var(--qor-size-title);
+  --text-heading: var(--qor-size-heading);
+  --text-display: var(--qor-size-display);
+  --text-figure: var(--qor-size-figure);
 
-  --tracking-heading: 0.06em;
-  --tracking-label: 0.1em;
-  --tracking-eyebrow: 0.18em;
+  --tracking-heading: var(--qor-tracking-heading);
+  --tracking-label: var(--qor-tracking-label);
+  --tracking-eyebrow: var(--qor-tracking-eyebrow);
 }
 
 @layer base {

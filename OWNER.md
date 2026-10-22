@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 21 October 2026. One page, rewritten every session.
+For Andrew, 22 October 2026. One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -35,9 +35,11 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 5. **#69: one look everywhere** (ADR-108, as you chose) — one shared source of colours,
    faces and motion, checked in CI. The homepage is on it and live, its fonts its own.
 6. **#70: QQ Studio in the same look**, and game menus a keyboard can use.
+7. **#71: ARQADE in the look,** website and app. The website is live with it, and its
+   welcome screen fills the window again.
 
-**For your merge: #71, ARQADE in the look**, its website and its app in the launcher, held
-there by a CI check, and the website's welcome screen fixed (live, it sits in a corner).
+**For your merge: #72, the launcher in Obsidian**, everyone moved once as you chose
+(ADR-109), its four fonts its own, and your Motion setting passed to QQ and QOR Media.
 
 ## Toward a worldwide beta: what only you can do
 

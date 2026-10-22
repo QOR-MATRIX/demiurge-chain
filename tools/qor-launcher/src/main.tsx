@@ -1,10 +1,8 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 
-// The display face, bundled so it renders offline and on first run (DESIGN_SYSTEM.md §3).
-import '@fontsource/barlow-semi-condensed/500.css';
-import '@fontsource/barlow-semi-condensed/600.css';
-import '@fontsource/barlow-semi-condensed/700.css';
+// The stylesheet, which carries the one look's four faces itself (styles/tokens.css, ADR-108), so they render offline
+// and on first run.
 import './styles/qor.css';
 import { App } from './App';
 import { Boundary } from './components/chrome/Boundary';

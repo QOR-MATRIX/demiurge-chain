@@ -1087,7 +1087,8 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      - The Studio looked at, as painted in its case.
 
    **The third slice, ARQADE, the web and then its Qt application, built 21 October 2026** (branch
-   `session/arqade-one-look`, on #70's merge; pull request #71, not yet merged). The web:
+   `session/arqade-one-look`, on #70's merge; merged in #71 at `a401c0f` on 22 October 2026, the website live). The
+   web:
    - `products/arqade/app/tokens.css` and `products/arqade/public/fonts/`, generated; `app/globals.css` imports them.
      **The showcase register:** every colour of the interface is a token, shadcn's sixteen variables included. Colours
      were written 501 times in the stylesheet and are now written 127 times, every one the games' own art (121
@@ -1139,6 +1140,37 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      status green) and three by the interface test (the reading face unloaded, a colour computed off the palette,
      parchment ink on the primary). The unloaded face passed its first version, since Barlow's Medium answered for
      its Regular; the test now asks which face is drawn. Every screen the test saves looked at, before and after.
+
+   **The fourth slice, the launcher, built 21 October 2026** (branch `session/launcher-one-look`, on #71's merge; pull
+   request #72, not yet merged):
+   - `tools/qor-launcher/src/styles/tokens.css`, `tokens.ts` and `fonts/`, generated (a TypeScript target joins
+     `docs/design/tokens.mjs`). **Obsidian** is the launcher's first theme and its default, every colour from
+     `tokens.ts`, its structural colour (`counter`) the gilt. **Every launcher moves to it once** (ADR-109, the
+     owner's: "Everyone moves."): a launch that finds no record of the move stores Obsidian and the record, and a
+     theme picked after that stays. Architect, Abyss, Sanguine, Veridian and Numen stay choices.
+   - **The four faces, the launcher's own,** in every theme: Barlow for reading where it was Segoe UI, IBM Plex Mono
+     for numbers where it was Cascadia Mono, Barlow Semi Condensed for headings and controls (from the source now, not
+     npm's package, which is removed), and Cinzel in gilt for the title bar's wordmark. Barlow's SemiBold joins the
+     source's web set (Fontsource 5.3.0, the release the rest came from, its Regular matched byte for byte), since
+     the launcher sets bold reading text in 37 places and the browser had been thickening the Medium for it.
+   - The stylesheet's status colours, corners, easing and type and tracking scales read the tokens; the first frame
+     is painted in Obsidian. The window's close button, under the pointer, is the status red with dark ink (6.6:1)
+     in every theme, as QQ Studio's danger buttons are.
+   - **The person's Motion setting reaches what the launcher starts** (ADR-108 decision 5): the interface tells the
+     host (`launcher_motion`), and `host::launch` gives every product `QOR_REDUCED_MOTION`, `1` or `0`, which QQ's
+     `Look` already reads.
+   - **A check, `scripts/check-look.mjs`** (in `npm run check`, so CI runs sixteen; the QFX gate's `qfx.look`), 15
+     cases: the move once, and a theme picked after it kept; Obsidian equal to `tokens.json` value by value; the four
+     faces loaded from the build, bold reading text from a face of its own, reading, interface and numeric text in
+     them, and nothing asked of any other address; the wordmark; the close button; the Motion setting reaching the
+     host under "system" and "full". `check-accessibility.mjs` names Obsidian as the default where it named
+     Architect.
+   - **Evidence, on the owner's PC:** `npm run check`, all sixteen checks on a clean build (the one look 15, accessibility 55, readability 445); the host's library tests, 256 passing and 14 ignored, as before, one new (a product started with
+     nothing said, with less motion and with all of it, seen by the product); clippy with warnings as errors; the
+     tokens check. Eight planted faults were each caught by the new check, each in its own build: no move, the move
+     made at every launch, Obsidian's counter the ember, reading text in a system face, Barlow's SemiBold not
+     carried, the wordmark as it was, the close button on the counter, and the Motion setting kept from the host.
+     The screens were looked at in Obsidian and in Architect.
 
 #### P3: QOR Engine / QQ (P3.1 depends on nothing on chain)
 

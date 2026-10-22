@@ -134,6 +134,15 @@ function qml() {
   return `${comment}\n\npragma Singleton\nimport QtQuick\n\nQtObject {\n${lines.join('\n')}\n}\n`;
 }
 
+/** A TypeScript module of the values, for a web application's own tables (the launcher's themes) to read. */
+function ts() {
+  const fonts = Object.fromEntries(Object.entries(tokens.font).map(([role, f]) => [role, f.family]));
+  const values = { color: tokens.color, font: fonts, size: tokens.size, tracking: tokens.tracking, radius: tokens.radius,
+                   motion: tokens.motion, focus: tokens.focus };
+  const comment = GENERATED.split('\n').map((l) => ` * ${l}`).join('\n');
+  return `/**\n${comment}\n */\n\nexport const TOKENS = ${JSON.stringify(values, null, 2).replace(/"([A-Za-z]+)":/g, '$1:').replaceAll('"', "'")} as const;\n`;
+}
+
 // Each target: a file this script writes, or a font it copies. A surface joins by adding its own.
 const targets = [
   // The homepage (site/, ADR-100): its stylesheet maps its own names onto these.
@@ -157,6 +166,11 @@ const targets = [
   { file: 'products/arqade/qt/qml/Tokens.qml', text: () => qml() },
   ...['Barlow-Regular.ttf', 'Barlow-Medium.ttf', 'Barlow-OFL.txt', 'BarlowSemiCondensed-OFL.txt', 'Cinzel-OFL.txt']
     .map((name) => ({ file: `products/arqade/qt/fonts/${name}`, copy: `docs/design/fonts/${name}` })),
+  // The QOR Launcher (P2.9's fourth slice): qor.css imports tokens.css, whose faces Vite bundles from src/styles/fonts/,
+  // and its theme table makes Obsidian, its default, from tokens.ts (ADR-109).
+  { file: 'tools/qor-launcher/src/styles/tokens.css', text: () => css('./fonts') },
+  { file: 'tools/qor-launcher/src/styles/tokens.ts', text: () => ts() },
+  ...web.faces.map((f) => ({ file: `tools/qor-launcher/src/styles/fonts/${f.file}`, copy: `docs/design/fonts/web/${f.file}` })),
 ];
 
 let written = 0;

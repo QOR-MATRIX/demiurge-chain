@@ -2204,6 +2204,7 @@ pub fn run() {
             arqade::app::arqade_app_theme,
             arqade::app::arqade_app_player,
             arqade::app::arqade_app_prefs,
+            host::launcher_motion,
             gates_report,
             gates_run_suite,
         ])
