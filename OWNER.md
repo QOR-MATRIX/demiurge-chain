@@ -32,17 +32,15 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
    game keeps scores and settings between plays*. Every step of the plan is done.
 4. **#65 also fixed three security advisories** — *published flaws in libraries we use*;
    one, in a wrapper never built, is ignored while CI proves it, as you chose (ADR-107).
-5. **#69: one look everywhere** (ADR-108, as you chose) — one shared source of colours,
-   faces and motion, checked in CI. The homepage is on it and live, its fonts its own.
-6. **#70: QQ Studio in the same look**, and game menus a keyboard can use.
-7. **#71: ARQADE in the look,** website and app. The website is live with it, and its
-   welcome screen fills the window again.
-8. **#72: the launcher in Obsidian**, everyone moved once as you chose (ADR-109). It
-   reaches testers in the next launcher release.
+5. **One look everywhere** (ADR-108, as you chose): one source of colours, fonts and motion,
+   checked in CI. The homepage (#69), QQ Studio (#70), ARQADE's site and app (#71), the
+   launcher in Obsidian, everyone moved once (#72; testers get it next release), and QOR
+   ID's pages and emails (#73). **QOR ID is not live with it: Railway did not redeploy it
+   from the merge.** Please redeploy `qor-auth` from `main` in Railway.
 
-**For your merge: #73, QOR ID in the same look** — its sign-in pages and emails, its fonts
-served by QOR ID itself, and a keyboard's focus ring now shown on every field. QOR ID is
-redeployed from that merge.
+**For your merge: #74, the last of the one look: QOR Media and the Android app.** Their
+own fonts, the right colours, less motion when you ask for it, and every button reachable
+by the keyboard in QOR Media. After it, every surface wears the one look.
 
 ## Toward a worldwide beta: what only you can do
 
