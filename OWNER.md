@@ -40,6 +40,9 @@ website*, now with free play and no Energy. Launcher 0.1.14 is the tester downlo
 
 **For your merge: #72, the launcher in Obsidian**, everyone moved once as you chose
 (ADR-109), its four fonts its own, and your Motion setting passed to QQ and QOR Media.
+**Built, waiting behind it: QOR ID in the same look** — its sign-in pages and emails, its
+fonts served by QOR ID itself, and a keyboard's focus ring now shown on every field. It
+becomes a pull request once #72 is merged, and QOR ID is redeployed from that merge.
 
 ## Toward a worldwide beta: what only you can do
 

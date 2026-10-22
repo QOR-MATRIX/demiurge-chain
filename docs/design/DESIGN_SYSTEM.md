@@ -12,8 +12,12 @@ face that differs from the source, or a text colour under 4.5:1 on any backgroun
 web (`products/arqade/app/tokens.css` and `public/fonts/`) and its Qt application (`products/arqade/qt/qml/Tokens.qml`,
 read by `Theme`, and `qt/fonts/`), both held by `products/arqade/scripts/check-design.mjs`; the launcher
 (`tools/qor-launcher/src/styles/tokens.css`, `tokens.ts` and `fonts/`; Obsidian its default theme, which every
-launcher moved to once, ADR-109; held by `scripts/check-look.mjs`). **Not yet joined, each keeping its own values
-until its slice:** QOR ID's pages and emails, QOR Media and the Android shell.
+launcher moved to once, ADR-109; held by `scripts/check-look.mjs`); QOR ID's pages and emails
+(`services/qor-auth/src/look/tokens.rs` and `look/fonts/`, the faces embedded and served by QOR ID at `/fonts/`; held
+by its tests: a page's stylesheet writes no colour, face or corner and reads only defined tokens, and a message's every
+colour, corner and size is the source's). An email names the faces first and loads none, since a web face in a message
+would also tell the sender when it was opened; a reader without them sees the next face in each stack. **Not yet
+joined, each keeping its own values until its slice:** QOR Media and the Android shell.
 Their faces in Qt are already the source's (Cinzel and Barlow Semi Condensed, checked).
 
 **In QML,** a property is never named `on` and a capital (`onAccent`): QML reads it as a signal handler. The ink on a

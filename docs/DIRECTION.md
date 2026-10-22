@@ -1172,6 +1172,32 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      carried, the wordmark as it was, the close button on the counter, and the Motion setting kept from the host.
      The screens were looked at in Obsidian and in Architect.
 
+   **The fifth slice, QOR ID's pages and emails, built 22 October 2026** (branch `session/qor-id-one-look`, on #72's
+   head; kept back until #72 is merged):
+   - `services/qor-auth/src/look/tokens.rs` and `look/fonts/`, generated (a Rust target joins `docs/design/tokens.mjs`):
+     every colour, face, size, tracking and corner as a constant, the stylesheet with every token as a custom property,
+     and the faces embedded in the binary. QOR ID serves them itself at `/fonts/{file}` (WOFF2, kept a year, nothing
+     but the embedded table's names), and its pages' content security policy allows fonts from itself alone.
+   - **The pages** (the email links' pages, `/account` and the sign-in page for apps) in the tool register: Barlow for
+     reading, Barlow Semi Condensed in tracked capitals for headings, labels and buttons, IBM Plex Mono for names and
+     addresses, Cinzel in gilt for the wordmark alone; a panel's top edge in dim gilt; 8 and 12 pixel corners; the
+     one focus ring with its halo on every control, which a field's own focus rule had been taking away; transitions
+     stilled under reduced motion. The stylesheet writes no colour, face or corner of its own.
+   - **The emails** take every colour, corner, size and tracking from the same constants, inline, as mail clients
+     need. They name the faces first and load none, since a web face in a message would also tell QOR ID when it was
+     opened; a reader without them sees the next face in each stack.
+   - **Checks:** a page's stylesheet writes no colour, face, corner or `outline: none`, and every custom property it
+     reads is defined (a misspelt one is dropped by a browser without a word); a message's every colour is the
+     source's, every corner a control's or a panel's and every size on the type scale; every face is served, as
+     WOFF2, and an unknown name is not found; the policy names `font-src 'self'`.
+   - **Evidence, on the owner's PC:** QOR ID's 185 tests (180 before, five new) against Postgres 16 and Redis 7.4
+     with `--include-ignored`; format, and clippy with warnings as errors; the tokens check. Eight planted faults were
+     each caught, each in its own build: a misspelt property, a corner, a face, a message's size, colour and corner of
+     their own, the fonts' policy dropped, and the generated module edited by hand. Run locally and driven in Chrome
+     at a desktop's and a phone's size: each page draws in the four faces from QOR ID itself and asks nothing of any
+     other address, nothing scrolls sideways, a refusal shows in the problem style, the focus ring draws on a field,
+     and a verification message, caught by a stand-in for Resend, was looked at.
+
 #### P3: QOR Engine / QQ (P3.1 depends on nothing on chain)
 
 QQ, the QOR Engine: a game engine for virtual worlds and experiences, built on **Qt 6** (C++20, QML, Qt Quick 3D and
