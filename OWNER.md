@@ -10,31 +10,22 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 ## Live today (checked this session, from outside)
 
-The homepage at **qorsync.dev**; **Devnet** — *the test chain on servers* — on runtime 9;
-**QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** — *the gaming
-website*. **Launcher 0.1.16** is the tester download.
+The homepage at **qorsync.dev**; **Devnet** — *the test chain on servers* — now on runtime
+10; **QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** — *the
+gaming website*. **Launcher 0.1.16** is the tester download.
 
 ## This session
 
-1. **Runtime 10 is rehearsed, and passed.** Runtime — *the chain's program* — 10 is what
-   lets assets level up. On this PC I started a copy of the devnet running its own live
-   runtime 9, left a payment and an asset on it, then upgraded it exactly as you will
-   sign it. All 35 checks passed: nothing was lost, and wallets, the Mesh and the new
-   level and **XP** — *experience points* — records all work after it. The file is in
-   your Downloads: `demiurge-runtime-v10.compact.compressed.wasm`.
-2. **PDFs open in the Library** (#83). A PDF now opens inside the launcher's media app,
-   **QOR Media**, instead of another program: zoom, find with every match marked, copy
-   text, follow links (only to the web or email, never to a program), see the pages and
-   contents beside it, and open a locked PDF with its password. Tested (51 tests; seven of
-   eight planted bugs caught; the eighth is guarded twice) and tried on a real 72-page PDF.
-3. **PDF pages can be changed too**, built after #83 and held until you merge it: turn,
-   delete and move pages, undo, and save, through **PDFium** — *Google's PDF engine* —
-   with your file replaced only once the new one is complete. Locked PDFs are only read.
-   Eleven of twelve planted bugs caught. Marking up, filling and signing come next.
-4. **For your merge: #82 and #83**, in either order. #82 teaches assets to level up
-   (ADR-113, your approval): a level, XP and stats written by the game the collection's
-   owner picks; only whoever holds the game's **Cartridge** — *the game's own asset* — can
-   correct a mistake, and nothing changes while an asset is for sale.
+1. **You upgraded the devnet to runtime 10** — *the chain's program* — and it worked.
+   I read it back: exactly the file I had rehearsed, nothing lost, still finalising.
+   Assets can now keep a level, **XP** — *experience points* — and stats, written by
+   their game. A launcher built from today's code shows them; no released one does yet.
+2. **#82 and #83 are merged.** PDFs now open inside **QOR Media** — *the launcher's
+   media app* — with zoom, find, copying, links and locked PDFs.
+3. **For your merge: #84.** PDF pages can be turned, deleted, moved, undone and saved,
+   through **PDFium** — *Google's PDF engine* — and your file is replaced only once the
+   new one is complete. Locked PDFs are only read. Testing it again today found and
+   fixed a real bug: jumping twice quickly could send you back to the first page.
 
 ## The release gates (measured last session)
 
@@ -48,10 +39,7 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
    Lose them and testers reinstall by hand.
-2. **Merge #82, then upgrade the devnet to runtime 10**, as you did for 9: in polkadot.js
-   Apps, Developer → Sudo, `sudoUncheckedWeight`, then `system.setCode` in the second
-   dropdown (the field must read `code`, not `remark`), and pick the file above. Its
-   fingerprint starts `6192023b`. Tell me when it is done and I will read it back.
+2. **Merge #84** when you have looked at it.
 3. **Install 0.1.15 yourself, then take 0.1.16 when it offers it**: the first update
    through the channel, which ticks L6.2. Then let a test agent ask you: in
    `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run `cargo run --example agent_link`
@@ -72,8 +60,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    pasted on 5 October; `social-secrets.txt` on your Desktop and `archive-bZLIQp/` in the
    old checkout, each to keep or delete.
 
-**Next in engineering:** after #83, the page changes as a pull request; then marking up,
-filling and signing PDFs (the rest of L9.5). At your word: games other than the home game
+**Next in engineering:** marking up, filling and signing PDFs (the rest of L9.5). At your
+word: a launcher release that shows assets' levels, games other than the home game
 keeping records (ADR-113's second phase), or rental and fractions (M4.3).
 
 ## Cost per month

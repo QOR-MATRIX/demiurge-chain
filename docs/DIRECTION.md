@@ -423,7 +423,7 @@ The core of the first release.
    CGT.
 
    **Ticked on 23 October 2026, when state and XP were built (ADR-113), against the tree at `spec_version` 10.**
-   The devnet runs 9 until the owner sets 10 with the sudo key. **State and XP** are progress records kept by each
+   On the devnet since the owner set 10 with the sudo key the same day. **State and XP** are progress records kept by each
    game: one record per asset per issuer, a `level`, `xp` and up to 32 numbered stats (ADR-047 decisions 7 and 13).
    A game is named by its Cartridge and governed by whoever holds it; a collection is static until its owner binds
    it to a home game (`Drc369::set_home_game`); the Cartridge's holder names up to 16 writers (`authorise_writer`,

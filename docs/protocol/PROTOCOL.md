@@ -6,7 +6,8 @@ that exists. The whole document was re-checked against the runtime and node sour
 minimum, genesis specifications, pallet indices, call filter, deposits, bounds, calls, events and runtime APIs.
 Section 13, the Mesh's hosting escrow, was added on **17 October 2026** at `spec_version` 9, which the devnet has run
 since the owner's upgrade that day (read from `wss://rpc.qorsync.dev` on 23 October 2026). Section 12's progress
-records were added on **23 October 2026** at `spec_version` 10, which is in the tree and not yet on the devnet.
+records were added on **23 October 2026** at `spec_version` 10, which the devnet has run since the owner's upgrade
+that day (block #289,065, read back from `wss://rpc.qorsync.dev`).
 Measurements on running nodes keep the dates they were made. Where the direction intends something the code does not
 yet do, it says so under "Not yet". Decisions behind these rules are in [`../DECISIONS.md`](../DECISIONS.md).
 
@@ -180,7 +181,7 @@ royalty terms and settles sales in CGT (ADR-061). `pallet-arq-wallet`, mounted a
 `Drc369Royalties::buy_exact` and the runtime API `Drc369RoyaltiesApi` were added (5 on 1 October, for `Drc369::nest`
 and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369::mint` gained its
 `derived_from` argument. No existing call's encoding changed on 1 or 2 October. `spec_version` 10, in the tree since
-23 October 2026 and **not yet on the devnet**, adds progress records (ADR-113, below) as five new calls on `Drc369`; no
+23 October 2026 and on the devnet since the same day, adds progress records (ADR-113, below) as five new calls on `Drc369`; no
 existing call changed, so `transaction_version` stays 2.
 
 - **An asset is `(collection, item)`**, two `u32`s. Each creator has one **singles collection**, created by their first
@@ -235,7 +236,7 @@ existing call changed, so `transaction_version` stays 2.
   asset; it cannot be bought until the asset is taken out. To move a tree, take it apart, move the assets and nest
   them again; one `batch_all` can carry all of that. Nesting changes neither an asset's owner nor its record, takes
   no deposit and charges nothing.
-- **Progress records** (M4.2's state and XP, ADR-113; `spec_version` 10, not yet on the devnet). A record is one
+- **Progress records** (M4.2's state and XP, ADR-113; `spec_version` 10, on the devnet since 23 October 2026). A record is one
   game's account of one asset: a `level` (`u32`), `xp` (`u64`) and up to **32** stats, each a `(u16, i64)` pair, kept
   sorted by number, each number once. **A game** is named by its Cartridge, the DRC-369 asset it was published as,
   and is stored as `Issuer::Game { collection, item }`, an enum so that later kinds of issuer keep this encoding.

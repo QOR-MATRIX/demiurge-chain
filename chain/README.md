@@ -9,8 +9,8 @@ the custom Rust devnet that lived in `framework/`, which was retired and deleted
 **Today (23 October 2026):** `spec_version` 10 in the tree, with DRC-369 assets (royalties, remix provenance, nesting,
 and since this version progress records, M4.2's state and XP, ADR-113) over `pallet-nfts`, `pallet-utility`'s atomic
 batch, the ARQ Wallet and the Mesh's hosting escrow. **190 workspace tests** passed with the wasm built on 23 October
-2026. **Demiurge Devnet** runs `spec_version` 9 at `wss://rpc.qorsync.dev` (read on 23 October 2026) until the owner
-sets 10 with the sudo key (ADR-068, "The devnet image" below). No fees, no issuance, no mainnet.
+2026. **Demiurge Devnet** runs `spec_version` 10 at `wss://rpc.qorsync.dev` since the owner's sudo upgrade of 23 October
+2026, read back that day (ADR-068, "The devnet image" below). No fees, no issuance, no mainnet.
 
 **How it began.** Run on 2026-09-17: a development node authored blocks with Aura and GRANDPA finalised them, which is the
 first finality this project has had. The custom devnet it replaced had none and reported every transaction as
@@ -23,7 +23,7 @@ depend on this runtime, and the first end-to-end use of its finality.
 
 | Piece | State |
 | --- | --- |
-| `runtime/` (`demiurge-runtime`) | System, timestamp, Aura (ADR-019), GRANDPA (ADR-018), balances, session and the validator set (ADR-020), `pallet-nfts` as the asset ledger (ADR-025), `pallet-drc369`, `pallet-utility` for the atomic batch a trade needs (ADR-053), `pallet-drc369-royalties` (ADR-061), `pallet-arq-wallet` (ADR-070), `pallet-mesh` (ADR-095, ADR-096), and `pallet-sudo` behind a feature (ADR-037). `spec_version` 10 since 23 October 2026 (the devnet runs 9, since 17 October, until the owner sets 10), `transaction_version` 2 |
+| `runtime/` (`demiurge-runtime`) | System, timestamp, Aura (ADR-019), GRANDPA (ADR-018), balances, session and the validator set (ADR-020), `pallet-nfts` as the asset ledger (ADR-025), `pallet-drc369`, `pallet-utility` for the atomic batch a trade needs (ADR-053), `pallet-drc369-royalties` (ADR-061), `pallet-arq-wallet` (ADR-070), `pallet-mesh` (ADR-095, ADR-096), and `pallet-sudo` behind a feature (ADR-037). `spec_version` 10 since 23 October 2026, on the devnet since the owner's upgrade the same day, `transaction_version` 2 |
 | `node/` (`demiurge-node`) | Runs. Aura authoring, GRANDPA voting, standard RPC, `dev` and `local` chain specifications, the SDK's `key` subcommand, and the hosted devnet's specification: `devnet_chain_spec`, and the built-in `--chain demiurge_devnet` (`devnet_built_in`), see "The devnet image" |
 | `pallets/validator-set` (`pallet-validator-set`) | **Mounted.** A governance-chosen set acting as `pallet-session`'s session manager (ADR-020). Its own tests cover every governance path and the three guards against a halted chain. The chain's validators come from it, verified by reading `Session::Validators` from a running node |
 | `pallets/drc369` (`pallet-drc369`) | **Mounted** (2026-09-22, M4.1). The content reference (ADR-047's 41 bytes), the pinned commit, revision and the one-way switch to permanent, one singles collection per creator, owner enumeration and the `Drc369Api` runtime API. Every config value's source is in `runtime/src/assets.rs` and ADR-052; the deposits are placeholders (U-14) and the weights are placeholders owed to M7.2. Since 2026-09-29 it also records remix provenance at mint — `derived_from` and `remix_depth`, bounded at 16 (ADR-061). **Since 2026-10-01 it nests** (M4.2's nesting, M4.5's requirement R-2): `nest` and `unnest`, only by the owner of both assets, a cycle refused by a walk of at most eight steps, at most eight levels and sixty-four assets held (ADR-047 decision 13 row 7), and it is `pallet-nfts`'s `Locker`, so a nested asset and the asset holding it cannot be transferred, sold or burned until it is taken out. No deposit of its own. **Since 2026-10-23 it keeps progress records** (M4.2's state and XP, ADR-113, `spec_version` 10): one record per asset per game, a level, XP and at most 32 stats; a collection is static until its owner binds a home game; the holder of the game's Cartridge names up to 16 writers, who only add, and alone corrects; nothing changes while the asset is listed for sale (the runtime answers from `Drc369Royalties::Listings`), and no record moves an asset or CGT. `Drc369Api` version 2 answers `progress_of` and `home_game`. No deposit. Physics is not started |
@@ -150,8 +150,8 @@ as an argument, which a process list or a shell history shows.
 The hosted devnet is `docs/architecture/DEVNET_PLAN.md`. Host Railway, two validators and a separate RPC node,
 chain `Demiurge Devnet` (`demiurge_devnet`, type `Live`): the owner's decisions of 3 October 2026. **It is live
 since 3 October 2026** at `wss://rpc.qorsync.dev` (ADR-068), genesis
-`0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a`, at `spec_version` 9 since the owner's sudo
-upgrade of 17 October 2026 (8 from 4 October). How it was deployed, and every public key in it, is
+`0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a`, at `spec_version` 10 since the owner's sudo
+upgrade of 23 October 2026, at block #289,065 (9 from 17 October, 8 from 4 October). How it was deployed, and every public key in it, is
 [`DEPLOY-RAILWAY.md`](DEPLOY-RAILWAY.md).
 
 **To run a node of that network, start it from the committed raw specification**, `specs/demiurge_devnet.raw.json`
