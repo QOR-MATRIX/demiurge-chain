@@ -14,7 +14,8 @@
 //   5. Writes latest.json beside the installer: the version, the notes, the date, and the installer's address and
 //      signature.
 //   6. Only with --publish: makes the pre-release `launcher-v<version>` with the installer, then replaces latest.json in
-//      the pre-release `launcher-channel`, and reads it back from its public address.
+//      the pre-release `launcher-channel`, reads it back from its public address, and downloads the installer it names
+//      and checks it again: the same bytes as built, and a signature that verifies.
 //
 // Windows only, like the installer that carries QOR Media and ARQADE.
 
@@ -214,8 +215,27 @@ try {
   rmSync(staging, { recursive: true, force: true });
 }
 
-// Read back from the public address, as a launcher will.
-const live = await (await fetch(CHANNEL, { redirect: 'follow' })).json();
-if (live.version !== version || live.platforms['windows-x86_64'].signature !== signature)
-  fail(`the channel answers ${live.version}, not what was published.`);
-console.log(`release: published ${tag}, and ${CHANNEL} announces ${version}.`);
+// Read back from the public addresses, as a launcher will: the manifest, then the installer it names, checked again.
+// A just-published asset can take a moment to be served, so each is asked for a few times before giving up.
+const fetchBack = async (address) => {
+  for (let attempt = 1; ; attempt++) {
+    const response = await fetch(address, { redirect: 'follow', cache: 'no-store' }).catch((e) => ({ ok: false, status: e.message }));
+    if (response.ok) return response;
+    if (attempt === 6) fail(`${address} answers ${response.status} after publishing.`);
+    await new Promise((r) => setTimeout(r, 5000));
+  }
+};
+const live = await (await fetchBack(CHANNEL)).json();
+const entry = live.platforms?.['windows-x86_64'];
+if (live.version !== version || entry?.signature !== signature || entry?.url !== url)
+  fail(`the channel answers ${live.version} at ${entry?.url}, not what was published.`);
+const fetched = Buffer.from(await (await fetchBack(entry.url)).arrayBuffer());
+const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
+if (sha256(fetched) !== sha256(readFileSync(installer))) fail(`the installer at ${entry.url} is not the one built.`);
+try {
+  if (verifySignature(fetched, entry.signature, conf.plugins.updater.pubkey) !== installerName(version)) throw new Error('signed for another file');
+} catch (e) {
+  fail(`the published installer does not verify: ${e.message}.`);
+}
+console.log(`release: published ${tag}; ${CHANNEL} announces ${version}, and its installer downloads back, ` +
+  `${fetched.length} bytes, SHA-256 ${sha256(fetched)}, verified against the channel's key.`);
