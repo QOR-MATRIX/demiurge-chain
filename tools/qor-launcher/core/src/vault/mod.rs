@@ -628,9 +628,11 @@ impl Vault {
         let prompt = Prompt {
             title: "Let the Mesh be paid for what it does?".into(),
             body: format!(
-                "While seeding is on, the Mesh signs its own work for {address} on {chain_name}, without asking each                  time: regular proof that this PC holds the files it took on, claims for payment for what it                  served, taking and leaving files within your limits, and receipts for what this PC downloads, so                  the people who served it are paid.
-
-It cannot send your CGT anywhere. Turning seeding off ends                  this."
+                "While seeding is on, the Mesh signs its own work for {address} on {chain_name}, without asking each \
+                 time: regular proof that this PC holds the files it took on, claims for payment for what it \
+                 served, taking and leaving files within your limits, and receipts for what this PC downloads, so \
+                 the people who served it are paid.\n\nIt cannot send your CGT anywhere. Turning seeding off ends \
+                 this."
             ),
             approve: "Allow".into(),
         };
@@ -1150,6 +1152,34 @@ mod tests {
             confirm.asked.lock().as_slice(),
             &[shown][..],
             "the prompt shown is exactly the one the caller built"
+        );
+    }
+
+    /// The Mesh grant is asked once, names the account and the chain, and reads as written: from 0.1.10 to 0.1.14 its
+    /// sentences carried runs of spaces where a string literal had lost its line continuations.
+    #[tokio::test]
+    async fn the_mesh_grant_is_asked_once_and_reads_as_written() {
+        let (vault, _keys, _dir) = temp_vault();
+        let accounts = vault.create(PHRASE).unwrap();
+        let confirm = Scripted::approving();
+
+        let grant = vault
+            .grant_mesh(&confirm, &accounts[0].address, "Demiurge Devnet")
+            .await
+            .unwrap();
+
+        let asked = confirm.asked.lock();
+        assert_eq!(asked.len(), 1);
+        assert!(asked[0].body.contains(&accounts[0].address));
+        assert!(asked[0]
+            .body
+            .contains("on Demiurge Devnet, without asking each time: regular proof"));
+        assert!(asked[0]
+            .body
+            .contains("are paid.\n\nIt cannot send your CGT anywhere."));
+        assert_eq!(
+            grant.account,
+            normalise_address(&accounts[0].address).unwrap()
         );
     }
 

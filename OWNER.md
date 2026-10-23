@@ -12,27 +12,25 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 The homepage at **qorsync.dev**; **Devnet** — *the test chain on servers* — on runtime 9;
 **QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** — *the gaming
-website*. Launcher 0.1.14 is the tester download. **CI** — *GitHub's automatic tests* — is
-green on `main`.
+website*. **Launcher 0.1.15** is the tester download, the first that updates itself.
 
 ## This session
 
-1. **The launcher updates itself** (L6.2, ADR-111): it checks for a new version, says so,
-   and installs only when you press *Update and restart*, each installer checked twice
-   against our own signing key. Proven end to end on this PC with a test copy.
-2. **The records audited, as you asked.** Three checkers read every status line against
-   the code, and I re-checked each finding before changing anything. All 42 finished
-   roadmap items have their code; nothing claimed was missing. What was wrong was the
-   records, mostly out of date: the **Mesh** — *our paid file-sharing network* — called
-   unmerged, though live since 17 October; the chain's and QOR ID's numbers from early
-   October; the launcher listed at 0.1.9; ARQADE's avatars called missing; a roadmap item
-   (L4.7) that does not exist; the project rules calling the Spark the smallest unit (the
-   ember is, per ADR-101). All corrected; SYSTEMS is rewritten short.
-3. **A CI failure that kept coming back now explains itself.** Chrome sometimes opened no
-   page, nothing said why, and a re-run always passed. Chrome now picks its own port, and
-   a failure prints Chrome's own words.
+1. **Launcher 0.1.15 is out** (GitHub: `launcher-v0.1.15`). Testers install it by hand
+   once; after that, each release reaches them inside the launcher when they press
+   *Update and restart*. It also brings Obsidian, the one look, everywhere. I downloaded
+   it back from GitHub and checked it against our signing key before calling it done.
+2. **QQ Studio on this PC is current**: rebuilt from today's code, all eight test suites
+   passed, and the launcher opens it. The old copy was from 15 October.
+3. **Found and fixed on the way:** the Mesh's permission dialog — *the paid file-sharing
+   network's one question* — has shown gaps in its sentences since 0.1.10, and a test now
+   refuses any dialog text like it; the release could not build from the current
+   checkout; a GitHub cache hang stalled **CI** — *GitHub's automatic tests* — for 30
+   minutes, now capped at ten.
+4. **Your merge of #77** brought the update channel and the corrected records to `main`.
 
-**#76 is merged**, ADR-110 kept for later as you asked. **For your merge: #77**, with 1 to 3.
+**For your merge: #78** — 0.1.15's version and fixes, these records, and the homepage's
+download links to 0.1.15, which go live when you merge.
 
 ## The release gates (measured this session)
 
@@ -42,26 +40,30 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 
 ## What only you can do
 
-1. **Terms of Service and a privacy policy, with a lawyer.** Three live services hold
+1. **Back up the update key now.** From any folder, run
+   `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
+   It names the key file and shows its password once; keep both offline, together (a
+   password manager or an encrypted drive). Your earlier try ran from your Documents
+   folder, where the short path does not exist. Lose them and testers reinstall by hand.
+2. **Install 0.1.15 yourself** if your launcher is older: your last install by hand.
+3. **Terms of Service and a privacy policy, with a lawyer.** Three live services hold
    emails and messages, and none has either. Account deletion and export follow from them.
-2. **The legal opinion** on rewards, prizes, the welcome grant and backing, and on
+4. **The legal opinion** on rewards, prizes, the welcome grant and backing, and on
    **KYC** — *identity checks* —, sanctions and age limits, before anything carries value.
-3. **The economic numbers** — *issuance, the genesis split, the decay curve, fee and burn
+5. **The economic numbers** — *issuance, the genesis split, the decay curve, fee and burn
    shares* (OPEN-1 to OPEN-4, U-4, U-11). Most of the Beta gate waits on them.
-4. **Code-signing certificates** for Windows and Apple, and an **external security review**.
-5. **Back up the update key now:** `pwsh tools/qor-launcher/scripts/updater-key.ps1 -Backup`
-   says which file and password to keep offline; lose them and testers reinstall by hand once.
-6. **Say when to release 0.1.15**, the first launcher that updates itself. Testers install
-   it by hand once; every release after reaches them from inside the launcher.
+6. **Code-signing certificates** for Windows and Apple, and an **external security review**.
 7. **Names** for the indexer and explorer, the SDK, and the **MCP server** — *how AI tools
    reach Demiurge*.
 8. **Still open, as HANDOFF §4.0 records:** godmode's 100,000,000 CGT (its address); Social's
-   report rules; the Android app on your phone; ARQADE inside 0.1.14; whether #46's gate
-   change reads to you as loosening; the reward pool's numbers; Search Console and the GitHub
-   preview image; the welcome-grant payer; Qt for CI; the email webhook; the key pasted on
-   5 October. On this PC: QQ Studio is the copy of 15 October, before every step of
-   ADR-105 (say the word and it is redeployed); `social-secrets.txt` on your Desktop and
-   `archive-bZLIQp/` in the old checkout, each to keep or delete.
+   report rules; the Android app on your phone; ARQADE inside the launcher; whether #46's
+   gate change reads to you as loosening; the reward pool's numbers; Search Console and the
+   GitHub preview image; the welcome-grant payer; Qt for CI; the email webhook; the key
+   pasted on 5 October; `social-secrets.txt` on your Desktop and `archive-bZLIQp/` in the
+   old checkout, each to keep or delete.
+
+**Next in engineering:** L5.1 — an AI agent can act for you only once your own key, in the
+launcher, has signed for it (today a stolen sign-in token is enough).
 
 ## Cost per month
 

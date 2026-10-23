@@ -69,6 +69,14 @@ pub mod testing {
 
     impl Confirm for Scripted {
         fn confirm<'a>(&'a self, prompt: &'a Prompt) -> Answer<'a> {
+            // Every prompt a test reaches reads as written: a lost line continuation in a string literal leaves a run of
+            // spaces mid-sentence, which the Mesh grant's dialog showed from 0.1.10 to 0.1.14.
+            for text in [&prompt.title, &prompt.body, &prompt.approve] {
+                assert!(
+                    !text.contains("  "),
+                    "a prompt has a run of spaces: {text:?}"
+                );
+            }
             self.asked.lock().push(prompt.clone());
             let answer = self.answer;
             Box::pin(async move { answer })
