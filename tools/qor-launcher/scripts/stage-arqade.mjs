@@ -12,6 +12,7 @@
 // carried, the ARQADE screen offers the website's window, as before.
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,7 +26,10 @@ if (process.platform !== "win32") {
 }
 
 const script = resolve(root, "..", "..", "products", "arqade", "qt", "build.ps1");
-execFileSync("pwsh", ["-NoProfile", "-File", script, "-Deploy", "-DeployTo", target], { stdio: "inherit" });
+// A build folder of this checkout's own. CMake refuses a folder configured from another source tree, so two
+// checkouts sharing ARQADE's default folder would stop each other's release build.
+const build = join(process.env.LOCALAPPDATA ?? root, "arqade-stage-" + createHash("sha256").update(root).digest("hex").slice(0, 8));
+execFileSync("pwsh", ["-NoProfile", "-File", script, "-Build", build, "-Deploy", "-DeployTo", target], { stdio: "inherit" });
 
 const program = join(target, "arqade.exe");
 if (!existsSync(program)) {
