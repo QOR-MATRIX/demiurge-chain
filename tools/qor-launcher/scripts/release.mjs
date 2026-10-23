@@ -116,7 +116,7 @@ if (flag('--self-test')) {
 
 if (process.platform !== 'win32') fail('releases are built on Windows, where the installer carries QOR Media and ARQADE.');
 const notesPath = option('--notes');
-if (!notesPath || !existsSync(notesPath)) fail('say what changed: --notes <file> (Markdown, shown in the launcher).');
+if (!notesPath || !existsSync(notesPath)) fail('say what changed: --notes <file> (plain text: the launcher shows it as written, and GitHub as Markdown).');
 const notes = readFileSync(notesPath, 'utf8').trim();
 
 // 1. The version, in every place that names it.
