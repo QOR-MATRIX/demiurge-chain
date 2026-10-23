@@ -78,7 +78,11 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get -o Acquire::Retries=5 update && sudo apt-get -o Acquire::Retries=5 install -y clang libclang-dev llvm-dev protobuf-compiler
 
+      # The cache only saves build time. A restore that hangs (the launcher job waited 30 minutes on one on
+      # 22 October 2026) is cut off, and the job builds without it; nothing it checks changes.
       - uses: actions/cache@v4
+        timeout-minutes: 10
+        continue-on-error: true
         with:
           path: |
             ~/.cargo/registry
@@ -171,6 +175,8 @@ jobs:
         run: sudo apt-get -o Acquire::Retries=5 update && sudo apt-get -o Acquire::Retries=5 install -y clang libclang-dev llvm-dev protobuf-compiler
 
       - uses: actions/cache@v4
+        timeout-minutes: 10
+        continue-on-error: true
         with:
           path: |
             ~/.cargo/registry
@@ -243,6 +249,8 @@ jobs:
           components: rustfmt, clippy
 
       - uses: actions/cache@v4
+        timeout-minutes: 10
+        continue-on-error: true
         with:
           path: |
             ~/.cargo/registry
@@ -296,6 +304,8 @@ jobs:
           components: rustfmt, clippy
 
       - uses: actions/cache@v4
+        timeout-minutes: 10
+        continue-on-error: true
         with:
           path: |
             ~/.cargo/registry
@@ -359,6 +369,8 @@ jobs:
           components: rustfmt, clippy
 
       - uses: actions/cache@v4
+        timeout-minutes: 10
+        continue-on-error: true
         with:
           path: |
             ~/.cargo/registry
