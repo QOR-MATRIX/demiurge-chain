@@ -353,6 +353,10 @@ signs the authorisation statement QOR ID verifies (ADR-112 decision 2) and the h
 profile's session. Any refusal comes before the dialog, and nothing is signed. Listing, limiting and revoking agents
 from the launcher are L5.2.
 
+To see it, with a launcher of 0.1.16 or later installed and signed in: `cargo run --example agent_link` in
+`src-tauri/` plays a test agent against the live QOR ID (`--qor-id` for another, `--print` to print the link instead
+of opening it). Its key lives only in that process.
+
 ### Avatars (ADR-079)
 
 The account's avatar, with its level on a ring that glows from level 1 (ADR-080), sits in the rail and, at 64 px, on the

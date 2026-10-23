@@ -714,7 +714,8 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
    controller's own key's signature over a statement naming every field and a single-use challenge; the launcher
    reads an agent's `qor://agent` link, checks it before asking, and signs in the vault after its own dialog. Proven
    against QOR ID running on the owner's PC. Ticked when a person has authorised an agent from an installed launcher
-   against the live QOR ID.
+   against the live QOR ID; `cargo run --example agent_link` in `tools/qor-launcher/src-tauri/` plays a test agent for
+   it, the only agent that makes such a link yet.
 2. [ ] Agents listed, limited and revoked from the launcher.
 
 #### L6: Distribution (no chain dependency; before the public testnet)
