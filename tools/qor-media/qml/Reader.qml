@@ -135,6 +135,8 @@ FocusScope {
             pages.positionViewAtRow(target, TableView.AlignTop, 0, Qt.rect(0, y, 1, 1))
         else
             pages.positionViewAtRow(target, TableView.AlignTop, -margin)
+        // A page not laid out yet is gone to at the view's next frame, which could land after a later jump and undo it.
+        pages.forceLayout()
         page = target
     }
     function scrollBy(dy) {
@@ -195,6 +197,7 @@ FocusScope {
         if (row < 0) return
         const r = search.currentResultBoundingRect
         pages.positionViewAtRow(row, TableView.AlignTop, 0, Qt.rect(0, Math.max(0, r.y * zoom - pages.height / 3), 1, 1))
+        pages.forceLayout()
         page = row
     }
     function openFinder() {

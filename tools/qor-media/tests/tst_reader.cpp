@@ -170,6 +170,12 @@ private slots:
         QTest::keyClick(window, Qt::Key_Home);
         QTRY_COMPARE(reader->property("page").toInt(), 0);
         const qreal top = pages->property("contentY").toReal();
+        // Two jumps at once, the second before the view has drawn the first: the last one wins, and stays.
+        QTest::keyClick(window, Qt::Key_End);
+        QTest::keyClick(window, Qt::Key_Home);
+        QTest::qWait(400);
+        QCOMPARE(reader->property("page").toInt(), 0);
+        QCOMPARE(pages->property("contentY").toReal(), top);
         QTest::keyClick(window, Qt::Key_PageDown);
         QTRY_VERIFY(pages->property("contentY").toReal() > top + pages->height() / 2);
         QTest::keyClick(window, Qt::Key_PageUp);
