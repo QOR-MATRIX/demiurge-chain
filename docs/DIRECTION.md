@@ -839,7 +839,9 @@ are release 1.
    zoomed, find, selection and copying, links, thumbnails and contents, locked PDFs opened by their password. **Pages
    reordered, rotated and deleted** the same day, through PDFium's own interface (`src/pdfpages.cpp`, `tst_pdfpages`):
    shown at once, undone and redone, saved into a temporary file renamed into place; a locked or protected PDF is only
-   read. Annotating, highlighting, filling and signing are next.
+   read; merged as #83 and #84. **A PDF's own marks drawn** the same day (`src/pdfdrawing.cpp`): Qt PDF's page image left
+   out highlights, notes, stamps and filled fields. "Signed" means a drawn or typed signature (ADR-114 decision 1);
+   certified signatures are proposed there, not decided. Annotating, highlighting, filling and signing are next.
 6. [ ] Owned games and work in the Library (L7.1; depends on entitlements, M8).
 7. [ ] Release 2: Office documents viewed and edited through LibreOffice's engine, its own record first.
 8. [ ] Pictures beyond Qt's plugins: HEIC, AVIF, JPEG XL and camera RAW.

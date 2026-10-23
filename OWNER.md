@@ -20,12 +20,13 @@ gaming website*. **Launcher 0.1.16** is the tester download.
    I read it back: exactly the file I had rehearsed, nothing lost, still finalising.
    Assets can now keep a level, **XP** — *experience points* — and stats, written by
    their game. A launcher built from today's code shows them; no released one does yet.
-2. **#82 and #83 are merged.** PDFs now open inside **QOR Media** — *the launcher's
-   media app* — with zoom, find, copying, links and locked PDFs.
-3. **For your merge: #84.** PDF pages can be turned, deleted, moved, undone and saved,
-   through **PDFium** — *Google's PDF engine* — and your file is replaced only once the
-   new one is complete. Locked PDFs are only read. Testing it again today found and
-   fixed a real bug: jumping twice quickly could send you back to the first page.
+2. **#82, #83 and #84 are merged.** PDFs open inside **QOR Media** — *the launcher's
+   media app* — and their pages can be turned, deleted, moved and saved through
+   **PDFium** — *Google's PDF engine*.
+3. **For your merge: #85.** A PDF's own marks (highlights, notes, filled-in forms) were
+   missing in QOR Media; the Qt part that draws pages leaves them out. Now they show.
+4. **Signing, as you chose ("Both, drawn first"):** a drawn or typed signature comes with
+   marking up; certified signatures are written up in ADR-114 for you to decide later.
 
 ## The release gates (measured last session)
 
@@ -39,7 +40,7 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
    Lose them and testers reinstall by hand.
-2. **Merge #84** when you have looked at it.
+2. **Merge #85** when you have looked at it.
 3. **Install 0.1.15 yourself, then take 0.1.16 when it offers it**: the first update
    through the channel, which ticks L6.2. Then let a test agent ask you: in
    `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run `cargo run --example agent_link`
@@ -60,8 +61,9 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    pasted on 5 October; `social-secrets.txt` on your Desktop and `archive-bZLIQp/` in the
    old checkout, each to keep or delete.
 
-**Next in engineering:** marking up, filling and signing PDFs (the rest of L9.5). At your
-word: a launcher release that shows assets' levels, games other than the home game
+**Next in engineering:** marking up PDFs (highlights, notes, drawing) and the drawn
+signature, then filling forms: the rest of L9.5. At your word: certified signatures
+(ADR-114), a launcher release that shows assets' levels, games other than the home game
 keeping records (ADR-113's second phase), or rental and fractions (M4.3).
 
 ## Cost per month
