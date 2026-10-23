@@ -1,7 +1,7 @@
 # QOR Media (ADR-094): the Library's player, viewer and editor, in Qt 6, C++20 and QML, docked inside the QOR Launcher.
 #
 #   src/    the launcher link (media.next), docking into the launcher's window, files, text and highlighting
-#   qml/    the module "QOR.Media": the window, the player, the viewer, the editor; Tokens.qml, which
+#   qml/    the module "QOR.Media": the window, the player, the viewer, the editor, the reader (Qt PDF); Tokens.qml, which
 #           docs/design/tokens.mjs generates from docs/design/tokens.json, and Theme, which binds to it (ADR-108)
 #   fonts/  Barlow, Barlow Semi Condensed and IBM Plex Mono, under the SIL Open Font License, copied by tokens.mjs
 #   tests/  Qt Test suites
@@ -18,7 +18,7 @@ project(QorMedia VERSION 0.1.0 DESCRIPTION "QOR Media" LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Multimedia Network Qml Quick QuickControls2 Svg Test)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Multimedia Network Pdf PdfQuick Qml Quick QuickControls2 QuickShapes Svg Test)
 
 qt_standard_project_setup(REQUIRES 6.12)
 
@@ -58,6 +58,7 @@ qt_add_qml_module(qormedia_core
         qml/Player.qml
         qml/Viewer.qml
         qml/Editor.qml
+        qml/Reader.qml
         qml/Elsewhere.qml
         qml/TopBar.qml
         qml/IconButton.qml
@@ -76,6 +77,11 @@ qt_add_qml_module(qormedia_core
         qml/icons/save.svg
         qml/icons/preview.svg
         qml/icons/open.svg
+        qml/icons/find.svg
+        qml/icons/zoomin.svg
+        qml/icons/zoomout.svg
+        qml/icons/fit.svg
+        qml/icons/pages.svg
         fonts/Barlow-Regular.ttf
         fonts/Barlow-Medium.ttf
         fonts/BarlowSemiCondensed-Regular.ttf
@@ -86,12 +92,12 @@ qt_add_qml_module(qormedia_core
 )
 
 qt_add_executable(qor-media WIN32 src/main.cpp)
-target_link_libraries(qor-media PRIVATE qormedia_core qormedia_coreplugin Qt6::Multimedia Qt6::QuickControls2 Qt6::Svg)
+target_link_libraries(qor-media PRIVATE qormedia_core qormedia_coreplugin Qt6::Multimedia Qt6::PdfQuick Qt6::QuickControls2 Qt6::QuickShapes Qt6::Svg)
 
 enable_testing()
-foreach(suite medialink files textfile playback look)
+foreach(suite medialink files textfile playback look reader)
     qt_add_executable(tst_${suite} tests/tst_${suite}.cpp)
-    target_link_libraries(tst_${suite} PRIVATE qormedia_core qormedia_coreplugin Qt6::Multimedia Qt6::QuickControls2 Qt6::Test)
+    target_link_libraries(tst_${suite} PRIVATE qormedia_core qormedia_coreplugin Qt6::Multimedia Qt6::PdfQuick Qt6::QuickControls2 Qt6::QuickShapes Qt6::Test)
     add_test(NAME ${suite} COMMAND tst_${suite})
 endforeach()
 # The look's test reads the source itself, not the file generated from it.

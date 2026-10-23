@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Window
 import QOR.Media
 
-// QOR Media's one window: the player, the viewer or the editor, by what is open (ADR-094; docs/blueprints/library.md
+// QOR Media's one window: the player, the viewer, the editor or the reader, by what is open (ADR-094; docs/blueprints/library.md
 // section 4). Docked inside the launcher it is borderless and sits over the Library; started by hand it is a window.
 Window {
     id: root
@@ -69,6 +69,8 @@ Window {
             return viewerView
         if (fileKind === "document" && Files.isText(filePath))
             return editorView
+        if (fileKind === "document" && Files.isPdf(filePath))
+            return readerView
         return elsewhereView
     }
 
@@ -151,6 +153,14 @@ Window {
         Editor {
             path: root.path
             onBack: root.close()
+        }
+    }
+    Component {
+        id: readerView
+        Reader {
+            path: root.path
+            onBack: root.close()
+            onFullScreenToggled: Dock.toggleFullScreen(root)
         }
     }
     Component {

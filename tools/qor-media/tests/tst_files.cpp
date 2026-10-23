@@ -40,6 +40,14 @@ private slots:
         QCOMPARE(Files::textLanguage("a.log"), QStringLiteral("plain"));
     }
 
+    void a_pdf_is_what_the_reader_opens()
+    {
+        QVERIFY(Files::isPdf("C:/a/Paper.PDF"));
+        QVERIFY(!Files::isPdf("a.pdf.txt"));
+        QVERIFY(!Files::isPdf("a.docx"));
+        QVERIFY(!Files::isPdf("pdf"));
+    }
+
     void siblings_are_the_same_kind_in_the_order_people_read_numbers()
     {
         QTemporaryDir dir;
