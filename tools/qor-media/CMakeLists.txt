@@ -1,6 +1,7 @@
 # QOR Media (ADR-094): the Library's player, viewer and editor, in Qt 6, C++20 and QML, docked inside the QOR Launcher.
 #
-#   src/    the launcher link (media.next), docking into the launcher's window, files, text and highlighting
+#   src/    the launcher link (media.next), docking into the launcher's window, files, text and highlighting, and a
+#           PDF's pages changed through PDFium
 #   qml/    the module "QOR.Media": the window, the player, the viewer, the editor, the reader (Qt PDF); Tokens.qml, which
 #           docs/design/tokens.mjs generates from docs/design/tokens.json, and Theme, which binds to it (ADR-108)
 #   fonts/  Barlow, Barlow Semi Condensed and IBM Plex Mono, under the SIL Open Font License, copied by tokens.mjs
@@ -19,6 +20,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Multimedia Network Pdf PdfQuick Qml Quick QuickControls2 QuickShapes Svg Test)
+# PDFium's own interface, for changing a PDF (ADR-094 decision 3). build.ps1 fetches the pinned release and points
+# PDFium_DIR at it; its DLL goes beside every program built here.
+find_package(PDFium REQUIRED)
+file(COPY "${PDFium_LIBRARY}" DESTINATION "${CMAKE_BINARY_DIR}")
 
 qt_standard_project_setup(REQUIRES 6.12)
 
@@ -38,10 +43,11 @@ qt_add_library(qormedia_core STATIC
     src/highlighter.h src/highlighter.cpp
     src/dock.h src/dock.cpp
     src/look.h src/look.cpp
+    src/pdfpages.h src/pdfpages.cpp
     src/tokens.h
 )
 target_include_directories(qormedia_core PUBLIC src)
-target_link_libraries(qormedia_core PUBLIC Qt6::Core Qt6::Gui Qt6::Network Qt6::Qml Qt6::Quick)
+target_link_libraries(qormedia_core PUBLIC Qt6::Core Qt6::Gui Qt6::Network Qt6::Qml Qt6::Quick pdfium)
 
 # Before the module, or Theme is registered as an ordinary type.
 set_source_files_properties(qml/Theme.qml qml/Tokens.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -82,6 +88,10 @@ qt_add_qml_module(qormedia_core
         qml/icons/zoomout.svg
         qml/icons/fit.svg
         qml/icons/pages.svg
+        qml/icons/up.svg
+        qml/icons/down.svg
+        qml/icons/delete.svg
+        qml/icons/undo.svg
         fonts/Barlow-Regular.ttf
         fonts/Barlow-Medium.ttf
         fonts/BarlowSemiCondensed-Regular.ttf
@@ -95,7 +105,7 @@ qt_add_executable(qor-media WIN32 src/main.cpp)
 target_link_libraries(qor-media PRIVATE qormedia_core qormedia_coreplugin Qt6::Multimedia Qt6::PdfQuick Qt6::QuickControls2 Qt6::QuickShapes Qt6::Svg)
 
 enable_testing()
-foreach(suite medialink files textfile playback look reader)
+foreach(suite medialink files textfile playback look reader pdfpages)
     qt_add_executable(tst_${suite} tests/tst_${suite}.cpp)
     target_link_libraries(tst_${suite} PRIVATE qormedia_core qormedia_coreplugin Qt6::Multimedia Qt6::PdfQuick Qt6::QuickControls2 Qt6::QuickShapes Qt6::Test)
     add_test(NAME ${suite} COMMAND tst_${suite})
