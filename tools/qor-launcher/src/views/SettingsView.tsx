@@ -14,6 +14,7 @@ import { useProgress } from '../components/chrome/Level';
 import { BACKDROP_PRESETS, applyBackdrop, currentBackdrop, type BackdropId } from '../qfx/backdrops';
 import { AccessibilityPanel } from './AccessibilityPanel';
 import { ProfilePanel } from './ProfilePanel';
+import { UpdatesPanel } from './UpdatesPanel';
 import { Field, Panel, ViewHeader } from './parts';
 
 export function SettingsView() {
@@ -96,6 +97,8 @@ export function SettingsView() {
         </Panel>
 
         <RecoveryPanel />
+
+        <UpdatesPanel />
 
         <Panel className="p-6">
           <p className="eyebrow mb-4">About</p>

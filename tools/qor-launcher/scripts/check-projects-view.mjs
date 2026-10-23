@@ -75,6 +75,7 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { devtoolsPort } from './chrome.mjs';
 
 const dist = resolve(process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'dist'));
 if (!existsSync(join(dist, 'index.html'))) {
@@ -187,7 +188,6 @@ const appUrl = `http://127.0.0.1:${server.address().port}/`;
 // --- drive a real rendering engine ----------------------------------------
 
 const profile = await mkdtemp(join(tmpdir(), 'qor-projects-'));
-const port = 9800 + Math.floor(Math.random() * 400);
 const browser = spawn(
   BROWSER,
   [
@@ -197,11 +197,11 @@ const browser = spawn(
     '--disable-gpu',
     '--no-first-run',
     '--no-default-browser-check',
-    `--remote-debugging-port=${port}`,
+    '--remote-debugging-port=0',
     `--user-data-dir=${profile}`,
     'about:blank',
   ],
-  { stdio: 'ignore' },
+  { stdio: ['ignore', 'ignore', 'pipe'] },
 );
 
 const finish = async () => {
@@ -213,6 +213,7 @@ const finish = async () => {
 try {
   let target;
   // About 30 s: a CI runner has taken more than 10 s to give Chrome its first page (6 October 2026).
+  const port = await devtoolsPort(browser);
   for (let i = 0; i < 300 && !target; i++) {
     // Pause before every retry, not only after a refused connection: the browser can answer before its page
     // exists, and the loop then gave up within milliseconds on a slow runner (CI, 6 October 2026).

@@ -207,20 +207,20 @@ the canvas's.
 
 ## 6. Where things stand
 
-Re-verified on 6 October 2026 against the tree, CI and the live services. The first verification, 13 to
+Re-verified on 6 October 2026 against the tree, CI and the live services; the chain, QOR ID, launcher and products rows again on 22 October 2026, against `main` at `c401aee`, its CI run and the live devnet. The first verification, 13 to
 21 September 2026, is in [`audit/RECONCILIATION.md`](audit/RECONCILIATION.md), which is a dated audit kept
 as written; [`HANDOFF.md`](../HANDOFF.md) §1 has anything later than this table.
 
 | Component | State |
 | --- | --- |
-| Chain (`chain/`) | **The only chain** (ADR-013, ADR-032). A Substrate L1 on the pinned Polkadot SDK (`polkadot-stable2606-1`, on Rust 1.98.1 by ADR-072): Aura authors, GRANDPA finalises, and the validator set comes from governance through `pallet-session` and `pallet-validator-set` (ADR-018 to ADR-020). It mounts `pallet-nfts` and `pallet-drc369` (M4.1, ADR-052) with nesting (ADR-065), `pallet-drc369-royalties` with royalties and a sale settled in CGT (ADR-061), `pallet-utility` with only `batch_all` reachable (M4.6, ADR-053), and `pallet-arq-wallet` (ADR-070); `spec_version` 8. 150 workspace tests pass with the runtime wasm built (2026-10-04). Two validators agree, finalise, and one catches up after a restart: CI's nightly two-validators job. No transaction payment, no issuance and no treasury, on purpose (OPEN-1, OPEN-2, OPEN-4). **Demiurge Devnet is live** at `wss://rpc.qorsync.dev`: two validators and an RPC node on Railway (ADR-068), holding test CGT only. |
+| Chain (`chain/`) | **The only chain** (ADR-013, ADR-032). A Substrate L1 on the pinned Polkadot SDK (`polkadot-stable2606-1`, on Rust 1.98.1 by ADR-072): Aura authors, GRANDPA finalises, and the validator set comes from governance through `pallet-session` and `pallet-validator-set` (ADR-018 to ADR-020). It mounts `pallet-nfts` and `pallet-drc369` (M4.1, ADR-052) with nesting (ADR-065), `pallet-drc369-royalties` with royalties and a sale settled in CGT (ADR-061), `pallet-utility` with only `batch_all` reachable (M4.6, ADR-053), and `pallet-arq-wallet` (ADR-070), and `pallet-mesh` with its proof crate `mesh-proof` (ADR-096, index 12); `spec_version` 9, which the devnet runs. 178 workspace tests pass with the runtime wasm built (CI on `main` at `c401aee`, 22 October 2026). Two validators agree, finalise, and one catches up after a restart: CI's nightly two-validators job. No transaction payment, no issuance and no treasury, on purpose (OPEN-1, OPEN-2, OPEN-4). **Demiurge Devnet is live** at `wss://rpc.qorsync.dev`: two validators and an RPC node on Railway (ADR-068), holding test CGT only. |
 | Chain (`framework/`) | **Retired and deleted at M3.5, 20 September 2026**, after everything referring to it was rewritten. It was custom Rust with no finality, and untrusted: its non-strict Ed25519 verification accepted signatures nobody made for small-order keys (R-1). Nothing in it is carried forward, and CI fails if the directory returns. |
 | CGT on chain | 18 decimals, decided (ADR-035), with an existential deposit of 100 CGT (ADR-036). **`chain/` declares no total-supply constant at all**, because issuance is OPEN-1 and the genesis split is OPEN-2; the superseded 13 billion figure went with `framework/`, and left the launcher on 2026-09-20, which is the removal ADR-003 asks for by name: the launcher's ceiling on a typed amount is now named for what it is and is not a supply, and the Settings surface shows no total (`RECONCILIATION.md`, "Remediation since this audit"). No CGT fee is charged, and there is no path that creates CGT outside a development chain specification. The ticker is `CGT` (ADR-034), and `chain/` was written with it from the start, which is requirement R-4. |
 | Economic model | Decided in direction (ADR-002 to ADR-008). Rates, split, curve and burn shares are open. Nothing implemented. |
 | DRC-369 | **Built on chain.** `pallet-drc369` over `pallet-nfts` mints an asset carrying ADR-047's 41-byte content reference and its pinned commit, revises it until a one-way switch makes it permanent, creates one singles collection per creator, and lists what an owner holds, from storage and through a runtime API (M4.1, ADR-052, 2026-09-22). Only it can create an asset. Royalties, remix royalties one level deep and a sale settled in CGT since 2026-09-29 (`pallet-drc369-royalties`, ADR-061, ADR-062); nesting, with requirement R-2's cycle refusal, since 2026-10-01 (ADR-065). Its deposits are placeholders (U-14) and its weights are placeholders owed to M7.2. State and XP, physics, rental and fractions are not started. **The launcher** mints a Qontrol project's commit, lists what an account holds, trades, lists for sale, withdraws and buys (L4.2, L4.5, L4.6). The wire format is decided (ADR-047, accepted 2026-09-22, M2.3) and not yet frozen (`beta.wire-format-frozen`). |
-| QOR ID (`services/qor-auth`) | **Live at `https://id.qorsync.dev`**, deployed from `main` to Railway. Username and keypair sign-in with JWTs: Sr25519 keys, an account as SS58 or hex, and a password-only account with no chain identity until it proves a key (ADR-017, implemented with L3.2). Email verification, password reset and address change through Resend; single-use backup codes; an account page to change a password or add an email. Agents register their own keys and QOR ID only authorises them (ADR-014); capabilities and spend caps are recorded, not enforced (Q-9). Sign-in for apps by OAuth 2.1 with PKCE (ADR-073; ARQADE is registered); unique usernames (ADR-075); levels, XP, tasks and owed welcome grants (ADR-078, migration 020); avatars (ADR-079, migration 022); for the owner, the owed welcome grants listed and one marked paid against the hash of its transfer (admin routes, 8 October 2026; nothing pays them yet, P7.17); and the launcher signing a person into an app it opened with its own session (`/api/v1/oauth/handoff`, P7.18). No token, key, link or address may reach a log at any level, checked at runtime and in CI, and no SQL statement may be built from values (`alpha.no-secrets-in-logs`, `alpha.parameterised-sql`). The §7.1 defects are fixed; what remains is named in SECURITY.md, among it that an access token alone can still register an agent (L5.1). 172 tests pass against Postgres 16 and Redis 7.4 (2026-10-08). |
-| QOR Launcher (`tools/qor-launcher`) | Version 0.1.14 (`tauri.conf.json`), published for testers on 18 October 2026 as the GitHub Release `launcher-v0.1.14`; unsigned, with no update channel (L6). A Tauri 2 desktop application whose Rust host alone holds keys. Since ADR-104 that host is moving into a core shared with the Android launcher (L13.2): Sparks, errors, the vault and profiles so far. Built: a profile for each QOR ID on a PC, opened with a PIN (ADR-099); the wallet's key in the operating system's keychain with no lock screen (ADR-056); QOR ID sign-in by key; amounts in Sparks (ADR-101); sending, minting, the Inventory, trading, selling and buying (L4.2, L4.4, L4.5); the Market (no search, no indexer); Projects (Qontrol, P1.1, P1.2); the gates dashboard; `qor://pay` behind the host dialog (ADR-076, ADR-077); levels and avatars; Social (ADR-091 to ADR-093); the Library with QOR Media (ADR-094); the Mesh, paid on the devnet's runtime 9 (ADR-095 to ADR-097); ARQADE's Qt app docked over the launcher (ADR-102); QQ Studio started and answered through the product host (ADR-046, ADR-088); six QFX backdrops. 270 host tests (suite `launcher`), 73 core tests (suite `launcher_core`) and fifteen browser checks (`npm run check`), all run in CI. |
-| Products (P1 to P7) | Seven blueprints and six substrate records (ADR-046 to ADR-051), all accepted. **ARQADE is live** on Vercel at `https://qor-arqade-tau.vercel.app` since 2026-10-05 (ADR-074): QOR ID sign-in, solo games, two multiplayer games, rankings, chat, devnet reads, tips approved in the launcher (P7.4) and levels. Four first slices are built inside the launcher: Qontrol's Projects surface (P1.1, P1.2), QFX layer one (P2.1, with six backdrops to choose from since 8 October 2026), Market's first slice (P5.3, without the indexer) and **QQ's TypeScript preview** (8 October 2026: a WebGL2 2D engine and editor whose scenes are versioned by Qontrol). **QQ moves to Qt 6 (ADR-083, 8 October 2026)**: its P3 items are rewritten for a native Studio and Player, and P3.1 is done (9 October 2026): QQ Studio edits a lit 3D world, kept as canonical QML in a Qontrol project and opened from the launcher. P3.2 is done (10 October 2026): worlds play, with physics, a player under keyboard, mouse and gamepad, particles, sound and logic rebuilt on each save, in the Studio and in the QQ Player, natively and in a browser. ARQADE shows the player's QOR ID avatar since 8 October 2026. GNOSIS and Stream have not started. |
+| QOR ID (`services/qor-auth`) | **Live at `https://id.qorsync.dev`**, deployed from `main` to Railway. Username and keypair sign-in with JWTs: Sr25519 keys, an account as SS58 or hex, and a password-only account with no chain identity until it proves a key (ADR-017, implemented with L3.2). Email verification, password reset and address change through Resend; single-use backup codes; an account page to change a password or add an email. Agents register their own keys and QOR ID only authorises them (ADR-014); capabilities and spend caps are recorded, not enforced (Q-9). Sign-in for apps by OAuth 2.1 with PKCE (ADR-073; ARQADE is registered); unique usernames (ADR-075); levels, XP, tasks and owed welcome grants (ADR-078, migration 020); avatars (ADR-079, migration 022); for the owner, the owed welcome grants listed and one marked paid against the hash of its transfer (admin routes, 8 October 2026; nothing pays them yet, P7.17); and the launcher signing a person into an app it opened with its own session (`/api/v1/oauth/handoff`, P7.18). No token, key, link or address may reach a log at any level, checked at runtime and in CI, and no SQL statement may be built from values (`alpha.no-secrets-in-logs`, `alpha.parameterised-sql`). The §7.1 defects are fixed; what remains is named in SECURITY.md, among it that an access token alone can still register an agent (L5.1). 185 tests pass against Postgres 16 and Redis 7.4 (CI on `main` at `c401aee`, 22 October 2026). |
+| QOR Launcher (`tools/qor-launcher`) | Version 0.1.14 (`tauri.conf.json`), published for testers on 18 October 2026 as the GitHub Release `launcher-v0.1.14`; unsigned (L6.1) and with no update channel in it. The channel (L6.2, ADR-111) is built: testers install the first release that carries it by hand, once, and every release after it from inside the launcher. A Tauri 2 desktop application whose Rust host alone holds keys. Since ADR-104 that host is moving into a core shared with the Android launcher (L13.2): Sparks, errors, the vault and profiles so far. Built: a profile for each QOR ID on a PC, opened with a PIN (ADR-099); the wallet's key in the operating system's keychain with no lock screen (ADR-056); QOR ID sign-in by key; amounts in Sparks (ADR-101); sending, minting, the Inventory, trading, selling and buying (L4.2, L4.4, L4.5); the Market (no search, no indexer); Projects (Qontrol, P1.1, P1.2); the gates dashboard; `qor://pay` behind the host dialog (ADR-076, ADR-077); levels and avatars; Social (ADR-091 to ADR-093); the Library with QOR Media (ADR-094); the Mesh, paid on the devnet's runtime 9 (ADR-095 to ADR-097); ARQADE's Qt app docked over the launcher (ADR-102); QQ Studio started and answered through the product host (ADR-046, ADR-088); six QFX backdrops. 257 host tests (13 ignored), the core's 72 (1 ignored) and sixteen browser checks (`npm run check`) pass in CI on `main` (22 October 2026); the update channel adds its own tests and two steps to `npm run check`. |
+| Products (P1 to P7) | Seven blueprints and six substrate records (ADR-046 to ADR-051), all accepted. **ARQADE is live** on Vercel at `https://qor-arqade-tau.vercel.app` since 2026-10-05 (ADR-074): QOR ID sign-in, solo games, two multiplayer games, rankings, chat, devnet reads, tips approved in the launcher (P7.4) and levels. Four first slices are built inside the launcher: Qontrol's Projects surface (P1.1, P1.2), QFX layer one (P2.1, with six backdrops to choose from since 8 October 2026), Market's first slice (P5.3, without the indexer) and **QQ's TypeScript preview** (8 October 2026: a WebGL2 2D engine and editor whose scenes are versioned by Qontrol). **QQ moves to Qt 6 (ADR-083, 8 October 2026)**: its P3 items are rewritten for a native Studio and Player, and P3.1 is done (9 October 2026): QQ Studio edits a lit 3D world, kept as canonical QML in a Qontrol project and opened from the launcher. P3.2 is done (10 October 2026): worlds play, with physics, a player under keyboard, mouse and gamepad, particles, sound and logic rebuilt on each save, in the Studio and in the QQ Player, natively and in a browser. **Every step of ADR-105 is done** (P3.7 to P3.16, 19 to 21 October 2026): QQ makes real games in 3D and 2D. ARQADE shows the player's QOR ID avatar since 8 October 2026. GNOSIS and Stream have not started. |
 | SDKs, web apps, CLI | Frozen. None produces a transaction the current node accepts. |
 | Agent rails, MCP server, public viewer, remote console | Not started. |
 | Production (`demiurge.cloud`, `rpc.demiurge.cloud`) | Offline. No production network exists; the public devnet is `wss://rpc.qorsync.dev`. |
@@ -383,7 +383,7 @@ nesting cycles (R-2).
    undo. 150 files, 49,058 lines.
 
    What the reference work covered: AGENTS.md §4, §7 and §8 and `.cursorrules`, which now say there is one
-   chain and point precision at `chain/runtime/src/denomination.rs`; CI, where the reference job became a
+   chain (`.cursorrules` also points precision at `chain/runtime/src/denomination.rs`); CI, where the reference job became a
    `chain/` job that **is** a quality gate and the security job now fails if the directory returns;
    `HANDOFF.md` §2.0, which was a two-chain table and is now a record of what went and what remains;
    `scripts/run-local-stack.md`, whose chain sections were written for the devnet; and the migration
@@ -460,7 +460,7 @@ The core of the first release.
    call filter, so a trade of many assets either happens entirely or not at all.
 
    **Done 2026-09-22** (ADR-053), the same day the owner asked for trade. `Utility` is at index 9 and
-   `spec_version` is 3. **Only `batch_all` is reachable** — `batch` and `force_batch` carry on past a failure,
+   `spec_version` was 3. **Only `batch_all` is reachable** — `batch` and `force_batch` carry on past a failure,
    which for a trade means handing over some assets and keeping the rest — and it opens no second way to make
    an asset, because a signed origin's inner calls go through the same base filter. Evidence: four runtime
    tests, each shown to fail first against a planted fault (the filter also allowing `batch`; the filter
@@ -555,8 +555,8 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
    endpoint changes, and a key sign-in after QOR ID was unreachable at unlock. The item stays unchecked until they are.
 5. [x] Domain-separated QOR ID challenge signing, shared with security track item 7.
 6. [x] The launcher's host tests run in CI. The job is "QOR Launcher host (tools/qor-launcher): frontend
-   build, format, lints, tests" in `.github/workflows/ci.yml`: the frontend build, `npm run check`'s nine
-   browser checks, the `qontrol-git` helper's format, lints and tests, then the host's format, lints and
+   build, format, lints, tests" in `.github/workflows/ci.yml`: the frontend build, `npm run check`'s browser
+   checks (nine when this was ticked), the `qontrol-git` helper's format, lints and tests, then the host's format, lints and
    `cargo test --features qontrol-no-skips`.
 
    **Ticked on 6 October 2026.** Before 29 September 2026 no GitHub Actions job here had ever started
@@ -667,7 +667,7 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
    travels the lane once whenever the trade changes — never a loop, and not drawn at all under reduced motion.
    **Recently traded with** offers the accounts this machine has sent assets to before, remembered locally
    after the chain finalised each trade (`partners.rs`) and sent nowhere. Reaching someone by their QOR ID
-   rather than an address needs a directory lookup, which does not exist (L4.7). The whole trade is one
+   rather than an address needs a directory lookup, which does not exist and has no roadmap item yet. The whole trade is one
    `Utility::batch_all` built from the node's metadata, so it happens entirely or not at all; the message is a `System::remark_with_event` in the same
    transaction. Composing and agreeing are two screens, and the host's own dialog (L1.4) repeats the warning
    outside the webview before the vault signs. **Refused before anyone is asked**: an address that is not one,
@@ -724,7 +724,27 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 #### L6: Distribution (no chain dependency; before the public testnet)
 
 1. [ ] Signed installers for Windows, macOS and Linux.
-2. [ ] An update channel that verifies signatures before installing.
+2. [ ] An update channel that verifies signatures before installing. **Built 22 October 2026 (ADR-111), on branch
+   `session/update-channel`, not merged.** Ticked when a release reaches a tester's launcher through it.
+   - **The channel:** one fixed address,
+     `https://github.com/QOR-MATRIX/demiurge-chain/releases/download/launcher-channel/latest.json`, which the release
+     script replaces at each release; each installer stays in its own pre-release.
+   - **Verified twice before anything runs:** Tauri's updater checks the installer against the public key built into
+     the launcher; the host (`src-tauri/src/update.rs`) checks it again, refusing a legacy signature, and requires the
+     signed file to be the announced version's installer, since the Tauri CLI this launcher is built with signs a
+     file's name, not its version. HTTPS only, no downgrades, nothing "dangerous" in any release configuration.
+   - **The person decides:** the host checks fifteen seconds after start and every six hours (a switch in Settings,
+     on by default), says what it found in Settings and in the title bar, and installs only on *Update and restart*.
+     The interface can ask to check and to install, never name an address, a key or a file.
+   - **The key** is on the PC that builds releases (`scripts/updater-key.ps1`), never in the repository.
+     `scripts/release.mjs` builds, checks its own signature and file name, writes the manifest, and publishes only
+     when asked. Without the updater's `zip` feature: a Windows update is the installer itself, and zip 4 has three
+     open advisories.
+   - **Checks:** the host's tests (a release accepted only with the key and its own name; a changed byte, another
+     version's installer and another key refused; the configuration naming the channel and nothing dangerous),
+     `check-updates-view.mjs` (27) and `release.mjs --self-test` (3) in `npm run check`, and an end-to-end run on this
+     PC, `scripts/update-e2e.mjs`: a test product installed, a tampered installer and a mislabelled one refused, and
+     the real update installed without a question and the launcher reopened on it.
 3. [ ] The QOR Installer, sharing the launcher's Rust core.
 
 #### L7: Platform surfaces (depends on M8)
@@ -818,27 +838,27 @@ No item sets a price, rate, pool or burn share. **Order (ADR-096 decision 5):** 
 L10.2, because finding who holds a root reads the escrow's assignments on chain.
 
 1. [ ] The network, and one's own published work seeded: an iroh node in the launcher's host, seeding opt-in with disk
-   and upload limits, the temporary content store's roots served and fetched verified. No CGT moves. Built 2026-10-17 on
-   branch `session/mesh`, not merged: `src-tauri/src/mesh/` and the Mesh page, between two launchers on one PC; not yet
+   and upload limits, the temporary content store's roots served and fetched verified. No CGT moves. Built 2026-10-17 and
+   merged with #40 (`580aa9e`) the same day: `src-tauri/src/mesh/` and the Mesh page, between two launchers on one PC; not yet
    between two PCs over the internet.
 2. [ ] Seeding others' published work: finding who holds a root, fetching and verifying it, holding it within the
-   person's limits, and the Mesh page showing what is seeded and served. **Built 2026-10-17 on branch `session/mesh`, not
-   merged:** a root is found through the chain (an escrow's seeders, then its uploader, each dialed by the node it bound)
+   person's limits, and the Mesh page showing what is seeded and served. **Built 2026-10-17 and merged with #40 (`580aa9e`) the
+   same day:** a root is found through the chain (an escrow's seeders, then its uploader, each dialed by the node it bound)
    and fetched verified, from the Mesh page by its fingerprint; while seeding with the Mesh grant (ADR-097) the launcher
    takes on copies escrows still ask for, within the disk limit. Shown between three launchers on one PC against a
    development chain; not yet between PCs over the internet. Live on the devnet since its upgrade to runtime 9
    (17 October 2026). **A file is published to the Mesh from the Library's file menu** (launcher 0.1.11): minted as an
    asset whose manifest names it alone, after a dialog saying it becomes public.
 3. [ ] The proofs: storage challenges and serving receipts, as ADR-096 accepts them (U-6). QOR ID attesting receivers on
-   chain is a later step of its own. **Both halves built 2026-10-17 on branch `session/mesh`, not merged:**
+   chain is a later step of its own. **Both halves built 2026-10-17 and merged with #40 (`580aa9e`) the same day:**
    `pallet-mesh` checks answers with `mesh-proof` and pays receipts; the launcher answers each period's challenge with a
    proof read from its store a piece at a time, signs receipts for what it downloads, and claims those it is sent, all
    under the Mesh grant (ADR-097). Seen paid for both on a development chain, whose period is a minute.
 4. [ ] The hosting escrow on the devnet: deposits, the uploader's prices, assignments, payment for proven work, unspent
    escrow returned; the Mesh page shows what was paid. In `pallet-mesh` (ADR-096). Depends on L10.3. **Built 2026-10-17
-   on branch `session/mesh`, not merged, at `spec_version` 9:** the pallet, and in the launcher an escrow opened for
-   one's own work at one's own prices after a dialog, and the Mesh page showing what was paid. **Not on the devnet**: the
-   runtime upgrade is the owner's to sign. Closing an escrow from the launcher is not built.
+   and merged with #40 (`580aa9e`) the same day, at `spec_version` 9:** the pallet, and in the launcher an escrow opened for
+   one's own work at one's own prices after a dialog, and the Mesh page showing what was paid. **On the devnet** since the
+   owner signed its upgrade to runtime 9 that night. Closing an escrow from the launcher is not built.
 5. [ ] Private backup: encrypted on the PC with keys from the vault, erasure-coded across seeders, repaired, and
    restored from the recovery phrase on a new PC. Depends on L10.4.
 6. [ ] Demiurge's own relays, in place of n0's public ones.
@@ -1209,7 +1229,8 @@ The launcher's living visual layer, in three layers. [`blueprints/qfx.md`](bluep
      highlighter's colours until the launcher sends its theme are `tokens.h`'s, and its bold a weight QOR Media
      carries. Every size is on the scale, every corner a control's or a panel's, every transition on the look's
      durations and easing. **The three defects ADR-108's survey named are fixed:** the faintest ink reads 4.94:1 or
-     more, where it read 3.4 to 3.8; less motion (the launcher's Motion setting, `QOR_REDUCED_MOTION`, or, started by
+     more, where `#6b7385` read 3.5 to 4.2 on QOR Media's grounds (corrected 22 October 2026: this line said 3.4 to
+     3.8, ADR-108's figure for other grounds); less motion (the launcher's Motion setting, `QOR_REDUCED_MOTION`, or, started by
      hand, Windows' Animation effects) makes every transition immediate and stills the music's glow; and Tab reaches
      every button, the volume and the speed, each showing the one focus ring, with Return or Space pressing it, while
      the player's controls stay on screen as long as the keyboard is on them. A click on an icon button leaves the
@@ -1848,7 +1869,7 @@ here sets an economic value; payouts are U-16.
    dialog approves it (not Windows Hello), no fee is shown because none is charged, the devnet is checked by genesis.
 
    **Built 5 October 2026**, with tips to a game's creator as its first use (the owner's choice; ADR-071's
-   tips). Launcher: `src/pay.rs` and `src/chain/pay.rs`, the `qor` scheme; 8 tests, among them ARQADE's own link pinned.
+   tips). Launcher: `src-tauri/src/pay.rs` and `src-tauri/src/chain/pay.rs`, the `qor` scheme; 8 tests, among them ARQADE's own link pinned.
    ARQADE: the signed request, the scan of finalised blocks, the Tip panel, migration `0002`; 6 tests. A real `batch_all`
    on a local dev chain was found, and a forgery, a wrong amount and a wrong recipient were not.
 

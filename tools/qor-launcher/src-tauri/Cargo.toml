@@ -152,6 +152,12 @@ iroh       = "1.3"
 iroh-blobs = { version = "0.103", default-features = false, features = ["fs-store"] }
 # The streams iroh-blobs answers with (already in the tree through iroh).
 n0-future  = "0.3"
+# The update channel (L6.2, ADR-111): Tauri's updater, at the release that fits this Tauri (2.14 needs a newer one), and
+# minisign's verifier, with which the host checks each download a second time, against the signed file's name. Without
+# the updater's `zip` feature: a Windows update is the signed installer itself, never an archive, and zip 4, which that
+# feature brings, has three open advisories (RUSTSEC-2026-0367 to 0369) on extracting archives.
+tauri-plugin-updater = { version = "2.12", default-features = false, features = ["rustls-tls", "system-proxy"] }
+minisign-verify      = "0.2"
 
 # Windows Hello, read only to move a vault sealed under it (ADR-055) to the
 # keychain once (ADR-056).

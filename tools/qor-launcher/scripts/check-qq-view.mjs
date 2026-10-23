@@ -62,6 +62,7 @@ import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inflateSync } from 'node:zlib';
+import { devtoolsPort } from './chrome.mjs';
 
 const dist = resolve(process.argv[2] ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'dist'));
 if (!existsSync(join(dist, 'index.html'))) {
@@ -196,7 +197,6 @@ function decodePng(buffer) {
 // --- drive a real rendering engine ----------------------------------------
 
 const profile = await mkdtemp(join(tmpdir(), 'qor-qq-'));
-const port = 9800 + Math.floor(Math.random() * 400);
 const browser = spawn(
   BROWSER,
   [
@@ -207,11 +207,11 @@ const browser = spawn(
     '--enable-unsafe-swiftshader',
     '--no-first-run',
     '--no-default-browser-check',
-    `--remote-debugging-port=${port}`,
+    '--remote-debugging-port=0',
     `--user-data-dir=${profile}`,
     'about:blank',
   ],
-  { stdio: 'ignore' },
+  { stdio: ['ignore', 'ignore', 'pipe'] },
 );
 
 const finish = async () => {
@@ -223,6 +223,7 @@ const finish = async () => {
 try {
   let target;
   // About 30 s: a CI runner has taken more than 10 s to give Chrome its first page (6 October 2026).
+  const port = await devtoolsPort(browser);
   for (let i = 0; i < 300 && !target; i++) {
     if (i > 0) await sleep(100);
     try {

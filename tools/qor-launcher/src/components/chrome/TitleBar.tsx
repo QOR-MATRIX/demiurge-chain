@@ -16,6 +16,8 @@ import { useQor } from '../../state/store';
 export function TitleBar() {
   const chainStatus = useQor((s) => s.chainStatus);
   const version = useQor((s) => s.version);
+  const update = useQor((s) => s.update);
+  const go = useQor((s) => s.go);
   const refreshVault = useQor((s) => s.refreshVault);
   const refreshChain = useQor((s) => s.refreshChain);
 
@@ -64,6 +66,20 @@ export function TitleBar() {
       </div>
 
       <div className="ml-auto flex items-center gap-5 pr-2">
+        {/* A new version is ready (ADR-111): one quiet word, until the person installs it from Settings. */}
+        {update?.status.state === 'available' && (
+          <button
+            type="button"
+            className="no-drag flex items-center gap-2 rounded-full border border-accent px-3 py-0.5 text-caption text-accent-bright"
+            title={`QOR Launcher ${update.status.version} is ready`}
+            onClick={() => go('settings')}
+            data-update-ready
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+            Update ready
+          </button>
+        )}
+
         <span
           className="flex items-center gap-2 text-ink-muted"
           title={chainStatus?.detail ?? chainStatus?.endpoint ?? 'Contacting the chain'}

@@ -25,6 +25,7 @@ import {
   identity,
   profiles,
   shell,
+  updates,
   vault,
   type AccountView,
   type Balance,
@@ -33,6 +34,8 @@ import {
   type ProfileView,
   type Session,
   type TokenInfo,
+  type UpdateStatus,
+  type UpdateView,
   type VaultStatus,
 } from '../lib/ipc';
 
@@ -69,6 +72,8 @@ interface State {
   chainStatus: ChainStatus | null;
 
   surface: Surface;
+  /** The update channel (ADR-111): null until the host first answers. */
+  update: UpdateView | null;
   /** Transient banner, cleared by the next successful action. */
   notice: { tone: 'ok' | 'bad'; text: string } | null;
 
@@ -92,6 +97,8 @@ interface State {
   setActiveAddress: (address: string) => void;
   setSession: (session: Session | null) => void;
   go: (surface: Surface) => void;
+  setUpdate: (update: UpdateView) => void;
+  setUpdateStatus: (status: UpdateStatus) => void;
   notify: (tone: 'ok' | 'bad', text: string) => void;
   clearNotice: () => void;
   /** Sign the profile out completely (ADR-099); one with no PIN yet chooses it here. */
@@ -123,6 +130,7 @@ export const useQor = create<State>((set, get) => ({
   chainStatus: null,
 
   surface: 'nexus',
+  update: null,
   notice: null,
   theme: storedTheme(),
   activeNonce: null,
@@ -196,6 +204,13 @@ export const useQor = create<State>((set, get) => ({
 
       void get().refreshChain();
       void get().refreshNonce();
+
+      // The update channel (ADR-111): what the host knows now, and every change after. A host without one says nothing.
+      updates
+        .status()
+        .then((view) => get().setUpdate(view))
+        .catch(() => {});
+      updates.onStatus((status) => get().setUpdateStatus(status));
     } catch (error) {
       set({ ready: true });
       get().notify('bad', asQorError(error).message);
@@ -266,6 +281,20 @@ export const useQor = create<State>((set, get) => ({
 
   setSession(session) {
     set({ session });
+  },
+
+  setUpdate(update) {
+    set({ update });
+  },
+
+  setUpdateStatus(status) {
+    const update = get().update;
+    const checked = status.state === 'up_to_date' || status.state === 'available' || status.state === 'failed';
+    set({
+      update: update
+        ? { ...update, status, checked_at: checked ? Math.floor(Date.now() / 1000) : update.checked_at }
+        : null,
+    });
   },
 
   go(surface) {

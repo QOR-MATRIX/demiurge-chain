@@ -34,6 +34,7 @@ pub mod qontrol;
 pub mod qq;
 pub mod social;
 pub mod translate;
+pub mod update;
 pub use qor_launcher_core::vault;
 
 use std::sync::Arc;
@@ -233,6 +234,8 @@ pub struct AppState {
     pub arqade_app: arqade::app::App,
     /// Release-gate progress for the development dashboard (roadmap L2.2).
     pub dashboard: Arc<gates::Dashboard>,
+    /// The update channel (L6.2, ADR-111): what the last check found, and whether the launcher checks by itself.
+    pub updates: Arc<update::Updates>,
     /// Open briefly after an unlock, for the QOR ID sign-in (ADR-016).
     pub arrival: ArrivalGrant,
     /// The signed-in profile's own things (ADR-099): its folder, its Mesh and its Library. None while no profile is
@@ -285,6 +288,7 @@ impl AppState {
             media: media::Media::default(),
             arqade_app: arqade::app::App::default(),
             dashboard: Arc::new(gates::Dashboard::new()?),
+            updates: Arc::new(update::Updates::new(settings.check_updates)),
             arrival: ArrivalGrant::default(),
             personal: parking_lot::RwLock::new(None),
             data_dir,
@@ -318,6 +322,7 @@ impl AppState {
             rpc_url: self.chain.endpoint(),
             auth_url: self.identity.endpoint(),
             social_url: self.social.endpoint(),
+            check_updates: self.updates.automatic(),
         }
         .save(&self.data_dir)
     }
@@ -2031,6 +2036,8 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_shell::init())
+        // The update channel (ADR-111). Only the host uses it: the interface asks through `update_*`, never the plugin.
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let data_dir = app
                 .path()
@@ -2049,6 +2056,8 @@ pub fn run() {
                 .app_local_data_dir()
                 .map_err(|e| format!("cannot locate the local data directory: {e}"))?;
             app.manage(AppState::new(data_dir, local_dir).map_err(|e| e.to_string())?);
+            // The update channel checks by itself from fifteen seconds after start, unless the person turned it off.
+            update::watch(app.handle().clone());
 
             // The profile signed in last comes back with nothing asked (ADR-056, ADR-099); its wallet is opened by the
             // interface before its first frame. Signed out, the interface shows Who's playing?.
@@ -2205,6 +2214,10 @@ pub fn run() {
             arqade::app::arqade_app_player,
             arqade::app::arqade_app_prefs,
             host::launcher_motion,
+            update::update_status,
+            update::update_check,
+            update::update_install,
+            update::update_set_automatic,
             gates_report,
             gates_run_suite,
         ])

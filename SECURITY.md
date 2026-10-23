@@ -22,6 +22,11 @@ serious today:
   agent for that controller. It is not a design choice, and L5.1 is a Beta gate criterion, so the public
   testnet cannot open with it in place. Still true on 6 October 2026: `POST /api/v1/agents/register` takes the
   controller from the access token and checks only the agent key's own signature.
+- **The launcher's update key (ADR-111)** signs every installer the update channel offers. Its private half is on
+  the owner's PC, in `%APPDATA%\Demiurge\updater\`, encrypted with a password Windows seals for that user; it is never
+  in the repository, a log or CI. Shipping to testers needs both the key and the right to publish this repository's
+  releases. Keep the offline backup `tools/qor-launcher/scripts/updater-key.ps1 -Backup` describes; if the key is lost,
+  testers reinstall by hand once, and if it leaks, a new key ships in a release signed with the old one.
 - **A recovery phrase was pasted into a chat on 5 October 2026.** Treat that key as exposed and replace it. If it
   is the devnet's sudo key, replace it with `sudo.setKey` from the current sudo account, signed in the owner's
   wallet, then move anything the old account holds. The devnet holds nothing of value (ADR-037), but whoever has

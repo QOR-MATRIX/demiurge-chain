@@ -270,7 +270,7 @@ function Choice<T extends string>({
   );
 }
 
-function Toggle({
+export function Toggle({
   icon: Icon,
   label,
   hint,
