@@ -22,11 +22,16 @@ website*. **Launcher 0.1.16** is the tester download.
    sign it. All 35 checks passed: nothing was lost, and wallets, the Mesh and the new
    level and **XP** — *experience points* — records all work after it. The file is in
    your Downloads: `demiurge-runtime-v10.compact.compressed.wasm`.
-2. **Still waiting for your merge: #82**, which teaches assets to level up (ADR-113, your
-   approval). Each asset keeps a level, XP and stats, written by the game its collection's
-   owner picks; that game's servers can only add, only whoever holds the game's
-   **Cartridge** — *the game's own asset* — can correct a mistake, and nothing changes
-   while an asset is for sale. The launcher's cards show it.
+2. **PDFs open in the Library** (#83). A PDF now opens inside the launcher's media app,
+   **QOR Media**, instead of another program: zoom, find with every match marked, copy
+   text, follow links (only to the web or email, never to a program), see the pages and
+   contents beside it, and open a locked PDF with its password. Tested (51 tests; seven of
+   eight planted bugs caught; the eighth is guarded twice) and tried on a real 72-page PDF.
+   Marking up, filling, signing and rearranging pages come next.
+3. **For your merge: #82 and #83**, in either order. #82 teaches assets to level up
+   (ADR-113, your approval): a level, XP and stats written by the game the collection's
+   owner picks; only whoever holds the game's **Cartridge** — *the game's own asset* — can
+   correct a mistake, and nothing changes while an asset is for sale.
 
 ## The release gates (measured last session)
 
@@ -64,9 +69,9 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    pasted on 5 October; `social-secrets.txt` on your Desktop and `archive-bZLIQp/` in the
    old checkout, each to keep or delete.
 
-**Next in engineering:** PDF in QOR Media (L9.5): reading, then marking up, filling,
-signing and rearranging pages. At your word: games other than the home game keeping
-records (ADR-113's second phase), or rental and fractions (M4.3).
+**Next in engineering:** changing PDFs in QOR Media (the rest of L9.5): marking up,
+filling, signing and rearranging pages. At your word: games other than the home game
+keeping records (ADR-113's second phase), or rental and fractions (M4.3).
 
 ## Cost per month
 
