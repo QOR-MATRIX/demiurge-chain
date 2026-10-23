@@ -18,11 +18,13 @@
 #include <QtQml/qqmlextensionplugin.h>
 
 #include "medialink.h"
+#include "pdfdrawing.h"
 #include "testpdf.h"
 
 Q_IMPORT_QML_PLUGIN(QOR_MediaPlugin)
 
 using qormedia::MediaLink;
+using qormedia::PdfDrawing;
 using namespace testpdf;
 
 class TestReader : public QObject
@@ -379,6 +381,9 @@ private slots:
         QTRY_COMPARE(reader->property("pageCount").toInt(), 1);
         QVERIFY(!reader->property("locked").toBool());
         QCOMPARE(password->property("text").toString(), QString());
+        // Its page is drawn too, which needs the password as much as reading it does.
+        QList<QQuickItem *> images;
+        QTRY_VERIFY(!(images = itemsNamed(QStringLiteral("pageImage"))).isEmpty() && images.first()->property("status").toInt() == 1);
         // Its words were sealed: reading them proves it was opened, not just let through.
         QTRY_VERIFY(reader->hasActiveFocus());
         QTest::keyClick(window, Qt::Key_A, Qt::ControlModifier);
@@ -567,6 +572,32 @@ private slots:
         QCOMPARE(reader->property("pageCount").toInt(), 2);
         QTest::keyClick(window, Qt::Key_Escape);
         QTRY_VERIFY(!window->isVisible());
+    }
+
+    void a_pdfs_own_marks_show_and_its_file_is_let_go_after()
+    {
+        // A red box near the top of the page, a mark with its own appearance: Qt PDF's page image would leave it out.
+        const QString path = dir.filePath("marked.pdf");
+        save(path, writePdf({{{"words"}, {}, {QRectF(100, 560, 200, 100)}}}));
+        QQuickItem *reader = read(path);
+        QVERIFY(reader);
+        QTRY_COMPARE(reader->property("pageCount").toInt(), 1);
+        QList<QQuickItem *> images;
+        QTRY_VERIFY(!(images = itemsNamed(QStringLiteral("pageImage"))).isEmpty() && images.first()->property("status").toInt() == 1);
+        QVERIFY(images.first()->property("source").toString().startsWith(QLatin1String("image://pdfpage/")));
+        const QImage shown = window->grabWindow();
+        int red = 0;
+        for (int y = 0; y < shown.height(); ++y)
+            for (int x = 0; x < shown.width(); ++x) {
+                const QRgb p = shown.pixel(x, y);
+                red += qRed(p) > 200 && qGreen(p) < 60 && qBlue(p) < 60;
+            }
+        QVERIFY2(red > 500, qPrintable(QString::number(red)));
+        // Back to the Library: the reader lets go of what it drew from (tst_pdfpages holds that closing frees the file).
+        QCOMPARE(PdfDrawing::openCount(), 1);
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!window->isVisible());
+        QTRY_COMPARE(PdfDrawing::openCount(), 0);
     }
 
     void its_controls_are_reached_by_tab()

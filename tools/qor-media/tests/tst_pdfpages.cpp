@@ -1,16 +1,20 @@
-// A PDF's pages changed (ADR-094 decision 3, L9.5): PdfPages turns, deletes and moves them through PDFium and writes the
-// file back whole or not at all. A list it cannot follow, a locked or protected PDF, and a file that cannot be replaced
-// each leave the file exactly as it was. Every PDF is written by the test; what is saved is read back through PDFium.
+// A PDF's pages drawn and changed (ADR-094 decision 3, L9.5). PdfDrawing draws a page with its marks, which Qt PDF's
+// plain drawing leaves out. PdfPages turns, deletes and moves pages through PDFium and writes the file back whole or not
+// at all; a list it cannot follow, a locked or protected PDF, and a file that cannot be replaced each leave the file
+// exactly as it was. Every PDF is written by the test; what is saved is read back through PDFium.
 
 #include <QDir>
 #include <QFile>
+#include <QPdfDocument>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QUrl>
 
+#include "pdfdrawing.h"
 #include "pdfpages.h"
 #include "testpdf.h"
 
+using qormedia::PdfDrawing;
 using qormedia::PdfPages;
 using namespace testpdf;
 
@@ -19,6 +23,18 @@ namespace {
 QVariantMap keep(int page, int turn = 0)
 {
     return {{QStringLiteral("page"), page}, {QStringLiteral("turn"), turn}};
+}
+
+// How many pixels of `area` are plainly red, as the test's boxes are drawn.
+int redIn(const QImage &image, const QRect &area)
+{
+    int red = 0;
+    for (int y = area.top(); y <= area.bottom(); ++y)
+        for (int x = area.left(); x <= area.right(); ++x) {
+            const QRgb p = image.pixel(x, y);
+            red += qAlpha(p) > 200 && qRed(p) > 200 && qGreen(p) < 60 && qBlue(p) < 60;
+        }
+    return red;
 }
 
 }  // namespace
@@ -138,6 +154,51 @@ private slots:
         QVERIFY(!pages.error().isEmpty());
         QCOMPARE(bytesOf(path), before);
         QCOMPARE(QDir(own.path()).entryList(QDir::Files), QStringList{"read-only.pdf"});
+    }
+
+    void a_page_is_drawn_with_its_marks()
+    {
+        // A red box, a mark with its own appearance, from 100 to 300 across and 300 to 400 up.
+        const QString path = dir.filePath("marked.pdf");
+        save(path, writePdf({{{"words"}, {}, {QRectF(100, 300, 200, 100)}}}));
+        PdfDrawing drawing;
+        const QString key = drawing.open(path);
+        QVERIFY(!key.isEmpty());
+        // A pixel for each point: the box's left side runs down from 392 to 492 at 100 to 104 across.
+        const QImage page = PdfDrawing::draw(key, 0, 612);
+        QCOMPARE(page.size(), QSize(612, 792));
+        QVERIFY(redIn(page, QRect(98, 396, 10, 92)) > 200);
+        QCOMPARE(redIn(page, QRect(150, 396, 100, 92)), 0);
+        // Qt PDF's plain drawing, the one its page image in QML makes, leaves the mark out. On a copy of its own, so
+        // what lets go of the file below is PdfDrawing alone.
+        const QString copy = dir.filePath("marked-plain.pdf");
+        QVERIFY(QFile::copy(path, copy));
+        QPdfDocument plain;
+        plain.load(copy);
+        QCOMPARE(redIn(plain.render(0, QSize(612, 792)), QRect(98, 396, 10, 92)), 0);
+        // Its printed width at 96 dots an inch when no width is asked, and never wider than the limit.
+        QCOMPARE(PdfDrawing::draw(key, 0, 0).width(), 816);
+        QCOMPARE(PdfDrawing::draw(key, 0, 100000).width(), PdfDrawing::WidthLimit);
+        QVERIFY(PdfDrawing::draw(key, 1, 612).isNull());
+        QVERIFY(PdfDrawing::draw(QStringLiteral("no such key"), 0, 612).isNull());
+        // Closed: nothing more is drawn, and the file is let go of, so it can be replaced.
+        QCOMPARE(PdfDrawing::openCount(), 1);
+        drawing.close(key);
+        QCOMPARE(PdfDrawing::openCount(), 0);
+        QVERIFY(PdfDrawing::draw(key, 0, 612).isNull());
+        QVERIFY(QDir().rename(path, path + ".moved"));
+    }
+
+    void a_locked_pdf_is_drawn_with_its_password_only()
+    {
+        const QString path = dir.filePath("locked-marked.pdf");
+        save(path, writePdf({{{"secret"}, {}, {QRectF(100, 300, 200, 100)}}}, {}, "open sesame"));
+        PdfDrawing drawing;
+        QVERIFY(drawing.open(path).isEmpty());
+        QVERIFY(drawing.open(path, QStringLiteral("nope")).isEmpty());
+        const QString key = drawing.open(path, QStringLiteral("open sesame"));
+        QVERIFY(!key.isEmpty());
+        QVERIFY(redIn(PdfDrawing::draw(key, 0, 612), QRect(98, 396, 10, 92)) > 200);
     }
 
     void changeable_says_which_pdfs_can_be_changed()

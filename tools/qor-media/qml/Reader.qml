@@ -207,6 +207,21 @@ FocusScope {
     }
     // The keyboard back to the pages, from a field, a button or a list. Focusing the reader itself would hand it back to
     // whichever of them had it last, since the reader is a focus scope.
+    // The key PdfDrawing opened this PDF under, for its pages' images; empty while none is open.
+    property string drawingKey
+    function pageImage(source) {
+        return drawingKey.length ? "image://pdfpage/" + drawingKey + "/" + source : ""
+    }
+    function draw() {
+        stopDrawing()
+        drawingKey = PdfDrawing.open(path, triedPassword)
+    }
+    // Lets go of the file the pages are drawn from.
+    function stopDrawing() {
+        if (drawingKey.length) PdfDrawing.close(drawingKey)
+        drawingKey = ""
+    }
+    Component.onDestruction: stopDrawing()
     function rest() {
         resting.forceActiveFocus()
     }
@@ -328,6 +343,7 @@ FocusScope {
     }
     function finishSaving() {
         const job = saveJob
+        stopDrawing()
         saving = true
         doc.source = job.copy
         const saved = writer.save(path, job.entries)
@@ -387,6 +403,7 @@ FocusScope {
 
     // Open `path` afresh: nothing of the last PDF stays, its password least of all.
     function load() {
+        stopDrawing()
         finder.visible = false
         query.clear()
         if (selecting) selecting.clear()
@@ -430,6 +447,7 @@ FocusScope {
                 if (!reader.keepLayout) reader.layout = reader.identity()
                 reader.keepLayout = false
                 reader.editable = !reader.triedPassword.length && writer.changeable(reader.path)
+                reader.draw()
                 reader.relayout()
                 const back = reader.returnTo
                 reader.returnTo = -1
@@ -580,10 +598,9 @@ FocusScope {
                         width: thumb.sideways ? sheet.height : sheet.width
                         height: thumb.sideways ? sheet.width : sheet.height
                         rotation: thumb.entry.turn * 90
-                        PdfPageImage {
+                        Image {
                             anchors.fill: parent
-                            document: doc
-                            currentFrame: thumb.entry.page
+                            source: reader.pageImage(thumb.entry.page)
                             asynchronous: true
                             fillMode: Image.PreserveAspectFit
                             sourceSize.width: width * Screen.devicePixelRatio
@@ -741,11 +758,12 @@ FocusScope {
                     color: Theme.edge
                 }
 
-                PdfPageImage {
+                // Drawn with its marks (PdfDrawing): Qt PDF's own page image leaves them out.
+                Image {
                     id: image
+                    objectName: "pageImage"
                     anchors.fill: parent
-                    document: doc
-                    currentFrame: holder.entry.page
+                    source: reader.pageImage(holder.entry.page)
                     asynchronous: true
                     fillMode: Image.PreserveAspectFit
                     sourceSize.width: paper.width * Screen.devicePixelRatio

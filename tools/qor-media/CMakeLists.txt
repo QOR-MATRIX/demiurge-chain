@@ -1,7 +1,7 @@
 # QOR Media (ADR-094): the Library's player, viewer and editor, in Qt 6, C++20 and QML, docked inside the QOR Launcher.
 #
-#   src/    the launcher link (media.next), docking into the launcher's window, files, text and highlighting, and a
-#           PDF's pages changed through PDFium
+#   src/    the launcher link (media.next), docking into the launcher's window, files, text and highlighting, a PDF's
+#           pages drawn with their marks, and changed through PDFium
 #   qml/    the module "QOR.Media": the window, the player, the viewer, the editor, the reader (Qt PDF); Tokens.qml, which
 #           docs/design/tokens.mjs generates from docs/design/tokens.json, and Theme, which binds to it (ADR-108)
 #   fonts/  Barlow, Barlow Semi Condensed and IBM Plex Mono, under the SIL Open Font License, copied by tokens.mjs
@@ -44,10 +44,11 @@ qt_add_library(qormedia_core STATIC
     src/dock.h src/dock.cpp
     src/look.h src/look.cpp
     src/pdfpages.h src/pdfpages.cpp
+    src/pdfdrawing.h src/pdfdrawing.cpp
     src/tokens.h
 )
 target_include_directories(qormedia_core PUBLIC src)
-target_link_libraries(qormedia_core PUBLIC Qt6::Core Qt6::Gui Qt6::Network Qt6::Qml Qt6::Quick pdfium)
+target_link_libraries(qormedia_core PUBLIC Qt6::Core Qt6::Gui Qt6::Network Qt6::Pdf Qt6::Qml Qt6::Quick pdfium)
 
 # Before the module, or Theme is registered as an ordinary type.
 set_source_files_properties(qml/Theme.qml qml/Tokens.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
