@@ -16,24 +16,19 @@ website*. **Launcher 0.1.16** is the tester download.
 
 ## This session
 
-1. **Assets can now level up** (ADR-113, your approval). Each asset keeps a level, **XP** —
-   *experience points* — and stats, written by the game its collection's owner picks. That
-   game's servers can only add; only whoever holds the game's **Cartridge** — *the game's
-   own asset* — can correct a mistake; nothing changes while an asset is for sale, and no
-   record moves an asset or currency. The launcher's Inventory and Market cards show it.
-   Built and tested (190 chain tests, seven planted bugs caught); it reaches the devnet
-   when you sign the upgrade below. This finishes the asset roadmap items M4.2 and M4.5.
-2. **Two launchers out.** 0.1.15 is the first that updates itself; 0.1.16 is the first
-   update it offers, taken inside the launcher with *Update and restart*.
-3. **An AI agent can act for you only once your own key signs for it** (L5.1); live in
-   QOR ID since your merge of #79.
-4. **Found and fixed on the way:** the chain's documents said the devnet ran runtime 8 —
-   *the chain's program version* — when it has run 9 since 17 October; a security advisory
-   in a Mesh library, fixed in #81.
+1. **Runtime 10 is rehearsed, and passed.** Runtime — *the chain's program* — 10 is what
+   lets assets level up. On this PC I started a copy of the devnet running its own live
+   runtime 9, left a payment and an asset on it, then upgraded it exactly as you will
+   sign it. All 35 checks passed: nothing was lost, and wallets, the Mesh and the new
+   level and **XP** — *experience points* — records all work after it. The file is in
+   your Downloads: `demiurge-runtime-v10.compact.compressed.wasm`.
+2. **Still waiting for your merge: #82**, which teaches assets to level up (ADR-113, your
+   approval). Each asset keeps a level, XP and stats, written by the game its collection's
+   owner picks; that game's servers can only add, only whoever holds the game's
+   **Cartridge** — *the game's own asset* — can correct a mistake, and nothing changes
+   while an asset is for sale. The launcher's cards show it.
 
-**#81 is merged.** **For your merge: #82**, the progress records and these records.
-
-## The release gates (measured this session)
+## The release gates (measured last session)
 
 **Alpha** — *the first test release* — lacks two things: M3.2, which needs the genesis split
 (OPEN-2), and two launcher dialogs you have not yet tried (L1.4). **Beta** — *the worldwide
@@ -43,12 +38,12 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 
 1. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
-   It names the key file and shows its password once; keep both offline, together (a
-   password manager or an encrypted drive). Your earlier try ran from your Documents
-   folder, where the short path does not exist. Lose them and testers reinstall by hand.
-2. **Upgrade the devnet to runtime 10** after merging #82, as you did for 9: on the Sudo
-   page pick `system.setCode`, with the field reading `code`, and the file I give you
-   once I have rehearsed it against the devnet's own runtime.
+   It names the key file and shows its password once; keep both offline, together.
+   Lose them and testers reinstall by hand.
+2. **Merge #82, then upgrade the devnet to runtime 10**, as you did for 9: in polkadot.js
+   Apps, Developer → Sudo, `sudoUncheckedWeight`, then `system.setCode` in the second
+   dropdown (the field must read `code`, not `remark`), and pick the file above. Its
+   fingerprint starts `6192023b`. Tell me when it is done and I will read it back.
 3. **Install 0.1.15 yourself, then take 0.1.16 when it offers it**: the first update
    through the channel, which ticks L6.2. Then let a test agent ask you: in
    `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run `cargo run --example agent_link`
@@ -69,9 +64,9 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    pasted on 5 October; `social-secrets.txt` on your Desktop and `archive-bZLIQp/` in the
    old checkout, each to keep or delete.
 
-**Next in engineering:** rehearsing runtime 10; then, at your word, games other than the
-home game keeping records (ADR-113's second phase) or rental and fractions (M4.3); PDF in
-QOR Media (L9.5).
+**Next in engineering:** PDF in QOR Media (L9.5): reading, then marking up, filling,
+signing and rearranging pages. At your word: games other than the home game keeping
+records (ADR-113's second phase), or rental and fractions (M4.3).
 
 ## Cost per month
 
