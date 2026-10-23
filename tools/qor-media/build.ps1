@@ -35,7 +35,27 @@ foreach ($needed in $cmake, $ninja, $vcvars) {
     if (-not (Test-Path $needed)) { throw "Not found: $needed" }
 }
 
-$configure = "`"$cmake`" -S `"$source`" -B `"$Build`" -G Ninja -DCMAKE_MAKE_PROGRAM=`"$ninja`" -DCMAKE_PREFIX_PATH=`"$Qt`" -DCMAKE_BUILD_TYPE=$Config"
+# PDFium, for changing a PDF (ADR-094 decision 3): the release pinned here, fetched once, and checked against its SHA-256
+# every build. Its folder holds its own CMake package and its licences, which the deployed copy carries.
+$pdfiumRelease = 'chromium/8111'
+$pdfiumSha256 = '3452d11031050ec65e57f180215b57b9e6d465e3fbedafa8a77ad90885c7d23e'
+$pdfium = Join-Path $env:LOCALAPPDATA ('qor-media-pdfium\' + ($pdfiumRelease -replace '/', '-'))
+$pdfiumArchive = Join-Path $pdfium 'pdfium-win-x64.tgz'
+if (-not (Test-Path $pdfiumArchive)) {
+    New-Item -ItemType Directory -Force $pdfium | Out-Null
+    Invoke-WebRequest "https://github.com/bblanchon/pdfium-binaries/releases/download/$pdfiumRelease/pdfium-win-x64.tgz" -OutFile $pdfiumArchive
+}
+if ((Get-FileHash $pdfiumArchive -Algorithm SHA256).Hash -ne $pdfiumSha256) {
+    Remove-Item $pdfiumArchive
+    throw "PDFium's archive is not the release pinned in build.ps1; it was removed. Run again to fetch it."
+}
+if (-not (Test-Path (Join-Path $pdfium 'PDFiumConfig.cmake'))) {
+    # Windows' own tar: another on the PATH may read C:\ as a remote host.
+    & (Join-Path $env:SystemRoot 'System32\tar.exe') -xzf $pdfiumArchive -C $pdfium
+    if ($LASTEXITCODE -ne 0) { throw "PDFium's archive could not be unpacked ($LASTEXITCODE)." }
+}
+
+$configure = "`"$cmake`" -S `"$source`" -B `"$Build`" -G Ninja -DCMAKE_MAKE_PROGRAM=`"$ninja`" -DCMAKE_PREFIX_PATH=`"$Qt`" -DCMAKE_BUILD_TYPE=$Config -DPDFium_DIR=`"$pdfium`""
 $compile = "`"$cmake`" --build `"$Build`""
 cmd /c "call `"$vcvars`" >nul 2>nul && $configure && $compile"
 if ($LASTEXITCODE -ne 0) { throw "The build failed ($LASTEXITCODE)." }
@@ -69,5 +89,9 @@ if ($Deploy) {
     $deployArgs = "--release --no-translations --compiler-runtime --qmldir ""$(Join-Path $source 'qml')"" ""$(Join-Path $DeployTo 'qor-media.exe')"""
     cmd /c "call `"$vcvars`" >nul 2>nul && `"$windeployqt`" $deployArgs" | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "windeployqt failed ($LASTEXITCODE)." }
+    # PDFium, which windeployqt does not know, with the licences that come with it.
+    Copy-Item (Join-Path $pdfium 'bin\pdfium.dll') $DeployTo
+    Copy-Item (Join-Path $pdfium 'LICENSE') (Join-Path $DeployTo 'pdfium-LICENSE.txt')
+    Copy-Item (Join-Path $pdfium 'licenses') (Join-Path $DeployTo 'pdfium-licenses') -Recurse
     Write-Host "QOR Media deployed to $DeployTo"
 }

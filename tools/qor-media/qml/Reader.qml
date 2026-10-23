@@ -1,6 +1,7 @@
 // The pages are a TableView's delegates, which in this Qt see the ids of this file only when bound to it.
 pragma ComponentBehavior: Bound
 
+import QtQml.Models
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
@@ -15,6 +16,10 @@ import QOR.Media
 // is selected by dragging across it, Ctrl+A selects a page's, and Ctrl+C copies it. A link goes to its place in the
 // document, or out to the web or to mail, and nowhere else. F9 shows the pages and the contents beside it. A PDF with a
 // password asks for it and keeps it only while it is open; one that cannot be read says so, with the way to open it now.
+//
+// Its pages change too: R turns the page in view (Shift+R the other way), Delete deletes it, Alt+Up and Alt+Down move it,
+// Ctrl+Z and Ctrl+Y undo and redo, and Ctrl+S saves through PDFium (PdfPages). A change shows at once and reaches the file
+// only when it is saved; going back with changes unsaved asks first. A locked or protected PDF is read, never changed.
 FocusScope {
     id: reader
     objectName: "reader"
@@ -34,9 +39,27 @@ FocusScope {
     property string panelTab: "pages"
     property var selecting: null
     property string selectedText
+    // The pages as they show, one entry for each: `page`, the page's index in the file, and `turn`, the quarter turns
+    // clockwise added to it. The file is written to match only when it is saved.
+    property var layout: []
+    property var undoStack: []
+    property var redoStack: []
+    property bool dirty: false
+    property bool editable: false
+    // The widest page as laid out, in points.
+    property real widest: 1
+    property string notice
+    property var afterAsk: null
+    // While saving, the reader shows a copy so the file can be replaced; then it opens the file again. No page is drawn
+    // across that, so none outlives the file it was drawn from.
+    property bool saving: false
+    property bool swapping: false
+    property bool keepLayout: false
+    property int returnTo: -1
     readonly property bool ready: doc.status === PdfDocument.Ready
     readonly property bool unreadable: doc.status === PdfDocument.Error && !locked
-    readonly property int pageCount: ready ? doc.pageCount : 0
+    readonly property int pageCount: ready && !swapping ? layout.length : 0
+    readonly property int currentSource: page < layout.length ? layout[page].page : -1
     readonly property int matchCount: finder.visible ? reader.matches : 0
     readonly property int match: search.currentResult
     // A hundred percent is the page at its printed size.
@@ -45,15 +68,29 @@ FocusScope {
     readonly property real maxZoom: actualSize * 8
     // Room either side of the widest page, and above the first.
     readonly property int margin: 24
-    readonly property bool consumesEscape: finder.visible || pageField.activeFocus
+    readonly property bool consumesEscape: dirty || asking.visible || finder.visible || pageField.activeFocus
+
+    function entryAt(row) {
+        return layout[row] || ({ page: 0, turn: 0 })
+    }
+    // Where a page of the file shows now, or -1 when it is deleted.
+    function rowOf(source) {
+        return layout.findIndex((e) => e.page === source)
+    }
+    // A page's size as laid out, turned, in points.
+    function laidOut(row) {
+        const e = entryAt(row)
+        const s = doc.pagePointSize(e.page)
+        return e.turn % 2 ? Qt.size(s.height, s.width) : s
+    }
 
     function fit() {
         if (!ready || pages.width <= 0) return
         const across = pages.width - 2 * margin
-        const size = doc.pagePointSize(page)
+        const size = laidOut(page)
         const z = fitting === "page"
             ? Math.min(across / size.width, (pages.height - 2 * margin) / size.height)
-            : across / Math.max(1, doc.maxPageWidth)
+            : across / Math.max(1, widest)
         setZoom(Math.max(minZoom, Math.min(maxZoom, z)), page)
     }
     function cycleFit() {
@@ -91,7 +128,7 @@ FocusScope {
     }
     // Go to a page, and to a place on it in the PDF's points when there is one.
     function goTo(target, location) {
-        if (!ready) return
+        if (!ready || !pageCount) return
         target = Math.max(0, Math.min(pageCount - 1, target))
         const y = location ? location.y * zoom - margin : -1
         if (y > 0)
@@ -116,10 +153,13 @@ FocusScope {
         return s.startsWith("https://") || s.startsWith("http://") || s.startsWith("mailto:")
     }
     function follow(link) {
-        if (link.page >= 0)
-            goTo(link.page, link.location)
-        else if (followable(link.url))
+        if (link.page >= 0) {
+            const row = rowOf(link.page)
+            if (row >= 0) goTo(row, link.location)
+            else say(qsTr("That page is no longer in this PDF."))
+        } else if (followable(link.url)) {
             Qt.openUrlExternally(link.url)
+        }
     }
     // A page's item, laid out now if the view has not yet made it (it makes them as it draws).
     function pageItem(row) {
@@ -141,7 +181,7 @@ FocusScope {
     // Search: the first match on or after the page in view, then each in turn.
     function findFrom(here) {
         for (let i = 0; i < reader.matches; ++i)
-            if (search.data(search.index(i, 0), 256) >= here) return i  // QPdfSearchModel::Role::Page
+            if (rowOf(search.data(search.index(i, 0), 256)) >= here) return i  // QPdfSearchModel::Role::Page
         return reader.matches ? 0 : -1
     }
     function step(delta) {
@@ -151,9 +191,11 @@ FocusScope {
     function showMatch() {
         const link = search.currentResultLink
         if (search.currentResult < 0 || !link || link.page < 0) return
+        const row = rowOf(link.page)
+        if (row < 0) return
         const r = search.currentResultBoundingRect
-        pages.positionViewAtRow(link.page, TableView.AlignTop, 0, Qt.rect(0, Math.max(0, r.y * zoom - pages.height / 3), 1, 1))
-        page = link.page
+        pages.positionViewAtRow(row, TableView.AlignTop, 0, Qt.rect(0, Math.max(0, r.y * zoom - pages.height / 3), 1, 1))
+        page = row
     }
     function openFinder() {
         finder.visible = true
@@ -170,6 +212,10 @@ FocusScope {
         finder.visible = false
         reader.rest()
     }
+    function say(words) {
+        notice = words
+        noticeTimer.restart()
+    }
     function unlock() {
         const words = password.text
         password.clear()
@@ -181,6 +227,161 @@ FocusScope {
         triedPassword = words
         doc.password = words
     }
+
+    // Changing the pages: each change is a new list, the one before it kept for undo.
+    function identity() {
+        const list = []
+        for (let i = 0; i < doc.pageCount; ++i) list.push({ page: i, turn: 0 })
+        return list
+    }
+    function relayout() {
+        let w = 1
+        let same = layout.length === doc.pageCount
+        for (let i = 0; i < layout.length; ++i) {
+            const s = doc.pagePointSize(layout[i].page)
+            w = Math.max(w, layout[i].turn % 2 ? s.height : s.width)
+            same = same && layout[i].page === i && layout[i].turn === 0
+        }
+        widest = w
+        dirty = !same
+        pages.forceLayout()
+        if (fitting.length) fit()
+    }
+    function change(next, then) {
+        if (!editable) {
+            say(locked || triedPassword.length ? qsTr("A locked PDF is read here, not changed.") : qsTr("This PDF's pages cannot be changed here."))
+            return
+        }
+        undoStack = undoStack.concat([layout])
+        redoStack = []
+        layout = next
+        relayout()
+        goTo(then)
+    }
+    function turnPage(by) {
+        if (!ready) return
+        const next = layout.slice()
+        next[page] = { page: layout[page].page, turn: (layout[page].turn + by + 4) % 4 }
+        change(next, page)
+    }
+    function deletePage() {
+        if (!ready) return
+        if (layout.length === 1) {
+            say(qsTr("A PDF keeps at least one page."))
+            return
+        }
+        const gone = page
+        change(layout.filter((_, i) => i !== gone), Math.min(gone, layout.length - 2))
+    }
+    function movePage(by) {
+        const to = page + by
+        if (!ready || to < 0 || to >= layout.length) return
+        const next = layout.slice()
+        next.splice(to, 0, next.splice(page, 1)[0])
+        change(next, to)
+    }
+    function undo() {
+        if (!undoStack.length) return
+        redoStack = [layout].concat(redoStack)
+        layout = undoStack[undoStack.length - 1]
+        undoStack = undoStack.slice(0, -1)
+        relayout()
+        goTo(Math.min(page, layout.length - 1))
+    }
+    function redo() {
+        if (!redoStack.length) return
+        undoStack = undoStack.concat([layout])
+        layout = redoStack[0]
+        redoStack = redoStack.slice(1)
+        relayout()
+        goTo(Math.min(page, layout.length - 1))
+    }
+    // Write the change to the file. Qt PDF holds the file it shows, so a copy is shown while the file is replaced; then
+    // the file is opened again, at the same page. On failure the change stays, unsaved, and the file is as it was.
+    //
+    // In two steps: the pages are let go first, and the file is swapped on the next turn of the event loop, once they are
+    // gone, since a page let go of lingers a moment and would otherwise follow the document to the copy. `then`, when
+    // given, hears whether it was saved.
+    property var saveJob: null
+    function save(then) {
+        const done = then || (() => {})
+        if (saveJob) return
+        if (!dirty) return done(true)
+        if (!editable) {
+            say(qsTr("This PDF's pages cannot be changed here."))
+            return done(false)
+        }
+        const copy = writer.copyForSaving(path)
+        if (!copy.toString().length) {
+            say(qsTr("There was no room to save. The PDF is as it was."))
+            return done(false)
+        }
+        saveJob = { copy: copy, entries: layout.map((e) => ({ page: e.page, turn: e.turn })), then: done }
+        returnTo = page
+        swapping = true
+        // The view lets its pages go now rather than at its next frame, so they are gone by the next turn.
+        pages.forceLayout()
+        swapLater.restart()
+    }
+    function finishSaving() {
+        const job = saveJob
+        saving = true
+        doc.source = job.copy
+        const saved = writer.save(path, job.entries)
+        saving = false
+        keepLayout = !saved
+        if (saved) {
+            dirty = false
+            undoStack = []
+            redoStack = []
+        }
+        doc.source = Files.urlOf(path)
+        swapping = false
+        writer.discard(job.copy)
+        say(saved ? qsTr("Saved") : writer.error)
+        // What follows a save (going back, opening another file) waits for the pages to come back first.
+        saveJob = { then: job.then, saved: saved }
+        afterSaving.restart()
+    }
+    Timer { id: swapLater; interval: 0; onTriggered: reader.finishSaving() }
+    Timer {
+        id: afterSaving
+        interval: 0
+        onTriggered: {
+            const job = reader.saveJob
+            reader.saveJob = null
+            job.then(job.saved)
+        }
+    }
+    // Called by the window before it goes back or opens another file, and by the back button.
+    function ask(then) {
+        afterAsk = then
+        asking.visible = true
+        saveChoice.forceActiveFocus()
+    }
+    function goBack() {
+        if (dirty) ask(() => reader.back())
+        else reader.back()
+    }
+    function answered(choice) {
+        // Saved first, then gone; a save that fails keeps the question, and the error, on screen.
+        if (choice === "save") {
+            save((saved) => { if (saved) reader.answered("saved") })
+            return
+        }
+        if (choice === "discard") {
+            layout = identity()
+            undoStack = []
+            redoStack = []
+            relayout()
+        }
+        asking.visible = false
+        const then = afterAsk
+        afterAsk = null
+        if (choice === "cancel") rest()
+        else if (then) then()
+    }
+
     // Open `path` afresh: nothing of the last PDF stays, its password least of all.
     function load() {
         finder.visible = false
@@ -192,6 +393,13 @@ FocusScope {
         wrongPassword = false
         triedPassword = ""
         hasContents = false
+        layout = []
+        undoStack = []
+        redoStack = []
+        dirty = false
+        editable = false
+        keepLayout = false
+        returnTo = -1
         page = 0
         fitting = "width"
         doc.password = ""
@@ -201,6 +409,8 @@ FocusScope {
     Component.onCompleted: { started = true; load() }
     onPathChanged: if (started) load()
 
+    PdfPages { id: writer }
+
     PdfDocument {
         id: doc
         onPasswordRequired: {
@@ -209,17 +419,33 @@ FocusScope {
             password.forceActiveFocus()
         }
         onStatusChanged: {
+            // The copy shown while saving changes nothing.
+            if (reader.saving) return
             if (doc.status === PdfDocument.Ready) {
                 reader.locked = false
                 reader.wrongPassword = false
+                if (!reader.keepLayout) reader.layout = reader.identity()
+                reader.keepLayout = false
+                reader.editable = !reader.triedPassword.length && writer.changeable(reader.path)
+                reader.relayout()
+                const back = reader.returnTo
+                reader.returnTo = -1
                 reader.rest()
-                Qt.callLater(reader.fit)
-                Qt.callLater(reader.readContents)
+                settling.at = Math.max(0, back)
+                settling.restart()
             } else if (doc.status === PdfDocument.Error && reader.locked && reader.triedPassword.length) {
                 reader.wrongPassword = true
             }
         }
     }
+    function settle(at) {
+        page = Math.min(at, Math.max(0, pageCount - 1))
+        if (fitting.length) fit()
+        else goTo(page)
+    }
+    // Work left for the next turn of the event loop, on timers of the reader's own, which go with it if it goes first.
+    Timer { id: settling; interval: 0; property int at: 0; onTriggered: { reader.settle(at); reader.readContents() } }
+    Timer { id: refitting; interval: 0; onTriggered: reader.fitting.length ? reader.fit() : pages.forceLayout() }
 
     // What follows the page in view: the page's number, unless it is being typed, and the page among the small ones.
     onPageChanged: {
@@ -260,20 +486,26 @@ FocusScope {
         function onModelReset() { reader.countMatches() }
     }
 
+    Timer { id: noticeTimer; interval: 2400; onTriggered: reader.notice = "" }
+
     Rectangle { anchors.fill: parent; color: Theme.void_ }
 
     TopBar {
         id: bar
         anchors { left: parent.left; right: parent.right; top: parent.top }
-        title: Files.nameOf(reader.path)
-        subtitle: reader.locked ? qsTr("Locked") : reader.unreadable ? "" : [doc.title.length && doc.title !== title ? doc.title : "", reader.pageCount ? qsTr("Page %1 of %2").arg(reader.page + 1).arg(reader.pageCount) : ""].filter(Boolean).join(" · ")
+        title: (reader.dirty ? "● " : "") + Files.nameOf(reader.path)
+        subtitle: reader.locked ? qsTr("Locked") : reader.unreadable ? "" : [doc.title.length && doc.title !== Files.nameOf(reader.path) ? doc.title : "", reader.pageCount ? qsTr("Page %1 of %2").arg(reader.page + 1).arg(reader.pageCount) : "", reader.notice].filter(Boolean).join(" · ")
         color: Theme.base
-        onBack: reader.back()
+        onBack: reader.goBack()
         IconButton { iconName: "pages"; visible: reader.ready; active: reader.panel; ToolTip.text: qsTr("Pages and contents (F9)"); onClicked: reader.panel = !reader.panel }
         IconButton { iconName: "find"; visible: reader.ready; active: finder.visible; ToolTip.text: qsTr("Find (Ctrl+F)"); onClicked: finder.visible ? reader.closeFinder() : reader.openFinder() }
         IconButton { iconName: "zoomout"; visible: reader.ready; ToolTip.text: qsTr("Zoom out (-)"); onClicked: reader.zoomBy(0.8, pages.width / 2, pages.height / 2) }
         IconButton { iconName: "zoomin"; visible: reader.ready; ToolTip.text: qsTr("Zoom in (+)"); onClicked: reader.zoomBy(1.25, pages.width / 2, pages.height / 2) }
         IconButton { iconName: "fit"; visible: reader.ready; ToolTip.text: reader.fitting === "width" ? qsTr("Whole page (0)") : qsTr("Fit the width (0)"); onClicked: reader.cycleFit() }
+        IconButton { objectName: "turnPage"; iconName: "rotate"; visible: reader.ready && reader.editable; ToolTip.text: qsTr("Turn the page (R)"); onClicked: reader.turnPage(1) }
+        IconButton { objectName: "deletePage"; iconName: "delete"; visible: reader.ready && reader.editable; ToolTip.text: qsTr("Delete the page (Delete)"); onClicked: reader.deletePage() }
+        IconButton { iconName: "undo"; visible: reader.undoStack.length > 0; ToolTip.text: qsTr("Undo (Ctrl+Z)"); onClicked: reader.undo() }
+        IconButton { iconName: "save"; visible: reader.dirty; ToolTip.text: qsTr("Save (Ctrl+S)"); onClicked: reader.save() }
         IconButton { iconName: "full"; ToolTip.text: qsTr("Full screen (F)"); onClicked: reader.fullScreenToggled() }
         IconButton { iconName: "open"; ToolTip.text: qsTr("Open with another program"); onClicked: Files.openElsewhere(reader.path) }
     }
@@ -314,7 +546,7 @@ FocusScope {
             id: thumbnails
             objectName: "thumbnails"
             visible: reader.panelTab === "pages" || !reader.hasContents
-            anchors { left: parent.left; right: parent.right; top: tabs.bottom; bottom: parent.bottom; topMargin: 8 }
+            anchors { left: parent.left; right: parent.right; top: tabs.bottom; bottom: moving.top; topMargin: 8 }
             clip: true
             model: reader.pageCount
             spacing: 12
@@ -329,37 +561,67 @@ FocusScope {
             delegate: Item {
                 id: thumb
                 required property int index
-                readonly property size points: doc.pagePointSize(index)
+                readonly property var entry: reader.entryAt(index)
+                readonly property size points: doc.pagePointSize(entry.page)
+                readonly property bool sideways: entry.turn % 2 === 1
                 width: thumbnails.width
                 height: sheet.height + label.height + 6
-                // The paper is a Rectangle's own white, the colour a PDF is drawn on.
-                Rectangle {
+                Item {
                     id: sheet
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: 132
-                    height: Math.round(width * thumb.points.height / Math.max(1, thumb.points.width))
-                    border.width: thumb.index === reader.page || thumbnails.activeFocus && thumb.index === thumbnails.currentIndex ? 2 : 0
-                    border.color: thumb.index === reader.page ? Theme.accent : Theme.focus
-                    PdfPageImage {
+                    height: Math.round(width * (thumb.sideways ? thumb.points.width : thumb.points.height) / Math.max(1, thumb.sideways ? thumb.points.height : thumb.points.width))
+                    // The paper is a Rectangle's own white, the colour a PDF is drawn on; turned as the page is.
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: thumb.sideways ? sheet.height : sheet.width
+                        height: thumb.sideways ? sheet.width : sheet.height
+                        rotation: thumb.entry.turn * 90
+                        PdfPageImage {
+                            anchors.fill: parent
+                            document: doc
+                            currentFrame: thumb.entry.page
+                            asynchronous: true
+                            fillMode: Image.PreserveAspectFit
+                            sourceSize.width: width * Screen.devicePixelRatio
+                        }
+                    }
+                    Rectangle {
                         anchors.fill: parent
-                        anchors.margins: parent.border.width
-                        document: doc
-                        currentFrame: thumb.index
-                        asynchronous: true
-                        fillMode: Image.PreserveAspectFit
-                        sourceSize.width: width * Screen.devicePixelRatio
+                        color: "transparent"
+                        border.width: thumb.index === reader.page || thumbnails.activeFocus && thumb.index === thumbnails.currentIndex ? 2 : 0
+                        border.color: thumb.index === reader.page ? Theme.accent : Theme.focus
                     }
                 }
                 Text {
                     id: label
                     anchors { top: sheet.bottom; topMargin: 6; horizontalCenter: parent.horizontalCenter }
-                    text: doc.pageLabel(thumb.index) || String(thumb.index + 1)
+                    // A page's own label (iv, A-3) while the pages are as the file has them; its place once they change.
+                    text: reader.dirty ? String(thumb.index + 1) : (doc.pageLabel(thumb.entry.page) || String(thumb.index + 1))
                     color: thumb.index === reader.page ? Theme.ink : Theme.inkMuted
                     font.family: Theme.text
                     font.pixelSize: Theme.sizeCaption
                 }
                 TapHandler { onTapped: { thumbnails.currentIndex = thumb.index; reader.goTo(thumb.index) } }
             }
+        }
+
+        // Moving the page in view, under the small pages.
+        RowLayout {
+            id: moving
+            visible: reader.editable && thumbnails.visible
+            height: visible ? implicitHeight : 0
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 8 }
+            spacing: 4
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("Move the page")
+                color: Theme.inkMuted
+                font.family: Theme.text
+                font.pixelSize: Theme.sizeUi
+            }
+            IconButton { objectName: "moveEarlier"; iconName: "up"; size: 32; enabled: reader.page > 0; ToolTip.text: qsTr("Earlier (Alt+Up)"); onClicked: reader.movePage(-1) }
+            IconButton { objectName: "moveLater"; iconName: "down"; size: 32; enabled: reader.page < reader.pageCount - 1; ToolTip.text: qsTr("Later (Alt+Down)"); onClicked: reader.movePage(1) }
         }
 
         TreeView {
@@ -371,12 +633,23 @@ FocusScope {
             activeFocusOnTab: true
             boundsBehavior: Flickable.StopAtBounds
             model: bookmarks
+            // The keyboard's place in the contents: the arrows move it (Left and Right close and open), Return goes there.
+            selectionModel: ItemSelectionModel { model: bookmarks }
+            onActiveFocusChanged: if (activeFocus && !selectionModel.currentIndex.valid) selectionModel.setCurrentIndex(index(0, 0), ItemSelectionModel.NoUpdate)
+            function openCurrent() {
+                const at = selectionModel.currentIndex
+                // QPdfBookmarkModel::Role::Page and ::Location.
+                if (at.valid) reader.follow({ page: bookmarks.data(at, 258), location: bookmarks.data(at, 259) })
+            }
+            Keys.onReturnPressed: openCurrent()
+            Keys.onEnterPressed: openCurrent()
             ScrollBar.vertical: ScrollBar { }
             delegate: Item {
                 id: entry
                 required property TreeView treeView
                 required property bool expanded
                 required property bool hasChildren
+                required property bool current
                 required property int depth
                 required property int row
                 required property string title
@@ -386,7 +659,9 @@ FocusScope {
                 implicitHeight: 32
                 Rectangle {
                     anchors.fill: parent
-                    color: entry.page === reader.page ? Theme.raised : hover.hovered ? Theme.surface : "transparent"
+                    color: entry.page === reader.currentSource ? Theme.raised : hover.hovered ? Theme.surface : "transparent"
+                    border.width: entry.current && contents.activeFocus ? 2 : 0
+                    border.color: Theme.focus
                 }
                 Text {
                     id: arrow
@@ -404,12 +679,12 @@ FocusScope {
                     anchors { left: arrow.right; leftMargin: 6; right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
                     text: entry.title
                     elide: Text.ElideRight
-                    color: entry.page === reader.page ? Theme.ink : Theme.inkBody
+                    color: entry.page === reader.currentSource ? Theme.ink : Theme.inkBody
                     font.family: Theme.text
                     font.pixelSize: Theme.sizeUi
                 }
                 HoverHandler { id: hover }
-                TapHandler { onTapped: reader.goTo(entry.page, entry.location) }
+                TapHandler { onTapped: reader.follow({ page: entry.page, location: entry.location }) }
             }
         }
 
@@ -432,37 +707,42 @@ FocusScope {
         activeFocusOnTab: false
         pointerNavigationEnabled: false
         boundsBehavior: Flickable.StopAtBounds
-        columnWidthProvider: () => Math.max(pages.width, doc.maxPageWidth * reader.zoom + 2 * reader.margin)
-        rowHeightProvider: (row) => doc.pagePointSize(row).height * reader.zoom
+        columnWidthProvider: () => Math.max(pages.width, reader.widest * reader.zoom + 2 * reader.margin)
+        rowHeightProvider: (row) => reader.laidOut(row).height * reader.zoom
         ScrollBar.vertical: ScrollBar { }
         ScrollBar.horizontal: ScrollBar { }
         onContentYChanged: reader.track()
-        onWidthChanged: reader.fitting.length ? Qt.callLater(reader.fit) : Qt.callLater(pages.forceLayout)
-        onHeightChanged: if (reader.fitting === "page") Qt.callLater(reader.fit)
+        onWidthChanged: refitting.restart()
+        onHeightChanged: if (reader.fitting === "page") refitting.restart()
 
         delegate: Item {
             id: holder
             required property int row
-            readonly property size points: doc.pagePointSize(row)
+            readonly property var entry: reader.entryAt(row)
+            readonly property size points: doc.pagePointSize(entry.page)
             property alias selection: selection
 
-            // The edge the page sits on, and the paper: a Rectangle's own white, the colour a PDF is drawn on.
-            Rectangle {
-                anchors.fill: paper
-                anchors.margins: -1
-                color: Theme.edge
-            }
+            // The paper: a Rectangle's own white, the colour a PDF is drawn on, on the edge it sits on; turned as the page is,
+            // with everything on it.
             Rectangle {
                 id: paper
                 anchors.centerIn: parent
                 width: holder.points.width * reader.zoom
                 height: holder.points.height * reader.zoom
+                rotation: holder.entry.turn * 90
+
+                Rectangle {
+                    z: -1
+                    anchors.fill: parent
+                    anchors.margins: -1
+                    color: Theme.edge
+                }
 
                 PdfPageImage {
                     id: image
                     anchors.fill: parent
                     document: doc
-                    currentFrame: holder.row
+                    currentFrame: holder.entry.page
                     asynchronous: true
                     fillMode: Image.PreserveAspectFit
                     sourceSize.width: paper.width * Screen.devicePixelRatio
@@ -476,14 +756,14 @@ FocusScope {
                         strokeWidth: -1
                         fillColor: Qt.alpha(Theme.accentBright, 0.3)
                         scale: Qt.size(reader.zoom, reader.zoom)
-                        PathMultiline { paths: finder.visible && reader.matches >= 0 ? search.boundingPolygonsOnPage(holder.row) : [] }
+                        PathMultiline { paths: finder.visible && reader.matches >= 0 ? search.boundingPolygonsOnPage(holder.entry.page) : [] }
                     }
                     ShapePath {
                         strokeWidth: 2
                         strokeColor: Theme.accent
                         fillColor: "transparent"
                         scale: Qt.size(reader.zoom, reader.zoom)
-                        PathMultiline { paths: finder.visible && search.currentResultLink.page === holder.row ? search.currentResultBoundingPolygons : [] }
+                        PathMultiline { paths: finder.visible && search.currentResultLink.page === holder.entry.page ? search.currentResultBoundingPolygons : [] }
                     }
                     ShapePath {
                         strokeWidth: -1
@@ -521,7 +801,7 @@ FocusScope {
                     id: selection
                     anchors.fill: parent
                     document: doc
-                    page: holder.row
+                    page: holder.entry.page
                     renderScale: reader.zoom
                     from: drag.centroid.pressPosition
                     to: drag.centroid.position
@@ -531,7 +811,7 @@ FocusScope {
 
                 // Links: where they go is shown under the pointer; a click takes the person there.
                 Repeater {
-                    model: PdfLinkModel { document: doc; page: holder.row }
+                    model: PdfLinkModel { document: doc; page: holder.entry.page }
                     delegate: Item {
                         id: linkArea
                         objectName: "pdfLink"
@@ -545,7 +825,7 @@ FocusScope {
                         height: rectangle.height * reader.zoom
                         ToolTip.visible: linkHover.hovered
                         ToolTip.delay: 400
-                        ToolTip.text: linkArea.page >= 0 ? qsTr("Page %1").arg(linkArea.page + 1)
+                        ToolTip.text: linkArea.page >= 0 ? (reader.rowOf(linkArea.page) >= 0 ? qsTr("Page %1").arg(reader.rowOf(linkArea.page) + 1) : qsTr("That page is no longer in this PDF."))
                                                          : reader.followable(linkArea.url) ? String(linkArea.url) : qsTr("QOR Media does not follow this link")
                         HoverHandler { id: linkHover; cursorShape: Qt.PointingHandCursor }
                         TapHandler { onTapped: reader.follow(linkArea) }
@@ -657,6 +937,34 @@ FocusScope {
         }
     }
 
+    // Changes not yet saved, before going.
+    Rectangle {
+        id: asking
+        objectName: "asking"
+        visible: false
+        anchors.centerIn: parent
+        width: 460
+        height: 168
+        radius: Theme.radiusPanel
+        color: Theme.raised
+        border.color: Theme.edge
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 22
+            spacing: 8
+            Text { text: qsTr("Save the changes to %1?").arg(Files.nameOf(reader.path)); color: Theme.ink; font.family: Theme.ui; font.pixelSize: Theme.sizeHeading; font.weight: Font.DemiBold; Layout.fillWidth: true; elide: Text.ElideMiddle }
+            Text { text: qsTr("Its pages go back as they were if you don't."); color: Theme.inkMuted; font.family: Theme.text; font.pixelSize: Theme.sizeBody }
+            Item { Layout.fillHeight: true }
+            RowLayout {
+                Layout.alignment: Qt.AlignRight
+                spacing: 8
+                TextButton { objectName: "askCancel"; text: qsTr("Cancel"); onClicked: reader.answered("cancel") }
+                TextButton { objectName: "askDiscard"; text: qsTr("Don't save"); onClicked: reader.answered("discard") }
+                TextButton { id: saveChoice; objectName: "askSave"; text: qsTr("Save"); primary: true; onClicked: reader.answered("save") }
+            }
+        }
+    }
+
     // The bottom line: the page, which can be typed, and the zoom.
     Rectangle {
         id: status
@@ -697,14 +1005,15 @@ FocusScope {
     }
 
     Keys.onPressed: (event) => {
-        if (!reader.ready) return
+        if (!reader.ready || asking.visible) return
         const wide = pages.contentWidth > pages.width + 1
+        const alt = event.modifiers & Qt.AltModifier
         switch (event.key) {
         case Qt.Key_PageDown: reader.scrollBy(pages.height * 0.9); break
         case Qt.Key_PageUp: reader.scrollBy(-pages.height * 0.9); break
         case Qt.Key_Space: reader.scrollBy((event.modifiers & Qt.ShiftModifier ? -1 : 1) * pages.height * 0.9); break
-        case Qt.Key_Down: reader.scrollBy(48); break
-        case Qt.Key_Up: reader.scrollBy(-48); break
+        case Qt.Key_Down: if (alt) reader.movePage(1); else reader.scrollBy(48); break
+        case Qt.Key_Up: if (alt) reader.movePage(-1); else reader.scrollBy(-48); break
         case Qt.Key_Right: if (wide) { pages.contentX += 48; reader.clamp() } else reader.goTo(reader.page + 1); break
         case Qt.Key_Left: if (wide) { pages.contentX -= 48; reader.clamp() } else reader.goTo(reader.page - 1); break
         case Qt.Key_Home: reader.goTo(0); break
@@ -712,6 +1021,8 @@ FocusScope {
         case Qt.Key_Plus: case Qt.Key_Equal: reader.zoomBy(1.25, pages.width / 2, pages.height / 2); break
         case Qt.Key_Minus: reader.zoomBy(0.8, pages.width / 2, pages.height / 2); break
         case Qt.Key_0: reader.cycleFit(); break
+        case Qt.Key_R: reader.turnPage(event.modifiers & Qt.ShiftModifier ? -1 : 1); break
+        case Qt.Key_Delete: reader.deletePage(); break
         case Qt.Key_F: reader.fullScreenToggled(); break
         case Qt.Key_F9: reader.panel = !reader.panel; break
         default: return
@@ -719,16 +1030,24 @@ FocusScope {
         event.accepted = true
     }
 
-    Shortcut { sequences: [StandardKey.Find]; enabled: reader.ready; onActivated: reader.openFinder() }
+    Shortcut { sequences: [StandardKey.Find]; enabled: reader.ready && !asking.visible; onActivated: reader.openFinder() }
     Shortcut { sequence: "F3"; enabled: finder.visible; onActivated: reader.step(1) }
     Shortcut { sequence: "Shift+F3"; enabled: finder.visible; onActivated: reader.step(-1) }
-    Shortcut { sequence: "Ctrl+G"; enabled: reader.ready; onActivated: pageField.forceActiveFocus() }
+    Shortcut { sequence: "Ctrl+G"; enabled: reader.ready && !asking.visible; onActivated: pageField.forceActiveFocus() }
     Shortcut { sequences: [StandardKey.Copy]; enabled: reader.ready; onActivated: reader.copy() }
-    Shortcut { sequences: [StandardKey.SelectAll]; enabled: reader.ready; onActivated: reader.selectPage() }
+    Shortcut { sequences: [StandardKey.SelectAll]; enabled: reader.ready && !asking.visible; onActivated: reader.selectPage() }
+    Shortcut { sequences: [StandardKey.Undo]; enabled: reader.ready && !asking.visible; onActivated: reader.undo() }
+    Shortcut { sequences: [StandardKey.Redo]; enabled: reader.ready && !asking.visible; onActivated: reader.redo() }
+    Shortcut { sequences: [StandardKey.Save]; enabled: reader.ready; onActivated: asking.visible ? reader.answered("save") : reader.save() }
     Shortcut {
         // Only when there is something to close first; otherwise the window's Esc goes back.
         sequence: "Esc"
         enabled: reader.consumesEscape
-        onActivated: finder.visible ? reader.closeFinder() : reader.rest()
+        onActivated: {
+            if (asking.visible) reader.answered("cancel")
+            else if (finder.visible) reader.closeFinder()
+            else if (pageField.activeFocus) reader.rest()
+            else reader.goBack()
+        }
     }
 }

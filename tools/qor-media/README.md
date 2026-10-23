@@ -10,7 +10,7 @@ over the Library, so it moves, resizes and minimises with the launcher.
 | Video and sound | `qml/Player.qml` | Qt Multimedia on its FFmpeg backend: every container and codec FFmpeg reads. Resumes where it stopped; scrubbing with the time under the pointer; ±10 s; speed; volume; audio and subtitle tracks; full screen |
 | Pictures | `qml/Viewer.qml` | Every format Qt's image plugins read (JPEG, PNG, GIF, WebP, TIFF, SVG, BMP, ICO, TGA), turned as the camera wrote it; zoom about the pointer, drag, 1:1 on a double click, the folder's others next and previous, turn, slideshow |
 | Text, Markdown and code | `qml/Editor.qml` | Read and saved as written (UTF-8 or UTF-16, byte-order mark and CRLF kept, `src/textfile.cpp`), coloured in the launcher's theme; line numbers for code; Markdown preview beside the words; find; asks before unsaved words are lost |
-| PDF | `qml/Reader.qml` | Read with Qt PDF: the pages one under another on their own paper, fitted to the width or the whole page, zoomed about the pointer; find with every match marked; text selected and copied; links followed to their page, or out to the web or mail and nowhere else; the pages and the contents beside it; a locked PDF opens with its password, kept only while it is open; a broken one says so. Marking up, filling, signing and changing pages come next, through PDFium (L9.5) |
+| PDF | `qml/Reader.qml` | Read with Qt PDF: the pages one under another on their own paper, fitted to the width or the whole page, zoomed about the pointer; find with every match marked; text selected and copied; links followed to their page, or out to the web or mail and nowhere else; the pages and the contents beside it; a locked PDF opens with its password, kept only while it is open; a broken one says so. Its pages turned, deleted and moved, shown at once, undone and redone, and saved through PDFium (`src/pdfpages.cpp`) into a temporary file renamed into place; asks before unsaved changes are lost; a locked or protected PDF is read, never changed. Marking up, filling and signing come next (L9.5) |
 | Office documents, anything else | `qml/Elsewhere.qml` | Says so, and opens it in the program Windows chooses. Office documents arrive with L9.7 |
 
 Keys: Space or K play and pause; arrows seek 5 s (player) or move between pictures (viewer); J and L 10 s; Up and Down
@@ -18,8 +18,10 @@ the volume; M mutes; F full screen; [ and ] speed; C subtitles; A audio track; R
 saves; Ctrl+F finds; Ctrl+P previews Markdown; Alt+Z wraps lines; Esc goes back to the Library. In a PDF: Page Up, Page
 Down, Space, the arrows, Home and End go through it; Ctrl+G goes to a page; + and -, or Ctrl and the wheel, zoom; 0 fits
 the width or the whole page; Ctrl+F and F3 find; Ctrl+A selects a page's text and Ctrl+C copies it; F9 shows the pages
-and contents. Tab reaches every button, the volume and the speed, shown by the focus ring, and Return or Space presses
-it; while the keyboard is on the player's controls they stay on screen.
+and contents, whose entries the arrows choose and Return opens; R turns the page (Shift+R the other way), Delete deletes
+it, Alt+Up and Alt+Down move it, Ctrl+Z and Ctrl+Y undo and redo, Ctrl+S saves. Tab reaches every button, the volume and
+the speed, shown by the focus ring, and Return or Space presses it; while the keyboard is on the player's controls they
+stay on screen.
 
 ## Its look
 
@@ -43,11 +45,17 @@ Started by hand with a file (`qor-media.exe film.mkv`) it opens that file in a w
 
 ## Build, test, deploy
 
-Needs the owner's Qt 6.12 (commercial licence) at `C:\Qt\6.12.0\msvc2022_64` with Qt Multimedia, Visual Studio 2022's C++
-tools, and CMake and Ninja from `C:\Qt\Tools`. CI has no licensed Qt, so these run on the owner's PC, as QQ's do.
+Needs the owner's Qt 6.12 (commercial licence) at `C:\Qt\6.12.0\msvc2022_64` with Qt Multimedia and Qt PDF, Visual Studio
+2022's C++ tools, and CMake and Ninja from `C:\Qt\Tools`. CI has no licensed Qt, so these run on the owner's PC, as QQ's
+do.
+
+**PDFium**, for changing a PDF, is the prebuilt release `build.ps1` pins (`bblanchon/pdfium-binaries`, `chromium/8111`,
+with its SHA-256). It is fetched once into `%LOCALAPPDATA%\qor-media-pdfium\`, checked against that hash at every build,
+and refused if it differs. A deployed copy carries `pdfium.dll` with its licences (`pdfium-LICENSE.txt`,
+`pdfium-licenses\`). A newer release is a change to those two lines, and its hash is the release's own.
 
 ```
-pwsh tools/qor-media/build.ps1             # build and run the six Qt Test suites
+pwsh tools/qor-media/build.ps1             # build and run the seven Qt Test suites
 pwsh tools/qor-media/build.ps1 -Run a.mkv  # build, then open a file
 pwsh tools/qor-media/build.ps1 -Deploy     # build, test, then put a self-contained copy in %LOCALAPPDATA%\qor-media
 ```
@@ -67,7 +75,8 @@ cargo test --lib media::tests::qor_media -- --ignored
 | `tst_files` | Kinds by extension, as the launcher's index shelves them; which documents the editor and the reader open; a folder's pictures in the order people read numbers |
 | `tst_textfile` | LF, CRLF, UTF-8 with a byte-order mark and UTF-16 each written back as they were; a binary, oversized or missing file is refused and never written |
 | `tst_playback` | The whole program: a generated tone plays and its length, where it stopped and that it closed are reported; Windows' own sample video decodes through FFmpeg; a picture shows with its size and the arrow key moves to the next; unsaved words hold the window and nothing is written; an Office document says what opens it; the launcher's colours are worn; it docks as a child of a window known only by its handle, at the launcher's physical rectangle in logical pixels, and lifts out to full screen and back; hide hides |
-| `tst_reader` | PDFs the test writes byte by byte: one opens with every page, fitted to the width; the keys go through it, and a page's number typed goes there and gives the keyboard back; zoom stays between 10% and 800% and fitting returns; find marks every match and goes to each, around and back; a page's text is selected and copied, and another page's replaces it; a link goes to its page, and only the web or mail may leave; the pages and contents sit beside it and each goes to its page; a PDF locked with the standard handler (RC4) opens with its password and not without, the field emptied each time; a second locked PDF asks again; a broken one says so; Tab reaches every control |
+| `tst_reader` | PDFs the test writes byte by byte: one opens with every page, fitted to the width; the keys go through it, and a page's number typed goes there and gives the keyboard back; zoom stays between 10% and 800% and fitting returns; find marks every match and goes to each, around and back; a page's text is selected and copied, and another page's replaces it; a link goes to its page, and only the web or mail may leave; the pages and contents sit beside it and each goes to its page; a PDF locked with the standard handler (RC4) opens with its password and not without, the field emptied each time; a second locked PDF asks again; a broken one says so; pages turned, deleted, moved, undone, redone and saved, the file holding them exactly and the copy shown while saving gone; the last page stays; going with changes unsaved asks, and "Don't save" leaves the file as it was; a save that fails keeps the changes and the file; a locked or protected PDF is read, not changed; Tab reaches every control |
+| `tst_pdfpages` | Through PDFium, read back: turns, deletions and moves written; every page in its place; the order reversed; a turn added to the page's own; a list it cannot follow (nothing kept, a page twice, a page it lacks, a turn too far) leaving the file's bytes as they were; a locked PDF and one protected without a password left as they were; a file that cannot be replaced left as it was, with no stray file beside it; which PDFs can be changed; the copy for saving made and only such a copy deleted, a read-only one too |
 
 Every rule above was checked against a fault planted in it: the save guard, the newest-position rule, the frame limit,
 numeric order, the unsaved-words guard, the length report, the closed report, and docking (no parent, physical pixels
@@ -75,11 +84,14 @@ taken as logical at 125% scaling, not put back after full screen). In the reader
 left in its field, the same wrong password not said to be wrong, zoom without bounds, the keyboard handed back to the
 field, a new search not going to its match, and fitting without the margin, each caught. One was not: the reader's own
 clearing of the last PDF's password, since Qt PDF clears it too on closing a file; the test holds that a second PDF asks
-again whichever of them does it.
+again whichever of them does it. In changing a PDF, each caught: a turn not written, a page left out kept, the order not
+written, a protected PDF changed, a page listed twice, a read-only copy not deleted; a locked PDF's pages changing, undo
+doing nothing, a failed save losing the changes, the copy left behind, and the file swapped while pages still show. The
+reader's own question on Esc was not, since the window asks before closing anything unsaved too.
 
 ## Not yet
 
-Changing a PDF: marking up, highlighting, filling, signing, and reordering, turning and deleting pages, then saving, through
-PDFium's own interface (the rest of L9.5); Office documents (L9.7); HEIC, AVIF, JPEG XL and camera RAW pictures (L9.8);
+Marking up, highlighting, filling and signing a PDF through PDFium's own interface (the rest of L9.5); dragging pages to
+move them; changing a locked PDF; Office documents (L9.7); HEIC, AVIF, JPEG XL and camera RAW pictures (L9.8);
 video thumbnails on the Library's tiles; a game controller inside QOR Media (the Library's own view takes one); docking
 on macOS and Linux.

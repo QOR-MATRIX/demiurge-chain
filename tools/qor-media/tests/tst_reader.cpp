@@ -5,9 +5,10 @@
 // the test, byte by byte, so what each holds is known exactly.
 
 #include <QClipboard>
-#include <QCryptographicHash>
+#include <QDir>
 #include <QFile>
 #include <QGuiApplication>
+#include <QJSValue>
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -17,172 +18,12 @@
 #include <QtQml/qqmlextensionplugin.h>
 
 #include "medialink.h"
+#include "testpdf.h"
 
 Q_IMPORT_QML_PLUGIN(QOR_MediaPlugin)
 
 using qormedia::MediaLink;
-
-namespace {
-
-// A page of a PDF: lines of text in Helvetica, and links to another page (by its index) or to a URI.
-struct Link
-{
-    QRectF rect;  // in points, from the page's bottom left, as a PDF writes it
-    int page = -1;
-    QByteArray uri;
-};
-struct Page
-{
-    QList<QByteArray> lines;
-    QList<Link> links;
-};
-struct Entry
-{
-    QByteArray title;
-    int page;
-};
-
-// The padding of the standard security handler (PDF 1.7, 7.6.3.3).
-const QByteArray kPad = QByteArray::fromHex("28BF4E5E4E758A4164004E56FFFA01082E2E00B6D0683E802F0CA9FE6453697A");
-
-QByteArray rc4(const QByteArray &key, const QByteArray &data)
-{
-    unsigned char s[256];
-    for (int i = 0; i < 256; ++i)
-        s[i] = static_cast<unsigned char>(i);
-    for (int i = 0, j = 0; i < 256; ++i) {
-        j = (j + s[i] + static_cast<unsigned char>(key[i % key.size()])) & 255;
-        std::swap(s[i], s[j]);
-    }
-    QByteArray out(data.size(), '\0');
-    for (int k = 0, i = 0, j = 0; k < data.size(); ++k) {
-        i = (i + 1) & 255;
-        j = (j + s[i]) & 255;
-        std::swap(s[i], s[j]);
-        out[k] = static_cast<char>(data[k] ^ s[(s[i] + s[j]) & 255]);
-    }
-    return out;
-}
-
-QByteArray md5(const QByteArray &data)
-{
-    return QCryptographicHash::hash(data, QCryptographicHash::Md5);
-}
-
-QByteArray padded(const QByteArray &password)
-{
-    return (password + kPad).left(32);
-}
-
-// A PDF of `pages`, with an outline of `outline` when it has one, locked with `password` when there is one: the standard
-// security handler's revision 2 (40-bit RC4), the oldest every reader opens, which is all a test of asking needs.
-QByteArray writePdf(const QList<Page> &pages, const QList<Entry> &outline = {}, const QByteArray &password = {})
-{
-    const int count = int(pages.size());
-    // Objects: 1 catalog, 2 page tree, 3 font, then for each page its page and its contents, then the links, the
-    // outline and its entries, and the lock.
-    int next = 4;
-    QList<int> pageObj, contentObj;
-    for (int i = 0; i < count; ++i) {
-        pageObj << next++;
-        contentObj << next++;
-    }
-    QList<QList<int>> linkObj(count);
-    for (int i = 0; i < count; ++i)
-        for (qsizetype l = 0; l < pages[i].links.size(); ++l)
-            linkObj[i] << next++;
-    const int outlineObj = outline.isEmpty() ? 0 : next++;
-    QList<int> entryObj;
-    for (qsizetype e = 0; e < outline.size(); ++e)
-        entryObj << next++;
-    const int lockObj = password.isEmpty() ? 0 : next++;
-
-    const QByteArray id = md5("qor-media reader test");
-    QByteArray key;
-    QByteArray owner, user;
-    if (!password.isEmpty()) {
-        owner = rc4(md5(padded("owner")).left(5), padded(password));
-        const QByteArray p = QByteArray::fromHex("FCFFFFFF");  // /P -4, little-endian
-        key = md5(padded(password) + owner + p + id).left(5);
-        user = rc4(key, kPad);
-    }
-    const auto sealed = [&](int obj, const QByteArray &data) {
-        if (key.isEmpty())
-            return data;
-        QByteArray salt = key;
-        salt.append(char(obj & 0xFF)).append(char((obj >> 8) & 0xFF)).append(char((obj >> 16) & 0xFF)).append('\0').append('\0');
-        return rc4(md5(salt).left(10), data);
-    };
-    const auto dest = [&](int page) { return QByteArray("[%1 0 R /XYZ 0 792 0]").replace("%1", QByteArray::number(pageObj[page])); };
-
-    QByteArray pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
-    QList<qsizetype> offsets(next, 0);
-    const auto object = [&](int obj, const QByteArray &body) {
-        offsets[obj] = pdf.size();
-        pdf += QByteArray::number(obj) + " 0 obj\n" + body + "\nendobj\n";
-    };
-
-    QByteArray kids;
-    for (int p : pageObj)
-        kids += QByteArray::number(p) + " 0 R ";
-    object(1, "<< /Type /Catalog /Pages 2 0 R" + (outlineObj ? " /Outlines " + QByteArray::number(outlineObj) + " 0 R" : QByteArray()) + " >>");
-    object(2, "<< /Type /Pages /Kids [" + kids + "] /Count " + QByteArray::number(count) + " >>");
-    object(3, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
-    for (int i = 0; i < count; ++i) {
-        QByteArray annots;
-        for (int a : linkObj[i])
-            annots += QByteArray::number(a) + " 0 R ";
-        object(pageObj[i], "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents "
-                               + QByteArray::number(contentObj[i]) + " 0 R" + (annots.isEmpty() ? QByteArray() : " /Annots [" + annots + "]") + " >>");
-        QByteArray text = "BT /F1 24 Tf 72 700 Td";
-        for (qsizetype l = 0; l < pages[i].lines.size(); ++l)
-            text += (l ? " 0 -36 Td (" : " (") + pages[i].lines[l] + ") Tj";
-        text += " ET";
-        const QByteArray stream = sealed(contentObj[i], text);
-        object(contentObj[i], "<< /Length " + QByteArray::number(stream.size()) + " >>\nstream\n" + stream + "\nendstream");
-    }
-    for (int i = 0; i < count; ++i)
-        for (qsizetype l = 0; l < pages[i].links.size(); ++l) {
-            const Link &link = pages[i].links[l];
-            const QRectF &r = link.rect;
-            const QByteArray rect = "[" + QByteArray::number(r.left()) + " " + QByteArray::number(r.top()) + " "
-                + QByteArray::number(r.right()) + " " + QByteArray::number(r.bottom()) + "]";
-            const QByteArray target = link.page >= 0 ? "/Dest " + dest(link.page) : "/A << /S /URI /URI (" + link.uri + ") >>";
-            object(linkObj[i][l], "<< /Type /Annot /Subtype /Link /Rect " + rect + " /Border [0 0 0] " + target + " >>");
-        }
-    if (outlineObj) {
-        object(outlineObj, "<< /Type /Outlines /First " + QByteArray::number(entryObj.first()) + " 0 R /Last "
-                               + QByteArray::number(entryObj.last()) + " 0 R /Count " + QByteArray::number(outline.size()) + " >>");
-        for (qsizetype e = 0; e < outline.size(); ++e) {
-            QByteArray body = "<< /Title (" + outline[e].title + ") /Parent " + QByteArray::number(outlineObj) + " 0 R /Dest " + dest(outline[e].page);
-            if (e > 0)
-                body += " /Prev " + QByteArray::number(entryObj[e - 1]) + " 0 R";
-            if (e + 1 < outline.size())
-                body += " /Next " + QByteArray::number(entryObj[e + 1]) + " 0 R";
-            object(entryObj[e], body + " >>");
-        }
-    }
-    if (lockObj)
-        object(lockObj, "<< /Filter /Standard /V 1 /R 2 /O <" + owner.toHex() + "> /U <" + user.toHex() + "> /P -4 >>");
-
-    const qsizetype xref = pdf.size();
-    pdf += "xref\n0 " + QByteArray::number(next) + "\n0000000000 65535 f \n";
-    for (int obj = 1; obj < next; ++obj)
-        pdf += QByteArray::number(offsets[obj]).rightJustified(10, '0') + " 00000 n \n";
-    pdf += "trailer\n<< /Size " + QByteArray::number(next) + " /Root 1 0 R /ID [<" + id.toHex() + "> <" + id.toHex() + ">]"
-        + (lockObj ? " /Encrypt " + QByteArray::number(lockObj) + " 0 R" : QByteArray()) + " >>\nstartxref\n"
-        + QByteArray::number(xref) + "\n%%EOF\n";
-    return pdf;
-}
-
-void save(const QString &path, const QByteArray &bytes)
-{
-    QFile f(path);
-    QVERIFY(f.open(QIODevice::WriteOnly));
-    f.write(bytes);
-}
-
-}  // namespace
+using namespace testpdf;
 
 class TestReader : public QObject
 {
@@ -206,6 +47,29 @@ class TestReader : public QObject
         if (!QTest::qWaitFor([&] { return (reader = window->findChild<QQuickItem *>(QStringLiteral("reader"))) != nullptr; }))
             return nullptr;
         return reader;
+    }
+    // A three-page PDF of its own, for a test that changes it: "alpha one", "beta two", "gamma".
+    QString fresh(const QString &name)
+    {
+        const QString path = dir.filePath(name);
+        save(path, writePdf({{{"alpha one"}, {}}, {{"beta two"}, {}}, {{"gamma"}, {}}}));
+        return path;
+    }
+    // The reader's pages as they show: each one's page in the file and its added turn.
+    using Layout = QList<QPair<int, int>>;
+    static Layout layoutOf(QQuickItem *reader)
+    {
+        Layout layout;
+        for (const QVariant &entry : reader->property("layout").value<QJSValue>().toVariant().toList()) {
+            const QVariantMap map = entry.toMap();
+            layout.append({map.value("page").toInt(), map.value("turn").toInt()});
+        }
+        return layout;
+    }
+    // The copies a save shows while it writes, which it deletes once done.
+    static QStringList copiesLeft()
+    {
+        return QDir(QDir::temp().filePath("qor-media")).entryList({"saving-*"}, QDir::Files);
     }
     // Type `text` into whatever has the keyboard. QTest types whole strings only into widgets.
     void type(const QString &text)
@@ -466,9 +330,21 @@ private slots:
         QQuickItem *contents = named("contents");
         QTRY_VERIFY(contents->isVisible());
         QTRY_COMPARE(contents->property("rows").toInt(), 2);
-        QList<QQuickItem *> start;
-        QTRY_COMPARE((start = itemsUnder(contents, [](QQuickItem *i) { return i->property("title").toString() == QLatin1String("Start"); })).size(), 1);
-        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, centreOf(start.first()).toPoint());
+        // Clicked once both entries stand where they will stay: the view lays its rows out as it draws.
+        const auto entry = [&](const char *title) {
+            const QList<QQuickItem *> found = itemsUnder(contents, [&](QQuickItem *i) { return i->property("title").toString() == QLatin1String(title); });
+            return found.size() == 1 ? found.first() : nullptr;
+        };
+        QTRY_VERIFY(entry("Start") && entry("End") && entry("End")->y() >= entry("Start")->y() + entry("Start")->height());
+        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, centreOf(entry("Start")).toPoint());
+        QTRY_COMPARE(reader->property("page").toInt(), 0);
+        // And by the keyboard: the arrows choose an entry, Return goes there.
+        contents->forceActiveFocus();
+        QTest::keyClick(window, Qt::Key_Down);
+        QTest::keyClick(window, Qt::Key_Return);
+        QTRY_COMPARE(reader->property("page").toInt(), 2);
+        QTest::keyClick(window, Qt::Key_Up);
+        QTest::keyClick(window, Qt::Key_Return);
         QTRY_COMPARE(reader->property("page").toInt(), 0);
         QTest::keyClick(window, Qt::Key_Escape);
         QTRY_VERIFY(!window->isVisible());
@@ -537,14 +413,165 @@ private slots:
         QTRY_VERIFY(!window->isVisible());
     }
 
+    void pages_are_turned_deleted_moved_undone_and_saved()
+    {
+        const QString path = fresh("changes.pdf");
+        QQuickItem *reader = read(path);
+        QVERIFY(reader);
+        QTRY_COMPARE(reader->property("pageCount").toInt(), 3);
+        QTRY_VERIFY(reader->property("editable").toBool());
+        const QByteArray before = bytesOf(path);
+        // The first page turned, the last deleted, the second moved before the first: each shows at once.
+        QTest::keyClick(window, Qt::Key_R);
+        QTRY_COMPARE(layoutOf(reader), (Layout{{0, 1}, {1, 0}, {2, 0}}));
+        QVERIFY(reader->property("dirty").toBool());
+        QTest::keyClick(window, Qt::Key_End);
+        QTRY_COMPARE(reader->property("page").toInt(), 2);
+        QTest::keyClick(window, Qt::Key_Delete);
+        QTRY_COMPARE(reader->property("pageCount").toInt(), 2);
+        QCOMPARE(reader->property("page").toInt(), 1);
+        QTest::keyClick(window, Qt::Key_Up, Qt::AltModifier);
+        QTRY_COMPARE(layoutOf(reader), (Layout{{1, 0}, {0, 1}}));
+        QCOMPARE(reader->property("page").toInt(), 0);
+        // Undo and redo walk the changes; none of it has reached the file.
+        QTest::keyClick(window, Qt::Key_Z, Qt::ControlModifier);
+        QTRY_COMPARE(layoutOf(reader), (Layout{{0, 1}, {1, 0}}));
+        QTest::keyClick(window, Qt::Key_Y, Qt::ControlModifier);
+        QTRY_COMPARE(layoutOf(reader), (Layout{{1, 0}, {0, 1}}));
+        QCOMPARE(bytesOf(path), before);
+        // Saved: the file holds the pages as they showed, and the reader shows the file as it now is.
+        QTest::keyClick(window, Qt::Key_S, Qt::ControlModifier);
+        QTRY_VERIFY(!reader->property("dirty").toBool());
+        const Held held = readBack(path);
+        QCOMPARE(held.text, (QStringList{"beta two", "alpha one"}));
+        QCOMPARE(held.turns, (QList<int>{0, 1}));
+        QTRY_COMPARE(layoutOf(reader), (Layout{{0, 0}, {1, 0}}));
+        QCOMPARE(reader->property("undoStack").value<QJSValue>().property("length").toInt(), 0);
+        // The copy shown while saving is gone.
+        QCOMPARE(copiesLeft(), QStringList());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!window->isVisible());
+    }
+
+    void the_last_page_stays()
+    {
+        const QString path = dir.filePath("one page.pdf");
+        save(path, writePdf({{{"only"}, {}}}));
+        QQuickItem *reader = read(path);
+        QVERIFY(reader);
+        QTRY_VERIFY(reader->property("editable").toBool());
+        QTest::keyClick(window, Qt::Key_Delete);
+        QTRY_VERIFY(!reader->property("notice").toString().isEmpty());
+        QCOMPARE(reader->property("pageCount").toInt(), 1);
+        QVERIFY(!reader->property("dirty").toBool());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!window->isVisible());
+    }
+
+    void going_with_changes_unsaved_asks_first()
+    {
+        const QString path = fresh("unsaved.pdf");
+        const QByteArray before = bytesOf(path);
+        QQuickItem *reader = read(path);
+        QVERIFY(reader);
+        QTRY_VERIFY(reader->property("editable").toBool());
+        QTest::keyClick(window, Qt::Key_R);
+        QTRY_VERIFY(reader->property("dirty").toBool());
+        // Esc asks; Esc again keeps the changes and the PDF open.
+        QQuickItem *asking = named("asking");
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(asking->isVisible());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!asking->isVisible());
+        QVERIFY(window->isVisible());
+        QVERIFY(reader->property("dirty").toBool());
+        // Asked again, "Don't save": the PDF goes, and the file is as it was.
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(asking->isVisible());
+        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, centreOf(named("askDiscard")).toPoint());
+        QTRY_VERIFY(!window->isVisible());
+        QCOMPARE(bytesOf(path), before);
+
+        // Opened again and turned: "Save", the answer the question starts on, writes it before going.
+        reader = read(path);
+        QVERIFY(reader);
+        QTRY_VERIFY(reader->property("editable").toBool());
+        QTest::keyClick(window, Qt::Key_R);
+        QTRY_VERIFY(reader->property("dirty").toBool());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(named("asking")->isVisible());
+        QTest::keyClick(window, Qt::Key_Return);
+        QTRY_VERIFY(!window->isVisible());
+        QCOMPARE(readBack(path).turns, (QList<int>{1, 0, 0}));
+        QCOMPARE(copiesLeft(), QStringList());
+    }
+
+    void a_save_that_fails_keeps_the_changes_and_the_file()
+    {
+        const QString path = fresh("read-only.pdf");
+        const QByteArray before = bytesOf(path);
+        QQuickItem *reader = read(path);
+        QVERIFY(reader);
+        QTRY_VERIFY(reader->property("editable").toBool());
+        QTest::keyClick(window, Qt::Key_R);
+        QTRY_VERIFY(reader->property("dirty").toBool());
+        QVERIFY(QFile::setPermissions(path, QFile::ReadOwner | QFile::ReadUser | QFile::ReadGroup | QFile::ReadOther));
+        QTest::keyClick(window, Qt::Key_S, Qt::ControlModifier);
+        QTRY_VERIFY(!reader->property("notice").toString().isEmpty());
+        QFile::setPermissions(path, QFile::ReadOwner | QFile::WriteOwner | QFile::ReadUser | QFile::WriteUser);
+        QVERIFY(reader->property("notice").toString() != QLatin1String("Saved"));
+        QVERIFY(reader->property("dirty").toBool());
+        QTRY_COMPARE(layoutOf(reader), (Layout{{0, 1}, {1, 0}, {2, 0}}));
+        QCOMPARE(bytesOf(path), before);
+        // Still here to be saved once the file can be written.
+        QTest::keyClick(window, Qt::Key_S, Qt::ControlModifier);
+        QTRY_VERIFY(!reader->property("dirty").toBool());
+        QCOMPARE(readBack(path).turns, (QList<int>{1, 0, 0}));
+        QCOMPARE(copiesLeft(), QStringList());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!window->isVisible());
+    }
+
+    void a_locked_or_protected_pdf_is_read_not_changed()
+    {
+        // Opened with its password: its pages do not change.
+        QQuickItem *reader = read(dir.filePath("locked.pdf"));
+        QVERIFY(reader);
+        QTRY_VERIFY(named("password")->hasActiveFocus());
+        type(QStringLiteral("open sesame"));
+        QTest::keyClick(window, Qt::Key_Return);
+        QTRY_COMPARE(reader->property("pageCount").toInt(), 1);
+        QVERIFY(!reader->property("editable").toBool());
+        QVERIFY(!named("turnPage")->isVisible());
+        QTest::keyClick(window, Qt::Key_R);
+        QTRY_VERIFY(!reader->property("notice").toString().isEmpty());
+        QVERIFY(!reader->property("dirty").toBool());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!window->isVisible());
+
+        // Protected without a password: it opens, and is read, not changed.
+        const QString guarded = dir.filePath("guarded.pdf");
+        save(guarded, writePdf({{{"guarded"}, {}}, {{"more"}, {}}}, {}, {}, true));
+        reader = read(guarded);
+        QVERIFY(reader);
+        QTRY_COMPARE(reader->property("pageCount").toInt(), 2);
+        QVERIFY(!reader->property("editable").toBool());
+        QTest::keyClick(window, Qt::Key_Delete);
+        QTRY_VERIFY(!reader->property("notice").toString().isEmpty());
+        QCOMPARE(reader->property("pageCount").toInt(), 2);
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!window->isVisible());
+    }
+
     void its_controls_are_reached_by_tab()
     {
         QQuickItem *reader = read(dir.filePath("three.pdf"));
         QVERIFY(reader);
         QTRY_COMPARE(reader->property("pageCount").toInt(), 3);
-        // Back, pages, find, zoom out, zoom in, fit, full screen, open elsewhere, and the page's number.
+        QTRY_VERIFY(reader->property("editable").toBool());
+        // Back, pages, find, zoom out, zoom in, fit, turn, delete, full screen, open elsewhere, and the page's number.
         QStringList reached;
-        for (int i = 0; i < 9; ++i) {
+        for (int i = 0; i < 11; ++i) {
             QTest::keyClick(window, Qt::Key_Tab);
             QQuickItem *focused = window->activeFocusItem();
             QVERIFY(focused);

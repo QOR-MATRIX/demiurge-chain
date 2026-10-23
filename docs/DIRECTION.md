@@ -836,8 +836,10 @@ are release 1.
 4. [ ] The editor: plain text, Markdown and code. Merged as #37 (`95e554e`) on 17 October 2026, 12:59 UTC; the owner's first look is to come.
 5. [ ] PDF: viewed, annotated, highlighted, filled, signed, pages reordered, rotated and deleted (Qt PDF and PDFium).
    **Viewing built** on 23 October 2026 with Qt PDF (`tools/qor-media/qml/Reader.qml`, `tst_reader`): pages fitted and
-   zoomed, find, selection and copying, links, thumbnails and contents, locked PDFs opened by their password. Annotating,
-   highlighting, filling, signing and changing pages, through PDFium's own interface, are next.
+   zoomed, find, selection and copying, links, thumbnails and contents, locked PDFs opened by their password. **Pages
+   reordered, rotated and deleted** the same day, through PDFium's own interface (`src/pdfpages.cpp`, `tst_pdfpages`):
+   shown at once, undone and redone, saved into a temporary file renamed into place; a locked or protected PDF is only
+   read. Annotating, highlighting, filling and signing are next.
 6. [ ] Owned games and work in the Library (L7.1; depends on entitlements, M8).
 7. [ ] Release 2: Office documents viewed and edited through LibreOffice's engine, its own record first.
 8. [ ] Pictures beyond Qt's plugins: HEIC, AVIF, JPEG XL and camera RAW.
