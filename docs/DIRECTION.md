@@ -709,19 +709,19 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 
 #### L5: Agent rails (depends on M5 and ADR-014)
 
-1. [ ] The controller's vault signs each agent authorisation. **Built 22 October 2026 (ADR-112) on branch
-   `session/agent-authorisation`, not merged:** QOR ID takes an agent, or a change to what it may do, only with the
+1. [ ] The controller's vault signs each agent authorisation. **Built 22 October 2026 (ADR-112), merged with
+   #79, live in QOR ID since its redeploy of 23 October 2026, and in launcher 0.1.16:** QOR ID takes an agent, or a change to what it may do, only with the
    controller's own key's signature over a statement naming every field and a single-use challenge; the launcher
    reads an agent's `qor://agent` link, checks it before asking, and signs in the vault after its own dialog. Proven
    against QOR ID running on the owner's PC. Ticked when a person has authorised an agent from an installed launcher
-   against the deployed QOR ID.
+   against the live QOR ID.
 2. [ ] Agents listed, limited and revoked from the launcher.
 
 #### L6: Distribution (no chain dependency; before the public testnet)
 
 1. [ ] Signed installers for Windows, macOS and Linux.
 2. [ ] An update channel that verifies signatures before installing. **Built 22 October 2026 (ADR-111), merged with #77;
-   first carried by launcher 0.1.15, published the same day.** Ticked when a release reaches a tester's launcher through it.
+   first carried by launcher 0.1.15, published the same day; 0.1.16, published 23 October, is the first release it offers.** Ticked when a release reaches a tester's launcher through it.
    - **The channel:** one fixed address,
      `https://github.com/QOR-MATRIX/demiurge-chain/releases/download/launcher-channel/latest.json`, which the release
      script replaces at each release; each installer stays in its own pre-release.
