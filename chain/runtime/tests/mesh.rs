@@ -39,7 +39,10 @@ fn chain_with(endowments: Vec<(AccountId, Balance)>) -> sp_io::TestExternalities
 
 #[test]
 fn the_mesh_is_pallet_twelve_at_spec_version_nine_and_reachable() {
-    assert_eq!(VERSION.spec_version, 9);
+    // Named for the version that brought the Mesh (`docs/GATES.toml` requires this name). Pinned to the
+    // current version, so a later one is looked at here: at 10 the Mesh is still pallet twelve, the
+    // progress records (ADR-113) being new calls in `pallet-drc369` only.
+    assert_eq!(VERSION.spec_version, 10);
     let call = RuntimeCall::Mesh(pallet_mesh::Call::bind_node { node: [0; 32] });
     assert_eq!(codec::Encode::encode(&call)[0], 12);
     assert!(AssetCallFilter::contains(&call));

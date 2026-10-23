@@ -175,6 +175,24 @@ impl pallet_drc369::Config for Runtime {
     type MaxNestingDepth = ConstU8<8>;
     /// ADR-047 decision 13 row 7: an engineering bound, part of the wire format.
     type MaxChildren = ConstU32<64>;
+    /// ADR-047 decision 13 row 7: an engineering bound, part of the wire format.
+    type MaxStats = ConstU32<32>;
+    /// ADR-113 decision 4: an engineering bound on one game's writers.
+    type MaxWriters = ConstU32<16>;
+    /// ADR-113 decision 7: an asset offered for sale keeps its records still.
+    type ListedForSale = ListedForSale;
+}
+
+/// Whether an asset is offered for sale in `pallet-drc369-royalties`, which
+/// `pallet-drc369` asks before any of its records may change (ADR-113 decision 7),
+/// so a buyer receives what they saw. The two pallets meet here, in the runtime,
+/// because `pallet-drc369` does not depend on the pallet that sells its assets.
+pub struct ListedForSale;
+
+impl Contains<(pallet_drc369::CollectionId, pallet_drc369::ItemId)> for ListedForSale {
+    fn contains((collection, item): &(pallet_drc369::CollectionId, pallet_drc369::ItemId)) -> bool {
+        pallet_drc369_royalties::Listings::<Runtime>::contains_key(collection, item)
+    }
 }
 
 impl pallet_drc369_royalties::Config for Runtime {

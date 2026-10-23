@@ -153,6 +153,26 @@ pub(super) enum CommitIdRead {
     Sha256([u8; 32]),
 }
 
+/// The runtime API that reports an asset's progress records (spec_version 10 onwards, ADR-113).
+const PROGRESS_API: &str = "Drc369Api";
+const PROGRESS_METHOD: &str = "progress_of";
+
+/// `pallet_drc369::Issuer`: who keeps a progress record. Today only a game, by its Cartridge.
+#[derive(Debug, Clone, DecodeAsType)]
+enum IssuerRead {
+    Game { collection: u32, item: u32 },
+}
+
+/// `pallet_drc369::ProgressRecord`, as `Drc369Api::progress_of` returns it.
+#[derive(Debug, Clone, DecodeAsType)]
+struct ProgressRead {
+    issuer: IssuerRead,
+    home: bool,
+    level: u32,
+    xp: u64,
+    stats: Vec<(u16, i64)>,
+}
+
 #[derive(Debug, DecodeAsType)]
 struct AssetRead {
     origin: ContentRefRead,
@@ -256,6 +276,42 @@ pub struct OwnedAsset {
     pub revisable: bool,
     /// Its listing, if it is offered for sale (`Drc369Royalties::Listings`).
     pub listing: Option<ListingView>,
+    /// Its progress as its home game keeps it (ADR-113), if its collection has a home game that has
+    /// recorded any. None on a runtime before spec_version 10, which keeps no progress.
+    pub progress: Option<ProgressView>,
+}
+
+/// An asset's progress as a game keeps it (ADR-113). XP and stats are 64-bit, beyond what a
+/// JavaScript number holds exactly, so they cross to the interface as decimal strings.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ProgressView {
+    /// The game that keeps it, by its Cartridge.
+    pub game: (u32, u32),
+    pub level: u32,
+    pub xp: String,
+    pub stats: Vec<(u16, String)>,
+}
+
+impl ProgressView {
+    /// The home game's record, if `records` holds one.
+    fn home_of(records: Vec<ProgressRead>) -> Option<Self> {
+        records
+            .into_iter()
+            .find(|record| record.home)
+            .map(|record| {
+                let IssuerRead::Game { collection, item } = record.issuer;
+                Self {
+                    game: (collection, item),
+                    level: record.level,
+                    xp: record.xp.to_string(),
+                    stats: record
+                        .stats
+                        .into_iter()
+                        .map(|(number, value)| (number, value.to_string()))
+                        .collect(),
+                }
+            })
+    }
 }
 
 /// What a mint needs from the project, computed before anyone is asked.
@@ -891,6 +947,8 @@ impl ChainClient {
 
         let listing = self.listing(connection, owner, collection, item).await?;
 
+        let progress = self.home_progress(connection, collection, item).await?;
+
         Ok(Some(OwnedAsset {
             collection,
             item,
@@ -900,7 +958,40 @@ impl ChainClient {
             commit: record.commit.as_ref().map(CommitView::from),
             revisable: record.revisable,
             listing,
+            progress,
         }))
+    }
+
+    /// An asset's progress as its home game keeps it (ADR-113), read at the latest block. A runtime
+    /// before spec_version 10 keeps no progress: its absence is no error, only nothing to show.
+    pub(super) async fn home_progress(
+        &self,
+        connection: &Connection,
+        collection: u32,
+        item: u32,
+    ) -> QorResult<Option<ProgressView>> {
+        let at = match connection.api.at_current_block().await {
+            Ok(at) => at,
+            Err(e) => return Err(self.lost_the_node(e).await),
+        };
+        if at
+            .metadata_ref()
+            .runtime_api_trait_by_name(PROGRESS_API)
+            .and_then(|api| api.method_by_name(PROGRESS_METHOD))
+            .is_none()
+        {
+            return Ok(None);
+        }
+        let records = at
+            .runtime_apis()
+            .call(dynamic::runtime_api_call::<_, Vec<ProgressRead>>(
+                PROGRESS_API,
+                PROGRESS_METHOD,
+                (collection, item),
+            ))
+            .await
+            .map_err(|e| QorError::Rpc(format!("could not read an asset's progress: {e}")))?;
+        Ok(ProgressView::home_of(records))
     }
 
     /// What a mint of a name this long would hold from `owner`, in embers: the
@@ -1307,6 +1398,43 @@ mod tests {
 
     const NOWHERE: &str = "ws://127.0.0.1:1";
 
+    /// The card shows the home game's record and no other, and its 64-bit numbers cross to the
+    /// interface exactly, as strings (ADR-113).
+    #[test]
+    fn the_card_shows_the_home_games_record_exactly() {
+        let record = |collection, home, xp, stats: Vec<(u16, i64)>| ProgressRead {
+            issuer: IssuerRead::Game {
+                collection,
+                item: 0,
+            },
+            home,
+            level: 7,
+            xp,
+            stats,
+        };
+        let view = ProgressView::home_of(vec![
+            record(3, false, 5, vec![]),
+            record(2, true, u64::MAX, vec![(3, i64::MIN), (9, 1)]),
+        ])
+        .expect("the home record");
+        assert_eq!(view.game, (2, 0));
+        assert_eq!(view.level, 7);
+        assert_eq!(view.xp, "18446744073709551615");
+        assert_eq!(
+            view.stats,
+            vec![
+                (3, "-9223372036854775808".to_string()),
+                (9, "1".to_string())
+            ]
+        );
+        assert_eq!(
+            ProgressView::home_of(vec![record(3, false, 5, vec![])]),
+            None,
+            "a visiting record is not shown as home"
+        );
+        assert_eq!(ProgressView::home_of(Vec::new()), None);
+    }
+
     /// What a buyer was shown goes back to the chain unchanged for `buy_exact`,
     /// and a view this client could not have produced is refused, not guessed.
     #[test]
@@ -1420,6 +1548,7 @@ mod tests {
             commit: None,
             revisable: true,
             listing: None,
+            progress: None,
         };
         let prompt = permanence_prompt(
             &asset,
@@ -1481,6 +1610,7 @@ mod tests {
             commit: None,
             revisable: true,
             listing: None,
+            progress: None,
         }
     }
 

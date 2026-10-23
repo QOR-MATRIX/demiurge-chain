@@ -103,11 +103,34 @@ pub const MAX_NESTING_DEPTH: u8 = 3;
 /// Smaller than the runtime's 64, for the same reason.
 pub const MAX_CHILDREN: u32 = 2;
 
+/// Smaller than the runtime's 32, so a test can fill a record.
+pub const MAX_STATS: u32 = 3;
+
+/// Smaller than the runtime's 16, so a test can reach it.
+pub const MAX_WRITERS: u32 = 2;
+
+parameter_types! {
+    /// The assets a test has marked as offered for sale; the runtime reads
+    /// `pallet-drc369-royalties` instead.
+    pub storage ListedItems: Vec<(u32, u32)> = Vec::new();
+}
+
+/// What `ListedForSale` answers in these tests.
+pub struct Listed;
+impl frame_support::traits::Contains<(u32, u32)> for Listed {
+    fn contains(asset: &(u32, u32)) -> bool {
+        ListedItems::get().contains(asset)
+    }
+}
+
 impl pallet_drc369::Config for Test {
     type WeightInfo = ();
     type MaxRemixDepth = frame_support::traits::ConstU8<MAX_REMIX_DEPTH>;
     type MaxNestingDepth = frame_support::traits::ConstU8<MAX_NESTING_DEPTH>;
     type MaxChildren = ConstU32<MAX_CHILDREN>;
+    type MaxStats = ConstU32<MAX_STATS>;
+    type MaxWriters = ConstU32<MAX_WRITERS>;
+    type ListedForSale = Listed;
 }
 
 pub fn account(id: u8) -> AccountId {

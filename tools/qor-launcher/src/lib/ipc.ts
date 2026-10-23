@@ -549,6 +549,22 @@ export interface OwnedAsset {
   revisable: boolean;
   /** Its listing, if it is offered for sale, read from the chain with it. */
   listing: ListingView | null;
+  /**
+   * Its progress as its home game keeps it (ADR-113), if any. Absent on a chain before spec_version
+   * 10, which keeps no progress.
+   */
+  progress?: ProgressView | null;
+}
+
+/** An asset's progress as a game keeps it (ADR-113). */
+export interface ProgressView {
+  /** The game that keeps it, by its Cartridge: `[collection, item]`. */
+  game: [number, number];
+  level: number;
+  /** A `u64` as a decimal string: beyond what a JS number holds exactly. */
+  xp: string;
+  /** Numbered stats, each value an `i64` as a decimal string. */
+  stats: [number, string][];
 }
 
 /** An asset's listing on chain: who is selling it, and for how much. */

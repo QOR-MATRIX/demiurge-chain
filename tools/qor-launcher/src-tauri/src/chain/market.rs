@@ -496,6 +496,11 @@ impl ChainClient {
                 children,
             };
             let (standing, reason) = standing(&facts, viewer.as_ref());
+            // What a buyer looks at includes its progress, which stays as shown while it is listed
+            // (ADR-113 decision 7).
+            let progress = self
+                .home_progress(&connection, row.collection, row.item)
+                .await?;
             listings.push(MarketListing {
                 asset: OwnedAsset {
                     collection: row.collection,
@@ -511,6 +516,7 @@ impl ChainClient {
                         price_cgt: cgt::format_cgt_grouped(row.price),
                         void: row.seller != holder,
                     }),
+                    progress,
                 },
                 holder: address_of(&holder),
                 held_by_viewer: viewer == Some(holder),

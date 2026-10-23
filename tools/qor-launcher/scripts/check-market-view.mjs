@@ -99,7 +99,11 @@ const asset = (collection, item, name, byte, revisable, seller, priceCgt, priceE
 });
 
 const BUYABLE = {
-  asset: asset(7, 2, 'night-drive', '7c', true, SELLER, '4,321.09', '17', false),
+  // With the progress its home game keeps (ADR-113): what a buyer sees, and what stays as shown while listed.
+  asset: {
+    ...asset(7, 2, 'night-drive', '7c', true, SELLER, '4,321.09', '17', false),
+    progress: { game: [5, 0], level: 4, xp: '1200', stats: [] },
+  },
   holder: SELLER,
   held_by_viewer: false,
   derived_from: null,
@@ -484,6 +488,7 @@ try {
     withdraw: card.querySelector('[data-market-withdraw]')?.textContent.trim() ?? null,
     menu: Boolean(card.querySelector('[data-asset-more]')),
     root: card.querySelector('[data-asset-root]')?.textContent.trim() ?? '',
+    progress: card.querySelector('[data-asset-progress]')?.textContent.trim() ?? '',
   }))`);
   const ids = (list) => list.map((l) => `${l.asset.collection}/${l.asset.item}`);
 
@@ -514,6 +519,9 @@ try {
         JSON.stringify({ okName, okStanding, okRoot, okHolder, okSeller, okSource }));
       check(`${when}: ${id} ${live ? `shows the host's price, ${listing.asset.listing.price_cgt} CGT` : 'is void and shows no price anyone could pay'}`,
         okPrice, String(card.price));
+      const progress = listing.asset.progress;
+      check(`${when}: ${id} ${progress ? 'shows the progress a buyer gets (ADR-113)' : 'shows no progress'}`,
+        card.progress === (progress ? `Level ${progress.level} · ${progress.xp} XP` : ''), card.progress);
       check(`${when}: ${id} ${listing.reason ? 'says why it cannot be bought, in the host\'s words' : 'carries no reason'}`,
         okReason, String(card.reason));
       const wantBuy = listing.standing === 'buyable' ? 1 : 0;

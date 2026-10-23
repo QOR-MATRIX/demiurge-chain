@@ -55,8 +55,9 @@ fn policy() -> pallet_arq_wallet::PolicyOf<Runtime> {
 
 #[test]
 fn the_arq_wallet_is_pallet_eleven() {
-    // Since spec version 9 the Mesh is pallet twelve (tests/mesh.rs); the ARQ Wallet stays eleven.
-    assert_eq!(VERSION.spec_version, 9);
+    // Since spec version 9 the Mesh is pallet twelve (tests/mesh.rs); the ARQ Wallet stays eleven,
+    // and stays so at 10, whose progress records (ADR-113) are new calls in `pallet-drc369` only.
+    assert_eq!(VERSION.spec_version, 10);
     assert_eq!(VERSION.transaction_version, 2);
     let call = RuntimeCall::ArqWallet(pallet_arq_wallet::Call::set_paused {
         collection: 0,

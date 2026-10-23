@@ -80,9 +80,10 @@ This section used to say it was not; that was written before `chain/` existed an
   `pallet-session` and `pallet-validator-set` rather than from a configuration file (ADR-020). Two
   validators agree, finalise, and one recovers after being killed — 13 checks.
 - **What is still missing is above the base layer**, and each for a recorded reason: no transaction
-  payment (OPEN-4), no issuance (OPEN-1), no treasury (OPEN-2), no asset state and XP, physics, rental or
-  fractions (M4.2, M4.3), and no sponsorship (U-4). DRC-369 itself, its royalties and settled sale
-  (ADR-061), nesting (ADR-065) and ARQ Wallets (ADR-070) are built.
+  payment (OPEN-4), no issuance (OPEN-1), no treasury (OPEN-2), no asset physics, rental or
+  fractions (M4.3), and no sponsorship (U-4). DRC-369 itself, its royalties and settled sale
+  (ADR-061), nesting (ADR-065), ARQ Wallets (ADR-070) and state and XP kept by each game (ADR-113, in the tree
+  at `spec_version` 10 and not yet on the devnet) are built.
 - The module-by-module mapping is
   [`architecture/MIGRATION_INVENTORY.md`](architecture/MIGRATION_INVENTORY.md). **Seventeen of its
   twenty questions are decided** (ADR-017 to ADR-032, and Q-17 by ADR-041). Three were added on 22 September
@@ -418,11 +419,22 @@ The core of the first release.
    derived from the existential deposit by ADR-030's arithmetic and opened as U-14. The weights of
    `pallet-drc369`'s calls are assembled from `pallet-nfts`'s reference weights and are owed to M7.2, as
    every unbenchmarked weight is.
-2. [ ] Authorised nesting with bounded depth, state and XP, and royalties with remix royalties settled in
+2. [x] Authorised nesting with bounded depth, state and XP, and royalties with remix royalties settled in
    CGT.
 
-   **The royalty half is built (29 September 2026, ADR-061); the item stays unticked until nesting and state and
-   XP are.** `pallet-drc369-royalties`, mounted as `Drc369Royalties`, holds each asset's terms — up to eight
+   **Ticked on 23 October 2026, when state and XP were built (ADR-113), against the tree at `spec_version` 10.**
+   The devnet runs 9 until the owner sets 10 with the sudo key. **State and XP** are progress records kept by each
+   game: one record per asset per issuer, a `level`, `xp` and up to 32 numbered stats (ADR-047 decisions 7 and 13).
+   A game is named by its Cartridge and governed by whoever holds it; a collection is static until its owner binds
+   it to a home game (`Drc369::set_home_game`); the Cartridge's holder names up to 16 writers (`authorise_writer`,
+   `revoke_writer`), who only add XP, raise the level and set stats (`record_progress`), while lowering anything is
+   the holder's own `correct_progress`. Nothing changes while the asset is listed for sale, and no call moves an
+   asset or CGT. The runtime API `Drc369Api` version 2 answers `progress_of` and `home_game`, and the launcher's
+   Inventory and Market cards show the home game's level and XP. Evidence: 11 new pallet tests (36 in all) and one
+   new runtime test, six pallet rules and the runtime's listing check each shown to fail against a planted fault,
+   and 190 workspace tests with the wasm built. Records kept by visiting games are ADR-113's second phase.
+
+   **The royalty half was built first (29 September 2026, ADR-061).** `pallet-drc369-royalties`, mounted as `Drc369Royalties`, holds each asset's terms — up to eight
    recipients (ADR-057) with a share of every sale, and a remix share, set by the creator — and the one sale a
    royalty can bind to: a listing bought and settled in CGT, which pays a remix's direct source, then the asset's
    recipients, then the seller, in one transaction. `pallet-drc369` records `derived_from` and `remix_depth` at mint,
@@ -435,18 +447,20 @@ The core of the first release.
    **The nesting half is built (1 October 2026, ADR-065).** `Drc369::nest` and `unnest`, only by the owner of both
    assets; depth bounded at 8 and children at 64 (ADR-047 decision 13); `pallet-drc369` is `pallet-nfts`'s `Locker`,
    so a nested asset and the asset holding it cannot be transferred, sold or burned until taken out. `spec_version`
-   is 5. State and XP remain, so the item stays unticked.
+   is 5.
 3. [ ] Rental, fractional ownership and fixed-point physics.
 4. [ ] Sponsored fees and deposits, so that a new creator can mint without holding CGT first (inventory
    F-Q1, F-D7).
-5. [ ] **The DRC-369 acceptance tests, and requirement R-2**: state and XP, nesting, royalty arithmetic,
+5. [x] **The DRC-369 acceptance tests, and requirement R-2**: state and XP, nesting, royalty arithmetic,
    authorised mint, the parent-owner check, and a nesting cycle refused within a bounded depth. Moved
    here from M3.3 on 2026-09-18, because the pallets they test are this milestone's.
 
    **R-2 is met (1 October 2026, ADR-065):** a nest whose parent is the child, or anything inside it, is refused
    by a walk of at most eight reads; the parent-owner check, nesting, authorised mint and royalty arithmetic have
    their tests. Evidence: 10 pallet tests and 3 runtime tests, each shown to fail against a planted fault first,
-   and 109 workspace tests with the wasm built. The item stays unticked until state and XP exist and are tested.
+   and 109 workspace tests with the wasm built. **Ticked on 23 October 2026**, when state and XP gained their tests
+   (ADR-113, M4.2 above): writers only add, the holder alone corrects, only the home game writes, nothing changes
+   while listed, and no record moves an asset or CGT.
 6. [x] **Several assets moved in one signature**: `pallet-utility`'s `batch_all` mounted and let through the
    call filter, so a trade of many assets either happens entirely or not at all.
 

@@ -24,10 +24,37 @@
 //! - **nesting** (M4.2 and M4.5, requirement R-2): an owner places one of their
 //!   assets inside another of their assets, and takes it out again. See below.
 //!
+//! - **progress** (M4.2 and M4.5's state and XP, ADR-113): records of an asset's
+//!   level, XP and stats, each kept by the game that earns them. See below.
+//!
 //! Royalties live beside this pallet, in `pallet-drc369-royalties`, which reads
-//! `derived_from` to pay a remix's upstream creator. State and XP and physics
-//! are later M4 items and are not started here. Neither is sponsorship (M4.4):
-//! the minter pays every deposit.
+//! `derived_from` to pay a remix's upstream creator. Physics is a later M4 item
+//! and is not started here. Neither is sponsorship (M4.4): the minter pays every
+//! deposit.
+//!
+//! # Progress, kept by each game that earns it (ADR-113)
+//!
+//! An asset's level, XP and stats (ADR-047 decision 7) are not one value anybody
+//! may set. They are **records, one per issuer**: [`Records`] is keyed by the asset
+//! and by the [`Issuer`] that keeps the record, so no issuer can touch another's.
+//! Today the only issuer is a game, named by its Cartridge, the DRC-369 asset it
+//! was published as, and governed by whoever holds that Cartridge, as an ARQ
+//! Wallet is (ADR-070). Five rules, each a refusal:
+//!
+//! - **Static until bound.** A collection's owner names its home game
+//!   ([`HomeGame`]); until then no record of its assets can be written. Only the
+//!   home game writes, in this first phase.
+//! - **Named writers.** Whoever holds the Cartridge authorises the accounts that
+//!   write its records ([`Writers`]), at most [`Config::MaxWriters`], and revokes
+//!   them. The asset's own holder is not a writer unless the game made them one.
+//! - **Only up.** A writer adds XP and may raise the level, never lower it; stats
+//!   move either way.
+//! - **Corrections apart.** Whoever holds the Cartridge, not a writer, may set a
+//!   record to any values with `correct_progress`, which has its own event.
+//! - **Still while listed.** An asset offered for sale keeps its records as the
+//!   buyer saw them ([`Config::ListedForSale`]).
+//!
+//! A record never moves, locks or sells an asset, and never touches CGT.
 //!
 //! # Nesting, and why a cycle cannot be made (requirement R-2)
 //!
@@ -224,12 +251,83 @@ pub struct OwnedAsset {
     pub name: Vec<u8>,
 }
 
+/// Who keeps a progress record (ADR-113 decision 2).
+///
+/// Today only a game, named by its Cartridge. A later kind (the holder's own
+/// record, a rules pallet) is appended with an index of its own, so a stored
+/// record's key and every call that names an issuer keep their encoding.
+#[derive(
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Debug,
+    Encode,
+    Decode,
+    DecodeWithMemTracking,
+    MaxEncodedLen,
+    TypeInfo,
+)]
+pub enum Issuer {
+    /// A game, by its Cartridge: the DRC-369 asset it was published as. Whoever
+    /// holds the Cartridge governs its records (ADR-070, ADR-113).
+    #[codec(index = 0)]
+    Game {
+        collection: CollectionId,
+        item: ItemId,
+    },
+}
+
+impl Issuer {
+    /// The game whose Cartridge is `(collection, item)`.
+    pub fn game((collection, item): (CollectionId, ItemId)) -> Self {
+        Self::Game { collection, item }
+    }
+}
+
+/// One issuer's record of an asset's progress: ADR-047 decision 7's `AssetState`.
+///
+/// `stats` are numbered values kept sorted by their number, each number once, at
+/// most `MaxStats` of them.
+#[derive(
+    frame_support::CloneNoBound,
+    frame_support::PartialEqNoBound,
+    frame_support::EqNoBound,
+    frame_support::DefaultNoBound,
+    frame_support::DebugNoBound,
+    Encode,
+    Decode,
+    MaxEncodedLen,
+    TypeInfo,
+)]
+#[scale_info(skip_type_params(MaxStats))]
+#[codec(mel_bound())]
+pub struct Progress<MaxStats: frame_support::traits::Get<u32>> {
+    pub level: u32,
+    pub xp: u64,
+    pub stats: frame_support::BoundedVec<(u16, i64), MaxStats>,
+}
+
+/// One record of an asset, as the runtime API returns it (ADR-113).
+#[derive(Clone, PartialEq, Eq, Debug, Encode, Decode, TypeInfo)]
+pub struct ProgressRecord {
+    pub issuer: Issuer,
+    /// Whether `issuer` is the home game of the asset's collection today.
+    pub home: bool,
+    pub level: u32,
+    pub xp: u64,
+    pub stats: Vec<(u16, i64)>,
+}
+
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
     use frame_support::{
         pallet_prelude::*,
-        traits::tokens::nonfungibles_v2::{Create, Mutate},
+        traits::{
+            tokens::nonfungibles_v2::{Create, Mutate},
+            Contains,
+        },
     };
     use frame_system::pallet_prelude::*;
     use pallet_nfts::{
@@ -273,7 +371,29 @@ pub mod pallet {
         /// what anything that later enumerates a parent's children has to read.
         #[pallet::constant]
         type MaxChildren: Get<u32>;
+
+        /// How many stats one progress record holds (ADR-047 decision 13 row 7:
+        /// `32`, an engineering bound and part of the wire format).
+        #[pallet::constant]
+        type MaxStats: Get<u32>;
+
+        /// How many accounts may write one game's records at once (ADR-113
+        /// decision 4: `16`, an engineering bound on storage and on what a
+        /// revocation has to check).
+        #[pallet::constant]
+        type MaxWriters: Get<u32>;
+
+        /// Whether an asset is offered for sale, while which none of its records
+        /// may change (ADR-113 decision 7). The runtime answers from
+        /// `pallet-drc369-royalties`, which this pallet does not depend on.
+        type ListedForSale: Contains<(CollectionId, ItemId)>;
     }
+
+    /// One issuer's record of an asset's progress, at this runtime's bound.
+    pub type ProgressOf<T> = Progress<<T as Config>::MaxStats>;
+
+    /// Stats as a call carries them.
+    pub type StatsOf<T> = BoundedVec<(u16, i64), <T as Config>::MaxStats>;
 
     /// Each creator's singles collection. Written by the creator's first mint,
     /// and never by anything else.
@@ -334,6 +454,44 @@ pub mod pallet {
         ValueQuery,
     >;
 
+    /// The game that keeps each collection's records (ADR-113 decision 3). Set,
+    /// changed and cleared by the collection's owner; absent, the collection's
+    /// assets are static.
+    #[pallet::storage]
+    pub type HomeGame<T: Config> =
+        StorageMap<_, Blake2_128Concat, CollectionId, Issuer, OptionQuery>;
+
+    /// The accounts allowed to write each game's records, authorised by whoever
+    /// holds its Cartridge (ADR-113 decision 4).
+    #[pallet::storage]
+    pub type Writers<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        Issuer,
+        Blake2_128Concat,
+        T::AccountId,
+        (),
+        OptionQuery,
+    >;
+
+    /// How many writers each game has. Never above [`Config::MaxWriters`];
+    /// dropped at zero.
+    #[pallet::storage]
+    pub type WriterCount<T: Config> = StorageMap<_, Blake2_128Concat, Issuer, u32, ValueQuery>;
+
+    /// Each issuer's record of each asset's progress (ADR-113 decision 1). Keyed by
+    /// the asset first, so every record of one asset is one prefix to read.
+    #[pallet::storage]
+    pub type Records<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        (CollectionId, ItemId),
+        Blake2_128Concat,
+        Issuer,
+        ProgressOf<T>,
+        OptionQuery,
+    >;
+
     /// Every event carries what an indexer needs, because it can recover nothing
     /// an event leaves out (ADR-047 decision 12, ADR-028).
     #[pallet::event]
@@ -388,6 +546,48 @@ pub mod pallet {
             child: (CollectionId, ItemId),
             by: T::AccountId,
         },
+        /// A collection's owner bound it to a home game, changed it, or cleared
+        /// it (`game: None`, and its assets are static again).
+        HomeGameSet {
+            collection: CollectionId,
+            game: Option<Issuer>,
+            by: T::AccountId,
+        },
+        /// Whoever holds a game's Cartridge let `writer` write its records.
+        WriterAuthorised {
+            game: Issuer,
+            writer: T::AccountId,
+            by: T::AccountId,
+        },
+        /// Whoever holds a game's Cartridge took `writer`'s permission away.
+        WriterRevoked {
+            game: Issuer,
+            writer: T::AccountId,
+            by: T::AccountId,
+        },
+        /// A game's writer recorded progress (ADR-047 decision 12's event, with the
+        /// issuer and the stats). `level` and `xp` are the record's now; `stats` the
+        /// ones this change set.
+        StateChanged {
+            collection: CollectionId,
+            item: ItemId,
+            game: Issuer,
+            level: u32,
+            xp: u64,
+            stats: StatsOf<T>,
+            by: T::AccountId,
+        },
+        /// Whoever holds a game's Cartridge set its record outright (ADR-113
+        /// decision 6): the whole record as it now is.
+        StateCorrected {
+            collection: CollectionId,
+            item: ItemId,
+            game: Issuer,
+            level: u32,
+            xp: u64,
+            stats: StatsOf<T>,
+            by: T::AccountId,
+        },
     }
 
     #[pallet::error]
@@ -430,6 +630,37 @@ pub mod pallet {
         HoldsAssets,
         /// The parent already holds `MaxChildren` assets.
         TooManyChildren,
+        /// Only the collection's owner may do that.
+        NotCollectionOwner,
+        /// The game named is not a DRC-369 asset, so it has no Cartridge.
+        UnknownGame,
+        /// Only whoever holds the game's Cartridge may do that.
+        NotGameHolder,
+        /// The account already writes this game's records.
+        AlreadyWriter,
+        /// The account does not write this game's records.
+        NotWriter,
+        /// The game already has `MaxWriters` writers.
+        TooManyWriters,
+        /// The asset's collection has no home game, so its assets are static.
+        NoHomeGame,
+        /// The game named is not the home game of the asset's collection.
+        NotHomeGame,
+        /// A writer may raise a level, never lower it. A correction may.
+        LevelMustRise,
+        /// The XP would pass what a record can hold.
+        XpOverflow,
+        /// The record would hold more than `MaxStats` stats.
+        TooManyStats,
+        /// A stat's number appears twice in one call.
+        DuplicateStat,
+        /// The call would leave the record as it is.
+        NothingRecorded,
+        /// The asset is offered for sale, and its records stay as the buyer sees
+        /// them until it is sold or withdrawn.
+        ListedForSale,
+        /// The game keeps no record of this asset yet.
+        NoRecord,
     }
 
     #[pallet::call]
@@ -669,6 +900,217 @@ pub mod pallet {
             });
             Ok(())
         }
+
+        /// Bind a collection to the game that keeps its assets' records, change
+        /// it, or clear it with `None` (ADR-113 decision 3). Only the collection's
+        /// owner. Records already kept stay, under the game that kept them.
+        #[pallet::call_index(5)]
+        #[pallet::weight(<T as Config>::WeightInfo::set_home_game())]
+        pub fn set_home_game(
+            origin: OriginFor<T>,
+            collection: CollectionId,
+            game: Option<(CollectionId, ItemId)>,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            ensure!(
+                pallet_nfts::Pallet::<T>::collection_owner(collection).as_ref() == Some(&who),
+                Error::<T>::NotCollectionOwner
+            );
+            let game = match game {
+                Some((game_collection, game_item)) => {
+                    ensure!(
+                        Assets::<T>::contains_key(game_collection, game_item),
+                        Error::<T>::UnknownGame
+                    );
+                    Some(Issuer::game((game_collection, game_item)))
+                }
+                None => None,
+            };
+            ensure!(
+                HomeGame::<T>::get(collection) != game,
+                Error::<T>::NothingRecorded
+            );
+
+            match game {
+                Some(game) => HomeGame::<T>::insert(collection, game),
+                None => HomeGame::<T>::remove(collection),
+            }
+            Self::deposit_event(Event::HomeGameSet {
+                collection,
+                game,
+                by: who,
+            });
+            Ok(())
+        }
+
+        /// Let `writer` write a game's records (ADR-113 decision 4). Only whoever
+        /// holds the game's Cartridge, and at most [`Config::MaxWriters`] at once.
+        #[pallet::call_index(6)]
+        #[pallet::weight(<T as Config>::WeightInfo::authorise_writer())]
+        pub fn authorise_writer(
+            origin: OriginFor<T>,
+            game: (CollectionId, ItemId),
+            writer: T::AccountId,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let game = Self::ensure_game_holder(&who, game)?;
+            ensure!(
+                !Writers::<T>::contains_key(game, &writer),
+                Error::<T>::AlreadyWriter
+            );
+            let count = WriterCount::<T>::get(game);
+            ensure!(count < T::MaxWriters::get(), Error::<T>::TooManyWriters);
+
+            Writers::<T>::insert(game, &writer, ());
+            WriterCount::<T>::insert(game, count.saturating_add(1));
+            Self::deposit_event(Event::WriterAuthorised {
+                game,
+                writer,
+                by: who,
+            });
+            Ok(())
+        }
+
+        /// Take `writer`'s permission to write a game's records away. Only whoever
+        /// holds the game's Cartridge.
+        #[pallet::call_index(7)]
+        #[pallet::weight(<T as Config>::WeightInfo::revoke_writer())]
+        pub fn revoke_writer(
+            origin: OriginFor<T>,
+            game: (CollectionId, ItemId),
+            writer: T::AccountId,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let game = Self::ensure_game_holder(&who, game)?;
+            ensure!(
+                Writers::<T>::contains_key(game, &writer),
+                Error::<T>::NotWriter
+            );
+
+            Writers::<T>::remove(game, &writer);
+            WriterCount::<T>::mutate_exists(game, |count| {
+                *count = count
+                    .and_then(|held| held.checked_sub(1))
+                    .filter(|left| *left > 0);
+            });
+            Self::deposit_event(Event::WriterRevoked {
+                game,
+                writer,
+                by: who,
+            });
+            Ok(())
+        }
+
+        /// Record progress on an asset for a game, as one of its writers (ADR-113
+        /// decisions 3 to 5): add `add_xp`, raise the level to `level` if given,
+        /// and set `stats`. The game must be the home game of the asset's
+        /// collection, and the asset must not be offered for sale.
+        #[pallet::call_index(8)]
+        #[pallet::weight(<T as Config>::WeightInfo::record_progress())]
+        pub fn record_progress(
+            origin: OriginFor<T>,
+            collection: CollectionId,
+            item: ItemId,
+            game: (CollectionId, ItemId),
+            add_xp: u64,
+            level: Option<u32>,
+            stats: StatsOf<T>,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            ensure!(
+                Assets::<T>::contains_key(collection, item),
+                Error::<T>::UnknownAsset
+            );
+            let game = Issuer::game(game);
+            let home = HomeGame::<T>::get(collection).ok_or(Error::<T>::NoHomeGame)?;
+            ensure!(home == game, Error::<T>::NotHomeGame);
+            ensure!(
+                Writers::<T>::contains_key(game, &who),
+                Error::<T>::NotWriter
+            );
+            ensure!(
+                !T::ListedForSale::contains(&(collection, item)),
+                Error::<T>::ListedForSale
+            );
+            Self::ensure_distinct(&stats)?;
+
+            let record = Records::<T>::get((collection, item), game).unwrap_or_default();
+            let mut next = record.clone();
+            next.xp = next.xp.checked_add(add_xp).ok_or(Error::<T>::XpOverflow)?;
+            if let Some(level) = level {
+                ensure!(level >= next.level, Error::<T>::LevelMustRise);
+                next.level = level;
+            }
+            for (number, value) in stats.iter().copied() {
+                match next.stats.binary_search_by_key(&number, |(n, _)| *n) {
+                    Ok(at) => next.stats[at].1 = value,
+                    Err(at) => next
+                        .stats
+                        .try_insert(at, (number, value))
+                        .map_err(|_| Error::<T>::TooManyStats)?,
+                }
+            }
+            ensure!(next != record, Error::<T>::NothingRecorded);
+
+            let (level, xp) = (next.level, next.xp);
+            Records::<T>::insert((collection, item), game, next);
+            Self::deposit_event(Event::StateChanged {
+                collection,
+                item,
+                game,
+                level,
+                xp,
+                stats,
+                by: who,
+            });
+            Ok(())
+        }
+
+        /// Set a game's record of an asset to exactly these values, lower ones
+        /// included, to undo an exploit (ADR-113 decision 6). Only whoever holds
+        /// the game's Cartridge, never a writer; only a record that exists, and
+        /// not while the asset is offered for sale.
+        #[pallet::call_index(9)]
+        #[pallet::weight(<T as Config>::WeightInfo::correct_progress())]
+        pub fn correct_progress(
+            origin: OriginFor<T>,
+            collection: CollectionId,
+            item: ItemId,
+            game: (CollectionId, ItemId),
+            level: u32,
+            xp: u64,
+            stats: StatsOf<T>,
+        ) -> DispatchResult {
+            let who = ensure_signed(origin)?;
+            let game = Self::ensure_game_holder(&who, game)?;
+            let record = Records::<T>::get((collection, item), game).ok_or(Error::<T>::NoRecord)?;
+            ensure!(
+                !T::ListedForSale::contains(&(collection, item)),
+                Error::<T>::ListedForSale
+            );
+            Self::ensure_distinct(&stats)?;
+
+            let mut sorted = stats;
+            sorted.sort_by_key(|(number, _)| *number);
+            let next = Progress {
+                level,
+                xp,
+                stats: sorted.clone(),
+            };
+            ensure!(next != record, Error::<T>::NothingRecorded);
+
+            Records::<T>::insert((collection, item), game, next);
+            Self::deposit_event(Event::StateCorrected {
+                collection,
+                item,
+                game,
+                level,
+                xp,
+                stats: sorted,
+                by: who,
+            });
+            Ok(())
+        }
     }
 
     impl<T: Config> Pallet<T> {
@@ -824,6 +1266,55 @@ pub mod pallet {
         pub fn asset(collection: CollectionId, item: ItemId) -> Option<Asset> {
             Assets::<T>::get(collection, item)
         }
+
+        /// The game that keeps a collection's records, if the collection has one.
+        pub fn home_game(collection: CollectionId) -> Option<Issuer> {
+            HomeGame::<T>::get(collection)
+        }
+
+        /// Every record of an asset's progress, the home game's first (ADR-113).
+        pub fn progress_of(collection: CollectionId, item: ItemId) -> Vec<ProgressRecord> {
+            let home = HomeGame::<T>::get(collection);
+            let mut records: Vec<ProgressRecord> = Records::<T>::iter_prefix((collection, item))
+                .map(|(issuer, record)| ProgressRecord {
+                    issuer,
+                    home: Some(issuer) == home,
+                    level: record.level,
+                    xp: record.xp,
+                    stats: record.stats.into_inner(),
+                })
+                .collect();
+            records.sort_by_key(|record| !record.home);
+            records
+        }
+
+        /// The game whose Cartridge is `game`, if `who` holds that Cartridge.
+        fn ensure_game_holder(
+            who: &T::AccountId,
+            game: (CollectionId, ItemId),
+        ) -> Result<Issuer, DispatchError> {
+            ensure!(
+                Assets::<T>::contains_key(game.0, game.1),
+                Error::<T>::UnknownGame
+            );
+            ensure!(
+                pallet_nfts::Pallet::<T>::owner(game.0, game.1).as_ref() == Some(who),
+                Error::<T>::NotGameHolder
+            );
+            Ok(Issuer::game(game))
+        }
+
+        /// Refuses stats that name one number twice: which value was meant could
+        /// not be told.
+        fn ensure_distinct(stats: &StatsOf<T>) -> DispatchResult {
+            let mut numbers: Vec<u16> = stats.iter().map(|(number, _)| *number).collect();
+            numbers.sort_unstable();
+            ensure!(
+                numbers.windows(2).all(|pair| pair[0] != pair[1]),
+                Error::<T>::DuplicateStat
+            );
+            Ok(())
+        }
     }
 }
 
@@ -843,12 +1334,20 @@ pub mod runtime_api {
     use super::*;
 
     sp_api::decl_runtime_apis! {
-        /// DRC-369 assets, read from chain state.
+        /// DRC-369 assets, read from chain state. Version 2 adds progress
+        /// (ADR-113).
+        #[api_version(2)]
         pub trait Drc369Api<AccountId> where AccountId: codec::Codec {
             /// Every DRC-369 asset `owner` holds.
             fn assets_of(owner: AccountId) -> Vec<OwnedAsset>;
             /// One asset's record, if `(collection, item)` is a DRC-369 asset.
             fn asset(collection: CollectionId, item: ItemId) -> Option<Asset>;
+            /// Every record of an asset's progress, the home game's first.
+            #[api_version(2)]
+            fn progress_of(collection: CollectionId, item: ItemId) -> Vec<ProgressRecord>;
+            /// The game that keeps a collection's records, if it has one.
+            #[api_version(2)]
+            fn home_game(collection: CollectionId) -> Option<Issuer>;
         }
     }
 }

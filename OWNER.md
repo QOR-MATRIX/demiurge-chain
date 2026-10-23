@@ -16,23 +16,27 @@ website*. **Launcher 0.1.16** is the tester download.
 
 ## This session
 
-1. **Two launchers out.** 0.1.15 (22 October) is the first that updates itself; testers
-   install it by hand once. 0.1.16 (23 October) is the first update it offers: they get
-   it inside the launcher by pressing *Update and restart*. Each was downloaded back from
-   GitHub and checked against our signing key before I called it done.
-2. **An AI agent can act for you only once your own key signs for it** (L5.1), in the
-   launcher, after a dialog saying what it may do. QOR ID was redeployed from your merge
-   of #79, so this is live: a stolen sign-in token is no longer enough.
-3. **QQ Studio on this PC is current**: rebuilt, all eight test suites passed.
-4. **Found and fixed on the way:** gaps in the Mesh dialog's sentences since 0.1.10 — *the
-   Mesh: our paid file-sharing network* — now held by a test; agent names that broke QOR
-   ID's rules; a release build that could not run from the current checkout; a GitHub
-   cache hang that stalled **CI** — *GitHub's automatic tests* — now capped at ten minutes.
+1. **Runtime 10 is rehearsed, and passed.** Runtime — *the chain's program* — 10 is what
+   lets assets level up. On this PC I started a copy of the devnet running its own live
+   runtime 9, left a payment and an asset on it, then upgraded it exactly as you will
+   sign it. All 35 checks passed: nothing was lost, and wallets, the Mesh and the new
+   level and **XP** — *experience points* — records all work after it. The file is in
+   your Downloads: `demiurge-runtime-v10.compact.compressed.wasm`.
+2. **PDFs open in the Library** (#83). A PDF now opens inside the launcher's media app,
+   **QOR Media**, instead of another program: zoom, find with every match marked, copy
+   text, follow links (only to the web or email, never to a program), see the pages and
+   contents beside it, and open a locked PDF with its password. Tested (51 tests; seven of
+   eight planted bugs caught; the eighth is guarded twice) and tried on a real 72-page PDF.
+3. **PDF pages can be changed too**, built after #83 and held until you merge it: turn,
+   delete and move pages, undo, and save, through **PDFium** — *Google's PDF engine* —
+   with your file replaced only once the new one is complete. Locked PDFs are only read.
+   Eleven of twelve planted bugs caught. Marking up, filling and signing come next.
+4. **For your merge: #82 and #83**, in either order. #82 teaches assets to level up
+   (ADR-113, your approval): a level, XP and stats written by the game the collection's
+   owner picks; only whoever holds the game's **Cartridge** — *the game's own asset* — can
+   correct a mistake, and nothing changes while an asset is for sale.
 
-**#80 is merged**: the homepage offers 0.1.16. **For your merge: #81**, a test agent so you can
-try L5.1 yourself, and these records.
-
-## The release gates (measured this session)
+## The release gates (measured last session)
 
 **Alpha** — *the first test release* — lacks two things: M3.2, which needs the genesis split
 (OPEN-2), and two launcher dialogs you have not yet tried (L1.4). **Beta** — *the worldwide
@@ -42,30 +46,35 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 
 1. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
-   It names the key file and shows its password once; keep both offline, together (a
-   password manager or an encrypted drive). Your earlier try ran from your Documents
-   folder, where the short path does not exist. Lose them and testers reinstall by hand.
-2. **Install 0.1.15 yourself, then take 0.1.16 when it offers it**: the first update
+   It names the key file and shows its password once; keep both offline, together.
+   Lose them and testers reinstall by hand.
+2. **Merge #82, then upgrade the devnet to runtime 10**, as you did for 9: in polkadot.js
+   Apps, Developer → Sudo, `sudoUncheckedWeight`, then `system.setCode` in the second
+   dropdown (the field must read `code`, not `remark`), and pick the file above. Its
+   fingerprint starts `6192023b`. Tell me when it is done and I will read it back.
+3. **Install 0.1.15 yourself, then take 0.1.16 when it offers it**: the first update
    through the channel, which ticks L6.2. Then let a test agent ask you: in
    `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run `cargo run --example agent_link`
    (or ask me to), and press *Allow agent* in the launcher's dialog. That ticks L5.1.
-3. **Terms of Service and a privacy policy, with a lawyer.** Three live services hold
+4. **Terms of Service and a privacy policy, with a lawyer.** Three live services hold
    emails and messages, and none has either. Account deletion and export follow from them.
-4. **The legal opinion** on rewards, prizes, the welcome grant and backing, and on
+5. **The legal opinion** on rewards, prizes, the welcome grant and backing, and on
    **KYC** — *identity checks* —, sanctions and age limits, before anything carries value.
-5. **The economic numbers** — *issuance, the genesis split, the decay curve, fee and burn
+6. **The economic numbers** — *issuance, the genesis split, the decay curve, fee and burn
    shares* (OPEN-1 to OPEN-4, U-4, U-11). Most of the Beta gate waits on them.
-6. **Code-signing certificates** for Windows and Apple, and an **external security review**.
-7. **Names** for the indexer and explorer, the SDK, and the **MCP server** — *how AI tools
+7. **Code-signing certificates** for Windows and Apple, and an **external security review**.
+8. **Names** for the indexer and explorer, the SDK, and the **MCP server** — *how AI tools
    reach Demiurge*.
-8. **Still open, as HANDOFF §4.0 records:** godmode's 100,000,000 CGT (its address); Social's
+9. **Still open, as HANDOFF §4.0 records:** godmode's 100,000,000 CGT (its address); Social's
    report rules; the Android app on your phone; ARQADE inside the launcher; whether #46's
    gate change reads to you as loosening; the reward pool's numbers; Search Console and the
    GitHub preview image; the welcome-grant payer; Qt for CI; the email webhook; the key
    pasted on 5 October; `social-secrets.txt` on your Desktop and `archive-bZLIQp/` in the
    old checkout, each to keep or delete.
 
-**Next in engineering:** the asset work (M4.2, M4.3, M4.5), then PDF in QOR Media (L9.5).
+**Next in engineering:** after #83, the page changes as a pull request; then marking up,
+filling and signing PDFs (the rest of L9.5). At your word: games other than the home game
+keeping records (ADR-113's second phase), or rental and fractions (M4.3).
 
 ## Cost per month
 

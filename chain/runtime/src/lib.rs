@@ -174,7 +174,13 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // before a paid round (ADR-070 decision 8). New calls and storage only; no
     // stored value's encoding changed, so no migration and the same
     // `transaction_version`.
-    spec_version: 9,
+    // 9: `pallet-mesh`, the Mesh's hosting escrow (ADR-096), a new pallet at index 12.
+    // 10: progress records (ADR-113, M4.2 and M4.5's state and XP): `Drc369::set_home_game`,
+    // `authorise_writer`, `revoke_writer`, `record_progress` and `correct_progress`, new calls with
+    // new indices, and new storage; `Drc369Api` moves to version 2 with `progress_of` and
+    // `home_game`. No existing call or stored value changed its encoding, so no migration and the same
+    // `transaction_version`.
+    spec_version: 10,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -517,6 +523,15 @@ impl_runtime_apis! {
             item: pallet_drc369::ItemId,
         ) -> Option<pallet_drc369::Asset> {
             Drc369::asset(collection, item)
+        }
+        fn progress_of(
+            collection: pallet_drc369::CollectionId,
+            item: pallet_drc369::ItemId,
+        ) -> Vec<pallet_drc369::ProgressRecord> {
+            Drc369::progress_of(collection, item)
+        }
+        fn home_game(collection: pallet_drc369::CollectionId) -> Option<pallet_drc369::Issuer> {
+            Drc369::home_game(collection)
         }
     }
 

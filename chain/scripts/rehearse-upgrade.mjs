@@ -8,7 +8,8 @@
 //   3. upgrades exactly as the owner will, sudo.sudoUncheckedWeight(system.setCode(wasm));
 //   4. checks the new spec_version, that Sudo survived with the same key, that the
 //      transfer and the asset are still there, and that the new pallets work (the
-//      ARQ Wallet from 7, its rounds from 8, the Mesh from 9 with the devnet's period).
+//      ARQ Wallet from 7, its rounds from 8, the Mesh from 9 with the devnet's period,
+//      and progress records from 10).
 //
 // It signs only with the well-known development keys, and refuses any node whose
 // chain type is not Development. It never touches the devnet.
@@ -17,7 +18,7 @@
 
 import { readFileSync } from 'node:fs';
 import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
-import { cryptoWaitReady } from '@polkadot/util-crypto';
+import { blake2AsHex, cryptoWaitReady } from '@polkadot/util-crypto';
 
 const [endpoint, wasmPath, expected] = process.argv.slice(2);
 if (!endpoint || !wasmPath || !expected) throw new Error('usage: rehearse-upgrade.mjs <ws endpoint> <wasm> <expected spec_version>');
@@ -132,6 +133,34 @@ if (api.tx.mesh) {
   await send(api, api.tx.mesh.closeEscrow(escrow), charlie);
   check((await api.query.mesh.escrows(escrow)).isNone, 'the uploader closed the escrow');
   check((await api.query.system.account(charlie.address)).data.free.toBigInt() === charlieHolding + 200n * CGT, 'and all 200 CGT came back');
+}
+
+// Progress records (spec_version 10 onwards, ADR-113): the asset minted before the upgrade is static until its
+// collection is bound to a home game; a writer only adds; its holder is not a writer by holding it; nothing is written
+// while it is listed, which the runtime reads from Drc369Royalties; and the Cartridge's holder corrects downwards.
+if (api.tx.drc369.recordProgress) {
+  const game = [collection, item];
+  const issuer = JSON.stringify({ game: { collection, item } });
+  const refusal = (tx, signer) => send(api, tx, signer).then(() => 'accepted', (error) => error.message);
+  const drc369Api = api.runtimeVersion.apis.find(([id]) => id.toHex() === blake2AsHex('Drc369Api', 64));
+  check(drc369Api?.[1].toNumber() === 2, 'Drc369Api is at version 2');
+  check((await api.call.drc369Api.homeGame(collection)).isNone, 'the collection minted before the upgrade has no home game');
+  check((await api.call.drc369Api.progressOf(collection, item)).length === 0, 'and its asset no record');
+  await send(api, api.tx.drc369.setHomeGame(collection, game), alice);
+  check(JSON.stringify((await api.call.drc369Api.homeGame(collection)).toJSON()) === issuer, 'its owner bound it to a home game');
+  await send(api, api.tx.drc369.authoriseWriter(game, bob.address), alice);
+  await send(api, api.tx.drc369.recordProgress(collection, item, game, 50, 2, [[1, 7]]), bob);
+  let [record] = (await api.call.drc369Api.progressOf(collection, item)).toJSON();
+  check(JSON.stringify(record.issuer) === issuer && record.home === true, 'the record is kept by the home game');
+  check(record.level === 2 && record.xp === 50 && JSON.stringify(record.stats) === '[[1,7]]', 'a writer recorded level 2, 50 XP and one stat');
+  check(await refusal(api.tx.drc369.recordProgress(collection, item, game, 1, null, []), alice) === 'drc369.NotWriter', 'holding the asset does not make its holder a writer');
+  check(await refusal(api.tx.drc369.recordProgress(collection, item, game, 0, 1, []), bob) === 'drc369.LevelMustRise', 'a writer cannot lower the level');
+  await send(api, api.tx.drc369Royalties.list(collection, item, 10n * CGT), alice);
+  check(await refusal(api.tx.drc369.recordProgress(collection, item, game, 1, null, []), bob) === 'drc369.ListedForSale', 'nothing is written while the asset is listed');
+  await send(api, api.tx.drc369Royalties.unlist(collection, item), alice);
+  await send(api, api.tx.drc369.correctProgress(collection, item, game, 1, 10, []), alice);
+  [record] = (await api.call.drc369Api.progressOf(collection, item)).toJSON();
+  check(record.level === 1 && record.xp === 10 && record.stats.length === 0, "the Cartridge's holder corrected the record downwards");
 }
 
 await api.disconnect();

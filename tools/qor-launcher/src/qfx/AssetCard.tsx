@@ -250,6 +250,19 @@ export function AssetCard({ asset, index, busy, symbol, held, found, listed: onM
             <dd className="numeric min-w-0 truncate text-ink-body" data-asset-commit>
               {asset.commit ? `${asset.commit.id} (${asset.commit.kind})` : 'None'}
             </dd>
+            {/* Kept by the game the asset's collection is bound to, and only by it (ADR-113). */}
+            {asset.progress && (
+              <>
+                <dt className="text-ink-muted">Progress</dt>
+                <dd
+                  className="numeric min-w-0 truncate text-ink-body"
+                  data-asset-progress
+                  title={`Kept by the game ${asset.progress.game[0]}/${asset.progress.game[1]}`}
+                >
+                  Level {asset.progress.level} · {asset.progress.xp} XP
+                </dd>
+              </>
+            )}
             {onMarket && (
               <>
                 {stale && listing && (
@@ -530,6 +543,22 @@ function AssetCloseUp({
           <dd className="numeric min-w-0 text-ink-muted">
             {short(asset.current.root)} · {asset.commit ? short(asset.commit.id) : '—'}
           </dd>
+          {asset.progress && (
+            <>
+              <dt className="text-caption text-ink-muted">Progress</dt>
+              <dd className="min-w-0" data-closeup-progress>
+                <span className="numeric text-ink-body">
+                  Level {asset.progress.level} · {asset.progress.xp} XP
+                </span>
+                <span className="block text-caption text-ink-faint">
+                  Kept by the game {asset.progress.game[0]}/{asset.progress.game[1]}, and only by
+                  it.
+                  {asset.progress.stats.length > 0 &&
+                    ` Stats: ${asset.progress.stats.map(([number, value]) => `#${number} ${value}`).join(', ')}.`}
+                </span>
+              </dd>
+            </>
+          )}
           {asset.listing && (
             <>
               <dt className="text-caption text-ink-muted">Listed at</dt>

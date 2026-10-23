@@ -94,6 +94,10 @@ impl pallet_drc369::Config for Test {
     type MaxRemixDepth = ConstU8<16>;
     type MaxNestingDepth = ConstU8<8>;
     type MaxChildren = ConstU32<64>;
+    type MaxStats = ConstU32<32>;
+    type MaxWriters = ConstU32<16>;
+    // Progress records are `pallet-drc369`'s to test; nothing is held still here.
+    type ListedForSale = frame_support::traits::Nothing;
 }
 
 /// Test values for the protocol's bounds (U-16).

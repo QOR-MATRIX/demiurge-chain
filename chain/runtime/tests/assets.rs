@@ -17,7 +17,7 @@ use demiurge_runtime::{
     AccountId, Balance, Balances, Block, Drc369, Drc369Royalties, Nfts, Runtime, RuntimeCall,
     RuntimeOrigin, System, VERSION,
 };
-use pallet_drc369::runtime_api::runtime_decl_for_drc_369_api::Drc369ApiV1;
+use pallet_drc369::runtime_api::runtime_decl_for_drc_369_api::Drc369ApiV2;
 use pallet_drc369::{CommitId, ContentRef, HashAlgo};
 use pallet_drc369_royalties::runtime_api::runtime_decl_for_drc_369_royalties_api::Drc369RoyaltiesApiV1;
 use polkadot_sdk::*;
@@ -263,9 +263,9 @@ fn several_assets_move_in_one_transaction() {
 
         assert_eq!(Nfts::owner(0, 0), Some(bob.clone()));
         assert_eq!(Nfts::owner(0, 1), Some(bob.clone()));
-        assert!(<Runtime as Drc369ApiV1<Block, AccountId>>::assets_of(alice).is_empty());
+        assert!(<Runtime as Drc369ApiV2<Block, AccountId>>::assets_of(alice).is_empty());
         assert_eq!(
-            <Runtime as Drc369ApiV1<Block, AccountId>>::assets_of(bob).len(),
+            <Runtime as Drc369ApiV2<Block, AccountId>>::assets_of(bob).len(),
             2
         );
     });
@@ -297,7 +297,7 @@ fn a_trade_that_cannot_finish_moves_nothing() {
         assert_eq!(Nfts::owner(0, 0), Some(alice.clone()));
         assert_eq!(Nfts::owner(0, 1), Some(alice.clone()));
         assert_eq!(
-            <Runtime as Drc369ApiV1<Block, AccountId>>::assets_of(bob).len(),
+            <Runtime as Drc369ApiV2<Block, AccountId>>::assets_of(bob).len(),
             0
         );
     });
@@ -456,6 +456,91 @@ fn the_asset_bounds_are_the_ones_recorded_with_a_source() {
         <<Runtime as pallet_drc369::Config>::MaxChildren as Get<u32>>::get(),
         64
     );
+    // ADR-047 decision 13 row 7: the stats one progress record holds; ADR-113
+    // decision 4: the writers one game may have.
+    assert_eq!(
+        <<Runtime as pallet_drc369::Config>::MaxStats as Get<u32>>::get(),
+        32
+    );
+    assert_eq!(
+        <<Runtime as pallet_drc369::Config>::MaxWriters as Get<u32>>::get(),
+        16
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Progress (ADR-113)
+// ---------------------------------------------------------------------------
+
+fn record_progress(item: u32, add_xp: u64) -> RuntimeCall {
+    RuntimeCall::Drc369(pallet_drc369::Call::record_progress {
+        collection: 1,
+        item,
+        game: (0, 0),
+        add_xp,
+        level: None,
+        stats: vec![(1, 5)].try_into().unwrap(),
+    })
+}
+
+/// In the real runtime: the filter lets progress through, a game's writer keeps
+/// its record, and an asset listed in `pallet-drc369-royalties` keeps its records
+/// still until it is withdrawn (ADR-113 decision 7), which only this runtime's
+/// `ListedForSale` joins up.
+#[test]
+fn progress_is_kept_by_the_home_game_and_held_while_listed() {
+    let (alice, bob, writer) = (account(1), account(2), account(3));
+    chain_with(vec![
+        (alice.clone(), 10_000 * CGT),
+        (bob.clone(), 10_000 * CGT),
+    ])
+    .execute_with(|| {
+        // Alice's game is her Cartridge, (0, 0); Bob's item is (1, 0).
+        mint(&alice, b"game");
+        mint(&bob, b"sword");
+        assert_ok!(Drc369::set_home_game(
+            RuntimeOrigin::signed(bob.clone()),
+            1,
+            Some((0, 0))
+        ));
+        assert_ok!(Drc369::authorise_writer(
+            RuntimeOrigin::signed(alice.clone()),
+            (0, 0),
+            writer.clone()
+        ));
+        assert!(AssetCallFilter::contains(&record_progress(0, 10)));
+        assert_ok!(record_progress(0, 10).dispatch(RuntimeOrigin::signed(writer.clone())));
+
+        assert_ok!(Drc369Royalties::list(
+            RuntimeOrigin::signed(bob.clone()),
+            1,
+            0,
+            100 * CGT
+        ));
+        assert_eq!(
+            refusal(record_progress(0, 5), &writer),
+            pallet_drc369::Error::<Runtime>::ListedForSale.into()
+        );
+        assert_ok!(Drc369Royalties::unlist(
+            RuntimeOrigin::signed(bob.clone()),
+            1,
+            0
+        ));
+        assert_ok!(record_progress(0, 5).dispatch(RuntimeOrigin::signed(writer.clone())));
+
+        let records = <Runtime as Drc369ApiV2<Block, AccountId>>::progress_of(1, 0);
+        assert_eq!(records.len(), 1);
+        assert_eq!(
+            (records[0].home, records[0].xp, records[0].stats.clone()),
+            (true, 15, vec![(1, 5)])
+        );
+        assert_eq!(
+            <Runtime as Drc369ApiV2<Block, AccountId>>::home_game(1),
+            Some(pallet_drc369::Issuer::game((0, 0)))
+        );
+        // Nothing of it touched a balance: a writer holds no CGT.
+        assert_eq!(Balances::free_balance(&writer), 0);
+    });
 }
 
 /// The deposits are placeholders (U-14), derived by ADR-030's arithmetic from
@@ -544,10 +629,10 @@ fn the_runtime_api_lists_what_an_account_holds() {
         (bob.clone(), 10_000 * CGT),
     ])
     .execute_with(|| {
-        assert!(<Runtime as Drc369ApiV1<Block, AccountId>>::assets_of(alice.clone()).is_empty());
+        assert!(<Runtime as Drc369ApiV2<Block, AccountId>>::assets_of(alice.clone()).is_empty());
 
         mint(&alice, b"demo");
-        let held = <Runtime as Drc369ApiV1<Block, AccountId>>::assets_of(alice.clone());
+        let held = <Runtime as Drc369ApiV2<Block, AccountId>>::assets_of(alice.clone());
         assert_eq!(held.len(), 1);
         assert_eq!((held[0].collection, held[0].item), (0, 0));
         assert_eq!(held[0].name, b"demo".to_vec());
@@ -556,14 +641,14 @@ fn the_runtime_api_lists_what_an_account_holds() {
         assert!(held[0].asset.revisable);
 
         assert_eq!(
-            <Runtime as Drc369ApiV1<Block, AccountId>>::asset(0, 0),
+            <Runtime as Drc369ApiV2<Block, AccountId>>::asset(0, 0),
             Some(held[0].asset)
         );
         assert_eq!(
-            <Runtime as Drc369ApiV1<Block, AccountId>>::asset(0, 1),
+            <Runtime as Drc369ApiV2<Block, AccountId>>::asset(0, 1),
             None
         );
-        assert!(<Runtime as Drc369ApiV1<Block, AccountId>>::assets_of(bob).is_empty());
+        assert!(<Runtime as Drc369ApiV2<Block, AccountId>>::assets_of(bob).is_empty());
     });
 }
 
