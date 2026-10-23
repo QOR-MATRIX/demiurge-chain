@@ -520,7 +520,7 @@ mod tests {
         assert_eq!(
             100 * EMBERS_PER_CGT,
             CHAIN_EXISTENTIAL_DEPOSIT,
-            "the existential deposit is 100 CGT (ADR-036), and this module is              what renders it"
+            "the existential deposit is 100 CGT (ADR-036), and this module is what renders it"
         );
     }
 }

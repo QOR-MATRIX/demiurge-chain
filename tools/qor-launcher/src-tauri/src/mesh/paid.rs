@@ -232,7 +232,8 @@ impl Mesh {
         // Nobody is asked to allow what the chain cannot pay for: the devnet gains the Mesh by a runtime upgrade.
         if paid.chain.mesh_period().await.is_err() {
             return Err(QorError::Mesh(format!(
-                "{chain_name} does not pay for the Mesh yet, so there is nothing to allow. Seeding still serves your                  work."
+                "{chain_name} does not pay for the Mesh yet, so there is nothing to allow. Seeding still serves your \
+                 work."
             )));
         }
         let grant = paid
