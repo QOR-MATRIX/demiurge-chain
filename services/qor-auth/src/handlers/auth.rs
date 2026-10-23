@@ -894,15 +894,16 @@ pub async fn get_challenge(
 /// same key signs chain transactions, and without the tag a hostile or
 /// compromised endpoint could ask for a signature over bytes that mean
 /// something else. The launcher uses the identical tag
-/// (`tools/qor-launcher/src-tauri/src/vault/derive.rs` signs it).
+/// (`tools/qor-launcher/src-tauri/src/identity/mod.rs` builds the message the
+/// vault signs). Agent authorisations carry tags of their own (ADR-112).
 ///
 /// **What the tag does not do yet.** ADR-024 asks for the chain's genesis hash
 /// and network name in the challenge, so that a signature proves the holder
-/// signed for *this* network. That is not here: there is no deployed network
-/// whose genesis hash could be configured, and a value invented now would be
-/// wrong for the chain that is eventually run. It lands when the chain has an
-/// identity to bind to; until then a challenge signature proves possession of a
-/// key and says nothing about a network, which is what F-Q9 records.
+/// signed for *this* network. That is not here. When this was written no
+/// network was deployed; Demiurge Devnet has run since 3 October 2026, and
+/// whether sign-ins bind to its genesis or wait for the production chain's is
+/// still open. Until then a challenge signature proves possession of a key and
+/// says nothing about a network, which is what F-Q9 records.
 pub(crate) const CHALLENGE_DOMAIN: &str = "demiurge:qor-id:challenge:v1:";
 
 /// The exact bytes a key signs to answer `challenge`.
@@ -1031,13 +1032,21 @@ impl ChainAccount {
         })
     }
 
-    /// Verify a signature over a QOR ID challenge, with the domain tag applied.
+    /// Verify a signature over a QOR ID challenge, with the domain tag applied: the check
+    /// [`consume_signed_challenge`] makes, kept by name for the tests that hold it to the tag.
+    #[cfg(test)]
+    pub(crate) fn verify_challenge(&self, challenge: &str, signature: &str) -> bool {
+        self.verify(challenge_message(challenge).as_bytes(), signature)
+    }
+
+    /// Verify a signature over `message`, which the caller built with a domain tag of its own (security track item 7):
+    /// the challenge's, or an agent authorisation's (ADR-112).
     ///
     /// Sr25519 (ADR-023), verified by `sp-core` at the version the chain is
     /// built against (ADR-033 rule 1), under schnorrkel's `substrate` signing
     /// context. A signature over the bare challenge, or under any other
     /// context, does not verify.
-    pub(crate) fn verify_challenge(&self, challenge: &str, signature: &str) -> bool {
+    pub(crate) fn verify(&self, message: &[u8], signature: &str) -> bool {
         use sp_core::Pair as _;
 
         let Ok(bytes) = hex::decode(signature.strip_prefix("0x").unwrap_or(signature)) else {
@@ -1049,7 +1058,7 @@ impl ChainAccount {
 
         sp_core::sr25519::Pair::verify(
             &sp_core::sr25519::Signature::from(bytes),
-            challenge_message(challenge).as_bytes(),
+            message,
             &sp_core::sr25519::Public::from(self.0),
         )
     }
@@ -1066,9 +1075,32 @@ pub(crate) async fn consume_signed_challenge(
     challenge: &str,
     signature: &str,
 ) -> Result<(), AppError> {
-    let record: Option<(uuid::Uuid, String)> = sqlx::query_as(
+    let message = challenge_message(challenge);
+    consume_challenge_signed_over(
+        db,
+        account,
+        challenge,
+        message.as_bytes(),
+        signature,
+        AppError::InvalidCredentials,
+    )
+    .await
+}
+
+/// Spend a live challenge issued for `account`, on its key's signature over `message`: a statement the caller built
+/// around that same challenge (ADR-112), or the challenge itself under its domain tag. A signature that does not verify
+/// is answered with `refused`, and the challenge stays unspent.
+pub(crate) async fn consume_challenge_signed_over(
+    db: &sqlx::PgPool,
+    account: ChainAccount,
+    challenge: &str,
+    message: &[u8],
+    signature: &str,
+    refused: AppError,
+) -> Result<(), AppError> {
+    let challenge_id: Option<uuid::Uuid> = sqlx::query_scalar(
         r#"
-        SELECT id, challenge FROM auth_challenges
+        SELECT id FROM auth_challenges
         WHERE chain_account_id = $1 AND challenge = $2 AND expires_at > NOW() AND used = FALSE
         LIMIT 1
         "#,
@@ -1078,12 +1110,12 @@ pub(crate) async fn consume_signed_challenge(
     .fetch_optional(db)
     .await?;
 
-    let (challenge_id, challenge) = record.ok_or(AppError::ValidationError(
+    let challenge_id = challenge_id.ok_or(AppError::ValidationError(
         "Invalid or expired challenge".into(),
     ))?;
 
-    if !account.verify_challenge(&challenge, signature) {
-        return Err(AppError::InvalidCredentials);
+    if !account.verify(message, signature) {
+        return Err(refused);
     }
 
     let consumed =

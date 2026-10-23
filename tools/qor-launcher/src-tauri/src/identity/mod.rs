@@ -186,6 +186,12 @@ impl IdentityClient {
         self.session.read().clone()
     }
 
+    /// Test support: hold a session in memory, as signing in would, without QOR ID or the keychain.
+    #[cfg(test)]
+    pub(crate) fn set_session(&self, session: Option<Session>) {
+        *self.session.write() = session;
+    }
+
     fn url(&self, path: &str) -> String {
         format!(
             "{}/{}",
@@ -460,6 +466,26 @@ impl IdentityClient {
             .as_str()
             .map(str::to_owned)
             .ok_or_else(|| QorError::Auth("QOR ID answered the sign-in without a redirect".into()))
+    }
+
+    /// Register an agent for this QOR ID (ADR-112): `registration` carries the agent's proof and the controller's
+    /// signature, which `agents::AgentRequest::registration` built after the person allowed it. QOR ID answers with the
+    /// agent's QOR ID and DID, or refuses in words.
+    pub async fn register_agent(
+        &self,
+        registration: &serde_json::Value,
+    ) -> QorResult<serde_json::Value> {
+        self.with_fresh_token(
+            |token| {
+                self.http
+                    .post(self.url("agents/register"))
+                    .bearer_auth(token)
+                    .json(registration)
+                    .send()
+            },
+            "agents/register",
+        )
+        .await
     }
 
     /// The access token, for Social's socket (ADR-091, L8.5); refreshed first when `fresh`, after Social said the last

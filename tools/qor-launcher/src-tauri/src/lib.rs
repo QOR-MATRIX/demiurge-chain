@@ -13,6 +13,7 @@
 //! in `apps/wallet-extension`, where key material and page-reachable script share
 //! one JavaScript heap.
 
+pub mod agents;
 pub mod arqade;
 // Moved into the core shared with the Android launcher (ADR-104, DIRECTION L13.2), and kept at their old paths.
 pub use qor_launcher_core::cgt;
@@ -2010,6 +2011,135 @@ async fn pay_link(
     Ok((request, receipt))
 }
 
+// ── qor://agent (ADR-112) ───────────────────────────────────────────────────
+
+/// Agents' challenges being answered right now, so two clicks on one link cannot both reach the dialog.
+static AUTHORISING: parking_lot::Mutex<std::collections::BTreeSet<String>> =
+    parking_lot::Mutex::new(std::collections::BTreeSet::new());
+
+/// A `qor://` link opened the launcher: an agent's request (`qor://agent`), or anything else, which is read as a
+/// payment request and refused there if it is not one (ADR-076).
+fn handle_qor_link(app: tauri::AppHandle, link: String) {
+    if link.starts_with("qor://agent") {
+        handle_agent_link(app, link);
+    } else {
+        handle_pay_link(app, link);
+    }
+}
+
+/// A `qor://agent` link opened the launcher. It is checked (`agents::parse`), asked in the host dialog, signed by the
+/// profile's vault, registered with QOR ID, and the outcome told in a native message. Nothing is signed without the
+/// dialog's approval.
+fn handle_agent_link(app: tauri::AppHandle, link: String) {
+    tauri::async_runtime::spawn(async move {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+        let (title, body) = match agent_link(&app, &link).await {
+            Ok(qor_id) => (
+                "Agent allowed".to_string(),
+                format!(
+                    "{qor_id} may now act for you, as you allowed. QOR ID records what it may do; nothing enforces \
+                     it yet."
+                ),
+            ),
+            Err(QorError::Declined) => (
+                "Agent not allowed".to_string(),
+                "You declined. Nothing was signed.".to_string(),
+            ),
+            Err(e) => (
+                "Agent not allowed".to_string(),
+                format!("The agent was not allowed: {e}."),
+            ),
+        };
+        let _ = tauri::async_runtime::spawn_blocking(move || {
+            use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+            let mut dialog = app
+                .dialog()
+                .message(body)
+                .title(title)
+                .kind(MessageDialogKind::Info);
+            if let Some(window) = app.get_webview_window("main") {
+                dialog = dialog.parent(&window);
+            }
+            dialog.blocking_show();
+        })
+        .await;
+    });
+}
+
+async fn agent_link(app: &tauri::AppHandle, link: &str) -> QorResult<String> {
+    let request = agents::parse(link, chrono::Utc::now().timestamp())?;
+    let state = app.state::<AppState>();
+    if !AUTHORISING.lock().insert(request.challenge.clone()) {
+        return Err(QorError::AgentRefused(
+            "this request is already waiting for your answer".into(),
+        ));
+    }
+    let outcome = authorise_agent(
+        &state.vault,
+        &state.identity,
+        &HostDialog(app.clone()),
+        &request,
+    )
+    .await;
+    AUTHORISING.lock().remove(&request.challenge);
+    outcome
+}
+
+/// Ask, sign and register: the signed-in profile's QOR ID becomes the agent's controller, and the profile's own
+/// account, which is the key that QOR ID proved, signs the statement (ADR-112). Refused before anything is asked when
+/// the two are not the same account.
+async fn authorise_agent(
+    vault: &Vault,
+    identity: &IdentityClient,
+    confirm: &dyn Confirm,
+    request: &agents::AgentRequest,
+) -> QorResult<String> {
+    let session = identity.session().ok_or_else(|| {
+        QorError::AgentRefused(
+            "no QOR ID is signed in. Open the QOR Launcher, choose yours, then ask the agent again"
+                .into(),
+        )
+    })?;
+    let proved = session.address.as_deref().ok_or_else(|| {
+        QorError::AgentRefused(format!(
+            "{} has proved no key, so it cannot authorise an agent. Sign in with your key first",
+            session.qor_id
+        ))
+    })?;
+    let controller = vault.active_address().map_err(|_| {
+        QorError::AgentRefused(
+            "the vault is not open. Open the QOR Launcher, then ask the agent again".into(),
+        )
+    })?;
+    let account = vault::normalise_address(&controller)?;
+    if vault::normalise_address(proved)? != account {
+        return Err(QorError::AgentRefused(format!(
+            "{} proved another key than the open wallet's, so its own key cannot sign here",
+            session.qor_id
+        )));
+    }
+    let statement = request.statement(&account);
+    let signature = vault
+        .sign(
+            confirm,
+            &request.prompt(&session.qor_id),
+            &controller,
+            statement.as_bytes(),
+        )
+        .await?;
+    let made = identity
+        .register_agent(&request.registration(&signature))
+        .await
+        .map_err(|e| QorError::AgentRefused(format!("QOR ID refused it: {e}")))?;
+    Ok(made["qor_id"]
+        .as_str()
+        .unwrap_or(&request.qor_id)
+        .to_string())
+}
+
 /// Build and run the launcher.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -2075,8 +2205,8 @@ pub fn run() {
                 }
             }
 
-            // `qor://pay` (ADR-076). The installer registers the scheme; registering again here covers a launcher run
-            // without installing, and points the scheme at this copy.
+            // `qor://pay` (ADR-076) and `qor://agent` (ADR-112). The installer registers the scheme; registering again
+            // here covers a launcher run without installing, and points the scheme at this copy.
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
                 #[cfg(any(windows, target_os = "linux"))]
@@ -2087,7 +2217,7 @@ pub fn run() {
                 app.deep_link().on_open_url(move |event| {
                     for url in event.urls() {
                         if url.scheme() == "qor" {
-                            handle_pay_link(handle.clone(), url.to_string());
+                            handle_qor_link(handle.clone(), url.to_string());
                         }
                     }
                 });
@@ -2095,7 +2225,7 @@ pub fn run() {
                 if let Ok(Some(urls)) = app.deep_link().get_current() {
                     for url in urls {
                         if url.scheme() == "qor" {
-                            handle_pay_link(app.handle().clone(), url.to_string());
+                            handle_qor_link(app.handle().clone(), url.to_string());
                         }
                     }
                 }
@@ -2587,5 +2717,186 @@ mod tests {
         assert_eq!(other[0].address, second);
         sign_out_profile(&state, None, &Quiet).await.unwrap();
         let _ = std::fs::remove_dir_all(&base);
+    }
+
+    /// An agent's `qor://agent` link, as the agent makes it: its account, a challenge, its signature over it, and what
+    /// it asks for (ADR-112).
+    fn agent_link(agent: &sp_core::sr25519::Pair, challenge: &str, name: &str) -> String {
+        use sp_core::Pair as _;
+        let request = serde_json::json!({
+            "account_id": format!("0x{}", hex::encode(agent.public().0)),
+            "challenge": challenge,
+            "signature": hex::encode(
+                agent.sign(format!("demiurge:qor-id:challenge:v1:{challenge}").as_bytes()).0
+            ),
+            "name": name,
+            "capabilities": ["read", "trade"],
+            "autonomy": "bounded",
+            "spending_limit": 25,
+        });
+        format!("qor://agent?r={}", hex::encode(request.to_string()))
+    }
+
+    fn session(address: Option<String>) -> Session {
+        Session {
+            qor_id: "andrew".into(),
+            username: "andrew".into(),
+            discriminator: 1,
+            role: "user".into(),
+            address,
+            avatar_url: None,
+            username_chosen: true,
+        }
+    }
+
+    /// ADR-112: an agent is authorised only by the signed-in QOR ID's own key, after the dialog. Every refusal comes
+    /// before anyone is asked, and a declined dialog signs and sends nothing.
+    #[tokio::test]
+    async fn an_agent_is_authorised_only_by_the_qor_ids_own_key_after_the_dialog() {
+        use sp_core::Pair as _;
+        let dir = std::env::temp_dir().join(format!("qor-agent-{}", uuid::Uuid::new_v4().simple()));
+        let vault = vault::testing::vault_in(&dir);
+        let controller = vault
+            .create(&vault::derive::generate_mnemonic().unwrap())
+            .unwrap()[0]
+            .address
+            .clone();
+        let identity = IdentityClient::new("http://127.0.0.1:1/api/v1").unwrap();
+        let now = chrono::Utc::now().timestamp();
+        let challenge = format!("demiurge:{now}:{}", "ab".repeat(32));
+        let agent = sp_core::sr25519::Pair::from_seed(&[2; 32]);
+        let request = agents::parse(&agent_link(&agent, &challenge, "Lab Assistant"), now).unwrap();
+        let approving = Scripted::approving();
+        let refusal = |result: QorResult<String>| {
+            let e = result.unwrap_err();
+            assert_eq!(e.kind(), "agent_refused", "{e}");
+            e.to_string()
+        };
+
+        assert!(
+            refusal(authorise_agent(&vault, &identity, &approving, &request).await)
+                .contains("no QOR ID is signed in")
+        );
+        identity.set_session(Some(session(None)));
+        assert!(
+            refusal(authorise_agent(&vault, &identity, &approving, &request).await)
+                .contains("has proved no key")
+        );
+        identity.set_session(Some(session(Some(vault::derive::address_of(&[9; 32])))));
+        assert!(
+            refusal(authorise_agent(&vault, &identity, &approving, &request).await)
+                .contains("proved another key than the open wallet's")
+        );
+        assert_eq!(approving.times_asked(), 0, "no refusal asked anything");
+
+        identity.set_session(Some(session(Some(controller.clone()))));
+        let declining = Scripted::declining();
+        let declined = authorise_agent(&vault, &identity, &declining, &request)
+            .await
+            .unwrap_err();
+        assert_eq!(declined.kind(), "declined");
+        assert_eq!(
+            declining.asked.lock().as_slice(),
+            &[request.prompt("andrew")][..]
+        );
+
+        // Approved, the vault signs and QOR ID is asked; with no profile's tokens here, it is refused as not signed in.
+        assert!(
+            refusal(authorise_agent(&vault, &identity, &approving, &request).await)
+                .contains("QOR ID refused it")
+        );
+        assert_eq!(approving.times_asked(), 1);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The whole of L5.1 against a running QOR ID (`QOR_ID_E2E`, its `/api/v1` address): a QOR ID made by a key, an
+    /// agent's link, the dialog approved, the agent registered and listed with what it may do, and the same link
+    /// refused a second time. Tokens go to this PC's keychain under a profile made for the run and are removed after.
+    #[tokio::test]
+    #[ignore = "needs a running QOR ID (QOR_ID_E2E) and this PC's keychain"]
+    async fn an_agent_is_authorised_against_a_running_qor_id() {
+        use sp_core::Pair as _;
+        let url = std::env::var("QOR_ID_E2E").expect("QOR_ID_E2E, QOR ID's /api/v1 address");
+        let dir =
+            std::env::temp_dir().join(format!("qor-agent-e2e-{}", uuid::Uuid::new_v4().simple()));
+        let vault = vault::testing::vault_in(&dir);
+        let controller = vault
+            .create(&vault::derive::generate_mnemonic().unwrap())
+            .unwrap()[0]
+            .address
+            .clone();
+        let identity = IdentityClient::new(url.clone()).unwrap();
+        identity.set_profile(Some(&format!("e2e-{}", uuid::Uuid::new_v4().simple())));
+        let suffix = uuid::Uuid::new_v4().as_u128() % 10_000;
+        let me = identity
+            .register_with_key(
+                &vault,
+                &Scripted::approving(),
+                &controller,
+                Some(&format!("e2e_{suffix}")),
+            )
+            .await
+            .expect("a QOR ID made by the vault's key");
+
+        let (agent, _) = sp_core::sr25519::Pair::generate();
+        let http = reqwest::Client::new();
+        let issued: serde_json::Value = http
+            .get(format!(
+                "{url}/auth/challenge?account_id=0x{}",
+                hex::encode(agent.public().0)
+            ))
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        let challenge = issued["challenge"].as_str().unwrap().to_string();
+        let name = format!("Lab {suffix}");
+        let request = agents::parse(
+            &agent_link(&agent, &challenge, &name),
+            chrono::Utc::now().timestamp(),
+        )
+        .unwrap();
+
+        let approving = Scripted::approving();
+        let made = authorise_agent(&vault, &identity, &approving, &request)
+            .await
+            .expect("authorised by the QOR ID's own key");
+        assert_eq!(made, format!("agent_lab_{suffix}"));
+        assert!(approving.asked.lock()[0].body.contains(&me.qor_id));
+
+        let token = identity.access_token(false).await.unwrap();
+        let listed: serde_json::Value = http
+            .get(format!("{url}/agents"))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        let agents = listed
+            .as_array()
+            .cloned()
+            .or_else(|| listed["agents"].as_array().cloned())
+            .unwrap_or_default();
+        let ours = agents
+            .iter()
+            .find(|a| a["qor_id"] == made.as_str())
+            .unwrap_or_else(|| panic!("the agent is listed: {listed}"));
+        assert_eq!(ours["capabilities"], serde_json::json!(["read", "trade"]));
+        assert_eq!(
+            ours["account_id"],
+            format!("0x{}", hex::encode(agent.public().0))
+        );
+
+        let again = authorise_agent(&vault, &identity, &approving, &request)
+            .await
+            .unwrap_err();
+        assert!(again.to_string().contains("QOR ID refused it"), "{again}");
+
+        identity.logout().await;
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

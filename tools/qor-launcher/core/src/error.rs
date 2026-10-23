@@ -111,6 +111,11 @@ pub enum QorError {
     #[error("{0}")]
     Update(String),
 
+    /// A `qor://agent` request refused before anything was asked or signed, or by QOR ID after (ADR-112). The sentence
+    /// is for the person.
+    #[error("{0}")]
+    AgentRefused(String),
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -147,6 +152,7 @@ impl QorError {
             Self::NoProfile => "no_profile",
             Self::Pin(_) => "pin",
             Self::Update(_) => "update",
+            Self::AgentRefused(_) => "agent_refused",
             Self::Internal(_) => "internal",
         }
     }

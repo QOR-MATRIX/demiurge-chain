@@ -240,6 +240,10 @@ pub struct RegisterAgentRequest {
     pub challenge: String,
     /// The agent key's Sr25519 signature over `challenge`, as hex.
     pub signature: String,
+    /// The controller's own key's Sr25519 signature, as hex, over the authorisation statement that names every field
+    /// above and the challenge (ADR-112). Optional here only so that a request without it is refused in words.
+    #[serde(default)]
+    pub controller_signature: Option<String>,
 }
 
 /// Agent registration response
@@ -260,6 +264,12 @@ pub struct AgentRegistrationResponse {
 #[derive(Debug, Deserialize)]
 pub struct UpdateAgentCapabilitiesRequest {
     pub capabilities: Vec<String>,
+    /// A challenge issued for the controller's own account by `GET /api/v1/auth/challenge` (ADR-112).
+    #[serde(default)]
+    pub challenge: Option<String>,
+    /// The controller's key's Sr25519 signature, as hex, over the change statement around that challenge (ADR-112).
+    #[serde(default)]
+    pub controller_signature: Option<String>,
 }
 
 /// Agent info response

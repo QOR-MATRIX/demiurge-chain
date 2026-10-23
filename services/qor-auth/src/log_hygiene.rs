@@ -717,6 +717,105 @@ async fn nothing_secret_reaches_a_log_at_any_level(db: PgPool) {
         .await;
     assert_eq!(r.status, StatusCode::OK, "{}", r.body);
 
+    // Agents (ADR-014, ADR-112), controlled by the key just linked: an authorisation refused because another key signed
+    // it, the agent authorised by the controller's own key, and its capabilities widened, signed around a challenge for
+    // the controller's account. The agent's account and every signature are secrets here.
+    let agent = sp_core::sr25519::Pair::from_seed(&[0x3cu8; 32]);
+    let agent_id = format!("0x{}", hex::encode(agent.public().0));
+    let agent_address = agent
+        .public()
+        .to_ss58check_with_version(Ss58AddressFormat::custom(42));
+    secrets.push(agent_id.clone());
+    secrets.push(agent_address.clone());
+    let r = client
+        .get(
+            &format!("/api/v1/auth/challenge?account_id={agent_id}"),
+            None,
+        )
+        .await;
+    let challenge = r.json()["challenge"]
+        .as_str()
+        .expect("a challenge")
+        .to_string();
+    let agent_signature = hex::encode(
+        agent
+            .sign(format!("demiurge:qor-id:challenge:v1:{challenge}").as_bytes())
+            .0,
+    );
+    secrets.push(agent_signature.clone());
+    let statement = format!(
+        "demiurge:qor-id:agent-authorisation:v1\ncontroller:{}\nagent:{}\nchallenge:{challenge}\nname:Log Check\n\
+         capabilities:read\nautonomy:supervised\nspending_limit:\nmodel:",
+        hex::encode(linked.public().0),
+        hex::encode(agent.public().0),
+    );
+    let register = |controller_signature: String| {
+        json!({
+            "name": "Log Check",
+            "capabilities": ["read"],
+            "autonomy": "supervised",
+            "account_id": agent_id,
+            "challenge": challenge,
+            "signature": agent_signature,
+            "controller_signature": controller_signature,
+        })
+    };
+    let not_the_controller = hex::encode(agent.sign(statement.as_bytes()).0);
+    secrets.push(not_the_controller.clone());
+    let r = client
+        .json(
+            "/api/v1/agents/register",
+            register(not_the_controller),
+            Some(&access),
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::BAD_REQUEST, "{}", r.body);
+    let controller_signature = hex::encode(linked.sign(statement.as_bytes()).0);
+    secrets.push(controller_signature.clone());
+    let r = client
+        .json(
+            "/api/v1/agents/register",
+            register(controller_signature),
+            Some(&access),
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::CREATED, "{}", r.body);
+    let did = r.json()["did"].as_str().expect("a DID").to_string();
+
+    let r = client
+        .get(
+            &format!("/api/v1/auth/challenge?address={linked_address}"),
+            None,
+        )
+        .await;
+    let challenge = r.json()["challenge"]
+        .as_str()
+        .expect("a challenge")
+        .to_string();
+    let change = format!(
+        "demiurge:qor-id:agent-change:v1\ncontroller:{}\nagent:{did}\nchallenge:{challenge}\ncapabilities:read,trade",
+        hex::encode(linked.public().0),
+    );
+    let change_signature = hex::encode(linked.sign(change.as_bytes()).0);
+    secrets.push(change_signature.clone());
+    let r = client
+        .send(
+            Request::put(format!("/api/v1/agents/{did}/capabilities"))
+                .header("content-type", "application/json")
+                .header("authorization", format!("Bearer {access}"))
+                .body(Body::from(
+                    json!({
+                        "capabilities": ["read", "trade"],
+                        "challenge": challenge,
+                        "controller_signature": change_signature,
+                    })
+                    .to_string(),
+                ))
+                .expect("request"),
+        )
+        .await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+
     // Sign-in for another app by redirect (ADR-043, ADR-073): the page, a refused and an accepted
     // password, the code, the exchange with the verifier and the app's secret, a refresh, a reused
     // refresh token, who the token belongs to, and sign-out. Every value they carry is a secret here.
