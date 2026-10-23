@@ -17,12 +17,11 @@ serious today:
   chain actually uses is not exposed. Accepted as met by standard behaviour in **ADR-038**, rather than
   owning a consensus-critical divergence permanently. A test fails if the SDK ever becomes stricter, so
   the day that changes is the day someone revisits it.
-- **An access token alone can register an agent** (ADR-014, known gap): **closed in code by ADR-112 (L5.1), not
-  yet live.** On branch `session/agent-authorisation`, QOR ID takes an agent, or a change to its capabilities, only
-  with the controller's own key's signature over a statement naming every field and a single-use challenge, and the
-  launcher's vault signs it after the host's dialog. Until that QOR ID is deployed, the live
-  `POST /api/v1/agents/register` takes the controller from the access token and checks only the agent key's own
-  signature. L5.1 is a Beta gate criterion, so the public testnet cannot open with the live service in that state.
+- **An access token alone could register an agent** (ADR-014, known gap): **closed by ADR-112 (L5.1), live since
+  QOR ID's redeploy of 23 October 2026.** QOR ID takes an agent, or a change to its capabilities, only with the
+  controller's own key's signature over a statement naming every field and a single-use challenge, and the
+  launcher's vault signs it after the host's dialog (0.1.16). L5.1, a Beta gate criterion, is ticked when a person
+  has authorised an agent that way from an installed launcher.
 - **The launcher's update key (ADR-111)** signs every installer the update channel offers. Its private half is on
   the owner's PC, in `%APPDATA%\Demiurge\updater\`, encrypted with a password Windows seals for that user; it is never
   in the repository, a log or CI. Shipping to testers needs both the key and the right to publish this repository's

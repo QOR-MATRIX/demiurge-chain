@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 22 October 2026. One page, rewritten every session.
+For Andrew, 23 October 2026. One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -12,29 +12,24 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 The homepage at **qorsync.dev**; **Devnet** — *the test chain on servers* — on runtime 9;
 **QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** — *the gaming
-website*. **Launcher 0.1.15** is the tester download, the first that updates itself.
+website*. **Launcher 0.1.16** is the tester download.
 
 ## This session
 
-1. **Launcher 0.1.15 is out** (GitHub: `launcher-v0.1.15`). Testers install it by hand
-   once; after that, each release reaches them inside the launcher when they press
-   *Update and restart*. It also brings Obsidian, the one look, everywhere. I downloaded
-   it back from GitHub and checked it against our signing key before calling it done.
-2. **QQ Studio on this PC is current**: rebuilt from today's code, all eight test suites
-   passed, and the launcher opens it. The old copy was from 15 October.
-3. **Found and fixed on the way:** the Mesh's permission dialog — *the paid file-sharing
-   network's one question* — has shown gaps in its sentences since 0.1.10, and a test now
-   refuses any dialog text like it; the release could not build from the current
-   checkout; a GitHub cache hang stalled **CI** — *GitHub's automatic tests* — for 30
-   minutes, now capped at ten.
-4. **L5.1 is built: an AI agent can act for you only once your own key signs for it**, in
-   the launcher, after a dialog that says what it may do. Until now a stolen sign-in
-   token was enough. Proven end to end on this PC against QOR ID. Its first tests also
-   caught agent names that broke QOR ID's rules (fixed).
+1. **Two launchers out.** 0.1.15 (22 October) is the first that updates itself; testers
+   install it by hand once. 0.1.16 (23 October) is the first update it offers: they get
+   it inside the launcher by pressing *Update and restart*. Each was downloaded back from
+   GitHub and checked against our signing key before I called it done.
+2. **An AI agent can act for you only once your own key signs for it** (L5.1), in the
+   launcher, after a dialog saying what it may do. QOR ID was redeployed from your merge
+   of #79, so this is live: a stolen sign-in token is no longer enough.
+3. **QQ Studio on this PC is current**: rebuilt, all eight test suites passed.
+4. **Found and fixed on the way:** gaps in the Mesh dialog's sentences since 0.1.10 — *the
+   Mesh: our paid file-sharing network* — now held by a test; agent names that broke QOR
+   ID's rules; a release build that could not run from the current checkout; a GitHub
+   cache hang that stalled **CI** — *GitHub's automatic tests* — now capped at ten minutes.
 
-**For your merge: #78** — 0.1.15's version and fixes, these records, and the homepage's
-download links to 0.1.15, which go live when you merge. **L5.1 follows as its own pull
-request** once #78 is in; it takes effect when QOR ID is redeployed from it.
+**For your merge: #80** — 0.1.16's version, the homepage's links to it, and these records.
 
 ## The release gates (measured this session)
 
@@ -49,7 +44,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    It names the key file and shows its password once; keep both offline, together (a
    password manager or an encrypted drive). Your earlier try ran from your Documents
    folder, where the short path does not exist. Lose them and testers reinstall by hand.
-2. **Install 0.1.15 yourself** if your launcher is older: your last install by hand.
+2. **Install 0.1.15 yourself, then take 0.1.16 when it offers it**: the first update
+   through the channel, which ticks L6.2.
 3. **Terms of Service and a privacy policy, with a lawyer.** Three live services hold
    emails and messages, and none has either. Account deletion and export follow from them.
 4. **The legal opinion** on rewards, prizes, the welcome grant and backing, and on
