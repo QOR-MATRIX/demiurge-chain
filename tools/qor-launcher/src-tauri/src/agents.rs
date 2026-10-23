@@ -290,6 +290,30 @@ impl AgentRequest {
     }
 }
 
+/// The agent's side: the link an agent opens to ask for authority, from its own key and a challenge QOR ID issued for
+/// its account (`GET /api/v1/auth/challenge?account_id=0x…`). Agent programs build the same link; the `agent_link`
+/// example uses this one.
+pub fn request_link(
+    agent: &sp_core::sr25519::Pair,
+    challenge: &str,
+    name: &str,
+    capabilities: &[&str],
+    autonomy: &str,
+    spending_limit: Option<i64>,
+) -> String {
+    use sp_core::Pair as _;
+    let request = serde_json::json!({
+        "account_id": format!("0x{}", hex::encode(agent.public().0)),
+        "challenge": challenge,
+        "signature": hex::encode(agent.sign(format!("{CHALLENGE_DOMAIN}{challenge}").as_bytes()).0),
+        "name": name,
+        "capabilities": capabilities,
+        "autonomy": autonomy,
+        "spending_limit": spending_limit,
+    });
+    format!("qor://agent?r={}", hex::encode(request.to_string()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -395,6 +419,43 @@ mod tests {
         assert!(source.contains(
             "let qor_id = format!(\"agent_{}\", name.to_lowercase().replace(' ', \"_\"));"
         ));
+    }
+
+    /// What an agent builds with `request_link` is what the launcher reads, field for field.
+    #[test]
+    fn the_agents_side_and_the_launchers_side_agree() {
+        let agent = key(4);
+        let challenge = challenge(NOW - 5);
+        let link = request_link(
+            &agent,
+            &challenge,
+            "Test 1234",
+            &["read"],
+            "supervised",
+            None,
+        );
+        let request = parse(&link, NOW).expect("the agent's own link");
+        assert_eq!(request.account, agent.public().0);
+        assert_eq!(request.qor_id, "agent_test_1234");
+        assert_eq!(request.capabilities, ["read"]);
+        assert_eq!(request.autonomy, "supervised");
+        assert_eq!(request.spending_limit, None);
+        assert_eq!(request.model, None);
+        // Signed by another key, it is refused like any other.
+        let forged = request_link(
+            &key(5),
+            &challenge,
+            "Test 1234",
+            &["read"],
+            "supervised",
+            None,
+        );
+        let mut body: serde_json::Value = serde_json::from_slice(
+            &hex::decode(forged.trim_start_matches("qor://agent?r=")).unwrap(),
+        )
+        .unwrap();
+        body["account_id"] = format!("0x{}", hex::encode(agent.public().0)).into();
+        refused(&body, "not signed by the agent's own key");
     }
 
     #[test]

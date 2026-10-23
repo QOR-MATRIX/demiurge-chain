@@ -29,7 +29,8 @@ website*. **Launcher 0.1.16** is the tester download.
    ID's rules; a release build that could not run from the current checkout; a GitHub
    cache hang that stalled **CI** — *GitHub's automatic tests* — now capped at ten minutes.
 
-**For your merge: #80** — 0.1.16's version, the homepage's links to it, and these records.
+**#80 is merged**: the homepage offers 0.1.16. **For your merge: #81**, a test agent so you can
+try L5.1 yourself, and these records.
 
 ## The release gates (measured this session)
 
@@ -45,7 +46,9 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    password manager or an encrypted drive). Your earlier try ran from your Documents
    folder, where the short path does not exist. Lose them and testers reinstall by hand.
 2. **Install 0.1.15 yourself, then take 0.1.16 when it offers it**: the first update
-   through the channel, which ticks L6.2.
+   through the channel, which ticks L6.2. Then let a test agent ask you: in
+   `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run `cargo run --example agent_link`
+   (or ask me to), and press *Allow agent* in the launcher's dialog. That ticks L5.1.
 3. **Terms of Service and a privacy policy, with a lawyer.** Three live services hold
    emails and messages, and none has either. Account deletion and export follow from them.
 4. **The legal opinion** on rewards, prizes, the welcome grant and backing, and on
