@@ -4,7 +4,7 @@ The sovereign gateway to the Demiurge ecosystem. One desktop application through
 which every chain and engine system is reached: QOR ID, the CGT Vault, the game
 library, community, peer-to-peer distribution and the node itself.
 
-**Status:** Version 0.1.15 (unsigned; 22 October 2026: the first that updates itself (ADR-111, L6.2); Obsidian, Demiurge's one look, with QOR Media and ARQADE's app in it (ADR-108, ADR-109); the wallet in the core shared with Android (L13.2); and amounts read more strictly. 0.1.14, 18 October 2026: the ARQADE screen docks ARQADE's Qt
+**Status:** Version 0.1.16 (unsigned; 23 October 2026: an agent asks through `qor://agent` and is allowed only by the profile's own key, after the host's dialog (ADR-112, L5.1); the first release offered through the update channel. 0.1.15, 22 October 2026: the first that updates itself (ADR-111, L6.2); Obsidian, Demiurge's one look, with QOR Media and ARQADE's app in it (ADR-108, ADR-109); the wallet in the core shared with Android (L13.2); and amounts read more strictly. 0.1.14, 18 October 2026: the ARQADE screen docks ARQADE's Qt
 app, a 3D home with the games, the player's Sparks and the rankings, signed in through the launcher (ADR-102, P7.19);
 and amounts are shown and typed in Sparks, 1,000 to a CGT (ADR-101). 0.1.13 the same day made each QOR ID on a PC a
 profile of its own, with its own wallet and data, opened with its PIN and closed completely when it signs out
