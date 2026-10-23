@@ -3918,7 +3918,8 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
      recommended. 2 is a big yes (updates within launcher)", and "Proceed with all recommended steps moving forward.
      Redeploy QQ Studio yes."
      - **#77's merge:** CI on it (run 39882463865) passed every job but the launcher's, which hung for 30 minutes
-       restoring its cache before any step of its own ran; the run was cancelled and the job re-run. Every cache step in
+       restoring its cache before any step of its own ran; the run was cancelled and the job re-run, and it passed: every job on the merge is
+       green. Every cache step in
        `ci.yml` now stops after ten minutes and lets its job build without the cache, which checks nothing.
      - **Launcher 0.1.15, published** by `scripts/release.mjs --publish` from `31fe7d8` on `session/release-0.1.15`:
        the pre-release `launcher-v0.1.15`, its installer `QOR-Launcher_0.1.15_x64-setup.exe`, 79,155,106 bytes,
