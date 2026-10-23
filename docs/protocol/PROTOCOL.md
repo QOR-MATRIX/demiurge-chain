@@ -4,8 +4,10 @@
 that exists. The whole document was re-checked against the runtime and node source on **6 October 2026**, at
 `spec_version` 8 (`chain/` last changed on 4 October 2026): the transaction extensions, block limits, validator-set
 minimum, genesis specifications, pallet indices, call filter, deposits, bounds, calls, events and runtime APIs.
-Section 13, the Mesh's hosting escrow, was added on **17 October 2026** at `spec_version` 9, which is in the tree and
-not yet on the devnet. Measurements on running nodes keep the dates they were made. Where the direction intends something the code does not
+Section 13, the Mesh's hosting escrow, was added on **17 October 2026** at `spec_version` 9, which the devnet has run
+since the owner's upgrade that day (read from `wss://rpc.qorsync.dev` on 23 October 2026). Section 12's progress
+records were added on **23 October 2026** at `spec_version` 10, which is in the tree and not yet on the devnet.
+Measurements on running nodes keep the dates they were made. Where the direction intends something the code does not
 yet do, it says so under "Not yet". Decisions behind these rules are in [`../DECISIONS.md`](../DECISIONS.md).
 
 This describes the **Substrate L1** built on the Polkadot SDK (ADR-013). It is the chain: it produces and
@@ -168,7 +170,7 @@ is no faucet method (the devnet's faucet is an account, §9), no admin mint and 
 Devnet's public node runs with `--rpc-methods safe`, which refuses every method that changes the node. What the chain does, it does through signed
 transactions in blocks (D-008).
 
-## 12. Assets (DRC-369: M4.1, M4.2's royalties and nesting, and R-2)
+## 12. Assets (DRC-369: M4.1, M4.2's royalties, nesting, state and XP, and R-2)
 
 `pallet-nfts` is the ownership ledger (ADR-025), mounted as `Nfts` at index 7. `pallet-drc369`, mounted as `Drc369` at
 index 8, makes an item a DRC-369 asset (ADR-047, ADR-052). `pallet-utility`, mounted as `Utility` at index 9, puts
@@ -177,7 +179,9 @@ royalty terms and settles sales in CGT (ADR-061). `pallet-arq-wallet`, mounted a
 2026 (`spec_version` 7; 8 since the same day, adding rounds; both on the devnet), holds one keyless payout account per DRC-369 Cartridge, described below. `spec_version` was 6 from 2 October 2026, when
 `Drc369Royalties::buy_exact` and the runtime API `Drc369RoyaltiesApi` were added (5 on 1 October, for `Drc369::nest`
 and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369::mint` gained its
-`derived_from` argument. No existing call's encoding changed on 1 or 2 October.
+`derived_from` argument. No existing call's encoding changed on 1 or 2 October. `spec_version` 10, in the tree since
+23 October 2026 and **not yet on the devnet**, adds progress records (ADR-113, below) as five new calls on `Drc369`; no
+existing call changed, so `transaction_version` stays 2.
 
 - **An asset is `(collection, item)`**, two `u32`s. Each creator has one **singles collection**, created by their first
   mint; they own it, pay its deposit and administer it.
@@ -231,16 +235,52 @@ and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369
   asset; it cannot be bought until the asset is taken out. To move a tree, take it apart, move the assets and nest
   them again; one `batch_all` can carry all of that. Nesting changes neither an asset's owner nor its record, takes
   no deposit and charges nothing.
+- **Progress records** (M4.2's state and XP, ADR-113; `spec_version` 10, not yet on the devnet). A record is one
+  game's account of one asset: a `level` (`u32`), `xp` (`u64`) and up to **32** stats, each a `(u16, i64)` pair, kept
+  sorted by number, each number once. **A game** is named by its Cartridge, the DRC-369 asset it was published as,
+  and is stored as `Issuer::Game { collection, item }`, an enum so that later kinds of issuer keep this encoding.
+  Whoever holds the Cartridge at the time of a call governs the game's records (`NotGameHolder` otherwise; a game that
+  is not a DRC-369 asset is `UnknownGame`). Five signed calls:
+  - **`set_home_game(collection, game)`**, by the collection's owner only (`NotCollectionOwner`): binds the collection
+    to the game that keeps its assets' records, changes it, or clears it with `None`. **A collection without a home
+    game is static**: nothing writes its assets' records. Records a former home game kept stay, under that game.
+    Setting the home game the collection already has is `NothingRecorded`.
+  - **`authorise_writer(game, writer)`** and **`revoke_writer(game, writer)`**, by whoever holds the game's Cartridge:
+    at most **16** writers per game (`TooManyWriters`); authorising one twice is `AlreadyWriter`, revoking one who is
+    not is `NotWriter`.
+  - **`record_progress(collection, item, game, add_xp, level, stats)`**, by one of the game's writers. Refused, in this
+    order: an asset that is not a DRC-369 asset (`UnknownAsset`); a collection with no home game (`NoHomeGame`), or
+    whose home game is another (`NotHomeGame`); a signer who is not a writer (`NotWriter`) — **the asset's holder
+    included**, unless the game's holder made them one; an asset listed for sale (`ListedForSale`); a stat numbered
+    twice (`DuplicateStat`). Then `add_xp` is **added** (`XpOverflow` past `u64`), `level`, if given, may only **rise
+    or stay** (`LevelMustRise`), and each stat is set to its value, up or down, a new number taking a free place
+    (`TooManyStats` past 32). A call that would leave the record as it was is `NothingRecorded`.
+  - **`correct_progress(collection, item, game, level, xp, stats)`**, by whoever holds the game's Cartridge and never
+    a writer: sets an existing record (`NoRecord` otherwise) to exactly these values, lower ones included, and its
+    stats to exactly these stats. Refused while the asset is listed, and for an unchanged record.
+
+  **A record never moves, locks or sells an asset and never touches CGT**: no call here transfers, holds, reserves or
+  pays, and none writes `Drc369::Assets`. Records take **no deposit** in this phase (ADR-113 decision 10). **While an
+  asset is listed for sale its records do not change**: the runtime's `ListedForSale` answers from
+  `Drc369Royalties::Listings`, so a buyer buys the record they saw, and writing resumes once it is sold or unlisted.
 - **Events:** `Drc369::SinglesCollectionCreated`, `Minted` (with `origin`, `commit`, `revisable`, `derived_from`), `Revised` (with
   `from`, `to`, `commit`), `Locked` (made permanent, with the reference it fixes), `Nested { parent, child, by, depth }`
-  and `Unnested { parent, child, by }`, besides `pallet-nfts`' own
-  `Created`, `Issued`, `ItemMetadataSet` and `Transferred`.
+  and `Unnested { parent, child, by }`; `HomeGameSet { collection, game, by }` (`game: None` when cleared),
+  `WriterAuthorised { game, writer, by }`, `WriterRevoked { game, writer, by }`, `StateChanged { collection, item, game,
+  level, xp, stats, by }` (the record's level and XP after the change, and the stats this call set) and `StateCorrected`
+  (the same fields, the whole record as corrected); besides `pallet-nfts`' own `Created`, `Issued`, `ItemMetadataSet`
+  and `Transferred`.
 - **What a client reads:** `Nfts::Account`, keyed by owner, then collection, then item, is the owner index;
   `Drc369::Assets` holds each asset's `origin`, `current`, `commit`, `revisable`, `derived_from` and `remix_depth`;
   `Drc369::RemixCount` how many remixes name it; `Drc369::ParentOf` the asset it is nested inside, if any, and
   `Drc369::ChildCount` how many it holds (which ones is in the `Nested` and `Unnested` events; the chain keeps no
   list); `Drc369Royalties::RoyaltyTerms` and `Drc369Royalties::Listings` hold its terms and listing; `Nfts::ItemMetadataOf` holds the
-  name. The runtime API `Drc369Api` answers `assets_of(owner)` and `asset(collection, item)` from the same state.
+  name. `Drc369::HomeGame` holds each collection's home game, `Drc369::Writers` and `Drc369::WriterCount` each game's
+  writers, and `Drc369::Records`, keyed by the asset and then the issuer, every record of an asset under one prefix.
+  The runtime API `Drc369Api` answers `assets_of(owner)` and `asset(collection, item)` from the same state; **version 2**
+  (`spec_version` 10) adds `home_game(collection)` and `progress_of(collection, item)`, every record of the asset with
+  `home` marking the home game's, which comes first. A node at `spec_version` 9 has neither; the launcher looks for
+  `progress_of` in the node's metadata and shows no record where it is missing.
 - **One way in.** Of `pallet-nfts`'s thirty-nine calls, the base call filter lets through only `transfer`,
   `approve_transfer`, `cancel_approval` and `clear_all_transfer_approvals`; every other one is refused as
   `CallFiltered`. `pallet-drc369`'s `mint` is the only way an item is made, and `pallet-drc369-royalties`'s `buy` the
@@ -327,8 +367,8 @@ and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369
 
 ## 13. The Mesh's hosting escrow (`pallet-mesh`, ADR-095, ADR-096, ADR-097)
 
-**In the tree at `spec_version` 9 since 17 October 2026, not yet on the devnet**, which runs `spec_version` 8 until the
-owner sets the new runtime with the sudo key. Mounted as `Mesh` at index 12. The runtime's settings are in
+**Built at `spec_version` 9 on 17 October 2026, and on the devnet since the owner's upgrade the same day.** Mounted as
+`Mesh` at index 12. The runtime's settings are in
 `chain/runtime/src/mesh.rs`.
 
 - **An escrow** is opened by `open_escrow` with a BLAKE3 root, the file's size (at least one byte), the copies wanted
@@ -377,10 +417,11 @@ owner sets the new runtime with the sudo key. Mounted as `Mesh` at index 12. The
 Each of these is a roadmap item, not an omission from this description.
 
 - **Fees, issuance, burn and a treasury.** Nothing is charged or paid in CGT (OPEN-1 to OPEN-4, M6).
-- **The rest of DRC-369**: state and XP, physics, rental, fractional ownership and
-  burning (M4.2 to M4.5); and sponsorship and agent caps (M4.4, M5). Their pallets are named (ADR-032) and not
-  written. Remix provenance and royalties exist since 29 September 2026, and nesting with cycles refused (R-2) since
-  1 October 2026; remix *rights* do not. Moving a parent together with what it holds does not exist either: a tree
+- **The rest of DRC-369**: physics, rental, fractional ownership and burning (M4.2 to M4.5); and sponsorship and
+  agent caps (M4.4, M5). Their pallets are named (ADR-032) and not written. Remix provenance and royalties exist since
+  29 September 2026, nesting with cycles refused (R-2) since 1 October 2026, and state and XP, as records kept by an
+  asset's home game, since 23 October 2026 in the tree (ADR-113); remix *rights* do not, nor records kept by games
+  other than the home game (ADR-113 decision 11, its second phase). Moving a parent together with what it holds does not exist either: a tree
   is held in place.
 - **Governance that can execute.** ADR-021's collective and then OpenGov. Until one exists, the governance
   origin is root, which on a development network is the sudo key and on a mainnet runtime has no caller at

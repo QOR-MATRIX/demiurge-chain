@@ -6,10 +6,11 @@ the custom Rust devnet that lived in `framework/`, which was retired and deleted
 
 ## State
 
-**Today (6 October 2026):** `spec_version` 8, with DRC-369 assets (royalties, remix provenance and nesting) over
-`pallet-nfts`, `pallet-utility`'s atomic batch and the ARQ Wallet. **150 workspace tests** passed with the wasm built on
-4 October 2026, when `chain/` last changed. **Demiurge Devnet** runs it at `wss://rpc.qorsync.dev` (ADR-068, "The
-devnet image" below). No fees, no issuance, no mainnet.
+**Today (23 October 2026):** `spec_version` 10 in the tree, with DRC-369 assets (royalties, remix provenance, nesting,
+and since this version progress records, M4.2's state and XP, ADR-113) over `pallet-nfts`, `pallet-utility`'s atomic
+batch, the ARQ Wallet and the Mesh's hosting escrow. **190 workspace tests** passed with the wasm built on 23 October
+2026. **Demiurge Devnet** runs `spec_version` 9 at `wss://rpc.qorsync.dev` (read on 23 October 2026) until the owner
+sets 10 with the sudo key (ADR-068, "The devnet image" below). No fees, no issuance, no mainnet.
 
 **How it began.** Run on 2026-09-17: a development node authored blocks with Aura and GRANDPA finalised them, which is the
 first finality this project has had. The custom devnet it replaced had none and reported every transaction as
@@ -22,13 +23,13 @@ depend on this runtime, and the first end-to-end use of its finality.
 
 | Piece | State |
 | --- | --- |
-| `runtime/` (`demiurge-runtime`) | System, timestamp, Aura (ADR-019), GRANDPA (ADR-018), balances, session and the validator set (ADR-020), `pallet-nfts` as the asset ledger (ADR-025), `pallet-drc369`, `pallet-utility` for the atomic batch a trade needs (ADR-053), `pallet-drc369-royalties` (ADR-061), `pallet-arq-wallet` (ADR-070), `pallet-mesh` (ADR-095, ADR-096), and `pallet-sudo` behind a feature (ADR-037). `spec_version` 9 since 17 October 2026 (the devnet runs 8 until the owner sets 9), `transaction_version` 2 |
+| `runtime/` (`demiurge-runtime`) | System, timestamp, Aura (ADR-019), GRANDPA (ADR-018), balances, session and the validator set (ADR-020), `pallet-nfts` as the asset ledger (ADR-025), `pallet-drc369`, `pallet-utility` for the atomic batch a trade needs (ADR-053), `pallet-drc369-royalties` (ADR-061), `pallet-arq-wallet` (ADR-070), `pallet-mesh` (ADR-095, ADR-096), and `pallet-sudo` behind a feature (ADR-037). `spec_version` 10 since 23 October 2026 (the devnet runs 9, since 17 October, until the owner sets 10), `transaction_version` 2 |
 | `node/` (`demiurge-node`) | Runs. Aura authoring, GRANDPA voting, standard RPC, `dev` and `local` chain specifications, the SDK's `key` subcommand, and the hosted devnet's specification: `devnet_chain_spec`, and the built-in `--chain demiurge_devnet` (`devnet_built_in`), see "The devnet image" |
 | `pallets/validator-set` (`pallet-validator-set`) | **Mounted.** A governance-chosen set acting as `pallet-session`'s session manager (ADR-020). Its own tests cover every governance path and the three guards against a halted chain. The chain's validators come from it, verified by reading `Session::Validators` from a running node |
-| `pallets/drc369` (`pallet-drc369`) | **Mounted, M4.1 only** (2026-09-22). The content reference (ADR-047's 41 bytes), the pinned commit, revision and the one-way switch to permanent, one singles collection per creator, owner enumeration and the `Drc369Api` runtime API. Every config value's source is in `runtime/src/assets.rs` and ADR-052; the deposits are placeholders (U-14) and the weights are placeholders owed to M7.2. Since 2026-09-29 it also records remix provenance at mint — `derived_from` and `remix_depth`, bounded at 16 (ADR-061). **Since 2026-10-01 it nests** (M4.2's nesting, M4.5's requirement R-2): `nest` and `unnest`, only by the owner of both assets, a cycle refused by a walk of at most eight steps, at most eight levels and sixty-four assets held (ADR-047 decision 13 row 7), and it is `pallet-nfts`'s `Locker`, so a nested asset and the asset holding it cannot be transferred, sold or burned until it is taken out. No deposit of its own. State and XP and physics are not started |
+| `pallets/drc369` (`pallet-drc369`) | **Mounted** (2026-09-22, M4.1). The content reference (ADR-047's 41 bytes), the pinned commit, revision and the one-way switch to permanent, one singles collection per creator, owner enumeration and the `Drc369Api` runtime API. Every config value's source is in `runtime/src/assets.rs` and ADR-052; the deposits are placeholders (U-14) and the weights are placeholders owed to M7.2. Since 2026-09-29 it also records remix provenance at mint — `derived_from` and `remix_depth`, bounded at 16 (ADR-061). **Since 2026-10-01 it nests** (M4.2's nesting, M4.5's requirement R-2): `nest` and `unnest`, only by the owner of both assets, a cycle refused by a walk of at most eight steps, at most eight levels and sixty-four assets held (ADR-047 decision 13 row 7), and it is `pallet-nfts`'s `Locker`, so a nested asset and the asset holding it cannot be transferred, sold or burned until it is taken out. No deposit of its own. **Since 2026-10-23 it keeps progress records** (M4.2's state and XP, ADR-113, `spec_version` 10): one record per asset per game, a level, XP and at most 32 stats; a collection is static until its owner binds a home game; the holder of the game's Cartridge names up to 16 writers, who only add, and alone corrects; nothing changes while the asset is listed for sale (the runtime answers from `Drc369Royalties::Listings`), and no record moves an asset or CGT. `Drc369Api` version 2 answers `progress_of` and `home_game`. No deposit. Physics is not started |
 | `pallets/drc369-royalties` (`pallet-drc369-royalties`) | **Mounted as `Drc369Royalties`** (2026-09-29, M4.2's royalty half, ADR-061). Royalty terms set by an asset's creator while they hold it — up to eight recipients and a remix share that never rises once the work is remixed (ADR-062) — and a listing bought and settled in CGT that pays a remix's direct source, then the asset's recipients, then the seller, in one transaction. Every amount comes from one pure function, `split`, pinned at `u128::MAX`. No platform share, no fee, no deposit of its own; weights are placeholders owed to M7.2 |
 | `pallets/arq-wallet` (`pallet-arq-wallet`) | **Mounted as `ArqWallet` at index 11** (2026-10-04, ADR-070, ARQADE's P7.11). One keyless payout account per published game, derived from its DRC-369 Cartridge (`PalletId` `dmg/arqw`) and governed by whoever holds the Cartridge: a policy on chain (largest payout, epoch budget, cap per recipient, rule versions), tightened at once and loosened only after its delay; a payout authority that can only pay within it; each outcome paid once inside an outcome window; payouts that cannot reach a player owed and claimable, and never withdrawn; withdrawals delayed and never taking the deposit or what is owed. **Since `spec_version` 8, rounds**: a prize held before a paid round opens, settled to winners or released, never stranded. Its protocol bounds are **U-16 placeholders** marked in `runtime/src/assets.rs`; weights are placeholders owed to M7.2. **On Demiurge Devnet since 4 October 2026** (spec_version 7, then 8 with rounds the same day, each set by the owner's sudo key after a rehearsal) |
-| `pallets/mesh` (`pallet-mesh`) | **Mounted as `Mesh` at index 12** (2026-10-17, ADR-095, ADR-096, L10.3 and L10.4). The Mesh's hosting escrow: an uploader's deposit at their own prices, held in a keyless account per escrow (`PalletId` `dmg/mesh`); seeders bind their Mesh node, take assignments, and are paid for storage challenges answered against the BLAKE3 root and for serving receipts their receivers sign, within per-receiver and per-escrow caps; a takedown list kept by root; nothing creates CGT. The one ratio uses `multiply_by_rational_with_rounding`, pinned at `u128::MAX`. Weights are placeholders owed to M7.2. Its period and answer window are ADR-096's (600 and 100 blocks) everywhere but the `--dev` chain, whose genesis sets 10 and 5 so a launcher's test reaches a challenge in a minute (ADR-097). **Not on the devnet yet** |
+| `pallets/mesh` (`pallet-mesh`) | **Mounted as `Mesh` at index 12** (2026-10-17, ADR-095, ADR-096, L10.3 and L10.4). The Mesh's hosting escrow: an uploader's deposit at their own prices, held in a keyless account per escrow (`PalletId` `dmg/mesh`); seeders bind their Mesh node, take assignments, and are paid for storage challenges answered against the BLAKE3 root and for serving receipts their receivers sign, within per-receiver and per-escrow caps; a takedown list kept by root; nothing creates CGT. The one ratio uses `multiply_by_rational_with_rounding`, pinned at `u128::MAX`. Weights are placeholders owed to M7.2. Its period and answer window are ADR-096's (600 and 100 blocks) everywhere but the `--dev` chain, whose genesis sets 10 and 5 so a launcher's test reaches a challenge in a minute (ADR-097). **On Demiurge Devnet since 17 October 2026** (`spec_version` 9, set by the owner's sudo key after a rehearsal) |
 | `primitives/mesh-proof` (`mesh-proof`) | The storage challenge's proof: a 16 KiB group shown to belong to its BLAKE3 root by the chaining values beside its path, made by `prove` and checked by `verify`. `siblings` and `Subtree` make the same proof a piece at a time, for a file too large to hold. `no_std`; the launcher depends on it by path, so both sides run the same code |
 | `pallet-sponsorship`, `pallet-agent-caps` | Not written yet. Names confirmed by the owner on 2026-09-17 and checked for collisions |
 
@@ -61,7 +62,7 @@ not invented here, under AGENTS.md §5.
 | Address type | `AccountIdLookup`; an address is a `MultiAddress` | ADR-041 |
 | `pallet-sudo` | The `sudo` feature: development and test networks only, absent from mainnet | ADR-037 |
 | Pinned SDK | `polkadot-sdk = "=2606.1.0"`, exact | ADR-022, ADR-033 |
-| Assets | `pallet-nfts` bounds from ADR-047 and Asset Hub Westend at the pinned tag; placeholder deposits; only `pallet-drc369` creates an asset; nesting at most 8 deep and 64 wide, with `pallet-drc369` as the ledger's `Locker` | ADR-025, ADR-047, ADR-052 |
+| Assets | `pallet-nfts` bounds from ADR-047 and Asset Hub Westend at the pinned tag; placeholder deposits; only `pallet-drc369` creates an asset; nesting at most 8 deep and 64 wide, with `pallet-drc369` as the ledger's `Locker`; progress records with at most 32 stats, and at most 16 writers per game | ADR-025, ADR-047, ADR-052, ADR-113 |
 
 ### The pin: noted and deferred, not stale
 
@@ -149,8 +150,8 @@ as an argument, which a process list or a shell history shows.
 The hosted devnet is `docs/architecture/DEVNET_PLAN.md`. Host Railway, two validators and a separate RPC node,
 chain `Demiurge Devnet` (`demiurge_devnet`, type `Live`): the owner's decisions of 3 October 2026. **It is live
 since 3 October 2026** at `wss://rpc.qorsync.dev` (ADR-068), genesis
-`0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a`, at `spec_version` 8 since the owner's sudo
-upgrades of 4 October 2026. How it was deployed, and every public key in it, is
+`0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a`, at `spec_version` 9 since the owner's sudo
+upgrade of 17 October 2026 (8 from 4 October). How it was deployed, and every public key in it, is
 [`DEPLOY-RAILWAY.md`](DEPLOY-RAILWAY.md).
 
 **To run a node of that network, start it from the committed raw specification**, `specs/demiurge_devnet.raw.json`
@@ -242,7 +243,8 @@ both, because fees are OPEN-4.
 `sudo` feature, at `spec_version` 6, served **99,901 bytes** of metadata with no `Sudo` in it: that is the mainnet
 shape. **The development shape (`--features sudo`) was not re-measured**; its last measurement is the 98,230 above.
 **Neither shape has been re-measured since `spec_version` 6.** `ArqWallet` (`spec_version` 7, and 8 with rounds, both
-4 October 2026) added a pallet to both, so every number in this section is for an older runtime than the current one.
+4 October 2026) and `Mesh` (`spec_version` 9) each added a pallet to both, and progress records (`spec_version` 10)
+grew `Drc369`, so every number in this section is for an older runtime than the current one.
 
 On 2026-09-22, after M4.6 added `pallet-utility` (`spec_version` 3), they were 92,323 and 90,417. Earlier that day, after M4.1 added `pallet-nfts` and `pallet-drc369` (`spec_version` 2), they were
 86,259 and 84,316 — and a node still carrying that runtime served exactly 86,259 bytes when it was restarted

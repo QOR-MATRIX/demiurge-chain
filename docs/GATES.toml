@@ -963,6 +963,12 @@ type = "tightening"
 change = "CI's launcher job: npm run check gains two steps, eighteen where it ran sixteen (ADR-111, L6.2). scripts/check-updates-view.mjs, 27 checks on the update channel's page against a stand-in host: nothing checked or installed on arrival but reading; Check now asks the host once; an update is announced with the version in use, its notes as written, and that it is checked against the launcher's signature before anything installs; the title bar says an update is ready and takes the person to it, and no longer once it installs; Update and restart asks the host once and names nothing; fetching, installing and a refusal in the host's own words; up to date with when it checked; checking by itself on by default and turned off exactly; the page never calls the updater plugin itself; ADR-008's words. And scripts/release.mjs --self-test, 3 checks: the release script's own minisign check accepts the fixture signed for its own name and refuses a changed byte and another key. The host's tests gain eight in src-tauri/src/update.rs. The launcher's dependency audit is unchanged: the updater is built without its zip feature, so zip 4 and its three advisories (RUSTSEC-2026-0367 to 0369) are not in the lockfile. [ci].quality_gates updated."
 reason = "A tightening: two more failing steps and more tests, none relaxed. Proven to fail first, against ten planted faults, each in its own build: the host's file-name check skipped, plain HTTP allowed in tauri.conf.json, createUpdaterArtifacts in the base configuration (every build needing the key), two checks let run at once, settings from before the channel reading as checking off, the page naming an installer's address, the title bar still offering the update while it installs, the switch asking for the wrong thing, a refusal reworded, and the release script skipping the data's signature. End to end on the owner's PC (scripts/update-e2e.mjs, 14 checks, not in CI: it builds and installs a test product): a tampered installer refused, another version's genuine installer refused by the host's own check after the plugin accepted it, and the real update installed and the launcher reopened on it."
 
+[[change_log]]
+date = "2026-10-23"
+type = "tightening"
+change = "M4.2's state and XP (ADR-113, spec_version 10). alpha.pallets requires eleven more pallet-drc369 tests: a collection static until its owner binds a home game; only whoever holds a game's Cartridge names its writers; a writer adds XP, raises the level and sets stats; a writer can never take progress back; stats bounded and each named once; only a writer of the home game writes, never the asset's holder as such; nothing changes while an asset is offered for sale; a correction is the Cartridge holder's and may lower; records stay with their game when the home changes; a record never holds an asset or moves currency; and an issuer's encoding. alpha.asset-core-tests requires the runtime's progress_is_kept_by_the_home_game_and_held_while_listed. M4.2 and M4.5, which beta.chain counts, are ticked in DIRECTION.md the same day."
+reason = "A tightening: more required tests, nothing relaxed; no kind's met condition, evidence rule or threshold changed and no unit became unmeasurable. Proven to fail first, against seven planted faults: a level that may fall, no writer check, any game writing any collection, a listed asset's record changing, XP set instead of added, no Cartridge-holder check, and the runtime's listing check never answering yes. 190 workspace tests pass with the wasm built on the owner's PC."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1253,6 +1259,20 @@ nothing holds value."""
     "a_preview_with_a_buyer_moves_nothing",
     "a_preview_says_why_a_sale_could_not_settle",
     "a_preview_knows_an_earlier_part_opens_the_account_a_later_one_reaches",
+    # M4.2's state and XP, progress records kept by each game (ADR-113,
+    # spec_version 10); six of the rules shown to fail against a planted fault
+    # first (HANDOFF.md section 4 item 132).
+    "a_collection_is_static_until_its_owner_binds_a_home_game",
+    "only_whoever_holds_the_cartridge_names_its_writers",
+    "a_writer_adds_xp_raises_the_level_and_sets_stats",
+    "a_writer_can_never_take_progress_back",
+    "stats_are_bounded_and_each_named_once",
+    "only_a_writer_of_the_home_game_writes_and_never_the_holder",
+    "nothing_changes_while_an_asset_is_offered_for_sale",
+    "a_correction_is_the_cartridge_holders_and_may_lower",
+    "records_stay_with_their_game_when_the_home_changes",
+    "a_record_never_holds_an_asset_or_moves_currency",
+    "an_issuer_is_a_tag_and_a_cartridge",
   ]
 
   [[gates.criteria]]
@@ -1282,6 +1302,10 @@ nothing holds value."""
     "the_largest_deposit_a_mint_holds_is_exact",
     "a_first_mint_holds_the_collection_and_later_mints_do_not",
     "the_runtime_api_lists_what_an_account_holds",
+    # What only the runtime decides of ADR-113 (2026-10-23): a listed asset's
+    # records held through Drc369Royalties::Listings, and Drc369Api version 2.
+    # Shown to fail first against a listing check that never answers yes.
+    "progress_is_kept_by_the_home_game_and_held_while_listed",
   ]
 
   [[gates.criteria]]
