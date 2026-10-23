@@ -4027,6 +4027,10 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        shown, a challenge from QOR ID (the live one by default), the link opened for the installed launcher, or printed
        with `--print`. Run against the live QOR ID with `--print` on the owner's PC: a challenge issued and a link made;
        not opened, since the launcher installed there may predate `qor://agent`.
+     - **A new advisory failed the security job on #80's merge:** RUSTSEC-2026-0385 (23 October 2026), non-constant-time
+       comparisons in `ctutils` 0.4.3, which the Mesh's iroh brings into the launcher's lockfile alone. Fixed by an update,
+       `cargo update -p ctutils` to 0.4.5 (the advisory asks for 0.4.4 or later), nothing else moving; `cargo audit` on
+       that lockfile passes, and the host's 274 tests, the Mesh's 15 among them, and its lints.
      - **Next:** the owner on 0.1.16 runs the test agent, or asks for it to be run, and allows it: L5.1. Then the asset
        work (M4.2, M4.3, M4.5) and PDF in QOR Media (L9.5).
 
