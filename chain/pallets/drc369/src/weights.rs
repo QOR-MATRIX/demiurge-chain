@@ -8,7 +8,7 @@
 //! estimate of the right shape, not a measurement.
 //!
 //! Roadmap item M7.2 requires a benchmarked weight for every call before a public
-//! network, and these are five of them. Until then the chain charges no fee at
+//! network, and these are ten of them. Until then the chain charges no fee at
 //! all (OPEN-4), so a weight here bounds how much fits in a block and nothing
 //! else.
 
@@ -26,6 +26,11 @@ pub trait WeightInfo {
     /// pallet passes `MaxNestingDepth`, so the worst case is what is charged.
     fn nest(depth: u32) -> Weight;
     fn unnest() -> Weight;
+    fn set_home_game() -> Weight;
+    fn authorise_writer() -> Weight;
+    fn revoke_writer() -> Weight;
+    fn record_progress() -> Weight;
+    fn correct_progress() -> Weight;
 }
 
 /// The placeholder the runtime uses until M7.2.
@@ -75,6 +80,42 @@ impl<T: frame_system::Config> WeightInfo for PlaceholderWeight<T> {
         pallet_nfts::weights::SubstrateWeight::<T>::set_metadata()
             .saturating_add(T::DbWeight::get().reads_writes(3, 2))
     }
+
+    /// Reads `pallet-nfts`'s `Collection` for the owner, the game's `Assets`
+    /// record and the collection's `HomeGame`; writes `HomeGame`.
+    fn set_home_game() -> Weight {
+        pallet_nfts::weights::SubstrateWeight::<T>::set_metadata()
+            .saturating_add(T::DbWeight::get().reads_writes(3, 1))
+    }
+
+    /// Reads the Cartridge's `Assets` record and `Item` for its holder, the
+    /// writer's `Writers` entry and the game's `WriterCount`; writes both.
+    fn authorise_writer() -> Weight {
+        pallet_nfts::weights::SubstrateWeight::<T>::set_metadata()
+            .saturating_add(T::DbWeight::get().reads_writes(4, 2))
+    }
+
+    /// The same accesses as `authorise_writer`.
+    fn revoke_writer() -> Weight {
+        pallet_nfts::weights::SubstrateWeight::<T>::set_metadata()
+            .saturating_add(T::DbWeight::get().reads_writes(4, 2))
+    }
+
+    /// Reads the asset's `Assets` record, the collection's `HomeGame`, the
+    /// writer's `Writers` entry, the listing the runtime checks and the record;
+    /// writes the record. Placing at most `MaxStats` stats is computation that
+    /// `set_metadata` stands in for, as above.
+    fn record_progress() -> Weight {
+        pallet_nfts::weights::SubstrateWeight::<T>::set_metadata()
+            .saturating_add(T::DbWeight::get().reads_writes(5, 1))
+    }
+
+    /// Reads the Cartridge's `Assets` record and `Item` for its holder, the
+    /// record and the listing the runtime checks; writes the record.
+    fn correct_progress() -> Weight {
+        pallet_nfts::weights::SubstrateWeight::<T>::set_metadata()
+            .saturating_add(T::DbWeight::get().reads_writes(4, 1))
+    }
 }
 
 /// For tests.
@@ -92,6 +133,21 @@ impl WeightInfo for () {
         Weight::zero()
     }
     fn unnest() -> Weight {
+        Weight::zero()
+    }
+    fn set_home_game() -> Weight {
+        Weight::zero()
+    }
+    fn authorise_writer() -> Weight {
+        Weight::zero()
+    }
+    fn revoke_writer() -> Weight {
+        Weight::zero()
+    }
+    fn record_progress() -> Weight {
+        Weight::zero()
+    }
+    fn correct_progress() -> Weight {
         Weight::zero()
     }
 }

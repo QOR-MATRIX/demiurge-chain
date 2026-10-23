@@ -1,8 +1,9 @@
 //! Tests for M4.1. Each of the five the roadmap names was shown to fail against
 //! a planted fault before it was trusted; the commit that added them records how.
 //!
-//! The nesting tests at the end are M4.2's nesting and M4.5's requirement R-2.
-//! Each of them was shown to fail against a planted fault too.
+//! The nesting tests are M4.2's nesting and M4.5's requirement R-2. Each of them
+//! was shown to fail against a planted fault too. The progress tests at the end are
+//! M4.2 and M4.5's state and XP (ADR-113).
 
 use crate::{mock::*, *};
 use codec::{DecodeAll, Encode, MaxEncodedLen};
@@ -229,12 +230,25 @@ fn make_permanent_is_one_way_and_revise_is_refused_after() {
         );
     });
 
-    // And nothing turns it back: the pallet has no call that could.
+    // And nothing turns it back: the pallet has no call that could. The progress
+    // calls (ADR-113) write `HomeGame`, `Writers`, `WriterCount` and `Records`,
+    // never an `Assets` record, so none of them can touch `revisable`.
     let calls: Vec<&str> =
         <Call<Test> as frame_support::traits::GetCallName>::get_call_names().to_vec();
     assert_eq!(
         calls,
-        vec!["mint", "revise", "make_permanent", "nest", "unnest"]
+        vec![
+            "mint",
+            "revise",
+            "make_permanent",
+            "nest",
+            "unnest",
+            "set_home_game",
+            "authorise_writer",
+            "revoke_writer",
+            "record_progress",
+            "correct_progress",
+        ]
     );
 }
 
@@ -822,4 +836,427 @@ fn an_asset_is_in_one_place_at_a_time_and_only_assets_nest() {
         assert_noop!(nest(ALICE, (0, 2), (0, 9)), Error::<Test>::UnknownParent);
         assert_noop!(unnest(ALICE, (0, 9)), Error::<Test>::NotNested);
     });
+}
+
+// ---------------------------------------------------------------------------
+// Progress, kept by each game that earns it (ADR-113, M4.2 and M4.5's state and XP)
+// ---------------------------------------------------------------------------
+
+/// A game server's key: holds nothing, writes only what Alice's game allows it to.
+const WRITER: u8 = 3;
+/// Buys one of Bob's items.
+const CAROL: u8 = 4;
+
+/// Alice's game: the Cartridge she minted first, `(0, 0)`.
+const GAME: (CollectionId, ItemId) = (0, 0);
+/// Bob's singles collection, where his items for the game are.
+const ITEMS: CollectionId = 1;
+
+fn stats(pairs: &[(u16, i64)]) -> StatsOf<Test> {
+    pairs.to_vec().try_into().unwrap()
+}
+
+fn record(
+    who: u8,
+    item: ItemId,
+    game: (CollectionId, ItemId),
+    add_xp: u64,
+    level: Option<u32>,
+    set: &[(u16, i64)],
+) -> DispatchResult {
+    Drc369::record_progress(signed(who), ITEMS, item, game, add_xp, level, stats(set))
+}
+
+fn correct(who: u8, item: ItemId, level: u32, xp: u64, set: &[(u16, i64)]) -> DispatchResult {
+    Drc369::correct_progress(signed(who), ITEMS, item, GAME, level, xp, stats(set))
+}
+
+fn kept(item: ItemId, game: (CollectionId, ItemId)) -> Option<ProgressOf<Test>> {
+    Records::<Test>::get((ITEMS, item), Issuer::game(game))
+}
+
+/// Alice publishes a game, Bob mints `items` for it and binds his collection to
+/// it, and Alice lets `WRITER` write the game's records.
+fn a_game_with_items(items: u8) {
+    assert_ok!(mint(ALICE, 1));
+    for seed in 0..items {
+        assert_ok!(mint(BOB, 10 + seed));
+    }
+    assert_ok!(Drc369::set_home_game(signed(BOB), ITEMS, Some(GAME)));
+    assert_ok!(Drc369::authorise_writer(
+        signed(ALICE),
+        GAME,
+        account(WRITER)
+    ));
+}
+
+#[test]
+fn a_collection_is_static_until_its_owner_binds_a_home_game() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(mint(ALICE, 1));
+        assert_ok!(mint(BOB, 10));
+        assert_ok!(Drc369::authorise_writer(
+            signed(ALICE),
+            GAME,
+            account(WRITER)
+        ));
+
+        // Nothing is written to an asset whose collection has no home game.
+        assert_noop!(
+            record(WRITER, 0, GAME, 5, None, &[]),
+            Error::<Test>::NoHomeGame
+        );
+
+        // Only the collection's owner binds it, and only to a DRC-369 asset.
+        assert_noop!(
+            Drc369::set_home_game(signed(ALICE), ITEMS, Some(GAME)),
+            Error::<Test>::NotCollectionOwner
+        );
+        assert_noop!(
+            Drc369::set_home_game(signed(BOB), ITEMS, Some((0, 9))),
+            Error::<Test>::UnknownGame
+        );
+        assert_ok!(Drc369::set_home_game(signed(BOB), ITEMS, Some(GAME)));
+        assert_eq!(Drc369::home_game(ITEMS), Some(Issuer::game(GAME)));
+        assert_noop!(
+            Drc369::set_home_game(signed(BOB), ITEMS, Some(GAME)),
+            Error::<Test>::NothingRecorded
+        );
+        assert_ok!(record(WRITER, 0, GAME, 5, None, &[]));
+
+        // Cleared, the collection is static again, and its record stays.
+        assert_ok!(Drc369::set_home_game(signed(BOB), ITEMS, None));
+        assert_eq!(Drc369::home_game(ITEMS), None);
+        assert_noop!(
+            record(WRITER, 0, GAME, 5, None, &[]),
+            Error::<Test>::NoHomeGame
+        );
+        assert_eq!(kept(0, GAME).unwrap().xp, 5);
+        assert!(events().contains(&Event::HomeGameSet {
+            collection: ITEMS,
+            game: None,
+            by: account(BOB),
+        }));
+    });
+}
+
+#[test]
+fn only_whoever_holds_the_cartridge_names_its_writers() {
+    new_test_ext().execute_with(|| {
+        assert_ok!(mint(ALICE, 1));
+        let game = Issuer::game(GAME);
+
+        assert_noop!(
+            Drc369::authorise_writer(signed(BOB), GAME, account(WRITER)),
+            Error::<Test>::NotGameHolder
+        );
+        assert_noop!(
+            Drc369::authorise_writer(signed(ALICE), (0, 9), account(WRITER)),
+            Error::<Test>::UnknownGame
+        );
+        assert_ok!(Drc369::authorise_writer(
+            signed(ALICE),
+            GAME,
+            account(WRITER)
+        ));
+        assert_noop!(
+            Drc369::authorise_writer(signed(ALICE), GAME, account(WRITER)),
+            Error::<Test>::AlreadyWriter
+        );
+        assert_ok!(Drc369::authorise_writer(
+            signed(ALICE),
+            GAME,
+            account(CAROL)
+        ));
+        assert_eq!(WriterCount::<Test>::get(game), MAX_WRITERS);
+        assert_noop!(
+            Drc369::authorise_writer(signed(ALICE), GAME, account(NOBODY)),
+            Error::<Test>::TooManyWriters
+        );
+
+        // The authority goes with the Cartridge.
+        assert_ok!(Nfts::transfer(signed(ALICE), GAME.0, GAME.1, account(BOB)));
+        assert_noop!(
+            Drc369::revoke_writer(signed(ALICE), GAME, account(WRITER)),
+            Error::<Test>::NotGameHolder
+        );
+        assert_ok!(Drc369::revoke_writer(signed(BOB), GAME, account(WRITER)));
+        assert_noop!(
+            Drc369::revoke_writer(signed(BOB), GAME, account(WRITER)),
+            Error::<Test>::NotWriter
+        );
+        assert_ok!(Drc369::revoke_writer(signed(BOB), GAME, account(CAROL)));
+        assert!(!WriterCount::<Test>::contains_key(game), "dropped at zero");
+        assert!(events().contains(&Event::WriterRevoked {
+            game,
+            writer: account(CAROL),
+            by: account(BOB),
+        }));
+    });
+}
+
+#[test]
+fn a_writer_adds_xp_raises_the_level_and_sets_stats() {
+    new_test_ext().execute_with(|| {
+        a_game_with_items(1);
+
+        assert_ok!(record(WRITER, 0, GAME, 40, Some(2), &[(7, 100), (2, -5)]));
+        assert_ok!(record(WRITER, 0, GAME, 10, None, &[(7, 90)]));
+        assert_ok!(record(WRITER, 0, GAME, 0, Some(3), &[]));
+
+        let progress = kept(0, GAME).unwrap();
+        assert_eq!(progress.xp, 50);
+        assert_eq!(progress.level, 3);
+        assert_eq!(
+            progress.stats.into_inner(),
+            vec![(2, -5), (7, 90)],
+            "sorted by number"
+        );
+        assert_eq!(
+            events().last(),
+            Some(&Event::StateChanged {
+                collection: ITEMS,
+                item: 0,
+                game: Issuer::game(GAME),
+                level: 3,
+                xp: 50,
+                stats: stats(&[]),
+                by: account(WRITER),
+            })
+        );
+        assert_eq!(
+            Drc369::progress_of(ITEMS, 0),
+            vec![ProgressRecord {
+                issuer: Issuer::game(GAME),
+                home: true,
+                level: 3,
+                xp: 50,
+                stats: vec![(2, -5), (7, 90)],
+            }]
+        );
+    });
+}
+
+#[test]
+fn a_writer_can_never_take_progress_back() {
+    new_test_ext().execute_with(|| {
+        a_game_with_items(1);
+        assert_ok!(record(WRITER, 0, GAME, u64::MAX - 1, Some(5), &[(1, 1)]));
+
+        assert_noop!(
+            record(WRITER, 0, GAME, 0, Some(4), &[]),
+            Error::<Test>::LevelMustRise
+        );
+        assert_noop!(
+            record(WRITER, 0, GAME, 2, None, &[]),
+            Error::<Test>::XpOverflow
+        );
+        // A call that would change nothing is refused, so every event is a change.
+        assert_noop!(
+            record(WRITER, 0, GAME, 0, None, &[]),
+            Error::<Test>::NothingRecorded
+        );
+        assert_noop!(
+            record(WRITER, 0, GAME, 0, Some(5), &[(1, 1)]),
+            Error::<Test>::NothingRecorded
+        );
+        // Stats move either way.
+        assert_ok!(record(WRITER, 0, GAME, 0, None, &[(1, -1)]));
+    });
+}
+
+#[test]
+fn stats_are_bounded_and_each_named_once() {
+    new_test_ext().execute_with(|| {
+        a_game_with_items(1);
+        assert_noop!(
+            record(WRITER, 0, GAME, 1, None, &[(4, 1), (4, 2)]),
+            Error::<Test>::DuplicateStat
+        );
+        assert_ok!(record(WRITER, 0, GAME, 0, None, &[(1, 1), (2, 2), (3, 3)]));
+        assert_noop!(
+            record(WRITER, 0, GAME, 0, None, &[(4, 4)]),
+            Error::<Test>::TooManyStats
+        );
+        // Changing one already held is no new stat.
+        assert_ok!(record(WRITER, 0, GAME, 0, None, &[(3, 30)]));
+    });
+}
+
+#[test]
+fn only_a_writer_of_the_home_game_writes_and_never_the_holder() {
+    new_test_ext().execute_with(|| {
+        a_game_with_items(2);
+        assert_ok!(Nfts::transfer(signed(BOB), ITEMS, 0, account(CAROL)));
+
+        // The item's own holder cannot raise it, and neither can the game's
+        // holder or the collection's owner without being a writer.
+        for who in [CAROL, ALICE, BOB] {
+            assert_noop!(record(who, 0, GAME, 5, None, &[]), Error::<Test>::NotWriter);
+        }
+        // Another game's writer writes nothing here.
+        assert_ok!(mint(ALICE, 2));
+        let other = (0, 1);
+        assert_ok!(Drc369::authorise_writer(
+            signed(ALICE),
+            other,
+            account(NOBODY)
+        ));
+        assert_noop!(
+            record(NOBODY, 0, other, 5, None, &[]),
+            Error::<Test>::NotHomeGame
+        );
+        assert_noop!(
+            record(WRITER, 9, GAME, 5, None, &[]),
+            Error::<Test>::UnknownAsset
+        );
+
+        assert_ok!(record(WRITER, 0, GAME, 5, None, &[]));
+        assert_ok!(Drc369::revoke_writer(signed(ALICE), GAME, account(WRITER)));
+        assert_noop!(
+            record(WRITER, 1, GAME, 5, None, &[]),
+            Error::<Test>::NotWriter
+        );
+    });
+}
+
+#[test]
+fn nothing_changes_while_an_asset_is_offered_for_sale() {
+    new_test_ext().execute_with(|| {
+        a_game_with_items(1);
+        assert_ok!(record(WRITER, 0, GAME, 5, Some(1), &[]));
+
+        ListedItems::set(&vec![(ITEMS, 0)]);
+        assert_noop!(
+            record(WRITER, 0, GAME, 5, None, &[]),
+            Error::<Test>::ListedForSale
+        );
+        assert_noop!(correct(ALICE, 0, 0, 0, &[]), Error::<Test>::ListedForSale);
+
+        ListedItems::set(&Vec::new());
+        assert_ok!(record(WRITER, 0, GAME, 5, None, &[]));
+    });
+}
+
+#[test]
+fn a_correction_is_the_cartridge_holders_and_may_lower() {
+    new_test_ext().execute_with(|| {
+        a_game_with_items(2);
+        assert_noop!(correct(ALICE, 0, 0, 0, &[]), Error::<Test>::NoRecord);
+        assert_ok!(record(WRITER, 0, GAME, 900, Some(9), &[(5, 50), (1, 10)]));
+
+        // Not the writer, and not the item's holder.
+        assert_noop!(correct(WRITER, 0, 1, 1, &[]), Error::<Test>::NotGameHolder);
+        assert_noop!(correct(BOB, 0, 1, 1, &[]), Error::<Test>::NotGameHolder);
+
+        assert_ok!(correct(ALICE, 0, 1, 20, &[(5, 5), (2, 2)]));
+        let progress = kept(0, GAME).unwrap();
+        assert_eq!((progress.level, progress.xp), (1, 20));
+        assert_eq!(
+            progress.stats.into_inner(),
+            vec![(2, 2), (5, 5)],
+            "replaced, sorted"
+        );
+        assert_eq!(
+            events().last(),
+            Some(&Event::StateCorrected {
+                collection: ITEMS,
+                item: 0,
+                game: Issuer::game(GAME),
+                level: 1,
+                xp: 20,
+                stats: stats(&[(2, 2), (5, 5)]),
+                by: account(ALICE),
+            })
+        );
+        assert_noop!(
+            correct(ALICE, 0, 1, 20, &[(2, 2), (5, 5)]),
+            Error::<Test>::NothingRecorded
+        );
+        assert_noop!(
+            correct(ALICE, 0, 1, 1, &[(2, 1), (2, 2)]),
+            Error::<Test>::DuplicateStat
+        );
+    });
+}
+
+#[test]
+fn records_stay_with_their_game_when_the_home_changes() {
+    new_test_ext().execute_with(|| {
+        a_game_with_items(1);
+        assert_ok!(record(WRITER, 0, GAME, 30, Some(3), &[]));
+
+        // Bob moves his collection to a second game of Alice's.
+        assert_ok!(mint(ALICE, 2));
+        let second = (0, 1);
+        assert_ok!(Drc369::authorise_writer(
+            signed(ALICE),
+            second,
+            account(NOBODY)
+        ));
+        assert_ok!(Drc369::set_home_game(signed(BOB), ITEMS, Some(second)));
+
+        assert_noop!(
+            record(WRITER, 0, GAME, 1, None, &[]),
+            Error::<Test>::NotHomeGame
+        );
+        assert_ok!(record(NOBODY, 0, second, 7, None, &[]));
+
+        let records = Drc369::progress_of(ITEMS, 0);
+        assert_eq!(records.len(), 2);
+        assert_eq!(
+            (records[0].issuer, records[0].home, records[0].xp),
+            (Issuer::game(second), true, 7)
+        );
+        assert_eq!(
+            (records[1].issuer, records[1].home, records[1].xp),
+            (Issuer::game(GAME), false, 30)
+        );
+    });
+}
+
+/// A record never moves, locks or sells an asset, and never touches CGT (ADR-113
+/// decision 8).
+#[test]
+fn a_record_never_holds_an_asset_or_moves_currency() {
+    new_test_ext().execute_with(|| {
+        a_game_with_items(1);
+        let before = (
+            Balances::total_balance(&account(ALICE)),
+            Balances::total_balance(&account(BOB)),
+        );
+        assert_ok!(record(WRITER, 0, GAME, 50, Some(2), &[(1, 1)]));
+        assert_ok!(correct(ALICE, 0, 1, 10, &[]));
+
+        assert!(!Drc369::is_held_in_place(ITEMS, 0));
+        assert_eq!(
+            (
+                Balances::total_balance(&account(ALICE)),
+                Balances::total_balance(&account(BOB))
+            ),
+            before
+        );
+        assert_eq!(
+            Balances::total_balance(&account(WRITER)),
+            0,
+            "a writer needs no CGT"
+        );
+        assert_ok!(Nfts::transfer(signed(BOB), ITEMS, 0, account(CAROL)));
+        assert_eq!(Nfts::owner(ITEMS, 0), Some(account(CAROL)));
+        assert_eq!(
+            kept(0, GAME).unwrap().xp,
+            10,
+            "the record goes with the asset"
+        );
+    });
+}
+
+/// The issuer is tagged, as the content reference is, so a later kind of issuer
+/// is a new index and never a change to this one's encoding.
+#[test]
+fn an_issuer_is_a_tag_and_a_cartridge() {
+    let encoded = Issuer::game((7, 9)).encode();
+    assert_eq!(encoded, [vec![0u8], 7u32.encode(), 9u32.encode()].concat());
+    assert_eq!(Issuer::max_encoded_len(), 9);
+    assert!(Issuer::decode_all(&mut &[1u8, 0, 0, 0, 0, 0, 0, 0, 0][..]).is_err());
 }
