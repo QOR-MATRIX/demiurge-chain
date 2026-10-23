@@ -1790,6 +1790,7 @@ mod tests {
             commit: None,
             revisable: true,
             listing: None,
+            progress: None,
         }
     }
 

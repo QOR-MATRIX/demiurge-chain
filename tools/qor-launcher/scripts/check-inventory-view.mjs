@@ -112,6 +112,9 @@ const REVISED = {
   commit: { kind: 'SHA-1', id: 'b2'.repeat(20) },
   revisable: false,
   listing: null,
+  // Kept by its home game (ADR-113), at the top of what a u64 and an i64 hold: a JS number would round
+  // them, which is why the host sends strings.
+  progress: { game: [2, 0], level: 7, xp: '18446744073709551615', stats: [[3, '-9223372036854775808']] },
 };
 const BEFORE = [FRESH, REVISED];
 // The host's answer AFTER "Make permanent": the first asset is permanent, and
@@ -586,6 +589,7 @@ try {
     status: row.querySelector('[data-asset-status]')?.textContent.trim() ?? '',
     root: row.querySelector('[data-asset-root]')?.textContent.trim() ?? '',
     commit: row.querySelector('[data-asset-commit]')?.textContent.trim() ?? '',
+    progress: row.querySelector('[data-asset-progress]')?.textContent.trim() ?? '',
     permanentButtons: [...row.querySelectorAll('button')].filter((b) => b.textContent.trim() === 'Make permanent').length,
   }))`);
 
@@ -618,6 +622,13 @@ try {
         `${when}: ${id} shows the commit it pins, by hash`,
         row.commit.includes(asset.commit.id) && row.commit.includes(asset.commit.kind),
         row.commit,
+      );
+      check(
+        asset.progress
+          ? `${when}: ${id} shows its progress exactly, as its home game keeps it (ADR-113)`
+          : `${when}: ${id} shows no progress, since no game keeps any`,
+        row.progress === (asset.progress ? `Level ${asset.progress.level} · ${asset.progress.xp} XP` : ''),
+        row.progress,
       );
       check(
         `${when}: ${id} reads ${asset.revisable ? 'Revisable' : 'Permanent'}`,
@@ -663,6 +674,16 @@ try {
         check(
           `${when}: ${id}'s close-up ${revised ? 'shows' : 'does not show'} what it was minted as`,
           revised ? shown.includes('Minted as') && shown.includes(asset.origin.root) : !shown.includes('Minted as'),
+        );
+        check(
+          asset.progress
+            ? `${when}: ${id}'s close-up shows its progress, the game that keeps it and its stats`
+            : `${when}: ${id}'s close-up shows no progress`,
+          asset.progress
+            ? shown.includes(`Level ${asset.progress.level} · ${asset.progress.xp} XP`) &&
+                shown.includes(`Kept by the game ${asset.progress.game[0]}/${asset.progress.game[1]}`) &&
+                asset.progress.stats.every(([number, value]) => shown.includes(`#${number} ${value}`))
+            : !shown.includes('Kept by the game'),
         );
       }
       await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
