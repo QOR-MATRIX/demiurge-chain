@@ -191,15 +191,16 @@ private slots:
 
     void a_file_qor_media_does_not_open_says_so()
     {
-        const QString pdf = dir.filePath("paper.pdf");
-        QFile f(pdf);
+        // An Office document, until the second release (L9.7). A PDF opens in the reader (tst_reader).
+        const QString sheet = dir.filePath("paper.docx");
+        QFile f(sheet);
         QVERIFY(f.open(QIODevice::WriteOnly));
-        f.write("%PDF-1.7\n");
+        f.write("PK\x03\x04");
         f.close();
-        open(pdf, "document");
+        open(sheet, "document");
         QTRY_VERIFY(window->isVisible());
         QVERIFY(QTest::qWaitForWindowActive(window));
-        QCOMPARE(window->property("path").toString(), pdf);
+        QCOMPARE(window->property("path").toString(), sheet);
         // Its one action is ember with the dark ink on it (ADR-108): white, as it was, read 2.9:1.
         QQuickItem *button = nullptr;
         QTRY_VERIFY((button = window->findChild<QQuickItem *>(QStringLiteral("openElsewhere"))) != nullptr);

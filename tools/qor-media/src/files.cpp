@@ -71,6 +71,11 @@ bool Files::isText(const QString &path)
         || ext == QLatin1String("csv") || ext == QLatin1String("log") || code().contains(ext);
 }
 
+bool Files::isPdf(const QString &path)
+{
+    return extension(path) == QLatin1String("pdf");
+}
+
 QString Files::textLanguage(const QString &path)
 {
     const QString ext = extension(path);

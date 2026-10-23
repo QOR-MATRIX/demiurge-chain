@@ -3,8 +3,8 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import QOR.Media
 
-// What QOR Media does not open yet: said plainly, with the way to open it now. PDF comes with Qt PDF (L9.5), Office
-// documents with the second release (L9.7); until then the program the system chooses opens them.
+// What QOR Media does not open yet: said plainly, with the way to open it now. Office documents come with the second
+// release (L9.7); until then the program the system chooses opens them.
 FocusScope {
     id: elsewhere
     required property string path
@@ -12,11 +12,9 @@ FocusScope {
     focus: true
 
     readonly property string extension: path.slice(path.lastIndexOf(".") + 1).toLowerCase()
-    readonly property string why: extension === "pdf"
-        ? qsTr("PDFs open here once QOR Media's PDF viewer arrives.")
-        : ["doc", "docx", "odt", "rtf", "xls", "xlsx", "ods", "ppt", "pptx", "odp"].indexOf(extension) >= 0
-            ? qsTr("Office documents open here in a later release.")
-            : qsTr("QOR Media does not open this kind of file.")
+    readonly property string why: ["doc", "docx", "odt", "rtf", "xls", "xlsx", "ods", "ppt", "pptx", "odp"].indexOf(extension) >= 0
+        ? qsTr("Office documents open here in a later release.")
+        : qsTr("QOR Media does not open this kind of file.")
 
     Rectangle { anchors.fill: parent; color: Theme.base }
 

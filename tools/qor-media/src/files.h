@@ -26,6 +26,8 @@ public:
     Q_INVOKABLE static QString kindOf(const QString &path);
     /// Whether QOR Media's editor opens this document: plain text, Markdown and code.
     Q_INVOKABLE static bool isText(const QString &path);
+    /// Whether QOR Media's reader opens this document: a PDF.
+    Q_INVOKABLE static bool isPdf(const QString &path);
     /// The language the editor highlights a text file as: markdown, code or plain.
     Q_INVOKABLE static QString textLanguage(const QString &path);
     /// The files of the same kind in the same folder, in the order a person reads names (2 before 10). `path` itself is
