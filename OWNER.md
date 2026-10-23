@@ -27,10 +27,14 @@ website*. **Launcher 0.1.15** is the tester download, the first that updates its
    refuses any dialog text like it; the release could not build from the current
    checkout; a GitHub cache hang stalled **CI** — *GitHub's automatic tests* — for 30
    minutes, now capped at ten.
-4. **Your merge of #77** brought the update channel and the corrected records to `main`.
+4. **L5.1 is built: an AI agent can act for you only once your own key signs for it**, in
+   the launcher, after a dialog that says what it may do. Until now a stolen sign-in
+   token was enough. Proven end to end on this PC against QOR ID. Its first tests also
+   caught agent names that broke QOR ID's rules (fixed).
 
 **For your merge: #78** — 0.1.15's version and fixes, these records, and the homepage's
-download links to 0.1.15, which go live when you merge.
+download links to 0.1.15, which go live when you merge. **L5.1 follows as its own pull
+request** once #78 is in; it takes effect when QOR ID is redeployed from it.
 
 ## The release gates (measured this session)
 
@@ -62,8 +66,7 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    pasted on 5 October; `social-secrets.txt` on your Desktop and `archive-bZLIQp/` in the
    old checkout, each to keep or delete.
 
-**Next in engineering:** L5.1 — an AI agent can act for you only once your own key, in the
-launcher, has signed for it (today a stolen sign-in token is enough).
+**Next in engineering:** the asset work (M4.2, M4.3, M4.5), then PDF in QOR Media (L9.5).
 
 ## Cost per month
 
