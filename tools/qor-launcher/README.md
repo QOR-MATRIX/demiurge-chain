@@ -82,6 +82,8 @@ tools/qor-launcher
 │   ├── src/identity/        QOR ID auth + OS keychain token storage
 │   ├── src/pay.rs           qor://pay links, checked before any dialog (ADR-076, ADR-077);
 │   │                        paid by src/chain/pay.rs
+│   ├── src/agents.rs        qor://agent links, checked before any dialog, and the statement
+│   │                        the vault signs to authorise an agent (ADR-112)
 │   ├── src/qontrol/         Qontrol's port: gitoxide for every read, the helper for staging,
 │   │                        switch and discard, and the guard before staging
 │   └── src/vault/           BIP-39, Sr25519 (sp-core), Argon2id, XChaCha20-Poly1305
@@ -329,6 +331,27 @@ show who asks, the amount, the recipient, that there is no fee, and the balance 
 Windows Hello (ADR-077). `src-tauri/src/chain/pay.rs` checks the
 connected chain's genesis again and pays the transfer and a `remark_with_event` naming the request in one `batch_all`,
 from the signed-in profile's account, the only one open (ADR-099). Any other link, or an unknown app, is refused with a message, and nothing is signed.
+
+### Agents asking to act for a person: `qor://agent` (ADR-112, L5.1)
+
+An agent is authorised by the person's own key, never by their sign-in alone. The agent makes its own Sr25519 key, asks
+QOR ID for a challenge for its account (`GET /api/v1/auth/challenge?account_id=0x…`), signs
+`demiurge:qor-id:challenge:v1:<challenge>` with that key, and opens
+
+```
+qor://agent?r=<hex of {"account_id", "challenge", "signature", "name", "capabilities", "autonomy",
+                      "spending_limit" (optional, whole CGT), "model" (optional)}>
+```
+
+`src-tauri/src/agents.rs` checks it before anything is shown: the agent's signature verifies; the challenge has QOR ID's
+shape and is at most ten minutes old; every capability is one QOR ID knows, named once; the autonomy is one of four; a
+bounded agent names a limit and none is negative; the name makes a QOR ID (`agent_` and 3 to 14 letters, digits, spaces
+or underscores); the model is one short line. The host then requires a signed-in profile whose QOR ID has proved a key,
+that key being the open wallet's account, and asks in its own dialog: the QOR ID the agent will act for, the agent's
+QOR ID and account, what it may do, its autonomy and limit, and that nothing enforces them yet. On approval the vault
+signs the authorisation statement QOR ID verifies (ADR-112 decision 2) and the host registers the agent with the
+profile's session. Any refusal comes before the dialog, and nothing is signed. Listing, limiting and revoking agents
+from the launcher are L5.2.
 
 ### Avatars (ADR-079)
 
