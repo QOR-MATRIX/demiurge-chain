@@ -23,6 +23,7 @@ Item {
     /// The games played here, by kind: their names and scene files.
     readonly property var games: ({
         orbital: { name: "Orbital", file: "qrc:/games/orbital/scenes/orbital.qml" },
+        "void": { name: "Void Runner", file: "qrc:/games/void-runner/scenes/void-runner.qml" },
     })
     readonly property var game: games[kind] ?? null
 

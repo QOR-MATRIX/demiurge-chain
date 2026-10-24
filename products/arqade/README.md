@@ -16,7 +16,7 @@ Node 22.13 or later.
 
 ```sh
 npm ci
-npm test          # 57 tests (24 October 2026): arenas and chat against Postgres (PGlite), sign-in, tips, the devnet reader, account lookup, Orbital's rules and a run QQ kept, the SDK
+npm test          # 67 tests (24 October 2026): arenas and chat against Postgres (PGlite), sign-in, tips, the devnet reader, account lookup, Orbital's and Void Runner's rules and the runs QQ kept, the SDK
 npm run typecheck
 npm run lint
 npm run build     # migrations (production only, see below), then next build
@@ -33,8 +33,8 @@ else, and a new colour of the interface is a new token, never an entry in its li
 application in [`qt/`](qt/README.md) wears the same look from its generated `qt/qml/Tokens.qml`, and the same check
 reads its QML.
 
-**The games rebuilt in QQ** (P7.20) are in [`games/`](games/README.md): Orbital first, played in the Qt app, with
-rules that replay a run in QQ and in Node.
+**The games rebuilt in QQ** (P7.20) are in [`games/`](games/README.md): Orbital and Void Runner so far, played in the
+Qt app, with rules that replay a run in QQ and in Node.
 
 `npm run dev` serves the site on `http://localhost:3000`. Solo games, the devnet views and the SDK need nothing else.
 Open it as `localhost`, not `127.0.0.1`: Next refuses its development scripts to any other host, and the page then

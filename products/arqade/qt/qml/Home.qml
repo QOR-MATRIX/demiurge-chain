@@ -160,7 +160,7 @@ Item {
                 Heading {
                     eyebrow: qsTr("Games")
                     title: qsTr("Four games, being rebuilt in 3D")
-                    line: qsTr("Each is being rebuilt with physically based light, particles and sound, and with rules that replay exactly, so a run can be confirmed and rewarded. Orbital plays here now; until another game's rebuild arrives, its card opens today's version.")
+                    line: qsTr("Each is being rebuilt with physically based light, particles and sound, and with rules that replay exactly, so a run can be confirmed and rewarded. Void Runner and Orbital play here now; until another game's rebuild arrives, its card opens today's version.")
                     Layout.fillWidth: true
                 }
                 GridLayout {
@@ -170,7 +170,7 @@ Item {
                     Layout.fillWidth: true
                     Repeater {
                         model: [
-                            { kind: "void", number: "01", name: "Void Runner", tag: qsTr("Reflex / survival"), line: qsTr("Outrun the collapse.") },
+                            { kind: "void", number: "01", name: "Void Runner", tag: qsTr("Reflex / survival"), line: qsTr("Outrun the collapse."), here: true },
                             { kind: "synapse", number: "02", name: "Synapse", tag: qsTr("Memory / pattern"), line: qsTr("Trust the signal. Question your mind.") },
                             { kind: "orbital", number: "03", name: "Orbital", tag: qsTr("Precision / timing"), line: qsTr("Find order in the chaos."), here: true },
                             { kind: "rift", number: "04", name: "Rift Survivor", tag: qsTr("Survival / evolution"), line: qsTr("One signal. Ninety seconds. Evolve.") },
