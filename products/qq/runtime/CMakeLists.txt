@@ -1,5 +1,6 @@
 # The QQ Runtime: the QML module "QQ" (ADR-083 decision 2). QQ Studio and the QQ Player both run on it, so what a
-# creator sees while editing is what a player gets. Static, and linked into each executable with its plugin.
+# creator sees while editing is what a player gets. Static, and linked into each executable with its plugin. ARQADE's
+# app builds it from here too, to play the games rebuilt in QQ (products/arqade/qt, ADR-102 decision 2).
 
 qt_add_library(qqruntime STATIC)
 

@@ -8,6 +8,9 @@
 #   fonts/  Cinzel, Barlow Semi Condensed and Barlow, under the SIL Open Font License, copied by docs/design/tokens.mjs
 #   tests/  Qt Test suites
 #
+# The games rebuilt in QQ (P7.20) play here on QQ's runtime, built from products/qq/runtime, each from its package in
+# products/arqade/games/, carried in the executable.
+#
 # Configure with the Qt the owner installed (commercial licence), MSVC 2022 and Ninja; build.ps1 does all of it:
 #
 #   pwsh products/arqade/qt/build.ps1            # build and test
@@ -20,7 +23,7 @@ project(Arqade VERSION 0.1.0 DESCRIPTION "ARQADE" LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui GuiPrivate Network Qml Quick QuickControls2 Quick3D Test)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui GuiPrivate Multimedia Network Qml Quick QuickControls2 Quick3D Test)
 
 qt_standard_project_setup(REQUIRES 6.12)
 
@@ -32,6 +35,9 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# QQ's runtime, the QML module "QQ" (ADR-102 decision 2), from its own source: what plays the games.
+add_subdirectory(../../qq/runtime qq-runtime)
+
 # Everything but main(), so the tests use exactly what the application does.
 qt_add_library(arqade_core STATIC
     src/arqadelink.h src/arqadelink.cpp
@@ -40,7 +46,8 @@ qt_add_library(arqade_core STATIC
     src/fonts.h
 )
 target_include_directories(arqade_core PUBLIC src)
-target_link_libraries(arqade_core PUBLIC Qt6::Core Qt6::Gui Qt6::Network Qt6::Qml Qt6::Quick Qt6::Quick3D)
+target_link_libraries(arqade_core PUBLIC Qt6::Core Qt6::Gui Qt6::Network Qt6::Qml Qt6::Quick Qt6::Quick3D
+                                         qqruntime qqruntimeplugin)
 
 # Before the module, or Theme and Tokens are registered as ordinary types.
 set_source_files_properties(qml/Theme.qml qml/Tokens.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -56,6 +63,7 @@ qt_add_qml_module(arqade_core
         qml/Portal.qml
         qml/Emblem.qml
         qml/GameCard.qml
+        qml/GameView.qml
         qml/PlayerPanel.qml
         qml/Rankings.qml
         qml/Wordmark.qml
@@ -73,6 +81,23 @@ qt_add_qml_module(arqade_core
         fonts/Barlow-Medium.ttf
 )
 
+# The games rebuilt in QQ, each its package as QQ keeps one (scenes, logic, assets), so its relative paths mean what they
+# mean on disk: qrc:/games/<name>/scenes/<name>.qml. Their rules (logic/rules.mjs) are the ones ARQADE's service runs.
+qt_add_resources(arqade_core "orbital"
+    PREFIX /games/orbital
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/../games/orbital"
+    FILES
+        ../games/orbital/scenes/orbital.qml
+        ../games/orbital/logic/orbital.qml
+        ../games/orbital/logic/rules.mjs
+        ../games/orbital/assets/space.hdr
+        ../games/orbital/assets/orbit.wav
+        ../games/orbital/assets/lock.wav
+        ../games/orbital/assets/miss.wav
+        ../games/orbital/assets/complete.wav
+        ../games/orbital/assets/lost.wav
+)
+
 qt_add_executable(arqade WIN32 src/main.cpp)
 target_link_libraries(arqade PRIVATE arqade_core arqade_coreplugin Qt6::GuiPrivate Qt6::QuickControls2)
 if(WIN32)
@@ -81,7 +106,7 @@ if(WIN32)
 endif()
 
 enable_testing()
-foreach(suite arqadelink arqadeserver interface)
+foreach(suite arqadelink arqadeserver interface games)
     qt_add_executable(tst_${suite} tests/tst_${suite}.cpp tests/fakes.h)
     target_link_libraries(tst_${suite} PRIVATE arqade_core arqade_coreplugin Qt6::QuickControls2 Qt6::Test)
     add_test(NAME ${suite} COMMAND tst_${suite})
@@ -89,3 +114,6 @@ endforeach()
 # The one look's source, which the interface test holds Theme to, value by value.
 target_compile_definitions(tst_interface PRIVATE
     ARQADE_TOKENS="${CMAKE_CURRENT_SOURCE_DIR}/../../../docs/design/tokens.json")
+# The runs QQ kept that ARQADE's rules replay in Node (products/arqade/tests/fixtures/), which QQ's replay must agree with.
+target_compile_definitions(tst_games PRIVATE
+    ARQADE_RUNS="${CMAKE_CURRENT_SOURCE_DIR}/../tests/fixtures")

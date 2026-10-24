@@ -977,6 +977,12 @@ reason = "The advisory was published on 2026-10-23 and failed the nightly run of
 condition = "crypto-bigint 0.5 is reached only through sp-core's k256, no crypto-bigint below 0.7.6 is beside it, no code in the three uses ECDSA or secp256k1, and 0.5 is still in each lockfile, checked on every CI run"
 approved_by = "owner, 2026-10-24 (ADR-115: 'Guarded ignore (Recommended)')"
 
+[[change_log]]
+date = "2026-10-24"
+type = "tightening"
+change = "The language rule's scan in CI's security job ('No financial language in what people read (ADR-008)') also reads products/arqade/games/, where the games rebuilt in QQ live (DIRECTION P7.20): their scenes, logic and rules. [ci].quality_gates updated."
+reason = "Orbital, the first of them, puts words in front of players from its own QML (its title, its HUD, its result), outside every folder the scan read. Nothing there matched when the scope was widened."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1032,7 +1038,7 @@ quality_gates = [
   "no private key material tracked in git",
   "no credentials committed in configuration files",
   "one look from one source (ADR-108): node docs/design/tokens.mjs --check, every generated file current, every bundled face the source's, every text colour 4.5:1 or more on every background. Since 2026-10-21. Then node docs/design/check-qml.mjs: QOR Media's and the Android shell's QML in the look, every control within the keyboard's reach. Since 2026-10-22",
-  "the language rule (ADR-008, AGENTS.md section 6) over what people read in the active scope: site/scripts/check-site.mjs, then no APY, ROI, passive income, investment or staking rewards in the site, ARQADE, the launcher, QOR Media, QQ, Social and QOR ID, and no yield in their copy. Since 2026-10-19",
+  "the language rule (ADR-008, AGENTS.md section 6) over what people read in the active scope: site/scripts/check-site.mjs, then no APY, ROI, passive income, investment or staking rewards in the site, ARQADE (its games rebuilt in QQ since 2026-10-24), the launcher, QOR Media, QQ, Social and QOR ID, and no yield in their copy. Since 2026-10-19",
   "no log call in services/qor-auth/src interpolates a token, key, secret, password, link or address, and no request span records the URI",
   "no [patch] section in any tracked manifest, and no reference to a personal Substrate fork anywhere tracked, excluding only ci.yml itself and HANDOFF.md",
   "products/arqade: npm ci, tsc --noEmit, npm run lint (errors fail; four pre-existing warnings do not), npm test (node --test tests/*.test.mjs and sdk/tests), npm run build, npm run check:phone (scripts/check-phone.mjs: the site as a phone sees it, by touch, served from that build, in the runner's Google Chrome), then npm run check:design (scripts/check-design.mjs: the one look, ADR-108, on the web and in the Qt application's QML; since 2026-10-21)",

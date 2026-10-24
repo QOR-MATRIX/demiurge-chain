@@ -5,8 +5,8 @@ import QtQuick.Layouts
 import ARQADE
 
 // ARQADE's home (DIRECTION P7.19): the portal behind everything, the name and the player's Sparks over it, then the
-// games, the arenas and their rankings. The games are being rebuilt in 3D (P7.20); until each arrives, its card opens
-// today's version in the launcher's ARQADE window.
+// games, the arenas and their rankings. The games are being rebuilt in 3D (P7.20): a rebuilt game's card plays it here
+// (playRequested); until each other arrives, its card opens today's version in the launcher's ARQADE window.
 Item {
     id: home
     required property var link
@@ -17,6 +17,9 @@ Item {
     readonly property bool wide: width >= 1180
     readonly property real gutter: Math.max(28, Math.min(72, width * 0.05))
     property string webError: ""
+
+    /// A rebuilt game's card was pressed: play it, by its kind.
+    signal playRequested(string kind)
 
     Portal {
         anchors.fill: parent
@@ -157,7 +160,7 @@ Item {
                 Heading {
                     eyebrow: qsTr("Games")
                     title: qsTr("Four games, being rebuilt in 3D")
-                    line: qsTr("Each is being rebuilt with physically based light, particles and sound, and with rules that replay exactly, so a run can be confirmed and rewarded. Until a game's rebuild arrives, its card opens today's version.")
+                    line: qsTr("Each is being rebuilt with physically based light, particles and sound, and with rules that replay exactly, so a run can be confirmed and rewarded. Orbital plays here now; until another game's rebuild arrives, its card opens today's version.")
                     Layout.fillWidth: true
                 }
                 GridLayout {
@@ -169,19 +172,27 @@ Item {
                         model: [
                             { kind: "void", number: "01", name: "Void Runner", tag: qsTr("Reflex / survival"), line: qsTr("Outrun the collapse.") },
                             { kind: "synapse", number: "02", name: "Synapse", tag: qsTr("Memory / pattern"), line: qsTr("Trust the signal. Question your mind.") },
-                            { kind: "orbital", number: "03", name: "Orbital", tag: qsTr("Precision / timing"), line: qsTr("Find order in the chaos.") },
+                            { kind: "orbital", number: "03", name: "Orbital", tag: qsTr("Precision / timing"), line: qsTr("Find order in the chaos."), here: true },
                             { kind: "rift", number: "04", name: "Rift Survivor", tag: qsTr("Survival / evolution"), line: qsTr("One signal. Ninety seconds. Evolve.") },
                         ]
                         GameCard {
+                            id: solo
                             required property var modelData
                             kind: modelData.kind
                             number: modelData.number
                             name: modelData.name
                             tag: modelData.tag
                             line: modelData.line
+                            here: modelData.here === true
                             Layout.fillWidth: true
                             Layout.preferredHeight: 360
-                            onClicked: { home.webError = ""; home.link.openWeb() }
+                            onClicked: {
+                                home.webError = ""
+                                if (solo.here)
+                                    home.playRequested(solo.kind)
+                                else
+                                    home.link.openWeb()
+                            }
                         }
                     }
                 }

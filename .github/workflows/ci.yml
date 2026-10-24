@@ -772,7 +772,7 @@ jobs:
         run: |
           set -e
           node site/scripts/check-site.mjs
-          scope="site products/arqade/app products/arqade/qt products/arqade/lib products/arqade/sdk tools/qor-launcher/src tools/qor-launcher/src-tauri/src tools/qor-launcher/core/src tools/qor-media products/qq services/social/src services/qor-auth/src"
+          scope="site products/arqade/app products/arqade/qt products/arqade/games products/arqade/lib products/arqade/sdk tools/qor-launcher/src tools/qor-launcher/src-tauri/src tools/qor-launcher/core/src tools/qor-media products/qq services/social/src services/qor-auth/src"
           hits=$( { grep -rniE '\b(APY|ROI|passive income|invest(ment|ments|or|ors|ing|ed)?|staking rewards?)\b' $scope \
                       --include='*.html' --include='*.txt' --include='*.tsx' --include='*.ts' --include='*.qml' \
                       --include='*.rs' --include='*.cpp' --include='*.h' --exclude-dir=node_modules || true

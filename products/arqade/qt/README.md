@@ -6,7 +6,8 @@ over its ARQADE screen, under the launcher's product host, as QOR Media is docke
 [`docs/DIRECTION.md`](../../../docs/DIRECTION.md) tracks it.
 
 This is the shell: the home, the games, the arenas' rankings and the player's Sparks. The games themselves are being
-rebuilt in QQ (P7.20). Until a game's rebuild arrives, its card opens today's version in the launcher's ARQADE window.
+rebuilt in QQ (P7.20), in [`../games/`](../games/README.md). Orbital's rebuild has arrived and plays here. Until
+another game's rebuild arrives, its card opens today's version in the launcher's ARQADE window.
 
 ## What it does
 
@@ -33,6 +34,17 @@ rebuilt in QQ (P7.20). Until a game's rebuild arrives, its card opens today's ve
   and logs no address, code or cookie.
 - **Shows the rankings** from `/api/live`: all games, Flux Four, or Rift Reversi, with the player's own row marked. It
   asks every 15 seconds at most, and only while it shows.
+- **Plays the games rebuilt in QQ** (`qml/GameView.qml`), on QQ's runtime, built into the app from
+  `products/qq/runtime`. Orbital's card opens the game in place of the home, under a bar with Back and the game's name.
+  Esc, or Back, puts it away and returns to the home; F11 still fills the screen. The launcher's reduced motion reaches
+  the game as well as the home. Each play is kept as a run (QQ's `RunRecord`): its seed, what every tick took, and its
+  outcome, which the game's rules replay. ARQADE's service will replay it before it confirms a run (P7.22); nothing is
+  sent yet.
+
+  The games play in ARQADE's own QML engine, as the QQ Player plays a person's own project. They are ARQADE's own,
+  written and reviewed in this repository and carried in the executable. QQ's lockdown (ADR-087 decision 2) is the
+  second wall around a stranger's game, and a stranger's game never plays here: it plays in the browser (ADR-087
+  decision 1).
 - **Opens the website** in the launcher's guarded ARQADE window (`arqade.web`), where today's versions of the games are
   played.
 - **Says what rewards are** wherever Sparks are shown (ADR-102 decision 7): paid from ARQADE's reward pool for runs its
@@ -72,10 +84,10 @@ It needs the owner's Qt 6.12 (`C:\Qt\6.12.0\msvc2022_64`, with Qt Quick 3D), MSV
 so these suites run on the owner's PC, as QOR Media's and QQ's do.
 
 ```powershell
-pwsh products/arqade/qt/build.ps1              # build and run the three Qt Test suites
+pwsh products/arqade/qt/build.ps1              # build and run the four Qt Test suites
 pwsh products/arqade/qt/build.ps1 -Run         # build, then open ARQADE in a window of its own
 pwsh products/arqade/qt/build.ps1 -Deploy      # and make the self-contained copy the launcher opens
-pwsh products/arqade/qt/build.ps1 -Shots dir   # and save what the interface test drew, to look at
+pwsh products/arqade/qt/build.ps1 -Shots dir   # and save what the interface and games tests drew, to look at
 ```
 
 - `tst_arqadelink`: the launcher link against a stand-in launcher. It covers every command, a sign-in waiting its turn,
@@ -86,6 +98,18 @@ pwsh products/arqade/qt/build.ps1 -Shots dir   # and save what the interface tes
   Sparks, every game and arena, reduced motion holding it still, and a narrow window; and the one look: Theme equal to
   `tokens.json` value by value, every text the window shows in the look's faces, scale and colours (Barlow carried
   and drawn at its Regular), the primary's dark ink on ember and its focus ring. It needs a desktop session.
+- `tst_games`: Orbital's card opens the game in ARQADE's window (the other three still open the website), and Orbital is
+  played as a person plays it: the mouse on its Play and Resume buttons, Space and the pad's A to lock, and P and the
+  pad's Start to pause (the pad driven through QQ's input, with the PC's own pads not read). One lock outside the arc
+  misses, a pause holds the satellite still, and ten locks in the arc complete the orbit with a score of 2,000.
+  The run ARQADE kept replays in QQ, with no window, to the same outcome, and so does the run kept in
+  `../tests/fixtures/orbital-run.json`, which `../tests/orbital.test.mjs` replays with the rules in Node. The launcher's
+  reduced motion reaches the game, and Esc and Back each return to the home. With `ARQADE_RUN` set to a file, it writes
+  the run it played there, which is how the fixture was made. It needs a desktop session.
+
+`-Deploy` copies what QQ's runtime and the games import as well as ARQADE's own: Qt Quick 3D's physics, particles and
+spatial audio, and Qt Multimedia. On 24 October 2026 the deployed copy was 187 MiB, 32 MiB more than before the games,
+and `tst_games` passed when run from inside it with Qt's own folders off the path.
 
 The launcher's side is in `tools/qor-launcher/src-tauri/src/arqade/app.rs`. Its tests include one that starts the real
 app, deployed by `-Deploy`, and is run only when asked:

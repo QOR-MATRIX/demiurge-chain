@@ -4,8 +4,8 @@ import QtQuick.Controls.Basic
 import QtQuick.Effects
 import ARQADE
 
-// One game: its emblem in 3D, its name, what kind of game it is, and where its rebuild stands. Today's version plays in
-// the launcher's ARQADE window, which a press opens.
+// One game: its emblem in 3D, its name, what kind of game it is, and where its rebuild stands. A rebuilt game (`here`)
+// plays in ARQADE when pressed; until its rebuild arrives, a press opens today's version in the launcher's ARQADE window.
 AbstractButton {
     id: card
 
@@ -14,7 +14,9 @@ AbstractButton {
     required property string name
     required property string tag
     required property string line
-    property string status: qsTr("Being rebuilt in 3D")
+    /// Rebuilt in QQ, and played here (P7.20).
+    property bool here: false
+    property string status: here ? qsTr("Rebuilt in 3D") : qsTr("Being rebuilt in 3D")
 
     implicitWidth: 280
     implicitHeight: 360
@@ -24,7 +26,8 @@ AbstractButton {
 
     Accessible.role: Accessible.Button
     Accessible.name: name
-    Accessible.description: line + ". " + status + ". " + qsTr("Opens today's version in the launcher's ARQADE window.")
+    Accessible.description: line + ". " + status + ". "
+                            + (here ? qsTr("Plays here.") : qsTr("Opens today's version in the launcher's ARQADE window."))
 
     transform: Translate {
         y: card.lit && !Theme.reducedMotion ? -6 : 0
@@ -176,7 +179,7 @@ AbstractButton {
                 }
             }
             Text {
-                text: card.lit ? qsTr("Play today's version") : card.status
+                text: card.lit ? (card.here ? qsTr("Play") : qsTr("Play today's version")) : card.status
                 font.family: Theme.ui
                 font.pixelSize: Theme.sizeUi
                 font.weight: Font.Medium
