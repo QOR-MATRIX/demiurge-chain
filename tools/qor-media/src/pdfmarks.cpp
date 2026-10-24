@@ -4,7 +4,6 @@
 #include <QDateTime>
 #include <QFont>
 #include <QFontDatabase>
-#include <QJSValue>
 #include <QMap>
 #include <QPainterPath>
 #include <QPolygonF>
@@ -21,16 +20,17 @@
 #include <fpdf_edit.h>
 
 #include "pdfium.h"
+#include "qmlvalues.h"
 
 namespace qormedia {
 
 namespace {
 
+using namespace values;
+
 // The most one save may hold: far past anything made by hand, short of what would stall it.
 constexpr qsizetype kMostPoints = 200000;
 constexpr qsizetype kMostText = 100000;
-// Every number is a place on a page, or a size: none is near this.
-constexpr double kFarthest = 1e6;
 
 enum class Kind { Highlight, Underline, StrikeOut, Note, Ink, Signature };
 
@@ -47,37 +47,6 @@ struct Mark
     QList<QPolygonF> shapes;  // a typed signature's, from 0 to 1 in its box
     double width = 0;         // ink's line in points; a drawn signature's as a share of its box's height
 };
-
-// A value from QML as plain data, whatever wraps it.
-QVariant plain(const QVariant &value)
-{
-    return value.metaType() == QMetaType::fromType<QJSValue>() ? value.value<QJSValue>().toVariant() : value;
-}
-
-bool within(double v)
-{
-    return std::isfinite(v) && std::abs(v) <= kFarthest;
-}
-
-bool number(const QVariant &value, double *out)
-{
-    const QVariant v = plain(value);
-    bool ok = false;
-    const double n = v.isValid() ? v.toDouble(&ok) : 0;
-    if (!ok || !within(n))
-        return false;
-    *out = n;
-    return true;
-}
-
-bool whole(const QVariant &value, int *out)
-{
-    double n = 0;
-    if (!number(value, &n) || n != std::floor(n) || n < 0 || n > std::numeric_limits<int>::max())
-        return false;
-    *out = int(n);
-    return true;
-}
 
 bool point(const QVariant &value, QPointF *out)
 {
@@ -111,15 +80,6 @@ bool rect(const QVariant &value, QRectF *out)
     if (!within(r.left()) || !within(r.top()) || !within(r.right()) || !within(r.bottom()) || r.width() <= 0 || r.height() <= 0)
         return false;
     *out = r;
-    return true;
-}
-
-bool list(const QVariant &value, QVariantList *out)
-{
-    const QVariant v = plain(value);
-    if (v.metaType() == QMetaType::fromType<QString>() || !v.canConvert<QVariantList>())
-        return false;
-    *out = v.toList();
     return true;
 }
 
@@ -235,16 +195,6 @@ QString kindOf(FPDF_ANNOTATION_SUBTYPE subtype)
     default: return {};
     }
 }
-
-struct Annot
-{
-    FPDF_ANNOTATION handle = nullptr;
-    ~Annot()
-    {
-        if (handle)
-            FPDFPage_CloseAnnot(handle);
-    }
-};
 
 QString stringOf(FPDF_ANNOTATION annot, const char *key)
 {
@@ -432,7 +382,7 @@ bool write(FPDF_PAGE page, const Mark &m)
         break;
     }
 
-    Annot annot{FPDFPage_CreateAnnot(page, subtype)};
+    PdfiumAnnot annot{FPDFPage_CreateAnnot(page, subtype)};
     if (!annot.handle)
         return false;
     const QColor c = m.colour.toRgb();
@@ -519,7 +469,7 @@ QVariantList PdfMarks::read(const QString &path, const QString &password, int on
             continue;
         const QTransform toView = pageSpace(page.handle).inverted();
         for (int a = 0; a < FPDFPage_GetAnnotCount(page.handle); ++a) {
-            Annot annot{FPDFPage_GetAnnot(page.handle, a)};
+            PdfiumAnnot annot{FPDFPage_GetAnnot(page.handle, a)};
             const QString kind = annot.handle ? kindOf(FPDFAnnot_GetSubtype(annot.handle)) : QString();
             FS_RECTF r{};
             if (kind.isEmpty() || (FPDFAnnot_GetFlags(annot.handle) & (FPDF_ANNOT_FLAG_HIDDEN | FPDF_ANNOT_FLAG_NOVIEW))
@@ -628,11 +578,11 @@ bool writeMarks(FPDF_DOCUMENT document, const QVariantList &added, const QVarian
             return refuse(PdfMarks::tr("A page of this PDF could not be read."));
         QSet<int> all;
         for (const int index : it.value()) {
-            Annot annot{index < FPDFPage_GetAnnotCount(page.handle) ? FPDFPage_GetAnnot(page.handle, index) : nullptr};
+            PdfiumAnnot annot{index < FPDFPage_GetAnnotCount(page.handle) ? FPDFPage_GetAnnot(page.handle, index) : nullptr};
             if (!annot.handle || kindOf(FPDFAnnot_GetSubtype(annot.handle)).isEmpty())
                 return refuse(PdfMarks::tr("The marks to take away were not a list QOR Media can follow."));
             all.insert(index);
-            Annot popup{FPDFAnnot_GetLinkedAnnot(annot.handle, "Popup")};
+            PdfiumAnnot popup{FPDFAnnot_GetLinkedAnnot(annot.handle, "Popup")};
             if (const int at = popup.handle ? FPDFPage_GetAnnotIndex(page.handle, popup.handle) : -1; at >= 0)
                 all.insert(at);
         }

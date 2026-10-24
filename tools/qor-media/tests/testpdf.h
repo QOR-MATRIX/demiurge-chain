@@ -14,6 +14,7 @@
 #include <QString>
 #include <QTest>
 
+#include <algorithm>
 #include <utility>
 
 #include <fpdf_annot.h>
@@ -36,6 +37,23 @@ struct Link
     int page = -1;
     QByteArray uri;
 };
+// A form's field: its widget on the page, with an appearance of its own as a filled form's fields have (a check box's or
+// a radio button's on state a black square, its off state nothing), or with none, as some forms leave to the reader.
+struct Field
+{
+    enum Kind { Text, Check, Radio, Combo, List, Button, Signature };
+    Kind kind = Text;
+    QByteArray name;
+    QRectF rect;                // in points, from the page's bottom left; a radio group's first button
+    QByteArray value;           // a text's words, a choice's option; a check box's or radio group's state, or "Off"
+    QList<QByteArray> options;  // a choice's; a radio group's states, one for each button; a check box's on state
+    QList<QRectF> buttons;      // a radio group's other buttons, after the first
+    int flags = 0;              // /Ff, beside what the kind itself sets
+    int maxLength = 0;
+    bool drawn = true;
+    bool hidden = false;        // its widget hidden (/F's hidden flag), as a form's field kept for printing alone is
+};
+
 struct Page
 {
     QList<QByteArray> lines;
@@ -44,6 +62,8 @@ struct Page
     QList<QRectF> boxes;
     // Notes, each with its text and the pop-up that shows it, as Acrobat writes them, with no appearance of their own.
     QList<QPair<QRectF, QByteArray>> notes;
+    // A form's fields, each annotation after the page's notes.
+    QList<Field> fields;
 };
 struct Entry
 {
@@ -111,6 +131,35 @@ inline QByteArray writePdf(const QList<Page> &pages, const QList<Entry> &outline
     for (int i = 0; i < count; ++i)
         for (qsizetype n = 0; n < pages[i].notes.size(); ++n)
             noteObj[i] << next++ << next++;
+    // Each field: a radio group's own, then each of its widgets with their appearances (a text's or a choice's one, a
+    // check box's or radio button's on and off, none for a signature or a field not drawn). Any other field is its widget.
+    struct Placed
+    {
+        int field = 0;
+        QList<int> widgets;
+        QList<QList<int>> looks;
+    };
+    QList<QList<Placed>> fieldObj(count);
+    for (int i = 0; i < count; ++i)
+        for (const Field &f : pages[i].fields) {
+            Placed placed;
+            const bool radio = f.kind == Field::Radio;
+            if (radio)
+                placed.field = next++;
+            const qsizetype looks = !f.drawn || f.kind == Field::Signature ? 0 : f.kind == Field::Check || radio ? 2 : 1;
+            for (qsizetype w = 0; w < (radio ? 1 + f.buttons.size() : 1); ++w) {
+                placed.widgets << next++;
+                QList<int> look;
+                for (qsizetype k = 0; k < looks; ++k)
+                    look << next++;
+                placed.looks << look;
+            }
+            if (!radio)
+                placed.field = placed.widgets.first();
+            fieldObj[i] << placed;
+        }
+    const bool forms = std::any_of(pages.cbegin(), pages.cend(), [](const Page &p) { return !p.fields.isEmpty(); });
+    const int zapfObj = forms ? next++ : 0;
     const int outlineObj = outline.isEmpty() ? 0 : next++;
     QList<int> entryObj;
     for (qsizetype e = 0; e < outline.size(); ++e)
@@ -142,10 +191,23 @@ inline QByteArray writePdf(const QList<Page> &pages, const QList<Entry> &outline
         pdf += QByteArray::number(obj) + " 0 obj\n" + body + "\nendobj\n";
     };
 
+    // A string in an object, sealed with it when the PDF is locked.
+    const auto str = [&](int obj, const QByteArray &s) { return "<" + sealed(obj, s).toHex() + ">"; };
+    const auto ref = [](int obj) { return QByteArray::number(obj) + " 0 R"; };
+
     QByteArray kids;
     for (int p : pageObj)
         kids += QByteArray::number(p) + " 0 R ";
-    object(1, "<< /Type /Catalog /Pages 2 0 R" + (outlineObj ? " /Outlines " + QByteArray::number(outlineObj) + " 0 R" : QByteArray()) + " >>");
+    QByteArray form;
+    if (forms) {
+        QByteArray fields;
+        for (const QList<Placed> &onPage : std::as_const(fieldObj))
+            for (const Placed &p : onPage)
+                fields += ref(p.field) + " ";
+        form = " /AcroForm << /Fields [" + fields + "] /DR << /Font << /Helv 3 0 R /ZaDb " + ref(zapfObj) + " >> >> /DA "
+            + str(1, "/Helv 0 Tf 0 g") + " >>";
+    }
+    object(1, "<< /Type /Catalog /Pages 2 0 R" + (outlineObj ? " /Outlines " + QByteArray::number(outlineObj) + " 0 R" : QByteArray()) + form + " >>");
     object(2, "<< /Type /Pages /Kids [" + kids + "] /Count " + QByteArray::number(count) + " >>");
     object(3, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
     for (int i = 0; i < count; ++i) {
@@ -156,6 +218,9 @@ inline QByteArray writePdf(const QList<Page> &pages, const QList<Entry> &outline
             annots += QByteArray::number(boxObj[i][b]) + " 0 R ";
         for (int n : noteObj[i])
             annots += QByteArray::number(n) + " 0 R ";
+        for (const Placed &p : std::as_const(fieldObj[i]))
+            for (int w : p.widgets)
+                annots += ref(w) + " ";
         object(pageObj[i], "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents "
                                + QByteArray::number(contentObj[i]) + " 0 R" + (annots.isEmpty() ? QByteArray() : " /Annots [" + annots + "]") + " >>");
         QByteArray text = "BT /F1 24 Tf 72 700 Td";
@@ -200,6 +265,103 @@ inline QByteArray writePdf(const QList<Page> &pages, const QList<Entry> &outline
                              + sealed(note, pages[i].notes[n].second).toHex() + "> /Popup " + QByteArray::number(popup) + " 0 R >>");
             object(popup, "<< /Type /Annot /Subtype /Popup /Rect " + rectOf(r.translated(r.width(), 0)) + " /Parent "
                               + QByteArray::number(note) + " 0 R >>");
+        }
+    const auto boxOf = [](const QRectF &q) {
+        return "[" + QByteArray::number(q.left()) + " " + QByteArray::number(q.top()) + " " + QByteArray::number(q.right()) + " "
+            + QByteArray::number(q.bottom()) + "]";
+    };
+    // An appearance: `ops` drawn in a box the widget's size, with Helvetica to hand.
+    const auto look = [&](int obj, const QRectF &r, const QByteArray &ops) {
+        const QByteArray data = sealed(obj, ops);
+        object(obj, "<< /Type /XObject /Subtype /Form /BBox [0 0 " + QByteArray::number(r.width()) + " " + QByteArray::number(r.height())
+                        + "] /Resources << /Font << /Helv 3 0 R >> >> /Length " + QByteArray::number(data.size()) + " >>\nstream\n"
+                        + data + "\nendstream");
+    };
+    // Lines of words in 12-point Helvetica from the box's top left, as a text field or a choice draws them.
+    const auto words = [](const QRectF &r, const QList<QByteArray> &lines) {
+        QByteArray ops = "/Tx BMC q BT /Helv 12 Tf 0 g 2 " + QByteArray::number(r.height() - 13) + " Td";
+        for (qsizetype l = 0; l < lines.size(); ++l)
+            ops += (l ? " 0 -14 Td <" : " <") + lines[l].toHex() + "> Tj";
+        return ops + " ET Q EMC";
+    };
+    const auto square = [](const QRectF &r) {
+        return "0 g 3 3 " + QByteArray::number(r.width() - 6) + " " + QByteArray::number(r.height() - 6) + " re f";
+    };
+    if (zapfObj)
+        object(zapfObj, "<< /Type /Font /Subtype /Type1 /BaseFont /ZapfDingbats >>");
+    for (int i = 0; i < count; ++i)
+        for (qsizetype n = 0; n < pages[i].fields.size(); ++n) {
+            const Field &f = pages[i].fields[n];
+            const Placed &at = fieldObj[i][n];
+            const QList<QRectF> rects = QList<QRectF>{f.rect} + f.buttons;
+            const int w = at.widgets.first();
+            const QList<int> &looks = at.looks.first();
+            const QByteArray shownAs = f.hidden ? " /F 6" : " /F 4";
+            const QByteArray widget = "/Type /Annot /Subtype /Widget /Rect " + boxOf(f.rect) + shownAs + " /P " + ref(pageObj[i]);
+            const QByteArray ff = " /Ff " + QByteArray::number(f.flags);
+            const QByteArray one = looks.isEmpty() ? QByteArray() : " /AP << /N " + ref(looks.first()) + " >>";
+            QByteArray options;
+            for (const QByteArray &o : f.options)
+                options += str(w, o) + " ";
+            switch (f.kind) {
+            case Field::Text:
+                object(w, "<< " + widget + " /FT /Tx /T " + str(w, f.name) + " /V " + str(w, f.value) + " /DA " + str(w, "/Helv 12 Tf 0 g")
+                              + ff + (f.maxLength ? " /MaxLen " + QByteArray::number(f.maxLength) : QByteArray()) + one + " >>");
+                if (!looks.isEmpty())
+                    look(looks.first(), f.rect, words(f.rect, f.value.split('\r')));
+                break;
+            case Field::Combo:
+            case Field::List:
+                object(w, "<< " + widget + " /FT /Ch /T " + str(w, f.name) + " /V " + str(w, f.value) + " /Opt [" + options + "] /DA "
+                              + str(w, "/Helv 12 Tf 0 g") + " /Ff " + QByteArray::number(f.flags | (f.kind == Field::Combo ? 1 << 17 : 0)) + one + " >>");
+                if (!looks.isEmpty())
+                    look(looks.first(), f.rect, words(f.rect, f.kind == Field::Combo ? QList<QByteArray>{f.value} : f.options));
+                break;
+            case Field::Check: {
+                const QByteArray on = f.options.value(0, "Yes");
+                object(w, "<< " + widget + " /FT /Btn /T " + str(w, f.name) + " /V /" + f.value + " /AS /" + (f.value == on ? on : QByteArray("Off"))
+                              + ff + " /MK << /CA " + str(w, "4") + " >> /DA " + str(w, "/ZaDb 0 Tf 0 g")
+                              + (looks.isEmpty() ? QByteArray() : " /AP << /N << /" + on + " " + ref(looks[0]) + " /Off " + ref(looks[1]) + " >> >>")
+                              + " >>");
+                if (!looks.isEmpty()) {
+                    look(looks[0], f.rect, square(f.rect));
+                    look(looks[1], f.rect, {});
+                }
+                break;
+            }
+            case Field::Radio: {
+                QByteArray kidsOf;
+                for (int kid : at.widgets)
+                    kidsOf += ref(kid) + " ";
+                object(at.field, "<< /FT /Btn /T " + str(at.field, f.name) + " /V /" + f.value + " /Ff "
+                                     + QByteArray::number(f.flags | 1 << 15 | 1 << 14) + " /Kids [" + kidsOf + "] >>");
+                for (qsizetype b = 0; b < rects.size(); ++b) {
+                    const int kid = at.widgets[b];
+                    const QByteArray state = f.options.value(b, "Choice" + QByteArray::number(b));
+                    const QList<int> &kidLooks = at.looks[b];
+                    object(kid, "<< /Type /Annot /Subtype /Widget /Rect " + boxOf(rects[b]) + shownAs + " /P " + ref(pageObj[i]) + " /Parent "
+                                    + ref(at.field) + " /AS /" + (f.value == state ? state : QByteArray("Off")) + " /MK << /CA " + str(kid, "l")
+                                    + " >> /DA " + str(kid, "/ZaDb 0 Tf 0 g")
+                                    + (kidLooks.isEmpty() ? QByteArray()
+                                                          : " /AP << /N << /" + state + " " + ref(kidLooks[0]) + " /Off " + ref(kidLooks[1]) + " >> >>")
+                                    + " >>");
+                    if (!kidLooks.isEmpty()) {
+                        look(kidLooks[0], rects[b], square(rects[b]));
+                        look(kidLooks[1], rects[b], {});
+                    }
+                }
+                break;
+            }
+            case Field::Button:
+                object(w, "<< " + widget + " /FT /Btn /T " + str(w, f.name) + " /Ff " + QByteArray::number(f.flags | 1 << 16) + " /MK << /CA "
+                              + str(w, "Go") + " >>" + one + " >>");
+                if (!looks.isEmpty())
+                    look(looks.first(), f.rect, "0.8 g 0 0 " + QByteArray::number(f.rect.width()) + " " + QByteArray::number(f.rect.height()) + " re f");
+                break;
+            case Field::Signature:
+                object(w, "<< " + widget + " /FT /Sig /T " + str(w, f.name) + " >>");
+                break;
+            }
         }
     if (outlineObj) {
         object(outlineObj, "<< /Type /Outlines /First " + QByteArray::number(entryObj.first()) + " 0 R /Last "
