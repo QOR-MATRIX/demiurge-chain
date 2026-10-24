@@ -20,6 +20,13 @@ import QOR.Media
 // Its pages change too: R turns the page in view (Shift+R the other way), Delete deletes it, Alt+Up and Alt+Down move it,
 // Ctrl+Z and Ctrl+Y undo and redo, and Ctrl+S saves through PDFium (PdfPages). A change shows at once and reaches the file
 // only when it is saved; going back with changes unsaved asks first. A locked or protected PDF is read, never changed.
+//
+// And it is marked up (PdfMarks, MarkupBar): M shows the marks. H, U and X highlight, underline and strike through the
+// words selected; N writes a note; D draws by hand; Sign places a picture of the person's signature, drawn or typed,
+// which certifies nothing (ADR-114 decision 1). A note or a signature is dragged into place, or moved by the arrows when
+// chosen (Shift for ten points), and [ and ] size a signature. A tap chooses a mark, the PDF's own too, and Delete takes
+// it away. A PDF's own note shows its words when tapped, even with the marks hidden. Marks are undone, redone and saved
+// with the pages' changes, in one write.
 FocusScope {
     id: reader
     objectName: "reader"
@@ -45,6 +52,25 @@ FocusScope {
     property var undoStack: []
     property var redoStack: []
     property bool dirty: false
+    // Marks (PdfMarks): those made here and not yet saved, each naming its page in the file as it is now and an id of its
+    // own; the PDF's own, read a page at a time as each is shown (heldOn), since reading a page parses all it draws; and
+    // those of its own to take away when it is saved.
+    property var added: []
+    property var removed: []
+    property var held: ({})
+    property int markIds: 0
+    property bool marking: false
+    // "ink" while drawing by hand.
+    property string tool: ""
+    // The mark chosen: {from: "added", id} or {from: "held", page, index}.
+    property var chosen: null
+    property string wordsColour: PdfMarks.colours[0].colour
+    property string penColour: PdfMarks.colours[PdfMarks.colours.length - 1].colour
+    // A line being drawn, {page, points}; a note being written, {page, x, y, colour}; a mark being dragged, {id, dx, dy,
+    // width}.
+    property var inking: null
+    property var noteDraft: null
+    property var dragged: null
     property bool editable: false
     // The widest page as laid out, in points.
     property real widest: 1
@@ -68,7 +94,13 @@ FocusScope {
     readonly property real maxZoom: actualSize * 8
     // Room either side of the widest page, and above the first.
     readonly property int margin: 24
-    readonly property bool consumesEscape: dirty || asking.visible || finder.visible || pageField.activeFocus
+    readonly property bool consumesEscape: dirty || asking.visible || finder.visible || pageField.activeFocus || signing.visible
+                                           || noteEditor.visible || tool.length > 0 || chosen !== null || marking
+    readonly property string markHint: tool === "ink" ? qsTr("Drag across a page to draw. D or Esc stops.")
+        : chosen && chosen.from === "held" ? qsTr("One of the PDF's own marks. Delete takes it away.")
+        : chosen ? qsTr("Drag it, or move it with the arrows. Delete takes it away.")
+        : selectedText.length ? qsTr("H highlights the words selected, U underlines them, X strikes them through.")
+        : qsTr("Select words to mark them, or add a note, a drawing or a signature.")
 
     function entryAt(row) {
         return layout[row] || ({ page: 0, turn: 0 })
@@ -210,7 +242,9 @@ FocusScope {
     // The key PdfDrawing opened this PDF under, for its pages' images; empty while none is open.
     property string drawingKey
     function pageImage(source) {
-        return drawingKey.length ? "image://pdfpage/" + drawingKey + "/" + source : ""
+        if (!drawingKey.length) return ""
+        const hidden = removed.filter((r) => r.page === source).map((r) => r.index)
+        return "image://pdfpage/" + drawingKey + "/" + source + (hidden.length ? "/" + hidden.join(",") : "")
     }
     function draw() {
         stopDrawing()
@@ -252,6 +286,8 @@ FocusScope {
         for (let i = 0; i < doc.pageCount; ++i) list.push({ page: i, turn: 0 })
         return list
     }
+    // Whether the pages, as they show, differ from the file's.
+    property bool reordered: false
     function relayout() {
         let w = 1
         let same = layout.length === doc.pageCount
@@ -261,17 +297,37 @@ FocusScope {
             same = same && layout[i].page === i && layout[i].turn === 0
         }
         widest = w
-        dirty = !same
+        reordered = !same
+        updateDirty()
         pages.forceLayout()
         if (fitting.length) fit()
+    }
+    function updateDirty() {
+        dirty = reordered || added.length > 0 || removed.length > 0
+    }
+    // What undo and redo step between: the pages and the marks, together.
+    function snapshot() {
+        return { layout: layout, added: added, removed: removed }
+    }
+    function restore(state) {
+        const moved = state.layout !== layout
+        layout = state.layout
+        added = state.added
+        removed = state.removed
+        chosen = null
+        relayout()
+        if (moved) goTo(Math.min(page, layout.length - 1))
+    }
+    function record() {
+        undoStack = undoStack.concat([snapshot()])
+        redoStack = []
     }
     function change(next, then) {
         if (!editable) {
             say(locked || triedPassword.length ? qsTr("A locked PDF is read here, not changed.") : qsTr("This PDF's pages cannot be changed here."))
             return
         }
-        undoStack = undoStack.concat([layout])
-        redoStack = []
+        record()
         layout = next
         relayout()
         goTo(then)
@@ -300,19 +356,240 @@ FocusScope {
     }
     function undo() {
         if (!undoStack.length) return
-        redoStack = [layout].concat(redoStack)
-        layout = undoStack[undoStack.length - 1]
+        redoStack = [snapshot()].concat(redoStack)
+        const state = undoStack[undoStack.length - 1]
         undoStack = undoStack.slice(0, -1)
-        relayout()
-        goTo(Math.min(page, layout.length - 1))
+        restore(state)
     }
     function redo() {
         if (!redoStack.length) return
-        undoStack = undoStack.concat([layout])
-        layout = redoStack[0]
+        undoStack = undoStack.concat([snapshot()])
+        const state = redoStack[0]
         redoStack = redoStack.slice(1)
-        relayout()
-        goTo(Math.min(page, layout.length - 1))
+        restore(state)
+    }
+
+    // Marking up. Each change is a step undone and redone with the pages' own, written only when the PDF is saved.
+    function canMark() {
+        if (editable) return true
+        say(locked || triedPassword.length ? qsTr("A locked PDF is read here, not marked.") : qsTr("This PDF cannot be marked here."))
+        return false
+    }
+    function markChange(nextAdded, nextRemoved) {
+        if (!canMark()) return false
+        record()
+        added = nextAdded
+        removed = nextRemoved
+        updateDirty()
+        return true
+    }
+    function addMark(mark) {
+        mark.id = ++markIds
+        if (!markChange(added.concat([mark]), removed)) return
+        chosen = mark.kind === "note" || mark.kind === "signature" ? { from: "added", id: mark.id } : null
+    }
+    function addedMark(id) {
+        return added.find((m) => m.id === id)
+    }
+    function replaced(id, change) {
+        return added.map((m) => m.id === id ? Object.assign({}, m, change) : m)
+    }
+    // The PDF's own marks on a page of the file, read the first time the page is asked for. `held` starts afresh with each
+    // file and each save, and what reads it reads again.
+    function heldOn(source) {
+        if (!(source in held)) held[source] = PdfMarks.read(path, triedPassword, source)
+        return held[source]
+    }
+    function isRemoved(own) {
+        return removed.some((r) => r.page === own.page && r.index === own.index)
+    }
+    function isChosenAdded(id) {
+        return chosen !== null && chosen.from === "added" && chosen.id === id
+    }
+    function isChosenHeld(own) {
+        return chosen !== null && chosen.from === "held" && chosen.page === own.page && chosen.index === own.index
+    }
+    function toggleMarking() {
+        if (!ready || !editable) return
+        marking = !marking
+        if (!marking) {
+            tool = ""
+            chosen = null
+        }
+    }
+    function markWords(kind) {
+        if (!ready) return
+        const rects = selecting ? PdfMarks.rectsOf(selecting.geometry) : []
+        if (!rects.length) {
+            say(qsTr("Select words first, by dragging across them."))
+            return
+        }
+        addMark({ kind: kind, page: selecting.page, colour: wordsColour, rects: rects })
+        selecting.clear()
+        selectedText = ""
+    }
+    // A point of the view (in its pixels) on the page in view, in the page's points, kept on the page.
+    function onPage(viewX, viewY, width, height) {
+        const item = pageItem(page)
+        const size = doc.pagePointSize(currentSource)
+        const at = item ? item.paper.mapFromItem(pages, viewX, viewY) : Qt.point(0, 0)
+        return Qt.point(Math.max(0, Math.min(size.width - width, at.x / zoom)), Math.max(0, Math.min(size.height - height, at.y / zoom)))
+    }
+    // A mark placed by hand, kept on its page.
+    function keptOn(mark, x, y, width) {
+        const size = doc.pagePointSize(mark.page)
+        const signature = mark.kind === "signature"
+        const w = signature ? width : PdfMarks.noteSize
+        const h = signature ? width * mark.height / mark.width : PdfMarks.noteSize
+        const kept = { x: Math.max(0, Math.min(size.width - w, x)), y: Math.max(0, Math.min(size.height - h, y)) }
+        if (signature) {
+            kept.width = w
+            kept.height = h
+        }
+        return kept
+    }
+    function placeNote() {
+        if (!ready) return
+        if (!canMark()) return
+        const at = onPage(32, 32, PdfMarks.noteSize, PdfMarks.noteSize)
+        noteDraft = { kind: "note", page: currentSource, x: at.x, y: at.y, colour: wordsColour, text: "" }
+        openNote({ from: "draft" }, "")
+    }
+    function openNote(source, words) {
+        noteEditor.source = source
+        noteText.text = words
+        noteEditor.visible = true
+        if (source.from !== "held") noteText.forceActiveFocus()
+    }
+    function closeNote(keep) {
+        const source = noteEditor.source
+        const words = noteText.text
+        const draft = noteDraft
+        noteEditor.visible = false
+        noteEditor.source = null
+        noteDraft = null
+        if (keep && source && source.from === "draft" && words.trim().length)
+            addMark({ kind: "note", page: draft.page, x: draft.x, y: draft.y, colour: draft.colour, text: words })
+        else if (keep && source && source.from === "added" && addedMark(source.id) && addedMark(source.id).text !== words)
+            markChange(replaced(source.id, { text: words }), removed)
+        rest()
+    }
+    function removeNote() {
+        const source = noteEditor.source
+        closeNote(false)
+        if (!source) return
+        chosen = source.from === "added" ? { from: "added", id: source.id } : { from: "held", page: source.mark.page, index: source.mark.index }
+        removeChosen()
+    }
+    function toggleInk() {
+        if (!ready) return
+        if (!canMark()) return
+        tool = tool === "ink" ? "" : "ink"
+        chosen = null
+        if (tool === "ink") marking = true
+    }
+    // A line drawn by hand: points in the page's points, one at least three quarters of a point from the last.
+    function inkFrom(source, at) {
+        inking = { page: source, points: [Qt.point(at.x / zoom, at.y / zoom)] }
+    }
+    function inkTo(at) {
+        if (!inking) return
+        const p = Qt.point(at.x / zoom, at.y / zoom)
+        const last = inking.points[inking.points.length - 1]
+        if (Math.hypot(p.x - last.x, p.y - last.y) < 0.75) return
+        inking = { page: inking.page, points: inking.points.concat([p]) }
+    }
+    function inkDone() {
+        const line = inking
+        inking = null
+        if (!line) return
+        addMark({ kind: "ink", page: line.page, colour: penColour, width: 2,
+                  strokes: [line.points.length > 1 ? line.points : [line.points[0], line.points[0]]] })
+    }
+    function sign() {
+        if (!ready) return
+        if (!canMark()) return
+        tool = ""
+        signing.colour = penColour
+        signing.open()
+    }
+    // Placed in the middle of the page in view, no wider than 180 points and no higher than 72.
+    function placeSignature(signature) {
+        let width = Math.min(180, doc.pagePointSize(currentSource).width * 0.35)
+        if (width / signature.aspect > 72) width = 72 * signature.aspect
+        const height = width / signature.aspect
+        const at = onPage(pages.width / 2, pages.height / 2, 0, 0)
+        const placed = { kind: "signature", page: currentSource, colour: signature.colour, x: at.x - width / 2, y: at.y - height / 2,
+                         width: width, height: height }
+        Object.assign(placed, keptOn(placed, placed.x, placed.y, width))
+        if (signature.strokes) {
+            placed.strokes = signature.strokes
+            placed.line = signature.line
+        } else {
+            placed.shapes = signature.shapes
+        }
+        penColour = signature.colour
+        addMark(placed)
+        say(qsTr("A picture of your signature: it does not certify the PDF. Drag it into place."))
+        rest()
+    }
+    // Choosing a mark, moving it, sizing it and taking it away.
+    function chooseAdded(id) {
+        const mark = addedMark(id)
+        if (!mark) return
+        chosen = { from: "added", id: id }
+        if (mark.kind === "note") openNote({ from: "added", id: id }, mark.text)
+    }
+    function chooseHeld(own) {
+        chosen = { from: "held", page: own.page, index: own.index }
+        if (own.kind === "note") openNote({ from: "held", mark: own }, own.text)
+    }
+    // A tap on a page, not on a mark (a mark keeps its taps to itself), lets go of what was chosen and of a note being
+    // read; a note being written stays.
+    function tappedPage() {
+        if (noteEditor.visible && !noteEditor.writable) closeNote(false)
+        if (!noteEditor.visible) chosen = null
+    }
+    function moveStart(id) {
+        const mark = addedMark(id)
+        if (!mark) return
+        chosen = { from: "added", id: id }
+        dragged = { id: id, dx: 0, dy: 0, width: 0 }
+    }
+    function moveBy(id, dx, dy) {
+        if (dragged && dragged.id === id) dragged = { id: id, dx: dx, dy: dy, width: dragged.width }
+    }
+    function sizeTo(id, width) {
+        if (dragged && dragged.id === id) dragged = { id: id, dx: dragged.dx, dy: dragged.dy, width: Math.max(24, width) }
+    }
+    function moveEnd(id) {
+        const step = dragged
+        dragged = null
+        const mark = addedMark(id)
+        if (!step || step.id !== id || !mark || (!step.dx && !step.dy && !step.width)) return
+        markChange(replaced(id, keptOn(mark, mark.x + step.dx, mark.y + step.dy, step.width || mark.width)), removed)
+    }
+    // The arrows move a chosen note or signature by a point, or ten with Shift; [ and ] size a signature.
+    function nudge(dx, dy) {
+        const mark = chosen && chosen.from === "added" ? addedMark(chosen.id) : null
+        if (!mark || (mark.kind !== "note" && mark.kind !== "signature")) return false
+        markChange(replaced(mark.id, keptOn(mark, mark.x + dx, mark.y + dy, mark.width)), removed)
+        return true
+    }
+    function resizeChosen(by) {
+        const mark = chosen && chosen.from === "added" ? addedMark(chosen.id) : null
+        if (!mark || mark.kind !== "signature") return
+        const width = Math.max(24, mark.width * by)
+        markChange(replaced(mark.id, keptOn(mark, mark.x + (mark.width - width) / 2, mark.y + (mark.height - width * mark.height / mark.width) / 2, width)), removed)
+    }
+    function removeChosen() {
+        if (!chosen) return false
+        const gone = chosen
+        chosen = null
+        if (noteEditor.visible) closeNote(false)
+        if (gone.from === "added") markChange(added.filter((m) => m.id !== gone.id), removed)
+        else if (!isRemoved(gone)) markChange(added, removed.concat([{ page: gone.page, index: gone.index }]))
+        return true
     }
     // Write the change to the file. Qt PDF holds the file it shows, so a copy is shown while the file is replaced; then
     // the file is opened again, at the same page. On failure the change stays, unsaved, and the file is as it was.
@@ -334,7 +611,7 @@ FocusScope {
             say(qsTr("There was no room to save. The PDF is as it was."))
             return done(false)
         }
-        saveJob = { copy: copy, entries: layout.map((e) => ({ page: e.page, turn: e.turn })), then: done }
+        saveJob = { copy: copy, entries: layout.map((e) => ({ page: e.page, turn: e.turn })), added: added, removed: removed, then: done }
         returnTo = page
         swapping = true
         // The view lets its pages go now rather than at its next frame, so they are gone by the next turn.
@@ -346,10 +623,14 @@ FocusScope {
         stopDrawing()
         saving = true
         doc.source = job.copy
-        const saved = writer.save(path, job.entries)
+        const saved = writer.save(path, job.entries, job.added, job.removed)
         saving = false
         keepLayout = !saved
         if (saved) {
+            added = []
+            removed = []
+            chosen = null
+            reordered = false
             dirty = false
             undoStack = []
             redoStack = []
@@ -390,6 +671,9 @@ FocusScope {
         }
         if (choice === "discard") {
             layout = identity()
+            added = []
+            removed = []
+            chosen = null
             undoStack = []
             redoStack = []
             relayout()
@@ -416,6 +700,18 @@ FocusScope {
         layout = []
         undoStack = []
         redoStack = []
+        added = []
+        removed = []
+        held = ({})
+        chosen = null
+        tool = ""
+        inking = null
+        dragged = null
+        noteDraft = null
+        noteEditor.visible = false
+        noteEditor.source = null
+        signing.visible = false
+        reordered = false
         dirty = false
         editable = false
         keepLayout = false
@@ -447,6 +743,8 @@ FocusScope {
                 if (!reader.keepLayout) reader.layout = reader.identity()
                 reader.keepLayout = false
                 reader.editable = !reader.triedPassword.length && writer.changeable(reader.path)
+                if (!reader.editable) reader.marking = false
+                reader.held = ({})
                 reader.draw()
                 reader.relayout()
                 const back = reader.returnTo
@@ -523,6 +821,7 @@ FocusScope {
         IconButton { iconName: "zoomout"; visible: reader.ready; ToolTip.text: qsTr("Zoom out (-)"); onClicked: reader.zoomBy(0.8, pages.width / 2, pages.height / 2) }
         IconButton { iconName: "zoomin"; visible: reader.ready; ToolTip.text: qsTr("Zoom in (+)"); onClicked: reader.zoomBy(1.25, pages.width / 2, pages.height / 2) }
         IconButton { iconName: "fit"; visible: reader.ready; ToolTip.text: reader.fitting === "width" ? qsTr("Whole page (0)") : qsTr("Fit the width (0)"); onClicked: reader.cycleFit() }
+        IconButton { objectName: "markUp"; iconName: "markup"; visible: reader.ready && reader.editable; active: reader.marking; ToolTip.text: qsTr("Mark up (M)"); onClicked: reader.toggleMarking() }
         IconButton { objectName: "turnPage"; iconName: "rotate"; visible: reader.ready && reader.editable; ToolTip.text: qsTr("Turn the page (R)"); onClicked: reader.turnPage(1) }
         IconButton { objectName: "deletePage"; iconName: "delete"; visible: reader.ready && reader.editable; ToolTip.text: qsTr("Delete the page (Delete)"); onClicked: reader.deletePage() }
         IconButton { iconName: "undo"; visible: reader.undoStack.length > 0; ToolTip.text: qsTr("Undo (Ctrl+Z)"); onClicked: reader.undo() }
@@ -531,12 +830,35 @@ FocusScope {
         IconButton { iconName: "open"; ToolTip.text: qsTr("Open with another program"); onClicked: Files.openElsewhere(reader.path) }
     }
 
+    MarkupBar {
+        id: markupBar
+        visible: reader.marking && reader.ready && reader.editable
+        height: visible ? implicitHeight : 0
+        implicitHeight: 52
+        anchors { left: parent.left; right: parent.right; top: bar.bottom }
+        hasWords: reader.selectedText.length > 0
+        drawing: reader.tool === "ink"
+        hasChosen: reader.chosen !== null
+        wordsColour: reader.wordsColour
+        penColour: reader.penColour
+        hint: reader.markHint
+        onMarked: (kind) => reader.markWords(kind)
+        onNoted: reader.placeNote()
+        onDrew: reader.toggleInk()
+        onSigned: reader.sign()
+        onRemoved: reader.removeChosen()
+        onColoured: (colour) => {
+            if (reader.tool === "ink") reader.penColour = colour
+            else reader.wordsColour = colour
+        }
+    }
+
     // Beside the pages: each page small, and the PDF's contents when it has them.
     Rectangle {
         id: side
         visible: reader.panel && reader.ready
         width: visible ? 216 : 0
-        anchors { left: parent.left; top: bar.bottom; bottom: status.top }
+        anchors { left: parent.left; top: markupBar.bottom; bottom: status.top }
         color: Theme.base
 
         RowLayout {
@@ -715,9 +1037,11 @@ FocusScope {
         id: pages
         objectName: "pages"
         visible: reader.ready
-        anchors { left: side.right; right: parent.right; top: bar.bottom; bottom: status.top }
+        anchors { left: side.right; right: parent.right; top: markupBar.bottom; bottom: status.top }
         clip: true
         model: reader.pageCount
+        // Drawing by hand, a drag draws rather than scrolls.
+        interactive: reader.tool !== "ink"
         rowSpacing: 12
         topMargin: reader.margin
         bottomMargin: reader.margin
@@ -741,6 +1065,7 @@ FocusScope {
             readonly property var entry: reader.entryAt(row)
             readonly property size points: doc.pagePointSize(entry.page)
             property alias selection: selection
+            property alias paper: paper
 
             // The paper: a Rectangle's own white, the colour a PDF is drawn on, on the edge it sits on; turned as the page is,
             // with everything on it.
@@ -796,18 +1121,33 @@ FocusScope {
 
                 DragHandler {
                     id: drag
+                    enabled: reader.tool !== "ink"
                     acceptedDevices: PointerDevice.Mouse | PointerDevice.Stylus
                     target: null
                     onActiveChanged: if (active) {
                         if (reader.selecting && reader.selecting !== selection) reader.selecting.clear()
                         reader.selecting = selection
+                        reader.chosen = null
                         reader.rest()
                     }
                 }
                 TapHandler {
                     id: tap
                     acceptedDevices: PointerDevice.Mouse | PointerDevice.Stylus
-                    onTapped: reader.rest()
+                    onTapped: {
+                        reader.rest()
+                        reader.tappedPage()
+                    }
+                }
+                // Drawing by hand: with the mouse, a pen or a finger.
+                DragHandler {
+                    id: inkHandler
+                    enabled: reader.tool === "ink"
+                    acceptedDevices: PointerDevice.Mouse | PointerDevice.Stylus | PointerDevice.TouchScreen
+                    target: null
+                    dragThreshold: 0
+                    onActiveChanged: active ? reader.inkFrom(holder.entry.page, centroid.pressPosition) : reader.inkDone()
+                    onCentroidChanged: if (active) reader.inkTo(centroid.position)
                 }
                 WheelHandler {
                     acceptedModifiers: Qt.ControlModifier
@@ -850,6 +1190,74 @@ FocusScope {
                                                          : reader.followable(linkArea.url) ? String(linkArea.url) : qsTr("QOR Media does not follow this link")
                         HoverHandler { id: linkHover; cursorShape: Qt.PointingHandCursor }
                         TapHandler { onTapped: reader.follow(linkArea) }
+                    }
+                }
+
+                // The PDF's own marks, drawn in the page's image: chosen by a tap while marking up, and a note's words read
+                // by a tap at any time.
+                Repeater {
+                    model: reader.heldOn(holder.entry.page).filter((m) => !reader.isRemoved(m))
+                    delegate: Item {
+                        id: own
+                        objectName: "ownMark"
+                        required property var modelData
+                        x: modelData.rect.x * reader.zoom
+                        y: modelData.rect.y * reader.zoom
+                        width: Math.max(8, modelData.rect.width * reader.zoom)
+                        height: Math.max(8, modelData.rect.height * reader.zoom)
+                        enabled: reader.tool !== "ink" && (reader.marking || modelData.kind === "note")
+                        Rectangle {
+                            anchors { fill: parent; margins: -3 }
+                            visible: reader.isChosenHeld(own.modelData)
+                            color: "transparent"
+                            border.width: 2
+                            border.color: Theme.accent
+                        }
+                        // Its own press, as a mark made here has (MarkItem): the page under it hears no tap.
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: reader.chooseHeld(own.modelData)
+                        }
+                    }
+                }
+                // The marks made here, not yet saved, as they will be written; and a note being written.
+                Repeater {
+                    model: reader.added.filter((m) => m.page === holder.entry.page)
+                    delegate: MarkItem {
+                        required property var modelData
+                        mark: modelData
+                        zoom: reader.zoom
+                        chosen: reader.isChosenAdded(modelData.id)
+                        live: reader.tool !== "ink"
+                        shift: reader.dragged && reader.dragged.id === modelData.id ? Qt.point(reader.dragged.dx, reader.dragged.dy) : Qt.point(0, 0)
+                        sizedTo: reader.dragged && reader.dragged.id === modelData.id ? reader.dragged.width : 0
+                        onPicked: reader.chooseAdded(modelData.id)
+                        onMoveStarted: reader.moveStart(modelData.id)
+                        onMoved: (dx, dy) => reader.moveBy(modelData.id, dx, dy)
+                        onSized: (width) => reader.sizeTo(modelData.id, width)
+                        onMoveEnded: reader.moveEnd(modelData.id)
+                    }
+                }
+                MarkItem {
+                    visible: reader.noteDraft !== null && reader.noteDraft.page === holder.entry.page
+                    mark: reader.noteDraft || ({ kind: "note", x: 0, y: 0, colour: reader.wordsColour })
+                    zoom: reader.zoom
+                    chosen: true
+                    live: false
+                }
+                // A line as it is drawn.
+                Shape {
+                    anchors.fill: parent
+                    visible: reader.inking !== null && reader.inking.page === holder.entry.page
+                    ShapePath {
+                        strokeColor: reader.penColour
+                        strokeWidth: 2 * reader.zoom
+                        fillColor: "transparent"
+                        capStyle: ShapePath.RoundCap
+                        joinStyle: ShapePath.RoundJoin
+                        scale: Qt.size(reader.zoom, reader.zoom)
+                        PathPolyline { path: reader.inking && reader.inking.page === holder.entry.page ? reader.inking.points : [] }
                     }
                 }
             }
@@ -958,6 +1366,77 @@ FocusScope {
         }
     }
 
+    // A note's words: written for a new note or one made here, read for one the PDF holds. Ctrl+Return keeps them, Esc
+    // leaves them as they were.
+    Rectangle {
+        id: noteEditor
+        objectName: "noteEditor"
+        // {from: "draft"}, {from: "added", id} or {from: "held", mark}.
+        property var source: null
+        readonly property bool writable: source !== null && source.from !== "held"
+        visible: false
+        anchors { right: parent.right; top: markupBar.bottom; rightMargin: 24; topMargin: 8 }
+        width: 380
+        height: 248
+        radius: Theme.radiusPanel
+        color: Theme.raised
+        border.color: Theme.edge
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 16
+            spacing: 8
+            Text {
+                Layout.fillWidth: true
+                elide: Text.ElideRight
+                text: noteEditor.source && noteEditor.source.from === "held" && noteEditor.source.mark.author.length
+                      ? qsTr("Note from %1").arg(noteEditor.source.mark.author) : qsTr("Note")
+                color: Theme.ink
+                font.family: Theme.ui
+                font.pixelSize: Theme.sizeHeading
+                font.weight: Font.DemiBold
+            }
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                TextArea {
+                    id: noteText
+                    objectName: "noteText"
+                    readOnly: !noteEditor.writable
+                    wrapMode: TextEdit.Wrap
+                    placeholderText: noteEditor.writable ? qsTr("What the note says") : ""
+                    color: Theme.ink
+                    placeholderTextColor: Theme.inkFaint
+                    font.family: Theme.text
+                    font.pixelSize: Theme.sizeBody
+                    background: Rectangle { radius: Theme.radiusControl; color: Theme.well; border.color: noteText.activeFocus ? Theme.focus : Theme.edge }
+                    Keys.onPressed: (event) => {
+                        if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && (event.modifiers & Qt.ControlModifier)) {
+                            reader.closeNote(true)
+                            event.accepted = true
+                        }
+                    }
+                }
+            }
+            RowLayout {
+                Layout.alignment: Qt.AlignRight
+                spacing: 8
+                TextButton { objectName: "noteRemove"; text: qsTr("Take away"); visible: reader.editable && noteEditor.source !== null && noteEditor.source.from !== "draft"; onClicked: reader.removeNote() }
+                TextButton { objectName: "noteClose"; text: noteEditor.writable ? qsTr("Cancel") : qsTr("Close"); onClicked: reader.closeNote(false) }
+                TextButton { objectName: "noteDone"; text: qsTr("Done"); primary: true; visible: noteEditor.writable; onClicked: reader.closeNote(true) }
+            }
+        }
+    }
+
+    SignaturePad {
+        id: signing
+        anchors.centerIn: parent
+        onPlaced: (signature) => reader.placeSignature(signature)
+        onCancelled: {
+            signing.visible = false
+            reader.rest()
+        }
+    }
+
     // Changes not yet saved, before going.
     Rectangle {
         id: asking
@@ -974,7 +1453,7 @@ FocusScope {
             anchors.margins: 22
             spacing: 8
             Text { text: qsTr("Save the changes to %1?").arg(Files.nameOf(reader.path)); color: Theme.ink; font.family: Theme.ui; font.pixelSize: Theme.sizeHeading; font.weight: Font.DemiBold; Layout.fillWidth: true; elide: Text.ElideMiddle }
-            Text { text: qsTr("Its pages go back as they were if you don't."); color: Theme.inkMuted; font.family: Theme.text; font.pixelSize: Theme.sizeBody }
+            Text { text: qsTr("Its pages and marks go back as they were if you don't."); color: Theme.inkMuted; font.family: Theme.text; font.pixelSize: Theme.sizeBody }
             Item { Layout.fillHeight: true }
             RowLayout {
                 Layout.alignment: Qt.AlignRight
@@ -1026,24 +1505,33 @@ FocusScope {
     }
 
     Keys.onPressed: (event) => {
-        if (!reader.ready || asking.visible) return
+        if (!reader.ready || asking.visible || signing.visible || noteText.activeFocus) return
         const wide = pages.contentWidth > pages.width + 1
         const alt = event.modifiers & Qt.AltModifier
+        const step = event.modifiers & Qt.ShiftModifier ? 10 : 1
         switch (event.key) {
         case Qt.Key_PageDown: reader.scrollBy(pages.height * 0.9); break
         case Qt.Key_PageUp: reader.scrollBy(-pages.height * 0.9); break
         case Qt.Key_Space: reader.scrollBy((event.modifiers & Qt.ShiftModifier ? -1 : 1) * pages.height * 0.9); break
-        case Qt.Key_Down: if (alt) reader.movePage(1); else reader.scrollBy(48); break
-        case Qt.Key_Up: if (alt) reader.movePage(-1); else reader.scrollBy(-48); break
-        case Qt.Key_Right: if (wide) { pages.contentX += 48; reader.clamp() } else reader.goTo(reader.page + 1); break
-        case Qt.Key_Left: if (wide) { pages.contentX -= 48; reader.clamp() } else reader.goTo(reader.page - 1); break
+        case Qt.Key_Down: if (alt) reader.movePage(1); else if (!reader.nudge(0, step)) reader.scrollBy(48); break
+        case Qt.Key_Up: if (alt) reader.movePage(-1); else if (!reader.nudge(0, -step)) reader.scrollBy(-48); break
+        case Qt.Key_Right: if (reader.nudge(step, 0)) break; if (wide) { pages.contentX += 48; reader.clamp() } else reader.goTo(reader.page + 1); break
+        case Qt.Key_Left: if (reader.nudge(-step, 0)) break; if (wide) { pages.contentX -= 48; reader.clamp() } else reader.goTo(reader.page - 1); break
         case Qt.Key_Home: reader.goTo(0); break
         case Qt.Key_End: reader.goTo(reader.pageCount - 1); break
         case Qt.Key_Plus: case Qt.Key_Equal: reader.zoomBy(1.25, pages.width / 2, pages.height / 2); break
         case Qt.Key_Minus: reader.zoomBy(0.8, pages.width / 2, pages.height / 2); break
         case Qt.Key_0: reader.cycleFit(); break
         case Qt.Key_R: reader.turnPage(event.modifiers & Qt.ShiftModifier ? -1 : 1); break
-        case Qt.Key_Delete: reader.deletePage(); break
+        case Qt.Key_Delete: if (!reader.removeChosen()) reader.deletePage(); break
+        case Qt.Key_M: reader.toggleMarking(); break
+        case Qt.Key_H: reader.markWords("highlight"); break
+        case Qt.Key_U: reader.markWords("underline"); break
+        case Qt.Key_X: reader.markWords("strikeout"); break
+        case Qt.Key_N: reader.placeNote(); break
+        case Qt.Key_D: reader.toggleInk(); break
+        case Qt.Key_BracketLeft: reader.resizeChosen(0.9); break
+        case Qt.Key_BracketRight: reader.resizeChosen(1 / 0.9); break
         case Qt.Key_F: reader.fullScreenToggled(); break
         case Qt.Key_F9: reader.panel = !reader.panel; break
         default: return
@@ -1051,23 +1539,28 @@ FocusScope {
         event.accepted = true
     }
 
-    Shortcut { sequences: [StandardKey.Find]; enabled: reader.ready && !asking.visible; onActivated: reader.openFinder() }
+    Shortcut { sequences: [StandardKey.Find]; enabled: reader.ready && !asking.visible && !signing.visible; onActivated: reader.openFinder() }
     Shortcut { sequence: "F3"; enabled: finder.visible; onActivated: reader.step(1) }
     Shortcut { sequence: "Shift+F3"; enabled: finder.visible; onActivated: reader.step(-1) }
-    Shortcut { sequence: "Ctrl+G"; enabled: reader.ready && !asking.visible; onActivated: pageField.forceActiveFocus() }
+    Shortcut { sequence: "Ctrl+G"; enabled: reader.ready && !asking.visible && !signing.visible; onActivated: pageField.forceActiveFocus() }
     Shortcut { sequences: [StandardKey.Copy]; enabled: reader.ready; onActivated: reader.copy() }
-    Shortcut { sequences: [StandardKey.SelectAll]; enabled: reader.ready && !asking.visible; onActivated: reader.selectPage() }
-    Shortcut { sequences: [StandardKey.Undo]; enabled: reader.ready && !asking.visible; onActivated: reader.undo() }
-    Shortcut { sequences: [StandardKey.Redo]; enabled: reader.ready && !asking.visible; onActivated: reader.redo() }
-    Shortcut { sequences: [StandardKey.Save]; enabled: reader.ready; onActivated: asking.visible ? reader.answered("save") : reader.save() }
+    Shortcut { sequences: [StandardKey.SelectAll]; enabled: reader.ready && !asking.visible && !signing.visible; onActivated: reader.selectPage() }
+    Shortcut { sequences: [StandardKey.Undo]; enabled: reader.ready && !asking.visible && !signing.visible; onActivated: reader.undo() }
+    Shortcut { sequences: [StandardKey.Redo]; enabled: reader.ready && !asking.visible && !signing.visible; onActivated: reader.redo() }
+    Shortcut { sequences: [StandardKey.Save]; enabled: reader.ready && !signing.visible; onActivated: asking.visible ? reader.answered("save") : reader.save() }
     Shortcut {
         // Only when there is something to close first; otherwise the window's Esc goes back.
         sequence: "Esc"
         enabled: reader.consumesEscape
         onActivated: {
             if (asking.visible) reader.answered("cancel")
+            else if (signing.visible) signing.cancelled()
+            else if (noteEditor.visible) reader.closeNote(false)
             else if (finder.visible) reader.closeFinder()
             else if (pageField.activeFocus) reader.rest()
+            else if (reader.tool.length) reader.tool = ""
+            else if (reader.chosen !== null) reader.chosen = null
+            else if (reader.marking) reader.toggleMarking()
             else reader.goBack()
         }
     }

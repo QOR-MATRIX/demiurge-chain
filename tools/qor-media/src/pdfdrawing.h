@@ -3,6 +3,8 @@
 // Qt PDF's page image in QML draws a page without its annotations: highlights, notes, stamps, drawings and a form's
 // filled fields do not show. Qt PDF's QPdfDocument draws them when asked, so the reader's pages are images drawn here,
 // through an image provider the engine knows as "pdfpage": `image://pdfpage/<key>/<page>`, as wide as the image asks.
+// `image://pdfpage/<key>/<page>/<hidden>` draws it without some of its marks, those the reader is taking away (their
+// places among the page's annotations, by commas), through QOR Media's own PDFium, since Qt PDF draws all or none.
 //
 // A key names a PDF opened here, with its password when it has one; the password stays here and never reaches a URL.
 // Closing a key lets go of its file at once, as saving needs. What a key opened is closed when the PdfDrawing that
@@ -40,8 +42,8 @@ public:
     Q_INVOKABLE void close(const QString &key);
 
     /// Draw `page` of what `key` opened, `width` pixels wide (its printed width at 96 dots an inch when 0), with its
-    /// marks: what the image provider does. A null image when the key or the page is unknown.
-    static QImage draw(const QString &key, int page, int width);
+    /// marks but those `hidden` names: what the image provider does. A null image when the key or the page is unknown.
+    static QImage draw(const QString &key, int page, int width, const QList<int> &hidden = {});
     /// How many PDFs are open for drawing, in every engine: none once every reader has gone.
     static int openCount();
 
