@@ -22,12 +22,12 @@ service*; **ARQADE** — *the gaming website*. **Launcher 0.1.16** is the tester
 2. **CI's security check went red** on a flaw in a crypto library the Polkadot SDK brings in;
    none of our code uses that part. **You chose the guarded ignore** (ADR-115). It is **#88**
    — *a pull request, a change for you to merge* — and every check on it passes.
-3. **Orbital, Void Runner and Synapse, three of ARQADE's four games rebuilt in 3D (P7.20),
-   play inside ARQADE's app.** Each game's rules are kept in one small file that the game and a plain
+3. **All four of ARQADE's games are rebuilt in 3D (P7.20) and play inside ARQADE's app:**
+   Orbital, Void Runner, Synapse and Rift Survivor. Each game's rules are kept in one small file that the game and a plain
    script both run, so a recorded game replays to the same score in each. That is how
    ARQADE's server will confirm a run before paying Sparks (P7.22). Tests play both by mouse,
-   keyboard and a simulated gamepad. Orbital is **#89**, Void Runner **#90**, Synapse a branch on
-   them.
+   keyboard and a simulated gamepad. They are **#89, #90, #91** and a fourth pull request, each
+   built on the one before.
    ARQADE's own games run without the lockdown that strangers' games get, because we wrote
    them; strangers' games still play only in a browser.
 4. **You authorised full automation.** Claude Code's own safety check still refuses to merge
@@ -44,7 +44,7 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 1. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
-2. **Merge #88, then #89, then #90** (all green or about to be). #88 makes CI's
+2. **Merge #88, then #89, #90, #91 and Rift Survivor's**, in order (each green or about to be). #88 makes CI's
    security check pass again. To let me merge, add a permission rule for `gh pr merge`.
 3. **Install 0.1.15 yourself, then take 0.1.16 when it offers it** (ticks L6.2). Then let a
    test agent ask you: in `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run
@@ -65,7 +65,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    pasted on 5 October; `social-secrets.txt` on your Desktop and `archive-bZLIQp/` in the
    old checkout, each to keep or delete.
 
-**Next in engineering:** Rift Survivor, the last of the four. At your
+**Next in engineering:** the two arenas in QQ (P7.24); the reward pool and confirmed runs
+(P7.21, P7.22) wait on your pool numbers. At your
 word: a launcher release carrying QOR Media's PDF work, assets' levels and the new games; filling
 the IRS's forms; certified signatures (ADR-114); records kept by games other than an
 asset's home game (ADR-113); or rental and fractions (M4.3).
