@@ -2012,7 +2012,13 @@ here sets an economic value; payouts are U-16.
     nodes light in a growing signal that the player repeats, eight to master it; its rules count the signal in steps.
     Tests: 10 in Node (77 in `npm test`), and `tst_games` 22 on the owner's PC. Three planted faults caught.
 
-    **Not yet:** Rift Survivor; ARQADE's deployed copy updated in the launcher.
+    **Rift Survivor built, 24 October 2026, on `session/arqade-rift-survivor`, on #91's head, not merged** (HANDOFF §4
+    item 145): an arena for ninety seconds, auto-fire, chains, fragments, rift pulses and perks; its rules the website's
+    step by step, with exact square roots and the spread's turns written in. Tests: 11 in Node (88 in `npm test`), and
+    `tst_games` 29 on the owner's PC. Two planted faults caught. **All four games are built**; the item is ticked once
+    they are merged.
+
+    **Not yet:** merged; ARQADE's deployed copy updated in the launcher.
 21. [ ] The platform reward pool on the devnet (ADR-102): ARQADE's own Cartridge and ARQ Wallet, funded with test CGT by
     the owner, whose policy (largest payout, epoch budget, per-player cap, the games' rule versions) the owner sets.
 22. [ ] Runs confirmed by replay (ADR-102): a seed from the ARQADE service, the run's inputs replayed by the service with
