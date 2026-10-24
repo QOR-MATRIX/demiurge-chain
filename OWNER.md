@@ -45,8 +45,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 3. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
-4. **For rewards in ARQADE:** the reward pool's numbers (largest payout, budget per epoch,
-   most per player), and a yes to how runs are confirmed (I'll write it up for you).
+4. **For rewards in ARQADE:** decide **ADR-116** — *how a run is confirmed before it is
+   paid* — and set the reward pool's numbers (largest payout, budget per epoch, most per player).
 5. **Install 0.1.15 yourself, then take 0.1.16 when it offers it** (ticks L6.2). Then let a
    test agent ask you: in `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run
    `cargo run --example agent_link` and press *Allow agent* (ticks L5.1).
