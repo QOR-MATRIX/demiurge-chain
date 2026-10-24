@@ -27,6 +27,11 @@ refused. An icon button takes `Qt.TabFocus`, so a click leaves the keyboard wher
 working; a button with words takes `Qt.StrongFocus`. Each weight a face is asked for is carried, since Qt answers a
 missing weight with another (Barlow's Medium for its Regular, drawn wide), and the tests ask which style was drawn.
 
+**What a document holds is not the look.** The marks QOR Media writes on a PDF take a PDF's colours (a highlighter's
+yellow, green, blue and pink, a pen's red and black, in `tools/qor-media/src/pdfmarks.cpp`), the same in every theme,
+since another reader shows them without Demiurge's; and a typed signature is drawn in Great Vibes, as outlines made in
+C++. Neither is a token, and no QML writes either: the QML takes them from `PdfMarks`, so `check-qml.mjs` still holds it.
+
 **In QML,** a property is never named `on` and a capital (`onAccent`): QML reads it as a signal handler. The ink on a
 filled control is `inkOnAccent` there.
 
