@@ -2010,6 +2010,10 @@ here sets an economic value; payouts are U-16.
     the owner, whose policy (largest payout, epoch budget, per-player cap, the games' rule versions) the owner sets.
 22. [ ] Runs confirmed by replay (ADR-102): a seed from the ARQADE service, the run's inputs replayed by the service with
     the same rules, and Sparks paid from the pool for the outcome the replay reaches, once. Depends on P7.20 and P7.21.
+
+    **Proposed, 24 October 2026:** ADR-116, how a run is confirmed (one run is one game on an issued seed, a rule version
+    is the SHA-256 of `rules.mjs`, what the service accepts, what a replay does not prove), for the owner to decide.
+    Its confirming half can be built once it is accepted; paying waits on P7.21.
 23. [ ] The website without Energy (ADR-102): the Energy store, Energy Tokens and local token wallet removed; its own
     games point to the launcher.
 
