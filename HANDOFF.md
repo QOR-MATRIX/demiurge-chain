@@ -4459,7 +4459,8 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
      - **Looked at, and fixed:** captures of the title, a miss, a pause and the result, from QQ's Player and from the
        suite (`ARQADE_SHOT`). A dot on the core was the lamp's highlight, so the lamp went. In play, bloom washed the
        amber arc to the satellite's white, which made the game unreadable; it is now gold. Every sound warned of mono
-       upmixing, so they are now written in stereo.
+       upmixing, so they are now written in stereo. A QQ Shape has a static physics body unless it says otherwise, so the
+       380 or so beads and stars Orbital spawns each had one; they now have none.
      - **Deploy:** `build.ps1 -Deploy` also scans QQ's runtime and the games, which import Qt Quick 3D's physics,
        particles and spatial audio and Qt Multimedia. A copy deployed to the scratchpad was 187 MiB, against 155 MiB for
        the launcher's copy of 18 October. `tst_games` passed when run from inside it with Qt's own folders off the

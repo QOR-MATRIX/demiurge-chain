@@ -36,9 +36,11 @@ Logic {
         return Qt.vector3d(Math.cos(angle) * (radius + (out || 0)), Math.sin(angle) * (radius + (out || 0)), 0)
     }
 
+    /// A bead of light: only looked at, so it has no body (a Shape's is static unless it says otherwise).
     function bead(name, angle, size, colour, glow) {
         return spawn("Shape", { name: name, position: at(angle), scale: Qt.vector3d(size, size, size), form: "sphere",
-                                colour: colour, metalness: 0, roughness: 0.4, emissive: colour, emissivePower: glow },
+                                colour: colour, metalness: 0, roughness: 0.4, emissive: colour, emissivePower: glow,
+                                body: "none" },
                      entity("Orbit"))
     }
 
@@ -114,7 +116,7 @@ Logic {
                              position: Qt.vector3d(Math.cos(turn) * across * far, up * far, Math.sin(turn) * across * far),
                              scale: Qt.vector3d(size, size, size), metalness: 0, roughness: 1,
                              colour: warm > 0.7 ? "#ffd9a8" : "#e8eeff", emissive: warm > 0.7 ? "#ffd9a8" : "#e8eeff",
-                             emissivePower: 1.5 + 7 * next() * next() })
+                             emissivePower: 1.5 + 7 * next() * next(), body: "none" })
         }
     }
 
