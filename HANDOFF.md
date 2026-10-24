@@ -7,8 +7,7 @@ progress records, `spec_version` 10) and #83 (QOR Media reads PDFs), all merged 
 Pull requests #1 to #87 are merged. **CI's security job failed on `main` from 24 October 2026 on a new advisory in the
 SDK's secp256k1 stack; ADR-115's guarded ignore, the owner's choice, is in pull request #88 (§4 item 141), green on
 every job.** **P7.20: all four games, Orbital, Void Runner, Synapse and Rift Survivor, rebuilt in QQ, play in ARQADE's Qt app,
-their rules replaying a run in QQ and in Node; #89 to #91 and the Rift Survivor branch wait on #88's merge, in order
-(§4 items 142 to 145).** **QOR ID runs ADR-112: an agent is authorised only by the
+their rules replaying a run in QQ and in Node; #89 to #92 wait on #88's merge, in order (§4 items 142 to 145).** **QOR ID runs ADR-112: an agent is authorised only by the
 controller's own key.** **Launcher 0.1.16 is published, the first release offered through the update channel**
 (`launcher-v0.1.16`; 0.1.15, the first that updates itself, before it). **The devnet runs runtime 10 since the owner's upgrade
 of 23 October 2026**: an asset's level, XP and stats are live. L9.5 is built and merged but certified signatures
@@ -4559,8 +4558,9 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        hull point: the pilot went two lanes over and its two presses reached consecutive ticks, so the ship sat for one
        tick in the middle lane as a hazard arrived there. It now waits, as a person would, for the middle lane to clear.
      - **The home** says the four games are rebuilt in 3D and all play here; the arenas' cards still open the website.
-     - **Next:** the owner merges #88 to #91 and this branch's pull request, in order; then the arenas (P7.24), or the
-       pool and confirmation (P7.21, P7.22), which wait on the owner's policy numbers.
+     - **Next:** the owner merges #88 to #91 and #92 (this branch), in order. Then the arenas (P7.24); the pool and
+       confirmation (P7.21, P7.22) need the owner's word first: the pool's policy numbers, and the confirmation's design
+       (what one run is, how a rule version is named, what the service accepts), which builds on ADR-102 decision 5.
 
 ## 5. Traps, so nobody re-learns them
 
