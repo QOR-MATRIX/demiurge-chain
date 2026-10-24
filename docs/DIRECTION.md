@@ -2008,7 +2008,11 @@ here sets an economic value; payouts are U-16.
     owner's PC, which steers Void Runner by the keys, the arrows, the pad and the screen's buttons. Two more planted
     faults caught, and a third (a tiny change to the rules) caught only once the state was pinned.
 
-    **Not yet:** Synapse and Rift Survivor; ARQADE's deployed copy updated in the launcher.
+    **Synapse built, 24 October 2026, on `session/arqade-synapse`, on #90's head, not merged** (HANDOFF §4 item 144): four
+    nodes light in a growing signal that the player repeats, eight to master it; its rules count the signal in steps.
+    Tests: 10 in Node (77 in `npm test`), and `tst_games` 22 on the owner's PC. Three planted faults caught.
+
+    **Not yet:** Rift Survivor; ARQADE's deployed copy updated in the launcher.
 21. [ ] The platform reward pool on the devnet (ADR-102): ARQADE's own Cartridge and ARQ Wallet, funded with test CGT by
     the owner, whose policy (largest payout, epoch budget, per-player cap, the games' rule versions) the owner sets.
 22. [ ] Runs confirmed by replay (ADR-102): a seed from the ARQADE service, the run's inputs replayed by the service with
