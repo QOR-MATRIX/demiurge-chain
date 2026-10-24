@@ -97,6 +97,22 @@ qt_add_resources(arqade_core "orbital"
         ../games/orbital/assets/complete.wav
         ../games/orbital/assets/lost.wav
 )
+qt_add_resources(arqade_core "void-runner"
+    PREFIX /games/void-runner
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/../games/void-runner"
+    FILES
+        ../games/void-runner/scenes/void-runner.qml
+        ../games/void-runner/logic/void-runner.qml
+        ../games/void-runner/logic/rules.mjs
+        ../games/void-runner/assets/collapse.hdr
+        ../games/void-runner/assets/run.wav
+        ../games/void-runner/assets/gem.wav
+        ../games/void-runner/assets/hit.wav
+        ../games/void-runner/assets/held.wav
+        ../games/void-runner/assets/shift.wav
+        ../games/void-runner/assets/complete.wav
+        ../games/void-runner/assets/lost.wav
+)
 
 qt_add_executable(arqade WIN32 src/main.cpp)
 target_link_libraries(arqade PRIVATE arqade_core arqade_coreplugin Qt6::GuiPrivate Qt6::QuickControls2)

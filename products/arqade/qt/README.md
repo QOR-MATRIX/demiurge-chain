@@ -6,7 +6,7 @@ over its ARQADE screen, under the launcher's product host, as QOR Media is docke
 [`docs/DIRECTION.md`](../../../docs/DIRECTION.md) tracks it.
 
 This is the shell: the home, the games, the arenas' rankings and the player's Sparks. The games themselves are being
-rebuilt in QQ (P7.20), in [`../games/`](../games/README.md). Orbital's rebuild has arrived and plays here. Until
+rebuilt in QQ (P7.20), in [`../games/`](../games/README.md). Orbital's and Void Runner's rebuilds have arrived and play here. Until
 another game's rebuild arrives, its card opens today's version in the launcher's ARQADE window.
 
 ## What it does
@@ -35,7 +35,7 @@ another game's rebuild arrives, its card opens today's version in the launcher's
 - **Shows the rankings** from `/api/live`: all games, Flux Four, or Rift Reversi, with the player's own row marked. It
   asks every 15 seconds at most, and only while it shows.
 - **Plays the games rebuilt in QQ** (`qml/GameView.qml`), on QQ's runtime, built into the app from
-  `products/qq/runtime`. Orbital's card opens the game in place of the home, under a bar with Back and the game's name.
+  `products/qq/runtime`. A rebuilt game's card opens it in place of the home, under a bar with Back and the game's name.
   Esc, or Back, puts it away and returns to the home; F11 still fills the screen. The launcher's reduced motion reaches
   the game as well as the home. Each play is kept as a run (QQ's `RunRecord`): its seed, what every tick took, and its
   outcome, which the game's rules replay. ARQADE's service will replay it before it confirms a run (P7.22); nothing is
@@ -98,14 +98,22 @@ pwsh products/arqade/qt/build.ps1 -Shots dir   # and save what the interface and
   Sparks, every game and arena, reduced motion holding it still, and a narrow window; and the one look: Theme equal to
   `tokens.json` value by value, every text the window shows in the look's faces, scale and colours (Barlow carried
   and drawn at its Regular), the primary's dark ink on ember and its focus ring. It needs a desktop session.
-- `tst_games`: Orbital's card opens the game in ARQADE's window (the other three still open the website), and Orbital is
-  played as a person plays it: the mouse on its Play and Resume buttons, Space and the pad's A to lock, and P and the
-  pad's Start to pause (the pad driven through QQ's input, with the PC's own pads not read). One lock outside the arc
-  misses, a pause holds the satellite still, and ten locks in the arc complete the orbit with a score of 2,000.
-  The run ARQADE kept replays in QQ, with no window, to the same outcome, and so does the run kept in
-  `../tests/fixtures/orbital-run.json`, which `../tests/orbital.test.mjs` replays with the rules in Node. The launcher's
-  reduced motion reaches the game, and Esc and Back each return to the home. With `ARQADE_RUN` set to a file, it writes
-  the run it played there, which is how the fixture was made. It needs a desktop session.
+- `tst_games`: Orbital's and Void Runner's cards open their games in ARQADE's window, from the keyboard (Synapse's and
+  Rift Survivor's still open the website). Each is played as a person plays it, the pad driven through QQ's input with
+  the PC's own pads not read:
+  - Orbital: the mouse on its Play and Resume buttons, Space and the pad's A to lock, and P and the pad's Start to
+    pause. One lock outside the arc misses, a pause holds the satellite still, and ten locks in the arc complete the
+    orbit with a score of 2,000.
+  - Void Runner: steered away from each hazard about to arrive and toward each gem, changing lane by the keys, the
+    arrows, the pad and the screen's Left and Right buttons in turn, until each has been used and a gem caught with the
+    hull whole; then steered into three hazards, which end the run.
+
+  The run ARQADE kept of each replays in QQ, with no window, to the same outcome, and so does each run kept in
+  `../tests/fixtures/`, which the game's Node test replays with its rules. The launcher's reduced motion reaches the
+  game, and Esc and Back each return to the home. With `ARQADE_RUN` set to a folder, it writes each run it played there
+  as `<game>-run.json`, which is how the fixtures were made. It needs a desktop session. A card is opened from the
+  keyboard because on Windows the real pointer, wherever it is, can take a synthetic one's hover and press away: one
+  run in about fifteen missed the card when it was clicked.
 
 `-Deploy` copies what QQ's runtime and the games import as well as ARQADE's own: Qt Quick 3D's physics, particles and
 spatial audio, and Qt Multimedia. On 24 October 2026 the deployed copy was 187 MiB, 32 MiB more than before the games,

@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import * as orbital from '../games/orbital/logic/rules.mjs';
 
 // Orbital's rules (P7.20, ADR-102): the same module the QQ game runs, here as ARQADE's service will run it to replay a
@@ -58,6 +59,14 @@ test('the run QQ kept as ARQADE played it replays here to the outcome QQ reached
  const first=run.edges.findIndex(([,list])=>list.some(([what,action])=>what==='pressed'&&action==='lock'));
  const later=run.edges.map((e,i)=>i===first?[e[0]+40,e[1]]:e);
  assert.notDeepEqual(orbital.replay({...run,edges:later}),run.outcome.Orbital);
+});
+test('the rules\' whole state at the end of the kept run is pinned, so no change to the rules passes unseen',()=>{
+ // A small change can leave one run's outcome as it was; its state at the end still moves. A change here is a new
+ // version of the rules: once ARQADE's service confirms runs (P7.22), runs kept under the old ones replay under those.
+ const run=JSON.parse(readFileSync(new URL('./fixtures/orbital-run.json',import.meta.url),'utf8'));
+ const edges=new Map(run.edges.map(([t,l])=>[t,l])),clicks=new Map(run.clicks.map(([t,l])=>[t,l])),g=orbital.create(run.seed);
+ for(let t=0;t<run.ticks;t++){for(const b of clicks.get(t)||[])orbital.click(g,b);for(const [w,a] of edges.get(t)||[])if(w==='pressed')orbital.press(g,a);orbital.step(g)}
+ assert.equal(createHash('sha256').update(JSON.stringify(g)).digest('hex'),'ae8835c6345e597a4dc30c1c50179be76ee92ea62359568885d37312b7f2506e');
 });
 test('the rules keep to arithmetic every machine computes alike: no sine, cosine, logarithm or power decides anything',()=>{
  const source=readFileSync(new URL('../games/orbital/logic/rules.mjs',import.meta.url),'utf8').replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/.*$/gm,'');
