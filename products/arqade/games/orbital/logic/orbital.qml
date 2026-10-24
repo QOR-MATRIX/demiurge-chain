@@ -11,6 +11,9 @@
 // here as play starts. QQ's world is held still only while the player pauses; on the title and at the end the core
 // still glows and its embers rise, and the rules, outside play, take no step. With less motion asked for (Look), the
 // core does not turn and the words do not swell; the satellite still moves, since it is the game.
+//
+// A lock and a miss are heard from the satellite, through QQ's spatial audio (`at`): panned to its side of the orbit and
+// heard through the eye. The ends of the orbit and the music are heard everywhere.
 
 import QQ
 import "rules.mjs" as Rules
@@ -150,18 +153,19 @@ Logic {
     onStep: {
         const before = { locks: game.locks, misses: game.misses, phase: game.phase }
         Rules.step(game)
+        const satellite = entity("Satellite")
+        const there = satellite ? satellite.scenePosition : null
         if (game.said === "locked") {
             placeArc()
-            play("../assets/lock.wav", { volume: 0.9 })
+            play("../assets/lock.wav", { volume: 0.9, at: there })
             said("ORBIT LOCKED", "#ffd08a")
             for (const b of arc) {
                 b.emissivePower = 6
                 tween(b, "emissivePower", arcGlow, 0.5, "outCubic")
             }
         } else if (game.said === "missed") {
-            play("../assets/miss.wav", { volume: 0.8 })
+            play("../assets/miss.wav", { volume: 0.8, at: there })
             said("SIGNAL MISSED", "#ff7a5c")
-            const satellite = entity("Satellite")
             if (satellite) {
                 satellite.emissive = "#ff5a3a"
                 tween(satellite, "emissive", "#fff3d6", 0.6, "outQuad")

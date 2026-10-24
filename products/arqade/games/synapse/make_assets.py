@@ -12,7 +12,8 @@
   mastered.wav  1.8 s   the game mastered: the notes in a climbing chord, held.
   run.wav       12 s    the music, looping: a low, slow drone through C and A flat, quiet under the nodes.
 
-Every sound is written in both channels, as Qt's ambient sounds take it. The files are the same bytes each time.
+A sound the game plays from a place is written in one channel, as Qt's spatial sounds take it, and one heard everywhere
+in both, as its ambient sounds take it: each warns of every other. The files are the same bytes each time.
 """
 import math
 import pathlib
@@ -90,13 +91,14 @@ def note(name):
     return 440.0 * 2 ** ((steps + 12 * (int(name[-1]) - 4)) / 12)
 
 
-def write(name, samples, peak=0.6):
-    """Scaled so its loudest sample is `peak` of full scale, and written 16-bit, the same in both channels."""
+def write(name, samples, peak=0.6, placed=False):
+    """Scaled so its loudest sample is `peak` of full scale, and written 16-bit: in one channel if the game plays it
+    from a place, otherwise the same in both."""
     top = max(abs(s) for s in samples) or 1.0
     scale = peak * 32767 / top
-    frames = [int(round(s * scale)) for s in samples for _ in (0, 1)]
+    frames = [int(round(s * scale)) for s in samples for _ in range(1 if placed else 2)]
     with wave.open(str(ASSETS / name), "wb") as w:
-        w.setnchannels(2)
+        w.setnchannels(1 if placed else 2)
         w.setsampwidth(2)
         w.setframerate(RATE)
         w.writeframes(struct.pack("<%dh" % len(frames), *frames))
@@ -183,9 +185,9 @@ if __name__ == "__main__":
     ASSETS.mkdir(exist_ok=True)
     hdr("mind.hdr", 512, 256, mind)
     for k, n in enumerate(NOTES):
-        write("node%d.wav" % (k + 1), fade_end(glass(note(n), 0.7)), 0.6)
+        write("node%d.wav" % (k + 1), fade_end(glass(note(n), 0.7)), 0.6, placed=True)
     write("signal.wav", signal(), 0.6)
-    write("wrong.wav", wrong(), 0.6)
+    write("wrong.wav", wrong(), 0.6, placed=True)
     write("mastered.wav", mastered(), 0.7)
     write("run.wav", music(), 0.35)
     for name in ["mind.hdr"] + ["node%d.wav" % k for k in range(1, 5)] + ["signal.wav", "wrong.wav", "mastered.wav",

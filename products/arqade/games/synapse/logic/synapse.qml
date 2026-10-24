@@ -11,6 +11,10 @@
 // with dendrites reaching out from it and filaments joining it to the next, all made here as play starts. A node lit by
 // the signal, or pressed, glows, swells and throws sparks, and sounds its note. With less motion asked for (Look), it
 // glows and sounds but does not swell, and the words do not swell.
+//
+// Each node's note is heard from the node, through QQ's spatial audio (`at`), so the signal moves from left to right as
+// it is heard as well as seen; a node out of turn is heard from where it was pressed. A signal repeated, the game
+// mastered and the music are heard everywhere.
 
 import QQ
 import "rules.mjs" as Rules
@@ -92,7 +96,7 @@ Logic {
         const now = glow.slice()
         now[node] = 1
         glow = now
-        play("../assets/node" + (node + 1) + ".wav", { volume: 0.8 })
+        play("../assets/node" + (node + 1) + ".wav", { volume: 0.8, at: nodes[node] ? nodes[node].scenePosition : null })
     }
 
     /// The stars: points far round the scene, placed from a fixed sequence of their own (never the rules' numbers).
@@ -157,7 +161,7 @@ Logic {
         for (const said of game.said.slice(from)) {
             light(said.node)
             if (said.what === "wrong")
-                play("../assets/wrong.wav", { volume: 0.8 })
+                play("../assets/wrong.wav", { volume: 0.8, at: nodes[said.node] ? nodes[said.node].scenePosition : null })
             else if (said.what === "signal")
                 play("../assets/signal.wav", { volume: 0.6 })
             else if (said.what === "mastered")

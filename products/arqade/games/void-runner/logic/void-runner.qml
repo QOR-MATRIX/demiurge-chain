@@ -12,6 +12,9 @@
 // bars run toward the eye as fast as what is thrown, slowly on the title; QQ's world is held still only while the player
 // pauses. With less motion asked for (Look), the gems do not turn, the collapse does not pulse, the hull's warning is
 // steady rather than blinking, and the words do not swell.
+//
+// What happens at the ship (a change of lane, a gem, a breach) is heard from the ship, through QQ's spatial audio
+// (`at`), so it sits in the ship's lane, left, middle or right. The run's end and the music are heard everywhere.
 
 import QQ
 import "rules.mjs" as Rules
@@ -41,6 +44,12 @@ Logic {
 
     function laneX(lane) {
         return (lane - 1) * laneGap
+    }
+
+    /// Where a sound at the ship is heard from: its lane, where it meets what is thrown.
+    function atShip() {
+        const track = entity("Track")
+        return track ? track.mapPositionToScene(Qt.vector3d(laneX(game.lane), 0.35, near)) : null
     }
 
     /// Something of the scene's look, made here: only looked at, so it has no body.
@@ -153,7 +162,7 @@ Logic {
         const lane = game.lane
         Rules.press(game, action)
         if (game.lane !== lane)
-            play("../assets/shift.wav", { volume: 0.5 })
+            play("../assets/shift.wav", { volume: 0.5, at: atShip() })
         show()
     }
 
@@ -163,13 +172,13 @@ Logic {
         Rules.step(game)
         for (const what of game.said) {
             if (what === "gem") {
-                play("../assets/gem.wav", { volume: 0.8 })
+                play("../assets/gem.wav", { volume: 0.8, at: atShip() })
                 said("GEM CAUGHT  +" + Rules.GEM_POINTS, "#ffd08a")
             } else if (what === "hit") {
-                play("../assets/hit.wav", { volume: 0.9 })
+                play("../assets/hit.wav", { volume: 0.9, at: atShip() })
                 said("HULL BREACHED", "#ff7a5c")
             } else if (what === "held") {
-                play("../assets/held.wav", { volume: 0.6 })
+                play("../assets/held.wav", { volume: 0.6, at: atShip() })
             }
         }
         if (before !== "over" && game.phase === "over")

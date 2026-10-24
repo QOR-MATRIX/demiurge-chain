@@ -113,6 +113,8 @@ pwsh products/arqade/qt/build.ps1 -Shots dir   # and save what the interface and
   - Rift Survivor: moved by D, the left arrow, the d-pad and the screen's Up button; steered clear by the keys until
     the signal evolves and a perk is chosen while the world holds; then left standing until the hull breaks.
 
+  Sounds that happen somewhere are checked to be heard from there, through QQ's spatial audio (Qt's `SpatialSound`).
+
   The run ARQADE kept of each replays in QQ, with no window, to the same outcome, and so does each run kept in
   `../tests/fixtures/`, which the game's Node test replays with its rules. The launcher's reduced motion reaches the
   game, and Esc and Back each return to the home. With `ARQADE_RUN` set to a folder, it writes each run it played there

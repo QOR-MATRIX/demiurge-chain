@@ -14,8 +14,9 @@
   lost.wav      1.3 s   the hull broken: three low tones falling.
   run.wav       8 s     the music, looping at 120 beats a minute: a dark pulse through D, B flat, F and C under a pad.
 
-Every sound is written in both channels, as Qt's ambient sounds take it. The noise is a fixed sequence, so the files are
-the same bytes each time.
+A sound the game plays from a place is written in one channel, as Qt's spatial sounds take it, and one heard everywhere
+in both, as its ambient sounds take it: each warns of every other. The noise is a fixed sequence, so the files are the
+same bytes each time.
 """
 import math
 import pathlib
@@ -91,13 +92,14 @@ def note(name):
     return 440.0 * 2 ** ((steps + 12 * (int(name[-1]) - 4)) / 12)
 
 
-def write(name, samples, peak=0.6):
-    """Scaled so its loudest sample is `peak` of full scale, and written 16-bit, the same in both channels."""
+def write(name, samples, peak=0.6, placed=False):
+    """Scaled so its loudest sample is `peak` of full scale, and written 16-bit: in one channel if the game plays it
+    from a place, otherwise the same in both."""
     top = max(abs(s) for s in samples) or 1.0
     scale = peak * 32767 / top
-    frames = [int(round(s * scale)) for s in samples for _ in (0, 1)]
+    frames = [int(round(s * scale)) for s in samples for _ in range(1 if placed else 2)]
     with wave.open(str(ASSETS / name), "wb") as w:
-        w.setnchannels(2)
+        w.setnchannels(1 if placed else 2)
         w.setsampwidth(2)
         w.setframerate(RATE)
         w.writeframes(struct.pack("<%dh" % len(frames), *frames))
@@ -254,11 +256,11 @@ def music():
 if __name__ == "__main__":
     ASSETS.mkdir(exist_ok=True)
     hdr("rift.hdr", 512, 256, rift)
-    write("shot.wav", shot(), 0.25)
-    write("kill.wav", kill(), 0.45)
-    write("hit.wav", hit(), 0.7)
-    write("pulse.wav", pulse(), 0.4)
-    write("fragment.wav", fragment(), 0.3)
+    write("shot.wav", shot(), 0.25, placed=True)
+    write("kill.wav", kill(), 0.45, placed=True)
+    write("hit.wav", hit(), 0.7, placed=True)
+    write("pulse.wav", pulse(), 0.4, placed=True)
+    write("fragment.wav", fragment(), 0.3, placed=True)
     write("evolve.wav", evolve(), 0.6)
     write("perk.wav", perk(), 0.6)
     write("complete.wav", complete(), 0.7)
