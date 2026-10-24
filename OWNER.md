@@ -16,15 +16,15 @@ service*; **ARQADE** — *the gaming website*. **Launcher 0.1.16** is the tester
 
 ## This session
 
-1. **PDFs can be marked up in QOR Media** — *the launcher's media app*: highlight,
-   underline or strike through words, add notes, draw by hand, and place a picture of
-   your signature, drawn or typed in a handwriting face. Marks show at once, undo, and
-   are saved into the PDF, so any PDF reader shows them. A PDF's own marks can be taken
-   away, and its notes read by a tap.
-2. **The signature is a picture, as you chose:** QOR Media says so where it is placed;
-   it certifies nothing. Certified signatures still wait on you (ADR-114).
-3. **It waits on #85.** It is built on #85's branch, so it becomes a pull request —
-   *a proposed change for you to merge* — once #85 is in. Not yet in any release.
+1. **#85 is in `main`:** QOR Media — *the launcher's media app* — now draws a PDF's own
+   highlights, notes and filled fields, which it used to leave out.
+2. **Marking up PDFs is #86** — *a pull request, a proposed change for you to merge*:
+   highlight, underline or strike through words, add notes, draw by hand, and place a
+   picture of your signature, drawn or typed. Saved into the PDF, so any reader shows
+   them. Its tests passed again on your PC after moving it onto the new `main`.
+3. **The signature is a picture, as you chose:** QOR Media says so where it is placed;
+   it certifies nothing. Certified signatures still wait on you (ADR-114). Neither is
+   in a release yet.
 
 ## The release gates (measured 22 October)
 
@@ -38,7 +38,7 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
    Lose them and testers reinstall by hand.
-2. **Merge #85** when you have looked at it; then the marking up goes up for your merge.
+2. **Merge #86** when you have looked at it; filling in forms follows it.
 3. **Install 0.1.15 yourself, then take 0.1.16 when it offers it**: the first update
    through the channel, which ticks L6.2. Then let a test agent ask you: in
    `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run `cargo run --example agent_link`
