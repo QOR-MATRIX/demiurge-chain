@@ -4,6 +4,7 @@
 //
 //   Orbital: a miss, a pause, and ten locks to complete the orbit.
 //   Void Runner: lanes changed by each of them, hazards dodged and gems caught, then three hazards met to end the run.
+//   Synapse: a press while the signal shows is no answer; three signals repeated, then a node out of turn.
 //
 // The run ARQADE kept of each replays in QQ to the same outcome, and so does each run kept in
 // products/arqade/tests/fixtures/, which the game's rules replay in Node (tests/<game>.test.mjs). The launcher's reduced
@@ -44,6 +45,7 @@ namespace {
 
 const QUrl kOrbital(QStringLiteral("qrc:/games/orbital/scenes/orbital.qml"));
 const QUrl kVoidRunner(QStringLiteral("qrc:/games/void-runner/scenes/void-runner.qml"));
+const QUrl kSynapse(QStringLiteral("qrc:/games/synapse/scenes/synapse.qml"));
 // Orbital's rules (logic/rules.mjs): a whole turn, and half the capture arc.
 constexpr double kTurn = 6.283185307179586;
 constexpr double kArc = 0.29;
@@ -229,6 +231,23 @@ class TestGames : public QObject
 
     // Void Runner: one lane over, by the keyboard (A or D, or every other time the arrows), the pad's d-pad, or the Left
     // and Right buttons on the screen.
+    // Synapse: node `n` (0 to 3) pressed by the keys 1 to 4 (way 0), the pad's X, Y, B and A (1), or its button (2).
+    void node(int n, int way)
+    {
+        static const QStringList pad = {QStringLiteral("X"), QStringLiteral("Y"), QStringLiteral("B"), QStringLiteral("A")};
+        static const QStringList buttons = {QStringLiteral("Origin"), QStringLiteral("Echo"), QStringLiteral("Pulse"),
+                                            QStringLiteral("Aether")};
+        if (way == 0) {
+            QTest::keyClick(window, Qt::Key(Qt::Key_1 + n));
+        } else if (way == 1) {
+            input->gamepadButtons({pad[n]});
+            QTest::qWait(20);
+            input->gamepadButtons({});
+        } else {
+            click(buttons[n]);
+        }
+    }
+
     enum class By { Keys, Arrows, Pad, Touch };
     void shift(int by, By how)
     {
@@ -309,12 +328,12 @@ private slots:
 
     void the_rebuilt_games_cards_play_here_and_the_others_open_the_website()
     {
-        for (const char *name : {"Orbital", "Void Runner"})
+        for (const char *name : {"Orbital", "Void Runner", "Synapse"})
             QVERIFY2(find(window->contentItem(), [&](QQuickItem *i) {
                          return i->property("name").toString() == QLatin1String(name) && i->property("here").toBool();
                      }),
                      name);
-        for (const char *name : {"Synapse", "Rift Survivor"})
+        for (const char *name : {"Rift Survivor"})
             QVERIFY2(find(window->contentItem(), [&](QQuickItem *i) {
                          return i->property("name").toString() == QLatin1String(name) && i->property("here").isValid()
                              && !i->property("here").toBool();
@@ -559,6 +578,93 @@ private slots:
     }
 
     void esc_leaves_void_runner_too()
+    {
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_COMPARE(window->property("playing").toString(), QString());
+        QTRY_VERIFY(!game());
+        QVERIFY(home()->isVisible());
+        QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n')));
+    }
+
+    void synapses_card_opens_it_and_the_signal_shows_itself()
+    {
+        behaviour = QStringLiteral("Synapse");
+        open(QStringLiteral("Synapse"), QStringLiteral("synapse"), kSynapse, QStringLiteral("SYNAPSE"));
+        if (QTest::currentTestFailed())
+            return;
+        QTest::qWait(400);
+        save(window, "synapse-title.png");
+        QVERIFY(click(QStringLiteral("Play")));
+        QTRY_COMPARE(state().value("phase").toString(), QStringLiteral("playing"));
+        QCOMPARE(state().value("stage").toString(), QStringLiteral("watch"));
+        QTRY_COMPARE(screenText(QStringLiteral("Stage")), QStringLiteral("OBSERVE THE SIGNAL"));
+        // A node pressed while the signal shows is no answer.
+        node(0, 0);
+        QTest::qWait(60);
+        QCOMPARE(state().value("cursor").toInt(), 0);
+        QCOMPARE(state().value("phase").toString(), QStringLiteral("playing"));
+        // Its one node lit, part way through its lighting.
+        QTRY_VERIFY(state().value("shown").toInt() >= 40);
+        save(window, "synapse-signal.png");
+        QTRY_COMPARE_WITH_TIMEOUT(state().value("stage").toString(), QStringLiteral("repeat"), 5000);
+        QTRY_COMPARE(screenText(QStringLiteral("Stage")), QStringLiteral("REPEAT 0 / 1"));
+        QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n')));
+    }
+
+    // Three signals repeated, node by node, each node pressed a different way from the one before: the keys 1 to 4, the
+    // pad's X, Y, B and A, and the buttons along the foot of the screen.
+    void three_signals_repeated_by_keys_pad_and_the_buttons()
+    {
+        int way = 0;
+        for (int round = 1; round <= 3; ++round) {
+            QTRY_COMPARE_WITH_TIMEOUT(state().value("stage").toString(), QStringLiteral("repeat"), 10000);
+            const QVariantList signal = asList(state().value("signal"));
+            QCOMPARE(signal.size(), round);
+            for (int i = 0; i < signal.size(); ++i) {
+                node(signal[i].toInt(), way++ % 3);
+                if (i + 1 < signal.size())
+                    QTRY_COMPARE(state().value("cursor").toInt(), i + 1);
+                else
+                    QTRY_COMPARE(asList(state().value("signal")).size(), round + 1);
+            }
+            if (round == 3)
+                save(window, "synapse-repeated.png");
+        }
+        QCOMPARE(state().value("phase").toString(), QStringLiteral("playing"));
+        QTRY_COMPARE(screenText(QStringLiteral("Length")), QStringLiteral("SIGNAL 4 / 8"));
+    }
+
+    void a_node_out_of_turn_loses_the_signal()
+    {
+        QTRY_COMPARE_WITH_TIMEOUT(state().value("stage").toString(), QStringLiteral("repeat"), 10000);
+        const int right = asList(state().value("signal")).first().toInt();
+        node((right + 1) % 4, 0);
+        QTRY_COMPARE(state().value("phase").toString(), QStringLiteral("over"));
+        QTRY_COMPARE(screenText(QStringLiteral("Result")), QStringLiteral("SIGNAL LOST"));
+        QCOMPARE(screenText(QStringLiteral("Final")), QStringLiteral("SCORE 450"));
+        QTest::qWait(400);
+        save(window, "synapse-lost.png");
+        QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n')));
+    }
+
+    void synapses_kept_run_replays_to_its_outcome()
+    {
+        QVariantMap outcome;
+        keptRunReplays(kSynapse, QStringLiteral("synapse"), &outcome);
+        if (QTest::currentTestFailed())
+            return;
+        QCOMPARE(outcome.value("score").toInt(), 450);
+        QCOMPARE(outcome.value("length").toInt(), 4);
+        QCOMPARE(outcome.value("mastered").toBool(), false);
+        QCOMPARE(outcome.value("over").toBool(), true);
+    }
+
+    void synapses_kept_run_replays_in_qq_as_its_rules_replay_it()
+    {
+        fixtureReplays(QStringLiteral("synapse"), kSynapse);
+    }
+
+    void esc_leaves_synapse_too()
     {
         QTest::keyClick(window, Qt::Key_Escape);
         QTRY_COMPARE(window->property("playing").toString(), QString());

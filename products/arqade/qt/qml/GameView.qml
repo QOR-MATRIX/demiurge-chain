@@ -24,6 +24,7 @@ Item {
     readonly property var games: ({
         orbital: { name: "Orbital", file: "qrc:/games/orbital/scenes/orbital.qml" },
         "void": { name: "Void Runner", file: "qrc:/games/void-runner/scenes/void-runner.qml" },
+        synapse: { name: "Synapse", file: "qrc:/games/synapse/scenes/synapse.qml" },
     })
     readonly property var game: games[kind] ?? null
 
