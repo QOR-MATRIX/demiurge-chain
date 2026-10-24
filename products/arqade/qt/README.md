@@ -6,7 +6,7 @@ over its ARQADE screen, under the launcher's product host, as QOR Media is docke
 [`docs/DIRECTION.md`](../../../docs/DIRECTION.md) tracks it.
 
 This is the shell: the home, the games, the arenas' rankings and the player's Sparks. The games themselves are being
-rebuilt in QQ (P7.20), in [`../games/`](../games/README.md). Orbital's and Void Runner's rebuilds have arrived and play here. Until
+rebuilt in QQ (P7.20), in [`../games/`](../games/README.md). Orbital's, Void Runner's and Synapse's rebuilds have arrived and play here. Until
 another game's rebuild arrives, its card opens today's version in the launcher's ARQADE window.
 
 ## What it does
@@ -98,8 +98,8 @@ pwsh products/arqade/qt/build.ps1 -Shots dir   # and save what the interface and
   Sparks, every game and arena, reduced motion holding it still, and a narrow window; and the one look: Theme equal to
   `tokens.json` value by value, every text the window shows in the look's faces, scale and colours (Barlow carried
   and drawn at its Regular), the primary's dark ink on ember and its focus ring. It needs a desktop session.
-- `tst_games`: Orbital's and Void Runner's cards open their games in ARQADE's window, from the keyboard (Synapse's and
-  Rift Survivor's still open the website). Each is played as a person plays it, the pad driven through QQ's input with
+- `tst_games`: Orbital's, Void Runner's and Synapse's cards open their games in ARQADE's window, from the keyboard
+  (Rift Survivor's still opens the website). Each is played as a person plays it, the pad driven through QQ's input with
   the PC's own pads not read:
   - Orbital: the mouse on its Play and Resume buttons, Space and the pad's A to lock, and P and the pad's Start to
     pause. One lock outside the arc misses, a pause holds the satellite still, and ten locks in the arc complete the
@@ -107,6 +107,8 @@ pwsh products/arqade/qt/build.ps1 -Shots dir   # and save what the interface and
   - Void Runner: steered away from each hazard about to arrive and toward each gem, changing lane by the keys, the
     arrows, the pad and the screen's Left and Right buttons in turn, until each has been used and a gem caught with the
     hull whole; then steered into three hazards, which end the run.
+  - Synapse: a node pressed while the signal shows is no answer; three signals repeated, each node pressed by the keys
+    1 to 4, the pad's X, Y, B and A, and the screen's buttons in turn; then a node out of turn loses it for 450.
 
   The run ARQADE kept of each replays in QQ, with no window, to the same outcome, and so does each run kept in
   `../tests/fixtures/`, which the game's Node test replays with its rules. The launcher's reduced motion reaches the

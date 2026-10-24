@@ -113,6 +113,23 @@ qt_add_resources(arqade_core "void-runner"
         ../games/void-runner/assets/complete.wav
         ../games/void-runner/assets/lost.wav
 )
+qt_add_resources(arqade_core "synapse"
+    PREFIX /games/synapse
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/../games/synapse"
+    FILES
+        ../games/synapse/scenes/synapse.qml
+        ../games/synapse/logic/synapse.qml
+        ../games/synapse/logic/rules.mjs
+        ../games/synapse/assets/mind.hdr
+        ../games/synapse/assets/run.wav
+        ../games/synapse/assets/node1.wav
+        ../games/synapse/assets/node2.wav
+        ../games/synapse/assets/node3.wav
+        ../games/synapse/assets/node4.wav
+        ../games/synapse/assets/signal.wav
+        ../games/synapse/assets/wrong.wav
+        ../games/synapse/assets/mastered.wav
+)
 
 qt_add_executable(arqade WIN32 src/main.cpp)
 target_link_libraries(arqade PRIVATE arqade_core arqade_coreplugin Qt6::GuiPrivate Qt6::QuickControls2)
