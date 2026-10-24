@@ -1990,6 +1990,18 @@ here sets an economic value; payouts are U-16.
 20. [ ] The four solo games rebuilt in QQ (ADR-102): Rift Survivor, Void Runner, Synapse and Orbital, in 3D with
     physically based materials, bloom, particles and spatial sound, keyboard, mouse and gamepad, reduced motion
     honoured, each deterministic for a seed and its inputs.
+
+    **Orbital built, 24 October 2026, on `session/arqade-orbital`, not merged** (HANDOFF §4 item 142):
+    - A QQ package in `products/arqade/games/orbital/`: a gilt core under bloom, embers, an HDR sky and stars, stereo
+      sound, and title, HUD, pause and result screens. Played with keyboard, mouse or gamepad; reduced motion honoured.
+    - Its rules are one plain module, `logic/rules.mjs`. QQ's logic and Node both run it, and it replays a run QQ
+      recorded to the outcome QQ reached.
+    - ARQADE's Qt app builds QQ's runtime in and plays the game in place of the home (`qml/GameView.qml`), keeping each
+      play as a run. Its card plays it there; the other three cards still open the website.
+    - Tests: 8 in Node (in CI), and `tst_games`, 9 on the owner's PC, which plays it by mouse, keyboard and a pad
+      driven through QQ's input. Two planted faults caught.
+
+    **Not yet:** Void Runner, Synapse and Rift Survivor; ARQADE's deployed copy updated in the launcher.
 21. [ ] The platform reward pool on the devnet (ADR-102): ARQADE's own Cartridge and ARQ Wallet, funded with test CGT by
     the owner, whose policy (largest payout, epoch budget, per-player cap, the games' rule versions) the owner sets.
 22. [ ] Runs confirmed by replay (ADR-102): a seed from the ARQADE service, the run's inputs replayed by the service with
