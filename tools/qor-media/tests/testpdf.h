@@ -33,6 +33,8 @@ struct Page
 {
     QList<QByteArray> lines;
     QList<Link> links;
+    // Red squares, in points from the page's bottom left: annotations each with its own appearance, as most marks are.
+    QList<QRectF> boxes;
 };
 struct Entry
 {
@@ -92,6 +94,10 @@ inline QByteArray writePdf(const QList<Page> &pages, const QList<Entry> &outline
     for (int i = 0; i < count; ++i)
         for (qsizetype l = 0; l < pages[i].links.size(); ++l)
             linkObj[i] << next++;
+    QList<QList<int>> boxObj(count);  // each box: its annotation, then its appearance
+    for (int i = 0; i < count; ++i)
+        for (qsizetype b = 0; b < pages[i].boxes.size(); ++b)
+            boxObj[i] << next++ << next++;
     const int outlineObj = outline.isEmpty() ? 0 : next++;
     QList<int> entryObj;
     for (qsizetype e = 0; e < outline.size(); ++e)
@@ -133,6 +139,8 @@ inline QByteArray writePdf(const QList<Page> &pages, const QList<Entry> &outline
         QByteArray annots;
         for (int a : linkObj[i])
             annots += QByteArray::number(a) + " 0 R ";
+        for (qsizetype b = 0; b < boxObj[i].size(); b += 2)
+            annots += QByteArray::number(boxObj[i][b]) + " 0 R ";
         object(pageObj[i], "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents "
                                + QByteArray::number(contentObj[i]) + " 0 R" + (annots.isEmpty() ? QByteArray() : " /Annots [" + annots + "]") + " >>");
         QByteArray text = "BT /F1 24 Tf 72 700 Td";
@@ -150,6 +158,20 @@ inline QByteArray writePdf(const QList<Page> &pages, const QList<Entry> &outline
                 + QByteArray::number(r.right()) + " " + QByteArray::number(r.bottom()) + "]";
             const QByteArray target = link.page >= 0 ? "/Dest " + dest(link.page) : "/A << /S /URI /URI (" + link.uri + ") >>";
             object(linkObj[i][l], "<< /Type /Annot /Subtype /Link /Rect " + rect + " /Border [0 0 0] " + target + " >>");
+        }
+    for (int i = 0; i < count; ++i)
+        for (qsizetype b = 0; b < pages[i].boxes.size(); ++b) {
+            const QRectF &r = pages[i].boxes[b];
+            const int annot = boxObj[i][2 * b], look = boxObj[i][2 * b + 1];
+            const QByteArray rect = "[" + QByteArray::number(r.left()) + " " + QByteArray::number(r.top()) + " "
+                + QByteArray::number(r.right()) + " " + QByteArray::number(r.bottom()) + "]";
+            object(annot, "<< /Type /Annot /Subtype /Square /Rect " + rect + " /C [1 0 0] /F 4 /AP << /N "
+                              + QByteArray::number(look) + " 0 R >> >>");
+            const QByteArray w = QByteArray::number(r.width()), h = QByteArray::number(r.height());
+            const QByteArray stroke = sealed(look, "1 0 0 RG 4 w 2 2 " + QByteArray::number(r.width() - 4) + " "
+                                                       + QByteArray::number(r.height() - 4) + " re S");
+            object(look, "<< /Type /XObject /Subtype /Form /BBox [0 0 " + w + " " + h + "] /Length "
+                             + QByteArray::number(stroke.size()) + " >>\nstream\n" + stroke + "\nendstream");
         }
     if (outlineObj) {
         object(outlineObj, "<< /Type /Outlines /First " + QByteArray::number(entryObj.first()) + " 0 R /Last "
