@@ -2001,7 +2001,14 @@ here sets an economic value; payouts are U-16.
     - Tests: 8 in Node (in CI), and `tst_games`, 9 on the owner's PC, which plays it by mouse, keyboard and a pad
       driven through QQ's input. Two planted faults caught.
 
-    **Not yet:** Void Runner, Synapse and Rift Survivor; ARQADE's deployed copy updated in the launcher.
+    **Void Runner built, 24 October 2026, on `session/arqade-void-runner`, on #89's head, not merged** (HANDOFF §4 item
+    143): three lanes into the collapse, red hazards and gold gems, forty-five seconds or three breaches; its rules one
+    plain module like Orbital's. Each game's Node test now also pins the rules' whole state at the end of its kept run, so
+    no change to the rules passes unseen. Tests: 9 in Node for each game (67 in `npm test`), and `tst_games` 16 on the
+    owner's PC, which steers Void Runner by the keys, the arrows, the pad and the screen's buttons. Two more planted
+    faults caught, and a third (a tiny change to the rules) caught only once the state was pinned.
+
+    **Not yet:** Synapse and Rift Survivor; ARQADE's deployed copy updated in the launcher.
 21. [ ] The platform reward pool on the devnet (ADR-102): ARQADE's own Cartridge and ARQ Wallet, funded with test CGT by
     the owner, whose policy (largest payout, epoch budget, per-player cap, the games' rule versions) the owner sets.
 22. [ ] Runs confirmed by replay (ADR-102): a seed from the ARQADE service, the run's inputs replayed by the service with

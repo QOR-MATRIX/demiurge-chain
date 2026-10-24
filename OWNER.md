@@ -22,12 +22,15 @@ service*; **ARQADE** — *the gaming website*. **Launcher 0.1.16** is the tester
 2. **CI's security check went red** on a flaw in a crypto library the Polkadot SDK brings in;
    none of our code uses that part. **You chose the guarded ignore** (ADR-115). It is **#88**
    — *a pull request, a change for you to merge* — and every check on it passes.
-3. **Orbital, the first of ARQADE's four games rebuilt in 3D (P7.20), plays inside ARQADE's
-   app.** Its rules are kept in one small file. The game and a plain script both run that
-   file, so a recorded game replays to the same score in each. That is how ARQADE's server
-   will confirm a run before paying Sparks (P7.22). A test plays it by mouse, keyboard and a
-   simulated gamepad. It is **#89**, built on #88. ARQADE's own games run without the lockdown that
-   strangers' games get, because we wrote them; strangers' games still play only in a browser.
+3. **Orbital and Void Runner, two of ARQADE's four games rebuilt in 3D (P7.20), play inside
+   ARQADE's app.** Each game's rules are kept in one small file that the game and a plain
+   script both run, so a recorded game replays to the same score in each. That is how
+   ARQADE's server will confirm a run before paying Sparks (P7.22). Tests play both by mouse,
+   keyboard and a simulated gamepad. Orbital is **#89**; Void Runner is on a branch built on it.
+   ARQADE's own games run without the lockdown that strangers' games get, because we wrote
+   them; strangers' games still play only in a browser.
+4. **You authorised full automation.** Claude Code's own safety check still refuses to merge
+   a pull request without a person's review, so merges stay with you.
 
 ## The release gates (measured 22 October)
 
@@ -40,7 +43,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 1. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
-2. **Merge #88, then #89.** #88 makes CI's security check pass again.
+2. **Merge #88, then #89, then Void Runner's** (all green or about to be). #88 makes CI's
+   security check pass again. To let me merge, add a permission rule for `gh pr merge`.
 3. **Install 0.1.15 yourself, then take 0.1.16 when it offers it** (ticks L6.2). Then let a
    test agent ask you: in `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run
    `cargo run --example agent_link` and press *Allow agent* (ticks L5.1).
@@ -60,8 +64,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    pasted on 5 October; `social-secrets.txt` on your Desktop and `archive-bZLIQp/` in the
    old checkout, each to keep or delete.
 
-**Next in engineering:** Void Runner, then Synapse and Rift Survivor, as Orbital was. At your
-word: a launcher release carrying QOR Media's PDF work, assets' levels and Orbital; filling
+**Next in engineering:** Synapse, then Rift Survivor, as Orbital and Void Runner were. At your
+word: a launcher release carrying QOR Media's PDF work, assets' levels and the new games; filling
 the IRS's forms; certified signatures (ADR-114); records kept by games other than an
 asset's home game (ADR-113); or rental and fractions (M4.3).
 
