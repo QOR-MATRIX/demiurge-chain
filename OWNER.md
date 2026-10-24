@@ -23,12 +23,11 @@ two peers; **QOR ID** — *the one sign-in*; **Social** — *the chat service*; 
    library none of our code uses (ADR-115), and merged it with the rest.
 3. **All four of ARQADE's games are rebuilt in 3D and merged (P7.20 done):** Orbital, Void
    Runner, Synapse and Rift Survivor. They play inside ARQADE's app, which is now **on your
-   PC**: open ARQADE in the launcher and press a game's card. Each game's rules are one small
+   PC**, from `main`: open ARQADE in the launcher and press a game's card. Each game's rules are one small
    file that the game and a plain script both run, so a recorded game replays to the same
    score. That is how ARQADE's server will confirm a run before paying Sparks (P7.22).
 4. **Sound now comes from where things happen,** as P7.20 asked: a lock from the satellite,
-   Synapse's notes from left to right. That is **#93** — *a pull request, a change for you to
-   merge* — and I'll put it on your PC once it's merged.
+   Synapse's notes from left to right. You merged it (#93), and it is on your PC.
 5. **You authorised full automation.** Claude Code's own safety check still refuses to merge
    without a person's review, so merges stay with you.
 
@@ -41,7 +40,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 ## What only you can do
 
 1. **Play the four games** in the launcher and tell me what feels wrong.
-2. **Merge #93.** To let me merge, add a permission rule for `gh pr merge`.
+2. **No pull request is waiting.** To let me merge future ones, add a permission rule for
+   `gh pr merge`.
 3. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
