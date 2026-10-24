@@ -12,6 +12,28 @@
 # so this ignore cannot silently cover a dependency that is actually built.
 #
 # Approved by the owner on 2026-09-14 and logged in docs/GATES.toml [[change_log]].
+#
+# RUSTSEC-2026-0387 (crypto-bigint, timing variability in operations meant to be
+# constant-time) is fixed in 0.7.6, published 2026-10-23, and has no fix on the
+# 0.5 line. crypto-bigint 0.5.5 arrives only through the pinned Polkadot SDK:
+# sp-core 43.0.0, the newest release, depends on k256 0.13 unconditionally, and
+# k256 0.13 on elliptic-curve 0.13, which requires crypto-bigint 0.5.
+#
+# JUSTIFICATION: what the advisory warns of is in the secp256k1 key operations of
+# ECDSA, and no code here uses ECDSA or secp256k1: QOR ID uses sp-core for sr25519
+# signatures and SS58 addresses alone. `cargo tree --locked -i <crate> --target
+# all -e normal,build,dev --depth 1` shows crypto-bigint 0.5 depended on only by
+# elliptic-curve, elliptic-curve only by ecdsa and k256, ecdsa only by k256, and
+# k256 only by sp-core (verified 2026-10-24).
+#
+# MUST BE REVISITED if code here starts to use ECDSA or secp256k1, if any other
+# crate depends on that chain, or if a crypto-bigint below 0.7.6 joins the
+# lockfile beside 0.5, which this ignore would hide. CI enforces all three, and
+# fails once crypto-bigint 0.5 leaves the lockfile, so the ignore is deleted
+# rather than left behind.
+#
+# Approved by the owner on 2026-10-24 (ADR-115) and logged in docs/GATES.toml
+# [[change_log]]. Every other advisory still fails the audit.
 
 [advisories]
-ignore = ["RUSTSEC-2023-0071"]
+ignore = ["RUSTSEC-2023-0071", "RUSTSEC-2026-0387"]

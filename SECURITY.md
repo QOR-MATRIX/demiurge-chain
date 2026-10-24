@@ -135,6 +135,14 @@ Anthropic key, no signed JWT and no mnemonic. The public repository was publishe
   - RUSTSEC-2026-0381 to 0383 (`webpki-roots`, `rustls-webpki`, `webpki-root-certs`, published 19 and 20
     October 2026) are fixed by updates in QOR ID's, Social's and both launcher lockfiles (0.103.16 and 1.0.10),
     except the one ADR-107 covers. `chain/` carries them too, in its report.
+  - RUSTSEC-2026-0387 (`crypto-bigint`, timing variability in operations meant to be constant-time, published
+    23 October 2026) is fixed only in 0.7.6. QOR ID, the launcher host and the launcher core build 0.5.5 through
+    the pinned SDK alone (`sp-core` 43.0.0 → `k256` 0.13 → `elliptic-curve` 0.13), which no update moves. **Since
+    24 October 2026 the three ignore it while a CI step proves it does not apply** (ADR-115): none of them uses
+    ECDSA or secp256k1, whose key operations it concerns; nothing else depends on that chain; no `crypto-bigint`
+    below 0.7.6 is beside it; and the step says to delete the ignore once 0.5 leaves a lockfile. The launcher
+    core's audit, which had ignored nothing, has a `.cargo/audit.toml` for it. `chain/` carries it too, in its
+    report.
   - RUSTSEC-2026-0285 (`rustls`, published 2026-09-14) is fixed in both lockfiles by upgrading to 0.23.45.
     **Correction, 2026-09-19:** only QOR ID's lockfile carried the upgrade. The launcher's still held 0.23.44,
     so `cargo audit` failed there, and the claim above had been true of one lockfile rather than two. It was
@@ -539,7 +547,10 @@ directory deliberately has no `.cargo/audit.toml`.
 **Not re-measured since.** CI's report on 20 October 2026 (run 39494997610) lists **20 vulnerabilities and 14
 warnings**: advisories published after this measurement, among them `wasmtime` 36.0.15, `ruzstd` 0.8.3, more
 in `rustls-webpki` 0.101.7, and RUSTSEC-2026-0381 to 0383 in `rustls-webpki` 0.103.15, `webpki-root-certs` and
-`webpki-roots` 0.25.4. The tables below still describe the ten. Measuring the new ones by exact version, and
+`webpki-roots` 0.25.4. The nightly report of 24 October 2026 (run 40076288019) also lists **20 vulnerabilities and
+15 warnings**, among them RUSTSEC-2026-0387 in `crypto-bigint` 0.5.5, published the day before, which reaches the
+chain as it reaches QOR ID and the launcher, through `sp-core`'s `k256` (ADR-115); whether the node or the runtime
+uses ECDSA keys was not measured. The tables below still describe the ten. Measuring the new ones by exact version, and
 updating what a patch release fixes within the SDK's requirements, is its own task, because any change to
 `chain/Cargo.lock` needs the whole chain suite run without `SKIP_WASM_BUILD` (AGENTS.md §8).
 

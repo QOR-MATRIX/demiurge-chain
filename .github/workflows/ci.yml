@@ -578,7 +578,63 @@ jobs:
           fi
           echo "rsa is not in the compiled graph; the ignore still holds."
 
-      - name: "Audit QOR ID dependencies (ignores only RUSTSEC-2023-0071; see .cargo/audit.toml)"
+      # QOR ID, the launcher host and the launcher core ignore RUSTSEC-2026-0387 (crypto-bigint 0.5.5, timing in
+      # operations meant to be constant-time; fixed only in 0.7.6) while three things hold (ADR-115): crypto-bigint
+      # 0.5 arrives only through the pinned SDK's sp-core, as k256 -> ecdsa -> elliptic-curve, with nothing else
+      # depending on that chain; no other crypto-bigint below 0.7.6, which the same advisory would hide, is beside it;
+      # and none of our code uses ECDSA or secp256k1, the key operations the advisory concerns. It fails once 0.5
+      # leaves a lockfile, so the ignore is deleted. Seen to fail each way before it was committed: ECDSA used on one
+      # line and in a use list over lines, a changed set of dependents, 0.5 gone, and 0.7.2 beside it.
+      - name: "Condition of the crypto-bigint ignore: only sp-core's k256 reaches it, and none of our code uses ECDSA"
+        if: always()
+        run: |
+          set -o pipefail
+          fail=0
+          for dir in services/qor-auth tools/qor-launcher/src-tauri tools/qor-launcher/core; do
+            versions=$(awk '/^name = "crypto-bigint"$/{getline; gsub(/version = |"/, ""); print}' "$dir/Cargo.lock")
+            if ! grep -qx '0\.5\.[0-9]*' <<<"$versions"; then
+              echo "::error::crypto-bigint 0.5 has left $dir/Cargo.lock. Remove the RUSTSEC-2026-0387 ignore from $dir/.cargo/audit.toml (ADR-115)."
+              fail=1
+            fi
+            for v in $versions; do
+              case "$v" in 0.5.*) continue ;; esac
+              if [ "$(printf '%s\n' 0.7.6 "$v" | sort -V | head -1)" != 0.7.6 ]; then
+                echo "::error::$dir/Cargo.lock holds crypto-bigint $v, below the fixed 0.7.6, which the RUSTSEC-2026-0387 ignore would hide (ADR-115)."
+                fail=1
+              fi
+            done
+            # Each link is reached only from the next: nothing else depends on the curve.
+            for link in "crypto-bigint@0.5:elliptic-curve" "elliptic-curve@0.13:ecdsa k256" "ecdsa@0.16:k256" "k256@0.13:sp-core"; do
+              crate=${link%%:*}
+              expected=${link#*:}
+              if ! users=$(cd "$dir" && cargo tree --locked -i "$crate" --target all -e normal,build,dev --depth 1 --prefix none 2>tree.err \
+                           | sed 1d | awk '{print $1}' | sort -u | tr '\n' ' ' | sed 's/ $//'); then
+                cat "$dir/tree.err"
+                echo "::error::cargo tree could not check what depends on $crate in $dir, so the RUSTSEC-2026-0387 ignore is unproven (ADR-115)."
+                fail=1
+                continue
+              fi
+              if [ "$users" != "$expected" ]; then
+                echo "::error::In $dir, $crate is depended on by ${users:-nothing}, not only $expected. The RUSTSEC-2026-0387 ignore holds only while sp-core's k256 alone reaches crypto-bigint 0.5 (ADR-115)."
+                fail=1
+              fi
+            done
+            rm -f "$dir/tree.err"
+          done
+          # None of our code reaches ECDSA or secp256k1, the key operations the advisory concerns.
+          hits=$(git ls-files 'services/qor-auth/*.rs' 'tools/qor-launcher/src-tauri/*.rs' 'tools/qor-launcher/core/*.rs' \
+                 | xargs perl -0777 -ne 'print "$ARGV\n" if /\b(?:ecdsa|k256|secp256k1|elliptic_curve)::|\bsp_core::ecdsa\b|\bsp_core::\{[^}]*\becdsa\b/' || true)
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            echo "::error::These files use ECDSA or secp256k1, whose key operations RUSTSEC-2026-0387 concerns. The ignore in the three .cargo/audit.toml files no longer holds and must be revisited (ADR-115)."
+            fail=1
+          fi
+          if [ "$fail" -eq 0 ]; then
+            echo "crypto-bigint 0.5 is reached only through sp-core's k256, nothing below 0.7.6 is beside it, and no code of ours uses ECDSA; the ignore still holds."
+          fi
+          exit "$fail"
+
+      - name: "Audit QOR ID dependencies (ignores only RUSTSEC-2023-0071 and RUSTSEC-2026-0387; see .cargo/audit.toml)"
         if: always()
         working-directory: ./services/qor-auth
         run: cargo audit
@@ -671,7 +727,7 @@ jobs:
           done
           echo "webpki-root-certs 0.26 re-exports $fixed and is built for no target the launcher ships on; the ignore still holds."
 
-      - name: "Audit launcher host dependencies (ignores only RUSTSEC-2026-0344 and RUSTSEC-2026-0383; see .cargo/audit.toml)"
+      - name: "Audit launcher host dependencies (ignores only RUSTSEC-2026-0344, RUSTSEC-2026-0383 and RUSTSEC-2026-0387; see .cargo/audit.toml)"
         if: always()
         working-directory: ./tools/qor-launcher/src-tauri
         run: cargo audit
@@ -679,7 +735,7 @@ jobs:
       # The core shared with the Android launcher (ADR-104) has a Cargo.lock of its own, and it is what the Android
       # build resolves. Since the wallet moved into it (DIRECTION L13.2) it carries sp-core's tree, so it is audited
       # like the host's. No advisory is ignored here.
-      - name: Audit launcher core dependencies (the Android launcher's lockfile)
+      - name: "Audit launcher core dependencies (the Android launcher's lockfile; ignores only RUSTSEC-2026-0387; see .cargo/audit.toml)"
         if: always()
         working-directory: ./tools/qor-launcher/core
         run: cargo audit

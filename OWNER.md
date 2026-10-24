@@ -16,17 +16,16 @@ service*; **ARQADE** — *the gaming website*. **Launcher 0.1.16** is the tester
 
 ## This session
 
-1. **Filling in PDF forms is built** in QOR Media — *the launcher's media app*: click a
-   field and type where it is, tick boxes, pick options, Tab from field to field. What you
-   fill shows at once, can be undone, and saves into the PDF. A signature field takes the
-   picture of your signature. Tried on the real USCIS I-9 form: filled, saved, read back.
-2. **Found and fixed on the way:** QOR Media had never shown a form's fields, so a filled
-   form looked empty. Last session's note that it drew them was wrong; it does now.
-3. **Shown but not filled, and it says why:** the IRS's forms (W-9, 1040), which keep their
-   answers in **XFA** — *an older Adobe form format* — so Acrobat would show the old ones;
-   and password fields, so no password is ever saved into a file.
-4. **It waits on #86** — *a pull request, a proposed change for you to merge* — because it
-   builds on the marking up there. It is committed on its own branch, not yet sent.
+1. **PDFs in QOR Media — *the launcher's media app* — are done**, now that you merged #86
+   and #87: read, pages changed, marked up, signed with a picture, and forms filled. Tried on
+   the real USCIS I-9 form. The IRS's forms are shown but not filled: they keep their answers
+   in **XFA** — *an older Adobe form format* — which Acrobat would show instead.
+2. **CI's security check went red on `main`** on a flaw published yesterday in a crypto
+   library the Polkadot SDK brings in. No fix can reach us yet, and none of our code uses
+   the part it concerns. **You chose the guarded ignore**: it is written up as ADR-115, CI
+   proves its conditions every run, and it is **#88** — *a pull request, a proposed change
+   for you to merge*. Merging it turns the check green.
+3. **Next is P7.20** — *ARQADE's four games rebuilt in 3D* — starting with Orbital.
 
 ## The release gates (measured 22 October)
 
@@ -40,7 +39,7 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
    Lose them and testers reinstall by hand.
-2. **Merge #86** when you have looked at it; filling in forms follows as the next one.
+2. **Merge #88**, which makes CI's security check pass again.
 3. **Install 0.1.15 yourself, then take 0.1.16 when it offers it**: the first update
    through the channel, which ticks L6.2. Then let a test agent ask you: in
    `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run `cargo run --example agent_link`
@@ -61,10 +60,11 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    pasted on 5 October; `social-secrets.txt` on your Desktop and `archive-bZLIQp/` in the
    old checkout, each to keep or delete.
 
-**Next in engineering:** the forms pull request once #86 is in. At your word: filling the
-IRS's forms (by removing their XFA, as other tools do), certified signatures (ADR-114), a
-launcher release carrying QOR Media's PDF work and assets' levels, games other than the
-home game keeping records (ADR-113's second phase), or rental and fractions (M4.3).
+**Next in engineering:** P7.20, Orbital first, then Void Runner, Synapse and Rift Survivor.
+At your word: a launcher release carrying QOR Media's PDF work and assets' levels, filling
+the IRS's forms (by removing their XFA, as other tools do), certified signatures (ADR-114),
+games other than the home game keeping records (ADR-113's second phase), or rental and
+fractions (M4.3).
 
 ## Cost per month
 
