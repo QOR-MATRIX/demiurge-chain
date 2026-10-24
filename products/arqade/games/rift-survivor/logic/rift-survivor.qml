@@ -13,6 +13,10 @@
 // or removed during a run. The world is held while the player pauses and while a perk is chosen. With less motion asked
 // for (Look), enemies and fragments do not turn, the hull's warning is steady rather than blinking, and the words do not
 // swell.
+//
+// What happens somewhere in the arena is heard from there, through QQ's spatial audio (`at`): a kill from the enemy, a
+// rift from where it opens, a shot, a fragment and a breach from the ship. The signal's evolving, a perk, the run's end
+// and the music are heard everywhere.
 
 import QQ
 import "rules.mjs" as Rules
@@ -33,6 +37,12 @@ Logic {
 
     function at(x, y, lift) {
         return Qt.vector3d((x - 500) * k, lift, (y - 310) * k)
+    }
+
+    /// Where a sound at a place in the arena is heard from, in the scene.
+    function heardAt(x, y) {
+        const board = entity("Board")
+        return board ? board.mapPositionToScene(at(x, y, 0.2)) : null
     }
 
     /// Something of the scene's look, made here: only looked at, so it has no body.
@@ -185,16 +195,20 @@ Logic {
         Rules.step(game)
         // One sound of each kind a step, however many happened.
         const heard = new Set(game.said.map((s) => s.what))
+        const ship = heardAt(game.x, game.y)
         if (heard.has("hit"))
-            play("../assets/hit.wav", { volume: 0.9 })
-        if (heard.has("kill"))
-            play("../assets/kill.wav", { volume: 0.5 })
+            play("../assets/hit.wav", { volume: 0.9, at: ship })
+        const kill = game.said.find((s) => s.what === "kill")
+        if (kill)
+            play("../assets/kill.wav", { volume: 0.5, at: heardAt(kill.x, kill.y) })
         if (heard.has("shot"))
-            play("../assets/shot.wav", { volume: 0.25 })
-        if (heard.has("pulse"))
-            play("../assets/pulse.wav", { volume: 0.5 })
+            play("../assets/shot.wav", { volume: 0.25, at: ship })
+        if (heard.has("pulse")) {
+            const rift = game.pulses[game.pulses.length - 1]
+            play("../assets/pulse.wav", { volume: 0.5, at: rift ? heardAt(rift.x, rift.y) : ship })
+        }
         if (heard.has("fragment"))
-            play("../assets/fragment.wav", { volume: 0.4 })
+            play("../assets/fragment.wav", { volume: 0.4, at: ship })
         if (heard.has("evolved")) {
             play("../assets/evolve.wav", { volume: 0.7 })
             said("", "#ead39a")

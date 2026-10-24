@@ -1987,38 +1987,25 @@ here sets an economic value; payouts are U-16.
       test that starts the real app.
 
     **Not yet:** a person signing in through it in the running launcher, against QOR ID's deployed handoff route.
-20. [ ] The four solo games rebuilt in QQ (ADR-102): Rift Survivor, Void Runner, Synapse and Orbital, in 3D with
+20. [x] The four solo games rebuilt in QQ (ADR-102): Rift Survivor, Void Runner, Synapse and Orbital, in 3D with
     physically based materials, bloom, particles and spatial sound, keyboard, mouse and gamepad, reduced motion
     honoured, each deterministic for a seed and its inputs.
 
-    **Orbital built, 24 October 2026, on `session/arqade-orbital`, not merged** (HANDOFF §4 item 142):
-    - A QQ package in `products/arqade/games/orbital/`: a gilt core under bloom, embers, an HDR sky and stars, stereo
-      sound, and title, HUD, pause and result screens. Played with keyboard, mouse or gamepad; reduced motion honoured.
-    - Its rules are one plain module, `logic/rules.mjs`. QQ's logic and Node both run it, and it replays a run QQ
-      recorded to the outcome QQ reached.
-    - ARQADE's Qt app builds QQ's runtime in and plays the game in place of the home (`qml/GameView.qml`), keeping each
-      play as a run. Its card plays it there; the other three cards still open the website.
-    - Tests: 8 in Node (in CI), and `tst_games`, 9 on the owner's PC, which plays it by mouse, keyboard and a pad
-      driven through QQ's input. Two planted faults caught.
+    **Done, 24 October 2026:** the four games merged as #89 to #92 (HANDOFF §4 items 142 to 145), and their sounds placed
+    in the world in #93 (item 146).
+    - Each is a QQ package in `products/arqade/games/` (`games/README.md`), played in ARQADE's Qt app, which builds QQ's
+      runtime in (`qt/qml/GameView.qml`). Every card of the four plays its game there.
+    - In 3D, under bloom, with particles. A sound that happens somewhere is heard from there, through QQ's spatial
+      audio; music and screen-level cues are heard everywhere. Keyboard, mouse, gamepad and touch buttons; reduced motion
+      honoured.
+    - Each game's rules are one plain module, run by QQ's logic and by Node alike. A run QQ recorded replays in both to
+      the same outcome, and the rules' whole end state is pinned in a test.
+    - Tests: 88 in Node (in CI), and `tst_games`, 29 on the owner's PC, which plays every game by mouse, keyboard, pad
+      and touch. Planted faults caught in every game.
+    - ARQADE deployed from `main` to the launcher's copy, 24 October 2026; the launcher's own test started it.
 
-    **Void Runner built, 24 October 2026, on `session/arqade-void-runner`, on #89's head, not merged** (HANDOFF §4 item
-    143): three lanes into the collapse, red hazards and gold gems, forty-five seconds or three breaches; its rules one
-    plain module like Orbital's. Each game's Node test now also pins the rules' whole state at the end of its kept run, so
-    no change to the rules passes unseen. Tests: 9 in Node for each game (67 in `npm test`), and `tst_games` 16 on the
-    owner's PC, which steers Void Runner by the keys, the arrows, the pad and the screen's buttons. Two more planted
-    faults caught, and a third (a tiny change to the rules) caught only once the state was pinned.
-
-    **Synapse built, 24 October 2026, on `session/arqade-synapse`, on #90's head, not merged** (HANDOFF §4 item 144): four
-    nodes light in a growing signal that the player repeats, eight to master it; its rules count the signal in steps.
-    Tests: 10 in Node (77 in `npm test`), and `tst_games` 22 on the owner's PC. Three planted faults caught.
-
-    **Rift Survivor built, 24 October 2026, on `session/arqade-rift-survivor`, on #91's head, not merged** (HANDOFF §4
-    item 145): an arena for ninety seconds, auto-fire, chains, fragments, rift pulses and perks; its rules the website's
-    step by step, with exact square roots and the spread's turns written in. Tests: 11 in Node (88 in `npm test`), and
-    `tst_games` 29 on the owner's PC. Two planted faults caught. **All four games are built**; the item is ticked once
-    they are merged.
-
-    **Not yet:** merged; ARQADE's deployed copy updated in the launcher.
+    **Not yet:** a person playing them in the running launcher; a launcher release carrying them; runs confirmed and
+    rewarded (P7.21, P7.22).
 21. [ ] The platform reward pool on the devnet (ADR-102): ARQADE's own Cartridge and ARQ Wallet, funded with test CGT by
     the owner, whose policy (largest payout, epoch budget, per-player cap, the games' rule versions) the owner sets.
 22. [ ] Runs confirmed by replay (ADR-102): a seed from the ARQADE service, the run's inputs replayed by the service with

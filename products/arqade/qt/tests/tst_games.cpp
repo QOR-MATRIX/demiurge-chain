@@ -139,6 +139,45 @@ class TestGames : public QObject
         return text ? text->property("text").toString() : QString();
     }
 
+    // An entity of the scene being played, by its name and kind (a screen button may share a shape's name).
+    QObject *entityNamed(const QString &name, const QString &kind = QStringLiteral("Shape")) const
+    {
+        if (!game())
+            return nullptr;
+        for (const QVariant &e : asList(game()->property("entityList"))) {
+            QObject *o = e.value<QObject *>();
+            if (o && o->property("name").toString() == name && o->property("kind").toString() == kind)
+                return o;
+        }
+        return nullptr;
+    }
+
+    // The sounds playing now from a place in the world, whose file ends `file`: QQ's placed voices, Qt's SpatialSound,
+    // which alone have a reach (`distanceCutoff`). A sound heard everywhere has none.
+    QList<QObject *> placedVoices(const QString &file) const
+    {
+        QList<QObject *> found;
+        QObject *voices = scene() ? scene()->property("_voices").value<QObject *>() : nullptr;
+        if (!voices)
+            return found;
+        for (const QVariant &v : asList(voices->property("active"))) {
+            QObject *voice = v.value<QObject *>();
+            if (voice && voice->property("distanceCutoff").isValid()
+                && voice->property("source").toUrl().toString().endsWith(file))
+                found << voice;
+        }
+        return found;
+    }
+
+    // A sound of `file` is playing from within `within` of `where`, in the scene.
+    bool heardNear(const QString &file, const QVector3D &where, double within) const
+    {
+        for (QObject *voice : placedVoices(file))
+            if ((voice->property("position").value<QVector3D>() - where).length() <= within)
+                return true;
+        return false;
+    }
+
     // A screen button, clicked where it is drawn, as a person clicks it.
     bool click(const QString &name)
     {
@@ -501,6 +540,10 @@ private slots:
             if (locks == 1) {
                 QTRY_COMPARE(screenText(QStringLiteral("Message")), QStringLiteral("ORBIT LOCKED"));
                 save(window, "orbital-locked.png");
+                // The lock is heard from the satellite.
+                QObject *satellite = entityNamed(QStringLiteral("Satellite"));
+                QVERIFY(satellite);
+                QTRY_VERIFY(heardNear(QStringLiteral("lock.wav"), satellite->property("scenePosition").value<QVector3D>(), 1.0));
             }
         }
         QTRY_COMPARE(state().value("phase").toString(), QStringLiteral("over"));
@@ -598,6 +641,9 @@ private slots:
                     shift(to > lane ? +1 : -1, ways[way]);
                 QTRY_COMPARE_WITH_TIMEOUT(state().value("lane").toInt(), to, 500);
                 used[way] += 1;
+                // A change of lane is heard from the ship, not everywhere.
+                if (moves == 1)
+                    QTRY_VERIFY(!placedVoices(QStringLiteral("shift.wav")).isEmpty());
             }
             if (++frame == 300)
                 save(window, "void-runner-running.png");
@@ -701,6 +747,15 @@ private slots:
             QCOMPARE(signal.size(), round);
             for (int i = 0; i < signal.size(); ++i) {
                 node(signal[i].toInt(), way++ % 3);
+                // Each node's note is heard from the node.
+                const int n = signal[i].toInt();
+                // The nodes are made by the logic as play starts: its own list has them.
+                const QVariantList nodes = asList(logic()->property("nodes"));
+                QCOMPARE(nodes.size(), 4);
+                QObject *pressed = nodes[n].value<QObject *>();
+                QVERIFY(pressed);
+                QTRY_VERIFY(heardNear(QStringLiteral("node%1.wav").arg(n + 1),
+                                      pressed->property("scenePosition").value<QVector3D>(), 0.01));
                 if (i + 1 < signal.size())
                     QTRY_COMPARE(state().value("cursor").toInt(), i + 1);
                 else
@@ -804,12 +859,16 @@ private slots:
     {
         QVERIFY(logic());
         int frame = 0;
+        bool killHeard = false;
         while (state().value("phase").toString() == QLatin1String("playing") && state().value("steps").toInt() < 3600) {
             steer(riftWay(state()));
             if (++frame == 400)
                 save(window, "rift-running.png");
+            // A kill is heard from where the enemy was.
+            killHeard = killHeard || !placedVoices(QStringLiteral("kill.wav")).isEmpty();
             QTest::qWait(4);
         }
+        QVERIFY2(killHeard, "no kill was heard from a place in the arena");
         steer({0, 0});
         QCOMPARE(state().value("phase").toString(), QStringLiteral("choosing"));
         QVERIFY(state().value("hull").toInt() > 0);

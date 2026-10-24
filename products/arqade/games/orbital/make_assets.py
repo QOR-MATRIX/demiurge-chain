@@ -10,7 +10,9 @@
   lost.wav      1.2 s   the orbit is lost: three low tones falling.
   orbit.wav     12 s    the music, looping: a slow, wide pad through D minor, B flat, F and C.
 
-The noise is a fixed sequence, so the files are the same bytes each time.
+A sound the game plays from a place is written in one channel, as Qt's spatial sounds take it, and one heard everywhere
+in both, as its ambient sounds take it: each warns of every other. The noise is a fixed sequence, so the files are the
+same bytes each time.
 """
 import math
 import pathlib
@@ -88,14 +90,14 @@ def note(name):
     return 440.0 * 2 ** ((steps + 12 * (int(name[-1]) - 4)) / 12)
 
 
-def write(name, samples, peak=0.6):
-    """Scaled so its loudest sample is `peak` of full scale, and written 16-bit, the same in both channels: Qt's ambient
-    sounds take stereo as it is and warn of every mono sound they spread."""
+def write(name, samples, peak=0.6, placed=False):
+    """Scaled so its loudest sample is `peak` of full scale, and written 16-bit: in one channel if the game plays it
+    from a place, otherwise the same in both."""
     top = max(abs(s) for s in samples) or 1.0
     scale = peak * 32767 / top
-    frames = [int(round(s * scale)) for s in samples for _ in (0, 1)]
+    frames = [int(round(s * scale)) for s in samples for _ in range(1 if placed else 2)]
     with wave.open(str(ASSETS / name), "wb") as w:
-        w.setnchannels(2)
+        w.setnchannels(1 if placed else 2)
         w.setsampwidth(2)
         w.setframerate(RATE)
         w.writeframes(struct.pack("<%dh" % len(frames), *frames))
@@ -199,8 +201,8 @@ def orbit():
 if __name__ == "__main__":
     ASSETS.mkdir(exist_ok=True)
     hdr("space.hdr", 1024, 512, space)
-    write("lock.wav", lock(), 0.7)
-    write("miss.wav", miss(), 0.6)
+    write("lock.wav", lock(), 0.7, placed=True)
+    write("miss.wav", miss(), 0.6, placed=True)
     write("complete.wav", complete(), 0.7)
     write("lost.wav", lost(), 0.6)
     write("orbit.wav", orbit(), 0.45)

@@ -111,6 +111,14 @@ and ember wardens turning, white shots, gold fragments, rifts that fill as they 
 an ember wake, under an HDR sky of teal spiral arms around an ember heart. Everything the rules hold is drawn from pools
 made as play starts, and only pieces that stop showing are put away each frame.
 
+**Sound from where it happens.** A sound that happens somewhere is played from there: the logic passes QQ's `play` a
+place (`at`), and QQ plays it through Qt's spatial audio, heard through the eye, panned to its side and quieter further
+off. Orbital's lock and miss come from the satellite, and Void Runner's from the ship's lane. Synapse's notes come from
+their nodes, so a signal moves left to right as it is heard. Rift Survivor's kills come from the enemy, its rifts from
+where they open, and its shots, fragments and breaches from the ship. Music and what belongs to the screen (a run's end,
+a signal repeated, a perk chosen) are heard everywhere. Qt's spatial sounds take one channel and its ambient sounds two,
+each warning of the other, so each `make_assets.py` writes the sounds its game places in mono and the rest in stereo.
+
 **Colour under bloom.** QQ's tonemapping turns a glow much past 1 toward white or yellow: Orbital's amber arc washed out
 to the satellite's white, and Void Runner's red hazards to white and its collapse to yellow. Each glow that carries a
 meaning is kept near or under 1, which keeps its hue. Synapse's lit node is capped at 0.77 for the same reason.
@@ -140,7 +148,9 @@ meaning is kept near or under 1, which keeps its hue. Synapse's lit node is capp
   node out of turn loses it for 450. Rift Survivor is moved each way there is (D, the left arrow, the d-pad's down and
   the screen's Up button), steered clear by the keys until ten kills evolve the signal, a perk chosen by its button while
   the world holds, then left standing until four breaches end it, a perk chosen by its key each time the signal evolves
-  meanwhile. The run ARQADE kept of each replays in QQ
+  meanwhile. Each game's placed sounds are checked where they happen: a lock within a unit of the satellite, a change
+  of lane from a placed voice, each Synapse note at its own node, a kill from a place in the arena. The run ARQADE kept
+  of each replays in QQ
   to its outcome, and so does each fixture. The launcher's reduced motion reaches the game, and Esc or Back returns to
   the home.
 
