@@ -24,8 +24,10 @@
 #include <wrl/client.h>
 #endif
 
-// The ARQADE module is built into this executable (a static library and its plugin).
+// The ARQADE module is built into this executable (a static library and its plugin), and QQ's runtime, which plays the
+// games rebuilt in QQ (P7.20).
 Q_IMPORT_QML_PLUGIN(ARQADEPlugin)
+Q_IMPORT_QML_PLUGIN(QQPlugin)
 
 // The graphics card Windows calls high-performance, where a PC has two (a laptop's discrete card beside its integrated
 // one), so ARQADE draws on the faster: Qt otherwise takes the first, usually the integrated. QT_D3D_ADAPTER_INDEX, when
@@ -107,6 +109,15 @@ int main(int argc, char *argv[])
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, [] { QCoreApplication::exit(1); },
                      Qt::QueuedConnection);
     engine.loadFromModule("ARQADE", "Main");
+
+    // A game's physics bodies go before their world, not in whatever order the window's teardown would take.
+    if (!engine.rootObjects().isEmpty()) {
+        QObject *window = engine.rootObjects().first();
+        QObject::connect(&app, &QCoreApplication::aboutToQuit, window, [window] {
+            QMetaObject::invokeMethod(window, "release");
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        });
+    }
 
     if (launched) {
         link->connectTo(parser.value(channel), arqade::ArqadeLink::readToken());

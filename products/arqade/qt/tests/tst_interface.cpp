@@ -28,6 +28,7 @@
 #include "fonts.h"
 
 Q_IMPORT_QML_PLUGIN(ARQADEPlugin)
+Q_IMPORT_QML_PLUGIN(QQPlugin)
 
 using arqade::ArqadeLink;
 using arqade::ArqadeServer;

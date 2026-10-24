@@ -64,13 +64,17 @@ Write-Host 'All ARQADE tests passed.'
 
 # An ARQADE that runs on its own: the executable with the Qt libraries, plugins (the TLS backend its server needs among
 # them) and QML modules (Qt Quick 3D, its helpers and particles) it uses beside it. The launcher opens it from here.
+# QQ's runtime and the games' own QML are scanned as well as ARQADE's: they import Qt Quick 3D's physics, spatial audio
+# and Qt Multimedia, which ARQADE's own pages never name.
 if ($Deploy) {
     if (Test-Path $DeployTo) { Remove-Item $DeployTo -Recurse -Force }
     New-Item -ItemType Directory -Force $DeployTo | Out-Null
     Copy-Item (Join-Path $Build 'arqade.exe') $DeployTo
     $windeployqt = Join-Path $Qt 'bin\windeployqt.exe'
     # Inside the compiler's environment, so the Microsoft C++ runtime comes along for a machine without Visual Studio.
-    $deployArgs = "--release --no-translations --compiler-runtime --qmldir ""$(Join-Path $source 'qml')"" ""$(Join-Path $DeployTo 'arqade.exe')"""
+    $qmlDirs = @((Join-Path $source 'qml'), (Join-Path $source '..\..\qq\runtime'), (Join-Path $source '..\games')) |
+        ForEach-Object { "--qmldir ""$((Resolve-Path $_).Path)""" }
+    $deployArgs = "--release --no-translations --compiler-runtime $($qmlDirs -join ' ') ""$(Join-Path $DeployTo 'arqade.exe')"""
     cmd /c "call `"$vcvars`" >nul 2>nul && `"$windeployqt`" $deployArgs" | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "windeployqt failed ($LASTEXITCODE)." }
     # The fonts' licence travels with them.
