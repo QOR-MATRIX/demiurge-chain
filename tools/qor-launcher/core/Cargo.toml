@@ -35,7 +35,9 @@ tracing    = "0.1"
 # sp-core carries the ecosystem's Sr25519 keys, its derivation and SS58 (ADR-023, ADR-024). Pinned to the version in
 # `polkadot-stable2606-1`, the release the chain is built against (ADR-022), so the launcher and the chain derive and
 # verify identically: ADR-033 rule 1 names exactly this case. `full_crypto` is what makes `Pair::sign` available;
-# `serde` is what makes SS58 encoding and decoding available.
+# `serde` is what makes SS58 encoding and decoding available. Its secp256k1 stack (k256, ecdsa, elliptic-curve,
+# crypto-bigint 0.5) is always built, and RUSTSEC-2026-0387 in crypto-bigint 0.5 is ignored only because no code here
+# uses ECDSA or secp256k1 (ADR-115): using `sp_core::ecdsa`, or any of those crates, fails CI until ADR-115 is revisited.
 sp-core          = { version = "=43.0.0", features = ["full_crypto", "serde"] }
 bip39            = "2"
 argon2           = "0.5"

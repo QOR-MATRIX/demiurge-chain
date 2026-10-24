@@ -44,6 +44,11 @@ uuid = { version = "1.11", features = ["v4", "serde"] }
 # `full_crypto`, which is what makes a key able to *sign*, is deliberately not
 # enabled here: this service verifies and never signs, and it holds no key
 # (ADR-014). The tests enable it below, so a test can produce a signature.
+#
+# Its secp256k1 stack (k256, ecdsa, elliptic-curve, crypto-bigint 0.5) is always
+# built, and RUSTSEC-2026-0387 in crypto-bigint 0.5 is ignored only because no code
+# here uses ECDSA or secp256k1 (ADR-115). Using `sp_core::ecdsa`, or any of those
+# crates, fails CI until ADR-115 is revisited.
 sp-core = { version = "=43.0.0", default-features = false, features = ["std", "serde"] }
 # Kept for one purpose: the small-order forgery the custom chain accepted is
 # built in a test and offered to this service, which must refuse it.
