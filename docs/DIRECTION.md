@@ -840,8 +840,12 @@ are release 1.
    reordered, rotated and deleted** the same day, through PDFium's own interface (`src/pdfpages.cpp`, `tst_pdfpages`):
    shown at once, undone and redone, saved into a temporary file renamed into place; a locked or protected PDF is only
    read; merged as #83 and #84. **A PDF's own marks drawn** the same day (`src/pdfdrawing.cpp`): Qt PDF's page image left
-   out highlights, notes, stamps and filled fields. "Signed" means a drawn or typed signature (ADR-114 decision 1);
-   certified signatures are proposed there, not decided. Annotating, highlighting, filling and signing are next.
+   out highlights, notes, stamps and filled fields; merged as #85. "Signed" means a drawn or typed signature (ADR-114
+   decision 1); certified signatures are proposed there, not decided. **Marked up** the same day, in pull request #86
+   (`src/pdfmarks.cpp`, `tst_pdfmarks`): words highlighted, underlined and struck through, notes,
+   ink drawn by hand, and a picture of a signature, drawn or typed; the PDF's own marks read, chosen and taken away; each
+   written through PDFium as the annotation it is, with an appearance of QOR Media's own, in the same save as the pages'
+   changes. Filling forms is next.
 6. [ ] Owned games and work in the Library (L7.1; depends on entitlements, M8).
 7. [ ] Release 2: Office documents viewed and edited through LibreOffice's engine, its own record first.
 8. [ ] Pictures beyond Qt's plugins: HEIC, AVIF, JPEG XL and camera RAW.

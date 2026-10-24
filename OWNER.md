@@ -10,25 +10,23 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 ## Live today (checked this session, from outside)
 
-The homepage at **qorsync.dev**; **Devnet** — *the test chain on servers* — now on runtime
-10; **QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** — *the
-gaming website*. **Launcher 0.1.16** is the tester download.
+The homepage at **qorsync.dev**; **Devnet** — *the test chain on servers* — on runtime 10,
+two peers, still finalising; **QOR ID** — *the one sign-in*; **Social** — *the chat
+service*; **ARQADE** — *the gaming website*. **Launcher 0.1.16** is the tester download.
 
 ## This session
 
-1. **You upgraded the devnet to runtime 10** — *the chain's program* — and it worked.
-   I read it back: exactly the file I had rehearsed, nothing lost, still finalising.
-   Assets can now keep a level, **XP** — *experience points* — and stats, written by
-   their game. A launcher built from today's code shows them; no released one does yet.
-2. **#82, #83 and #84 are merged.** PDFs open inside **QOR Media** — *the launcher's
-   media app* — and their pages can be turned, deleted, moved and saved through
-   **PDFium** — *Google's PDF engine*.
-3. **For your merge: #85.** A PDF's own marks (highlights, notes, filled-in forms) were
-   missing in QOR Media; the Qt part that draws pages leaves them out. Now they show.
-4. **Signing, as you chose ("Both, drawn first"):** a drawn or typed signature comes with
-   marking up; certified signatures are written up in ADR-114 for you to decide later.
+1. **#85 is in `main`:** QOR Media — *the launcher's media app* — now draws a PDF's own
+   highlights, notes and filled fields, which it used to leave out.
+2. **Marking up PDFs is #86** — *a pull request, a proposed change for you to merge*:
+   highlight, underline or strike through words, add notes, draw by hand, and place a
+   picture of your signature, drawn or typed. Saved into the PDF, so any reader shows
+   them. Its tests passed again on your PC after moving it onto the new `main`.
+3. **The signature is a picture, as you chose:** QOR Media says so where it is placed;
+   it certifies nothing. Certified signatures still wait on you (ADR-114). Neither is
+   in a release yet.
 
-## The release gates (measured last session)
+## The release gates (measured 22 October)
 
 **Alpha** — *the first test release* — lacks two things: M3.2, which needs the genesis split
 (OPEN-2), and two launcher dialogs you have not yet tried (L1.4). **Beta** — *the worldwide
@@ -40,7 +38,7 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
    Lose them and testers reinstall by hand.
-2. **Merge #85** when you have looked at it.
+2. **Merge #86** when you have looked at it; filling in forms follows it.
 3. **Install 0.1.15 yourself, then take 0.1.16 when it offers it**: the first update
    through the channel, which ticks L6.2. Then let a test agent ask you: in
    `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run `cargo run --example agent_link`
@@ -61,10 +59,10 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    pasted on 5 October; `social-secrets.txt` on your Desktop and `archive-bZLIQp/` in the
    old checkout, each to keep or delete.
 
-**Next in engineering:** marking up PDFs (highlights, notes, drawing) and the drawn
-signature, then filling forms: the rest of L9.5. At your word: certified signatures
-(ADR-114), a launcher release that shows assets' levels, games other than the home game
-keeping records (ADR-113's second phase), or rental and fractions (M4.3).
+**Next in engineering:** filling in PDF forms, the last of L9.5. At your word: certified
+signatures (ADR-114), a launcher release with QOR Media's PDF work and assets' levels,
+games other than the home game keeping records (ADR-113's second phase), or rental and
+fractions (M4.3).
 
 ## Cost per month
 

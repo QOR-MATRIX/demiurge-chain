@@ -1,10 +1,11 @@
 # QOR Media (ADR-094): the Library's player, viewer and editor, in Qt 6, C++20 and QML, docked inside the QOR Launcher.
 #
 #   src/    the launcher link (media.next), docking into the launcher's window, files, text and highlighting, a PDF's
-#           pages drawn with their marks, and changed through PDFium
+#           pages drawn with their marks, and its pages and marks changed through PDFium
 #   qml/    the module "QOR.Media": the window, the player, the viewer, the editor, the reader (Qt PDF); Tokens.qml, which
 #           docs/design/tokens.mjs generates from docs/design/tokens.json, and Theme, which binds to it (ADR-108)
-#   fonts/  Barlow, Barlow Semi Condensed and IBM Plex Mono, under the SIL Open Font License, copied by tokens.mjs
+#   fonts/  Barlow, Barlow Semi Condensed and IBM Plex Mono, under the SIL Open Font License, copied by tokens.mjs; and
+#           Great Vibes, under the same licence, the face a typed signature is drawn in: the page's, not the look's
 #   tests/  Qt Test suites
 #
 # Configure with the Qt the owner installed (commercial licence), MSVC 2022 and Ninja; build.ps1 does all of it:
@@ -43,7 +44,9 @@ qt_add_library(qormedia_core STATIC
     src/highlighter.h src/highlighter.cpp
     src/dock.h src/dock.cpp
     src/look.h src/look.cpp
+    src/pdfium.h src/pdfium.cpp
     src/pdfpages.h src/pdfpages.cpp
+    src/pdfmarks.h src/pdfmarks.cpp
     src/pdfdrawing.h src/pdfdrawing.cpp
     src/tokens.h
 )
@@ -66,6 +69,10 @@ qt_add_qml_module(qormedia_core
         qml/Viewer.qml
         qml/Editor.qml
         qml/Reader.qml
+        qml/MarkupBar.qml
+        qml/MarkItem.qml
+        qml/SignaturePad.qml
+        qml/Swatch.qml
         qml/Elsewhere.qml
         qml/TopBar.qml
         qml/IconButton.qml
@@ -93,6 +100,13 @@ qt_add_qml_module(qormedia_core
         qml/icons/down.svg
         qml/icons/delete.svg
         qml/icons/undo.svg
+        qml/icons/markup.svg
+        qml/icons/highlight.svg
+        qml/icons/underline.svg
+        qml/icons/strike.svg
+        qml/icons/note.svg
+        qml/icons/draw.svg
+        qml/icons/sign.svg
         fonts/Barlow-Regular.ttf
         fonts/Barlow-Medium.ttf
         fonts/BarlowSemiCondensed-Regular.ttf
@@ -100,13 +114,14 @@ qt_add_qml_module(qormedia_core
         fonts/BarlowSemiCondensed-SemiBold.ttf
         fonts/IBMPlexMono-Regular.ttf
         fonts/IBMPlexMono-Medium.ttf
+        fonts/GreatVibes-Regular.ttf
 )
 
 qt_add_executable(qor-media WIN32 src/main.cpp)
 target_link_libraries(qor-media PRIVATE qormedia_core qormedia_coreplugin Qt6::Multimedia Qt6::PdfQuick Qt6::QuickControls2 Qt6::QuickShapes Qt6::Svg)
 
 enable_testing()
-foreach(suite medialink files textfile playback look reader pdfpages)
+foreach(suite medialink files textfile playback look reader pdfpages pdfmarks)
     qt_add_executable(tst_${suite} tests/tst_${suite}.cpp)
     target_link_libraries(tst_${suite} PRIVATE qormedia_core qormedia_coreplugin Qt6::Multimedia Qt6::PdfQuick Qt6::QuickControls2 Qt6::QuickShapes Qt6::Test)
     add_test(NAME ${suite} COMMAND tst_${suite})

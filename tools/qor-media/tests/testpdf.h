@@ -1,7 +1,8 @@
 // A test's own PDFs, written byte by byte so what each holds is known exactly: pages of Helvetica text, links to a
-// page or a URI, an outline, and, when asked, the standard security handler's lock (revision 2, 40-bit RC4), the
-// oldest every reader opens. And what a saved PDF holds, read back through PDFium, which must be set up first
-// (PdfPages does it on first use). Shared by QOR Media's suites (tst_reader, tst_pdfpages).
+// page or a URI, red boxes and notes (marks with appearances of their own, and with the pop-up a note shows its text
+// in), an outline, and, when asked, the standard security handler's lock (revision 2, 40-bit RC4), the oldest every
+// reader opens. And what a saved PDF holds, read back through QOR Media's own PDFium, under its lock, since a reader
+// may be drawing with it. Shared by QOR Media's suites (tst_reader, tst_pdfpages, tst_pdfmarks).
 
 #pragma once
 
@@ -15,9 +16,15 @@
 
 #include <utility>
 
+#include <fpdf_annot.h>
 #include <fpdf_edit.h>
 #include <fpdf_text.h>
 #include <fpdfview.h>
+
+#include <QColor>
+#include <QPolygonF>
+
+#include "pdfium.h"
 
 namespace testpdf {
 
@@ -35,6 +42,8 @@ struct Page
     QList<Link> links;
     // Red squares, in points from the page's bottom left: annotations each with its own appearance, as most marks are.
     QList<QRectF> boxes;
+    // Notes, each with its text and the pop-up that shows it, as Acrobat writes them, with no appearance of their own.
+    QList<QPair<QRectF, QByteArray>> notes;
 };
 struct Entry
 {
@@ -98,6 +107,10 @@ inline QByteArray writePdf(const QList<Page> &pages, const QList<Entry> &outline
     for (int i = 0; i < count; ++i)
         for (qsizetype b = 0; b < pages[i].boxes.size(); ++b)
             boxObj[i] << next++ << next++;
+    QList<QList<int>> noteObj(count);  // each note: its annotation, then its pop-up
+    for (int i = 0; i < count; ++i)
+        for (qsizetype n = 0; n < pages[i].notes.size(); ++n)
+            noteObj[i] << next++ << next++;
     const int outlineObj = outline.isEmpty() ? 0 : next++;
     QList<int> entryObj;
     for (qsizetype e = 0; e < outline.size(); ++e)
@@ -141,6 +154,8 @@ inline QByteArray writePdf(const QList<Page> &pages, const QList<Entry> &outline
             annots += QByteArray::number(a) + " 0 R ";
         for (qsizetype b = 0; b < boxObj[i].size(); b += 2)
             annots += QByteArray::number(boxObj[i][b]) + " 0 R ";
+        for (int n : noteObj[i])
+            annots += QByteArray::number(n) + " 0 R ";
         object(pageObj[i], "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents "
                                + QByteArray::number(contentObj[i]) + " 0 R" + (annots.isEmpty() ? QByteArray() : " /Annots [" + annots + "]") + " >>");
         QByteArray text = "BT /F1 24 Tf 72 700 Td";
@@ -172,6 +187,19 @@ inline QByteArray writePdf(const QList<Page> &pages, const QList<Entry> &outline
                                                        + QByteArray::number(r.height() - 4) + " re S");
             object(look, "<< /Type /XObject /Subtype /Form /BBox [0 0 " + w + " " + h + "] /Length "
                              + QByteArray::number(stroke.size()) + " >>\nstream\n" + stroke + "\nendstream");
+        }
+    for (int i = 0; i < count; ++i)
+        for (qsizetype n = 0; n < pages[i].notes.size(); ++n) {
+            const QRectF r = pages[i].notes[n].first;
+            const int note = noteObj[i][2 * n], popup = noteObj[i][2 * n + 1];
+            const auto rectOf = [](const QRectF &q) {
+                return "[" + QByteArray::number(q.left()) + " " + QByteArray::number(q.top()) + " " + QByteArray::number(q.right())
+                    + " " + QByteArray::number(q.bottom()) + "]";
+            };
+            object(note, "<< /Type /Annot /Subtype /Text /Rect " + rectOf(r) + " /C [1 1 0] /Contents <"
+                             + sealed(note, pages[i].notes[n].second).toHex() + "> /Popup " + QByteArray::number(popup) + " 0 R >>");
+            object(popup, "<< /Type /Annot /Subtype /Popup /Rect " + rectOf(r.translated(r.width(), 0)) + " /Parent "
+                              + QByteArray::number(note) + " 0 R >>");
         }
     if (outlineObj) {
         object(outlineObj, "<< /Type /Outlines /First " + QByteArray::number(entryObj.first()) + " 0 R /Last "
@@ -222,6 +250,7 @@ struct Held
 
 inline Held readBack(const QString &path)
 {
+    qormedia::PdfiumLock locked;
     Held held;
     const QByteArray bytes = bytesOf(path);
     FPDF_DOCUMENT document = FPDF_LoadMemDocument64(bytes.constData(), size_t(bytes.size()), nullptr);
@@ -241,6 +270,86 @@ inline Held readBack(const QString &path)
     FPDF_CloseDocument(document);
     held.read = true;
     return held;
+}
+
+// A PDF's annotations, read back: on which page, of what kind, where in the PDF's own space, and what they hold.
+struct Annot
+{
+    int page = -1;
+    int subtype = FPDF_ANNOT_UNKNOWN;
+    QRectF rect;          // from the page's bottom left, y up
+    QList<QRectF> quads;  // the words' quadrilaterals, each as the rectangle around it
+    QString contents;
+    int strokes = 0;      // an ink list's
+    float border = 0;
+    float opacity = 1;
+    bool appearance = false;
+    bool printed = false;
+};
+
+inline QList<Annot> annotsOf(const QString &path)
+{
+    qormedia::PdfiumLock locked;
+    QList<Annot> annots;
+    const QByteArray bytes = bytesOf(path);
+    FPDF_DOCUMENT document = FPDF_LoadMemDocument64(bytes.constData(), size_t(bytes.size()), nullptr);
+    if (!document)
+        return annots;
+    for (int i = 0; i < FPDF_GetPageCount(document); ++i) {
+        FPDF_PAGE page = FPDF_LoadPage(document, i);
+        for (int a = 0; a < FPDFPage_GetAnnotCount(page); ++a) {
+            FPDF_ANNOTATION annot = FPDFPage_GetAnnot(page, a);
+            Annot got;
+            got.page = i;
+            got.subtype = FPDFAnnot_GetSubtype(annot);
+            FS_RECTF r{};
+            FPDFAnnot_GetRect(annot, &r);
+            got.rect = QRectF(QPointF(r.left, r.bottom), QPointF(r.right, r.top)).normalized();
+            for (size_t q = 0; q < FPDFAnnot_CountAttachmentPoints(annot); ++q) {
+                FS_QUADPOINTSF quad{};
+                FPDFAnnot_GetAttachmentPoints(annot, q, &quad);
+                got.quads << QPolygonF({{quad.x1, quad.y1}, {quad.x2, quad.y2}, {quad.x4, quad.y4}, {quad.x3, quad.y3}}).boundingRect();
+            }
+            if (const unsigned long length = FPDFAnnot_GetStringValue(annot, "Contents", nullptr, 0); length > 2) {
+                QList<FPDF_WCHAR> text(qsizetype(length / 2), 0);
+                FPDFAnnot_GetStringValue(annot, "Contents", text.data(), length);
+                got.contents = QString::fromUtf16(reinterpret_cast<const char16_t *>(text.constData()), text.size() - 1);
+            }
+            got.strokes = int(FPDFAnnot_GetInkListCount(annot));
+            float h = 0, v = 0;
+            FPDFAnnot_GetBorder(annot, &h, &v, &got.border);
+            FPDFAnnot_GetNumberValue(annot, "CA", &got.opacity);
+            got.appearance = FPDFAnnot_GetAP(annot, FPDF_ANNOT_APPEARANCEMODE_NORMAL, nullptr, 0) > 2;
+            got.printed = FPDFAnnot_GetFlags(annot) & FPDF_ANNOT_FLAG_PRINT;
+            annots << got;
+            FPDFPage_CloseAnnot(annot);
+        }
+        FPDF_ClosePage(page);
+    }
+    FPDF_CloseDocument(document);
+    return annots;
+}
+
+// The boxes of a page's characters but its spaces, in the PDF's own space.
+inline QList<QRectF> charBoxes(const QString &path, int pageIndex)
+{
+    qormedia::PdfiumLock locked;
+    QList<QRectF> boxes;
+    const QByteArray bytes = bytesOf(path);
+    FPDF_DOCUMENT document = FPDF_LoadMemDocument64(bytes.constData(), size_t(bytes.size()), nullptr);
+    if (!document)
+        return boxes;
+    FPDF_PAGE page = FPDF_LoadPage(document, pageIndex);
+    FPDF_TEXTPAGE text = FPDFText_LoadPage(page);
+    for (int c = 0; c < FPDFText_CountChars(text); ++c) {
+        double l = 0, r = 0, b = 0, t = 0;
+        if (FPDFText_GetUnicode(text, c) > ' ' && FPDFText_GetCharBox(text, c, &l, &r, &b, &t))
+            boxes << QRectF(QPointF(l, b), QPointF(r, t)).normalized();
+    }
+    FPDFText_ClosePage(text);
+    FPDF_ClosePage(page);
+    FPDF_CloseDocument(document);
+    return boxes;
 }
 
 }  // namespace testpdf
