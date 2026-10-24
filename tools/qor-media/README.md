@@ -10,7 +10,7 @@ over the Library, so it moves, resizes and minimises with the launcher.
 | Video and sound | `qml/Player.qml` | Qt Multimedia on its FFmpeg backend: every container and codec FFmpeg reads. Resumes where it stopped; scrubbing with the time under the pointer; ±10 s; speed; volume; audio and subtitle tracks; full screen |
 | Pictures | `qml/Viewer.qml` | Every format Qt's image plugins read (JPEG, PNG, GIF, WebP, TIFF, SVG, BMP, ICO, TGA), turned as the camera wrote it; zoom about the pointer, drag, 1:1 on a double click, the folder's others next and previous, turn, slideshow |
 | Text, Markdown and code | `qml/Editor.qml` | Read and saved as written (UTF-8 or UTF-16, byte-order mark and CRLF kept, `src/textfile.cpp`), coloured in the launcher's theme; line numbers for code; Markdown preview beside the words; find; asks before unsaved words are lost |
-| PDF | `qml/Reader.qml` | Read with Qt PDF: the pages one under another on their own paper, drawn with their marks (highlights, notes, stamps, a form's filled fields) by `src/pdfdrawing.cpp`, since Qt PDF's own page image leaves them out, fitted to the width or the whole page, zoomed about the pointer; find with every match marked; text selected and copied; links followed to their page, or out to the web or mail and nowhere else; the pages and the contents beside it; a locked PDF opens with its password, kept only while it is open; a broken one says so. Its pages turned, deleted and moved, shown at once, undone and redone, and saved through PDFium (`src/pdfpages.cpp`) into a temporary file renamed into place; asks before unsaved changes are lost; a locked or protected PDF is read, never changed. Marking up, filling and signing come next (L9.5) |
+| PDF | `qml/Reader.qml` | Read with Qt PDF: the pages one under another on their own paper, drawn with their marks (highlights, notes, stamps, a form's filled fields) by `src/pdfdrawing.cpp`, since Qt PDF's own page image leaves them out, fitted to the width or the whole page, zoomed about the pointer; find with every match marked; text selected and copied; links followed to their page, or out to the web or mail and nowhere else; the pages and the contents beside it; a locked PDF opens with its password, kept only while it is open; a broken one says so. Its pages turned, deleted and moved, shown at once, undone and redone, and saved through PDFium (`src/pdfpages.cpp`) into a temporary file renamed into place; asks before unsaved changes are lost; a locked or protected PDF is read, never changed. **Marked up** (`qml/MarkupBar.qml`, `qml/MarkItem.qml`, `qml/SignaturePad.qml`, `src/pdfmarks.cpp`): words highlighted, underlined and struck through, notes, ink drawn by hand, and a picture of a signature, drawn or typed, which certifies nothing (ADR-114 decision 1); the PDF's own marks chosen and taken away, and a note's words read by a tap; all shown at once, undone and redone with the pages, and written in the same save. Filling forms comes next (L9.5) |
 | Office documents, anything else | `qml/Elsewhere.qml` | Says so, and opens it in the program Windows chooses. Office documents arrive with L9.7 |
 
 Keys: Space or K play and pause; arrows seek 5 s (player) or move between pictures (viewer); J and L 10 s; Up and Down
@@ -19,9 +19,11 @@ saves; Ctrl+F finds; Ctrl+P previews Markdown; Alt+Z wraps lines; Esc goes back 
 Down, Space, the arrows, Home and End go through it; Ctrl+G goes to a page; + and -, or Ctrl and the wheel, zoom; 0 fits
 the width or the whole page; Ctrl+F and F3 find; Ctrl+A selects a page's text and Ctrl+C copies it; F9 shows the pages
 and contents, whose entries the arrows choose and Return opens; R turns the page (Shift+R the other way), Delete deletes
-it, Alt+Up and Alt+Down move it, Ctrl+Z and Ctrl+Y undo and redo, Ctrl+S saves. Tab reaches every button, the volume and
-the speed, shown by the focus ring, and Return or Space presses it; while the keyboard is on the player's controls they
-stay on screen.
+it, Alt+Up and Alt+Down move it, Ctrl+Z and Ctrl+Y undo and redo, Ctrl+S saves. M shows the marks; H, U and X highlight,
+underline and strike through the words selected; N writes a note (Ctrl+Return keeps it, Esc leaves it); D draws by hand;
+a tap chooses a mark and Delete takes it away; the arrows move a chosen note or signature (Shift for ten points), and [
+and ] size a signature. Tab reaches every button, the volume and the speed, shown by the focus ring, and Return or Space
+presses it; while the keyboard is on the player's controls they stay on screen.
 
 ## Its look
 
@@ -32,6 +34,12 @@ same script and built into the executable (`src/look.cpp`). Docked in the launch
 with every change (`theme`). Less motion comes from the launcher's Motion setting (`QOR_REDUCED_MOTION`) or, started by
 hand, Windows' Animation effects: every transition is then immediate and the music's glow stays still. CI reads the QML
 with `docs/design/check-qml.mjs`; `tests/tst_look.cpp` checks the same as painted.
+
+Two things on a PDF's page are the page's, not the look's. The six colours a mark can be (a highlighter's yellow, green,
+blue and pink, a pen's red and black) are what the PDF holds, the same in every theme, so they are kept in
+`src/pdfmarks.cpp` and reach the QML from there (`PdfMarks.colours`), never written in it. A typed signature is drawn in
+Great Vibes (SIL Open Font License 1.1, `fonts/GreatVibes-Regular.ttf` with `fonts/GreatVibes-OFL.txt`), as outlines made
+in C++ (`PdfMarks.typed`); `docs/design/tokens.mjs` does not manage it, and no QML names it.
 
 ## How the launcher talks to it
 
@@ -55,7 +63,7 @@ and refused if it differs. A deployed copy carries `pdfium.dll` with its licence
 `pdfium-licenses\`). A newer release is a change to those two lines, and its hash is the release's own.
 
 ```
-pwsh tools/qor-media/build.ps1             # build and run the seven Qt Test suites
+pwsh tools/qor-media/build.ps1             # build and run the eight Qt Test suites
 pwsh tools/qor-media/build.ps1 -Run a.mkv  # build, then open a file
 pwsh tools/qor-media/build.ps1 -Deploy     # build, test, then put a self-contained copy in %LOCALAPPDATA%\qor-media
 ```
@@ -75,7 +83,8 @@ cargo test --lib media::tests::qor_media -- --ignored
 | `tst_files` | Kinds by extension, as the launcher's index shelves them; which documents the editor and the reader open; a folder's pictures in the order people read numbers |
 | `tst_textfile` | LF, CRLF, UTF-8 with a byte-order mark and UTF-16 each written back as they were; a binary, oversized or missing file is refused and never written |
 | `tst_playback` | The whole program: a generated tone plays and its length, where it stopped and that it closed are reported; Windows' own sample video decodes through FFmpeg; a picture shows with its size and the arrow key moves to the next; unsaved words hold the window and nothing is written; an Office document says what opens it; the launcher's colours are worn; it docks as a child of a window known only by its handle, at the launcher's physical rectangle in logical pixels, and lifts out to full screen and back; hide hides |
-| `tst_reader` | PDFs the test writes byte by byte: one opens with every page, fitted to the width; the keys go through it, two jumps at once leave the view at the last, and a page's number typed goes there and gives the keyboard back; zoom stays between 10% and 800% and fitting returns; find marks every match and goes to each, around and back; a page's text is selected and copied, and another page's replaces it; a link goes to its page, and only the web or mail may leave; the pages and contents sit beside it and each goes to its page; a PDF locked with the standard handler (RC4) opens with its password and not without, the field emptied each time; a second locked PDF asks again; a broken one says so; pages turned, deleted, moved, undone, redone and saved, the file holding them exactly and the copy shown while saving gone; a PDF's own marks shown, and nothing left open for drawing once the reader goes; the last page stays; going with changes unsaved asks, and "Don't save" leaves the file as it was; a save that fails keeps the changes and the file; a locked or protected PDF is read, not changed; Tab reaches every control |
+| `tst_reader` | PDFs the test writes byte by byte: one opens with every page, fitted to the width; the keys go through it, two jumps at once leave the view at the last, and a page's number typed goes there and gives the keyboard back; zoom stays between 10% and 800% and fitting returns; find marks every match and goes to each, around and back; a page's text is selected and copied, and another page's replaces it; a link goes to its page, and only the web or mail may leave; the pages and contents sit beside it and each goes to its page; a PDF locked with the standard handler (RC4) opens with its password and not without, the field emptied each time; a second locked PDF asks again; a broken one says so; pages turned, deleted, moved, undone, redone and saved, the file holding them exactly and the copy shown while saving gone; a PDF's own marks shown, and nothing left open for drawing once the reader goes; the last page stays; going with changes unsaved asks, and "Don't save" leaves the file as it was; a save that fails keeps the changes and the file; a locked or protected PDF is read, not changed, nor marked; marking up: the page's words highlighted from a selection, in yellow, shown before saving, then underlined in the green chosen, with nothing marked while no words are selected, undone and redone with a page's turn, and saved, the file holding both; a note written, left with Esc, saved, and read by a tap as the PDF's own, to read and not to change, put away by a tap beside it; ink drawn with the pointer, neither scrolling nor selecting, and saved as ink; a signature typed, placed saying it certifies nothing, moved by the arrows and by a drag (undone in one step), sized, and saved as a stamp; one drawn on the pad keeping its drawing's shape; a PDF's own mark chosen only while the marks show, taken away at once by Delete (not the page), drawn without it, back on undo, and gone from the file once saved; Tab reaches every control |
+| `tst_pdfmarks` | Through PDFium, read back and drawn as the reader draws them: words highlighted where Qt PDF's selection puts them, the words still reading through it, within the annotation's rectangle; underlined along their foot and struck through their middle; a note's words (any script, and a new line) where it was put, read back as a mark; ink keeping its strokes and its width, a single point a dot; a signature drawn and one typed in Great Vibes, each a stamp in its box; a mark on a turned page landing on its words; marks and page changes in one save, a mark on a deleted page going with it; a PDF's own marks read (links and pop-ups are not marks), a page at a time, and taken away, a note with its pop-up; a page drawn without the marks being taken away, writing nothing; a locked PDF's marks read with its password only; a list it cannot follow (22 kinds: a kind, page, colour or place it cannot use, too much, a link, a mark it lacks, a good mark beside a bad one) leaving the file's bytes as they were |
 | `tst_pdfpages` | A page drawn with its marks, which Qt PDF's plain drawing leaves out; its width as asked and never past the limit; a locked PDF drawn with its password only; a closed key drawing nothing, leaving nothing open and letting go of the file. Through PDFium, read back: turns, deletions and moves written; every page in its place; the order reversed; a turn added to the page's own; a list it cannot follow (nothing kept, a page twice, a page it lacks, a turn too far) leaving the file's bytes as they were; a locked PDF and one protected without a password left as they were; a file that cannot be replaced left as it was, with no stray file beside it; which PDFs can be changed; the copy for saving made and only such a copy deleted, a read-only one too |
 
 Every rule above was checked against a fault planted in it: the save guard, the newest-position rule, the frame limit,
@@ -90,11 +99,19 @@ doing nothing, a failed save losing the changes, the copy left behind, the file 
 jump landing at the view's next frame, after a later one. The reader's own question on Esc was not, since the window asks
 before closing anything unsaved too. In drawing pages, each caught: pages drawn without their marks, no width limit, a
 closed key left open, the reader keeping its drawing when it goes, saving while the pages' file is open for drawing, and
-a locked PDF drawn without its password.
+a locked PDF drawn without its password. In marking up, nineteen, each caught: a highlight drawn opaque over its words,
+no quadrilaterals for the words, the page's turn left out of the mapping, a note without its words, ink without its list
+of strokes, a note taken away leaving its pop-up, a link taken away as a mark, no limit on points, marks written after
+the pages are turned, a signature drawn without its box, marks being taken away still drawn; in the reader, undo
+forgetting the marks, saving without them, Delete taking the page though a mark is chosen, a mark taken away still
+drawn, a locked PDF marked, a mark's drag left for the view to take, Esc keeping a note it should leave, and a typed
+signature placed as nothing. Two of the first nineteen missed, and changed the code, not the tests: a second limit on
+points doing the first's work (one now), and a release taken as a drag's last move, which Qt already gives (gone).
 
 ## Not yet
 
-Marking up, highlighting, filling and signing a PDF through PDFium's own interface (the rest of L9.5); dragging pages to
-move them; changing a locked PDF; Office documents (L9.7); HEIC, AVIF, JPEG XL and camera RAW pictures (L9.8);
+Filling a PDF's forms (the rest of L9.5); certified signatures (ADR-114 decision 2, proposed, not decided); changing the
+words of a PDF's own note; words in a box, shapes and squiggles; a signature kept in the person's profile to place again
+(ADR-114 allows it); dragging pages to move them; changing or marking a locked PDF; Office documents (L9.7); HEIC, AVIF, JPEG XL and camera RAW pictures (L9.8);
 video thumbnails on the Library's tiles; a game controller inside QOR Media (the Library's own view takes one); docking
 on macOS and Linux.
