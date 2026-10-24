@@ -11,6 +11,7 @@
 
 #include <fpdf_edit.h>
 
+#include "pdfforms.h"
 #include "pdfium.h"
 #include "pdfmarks.h"
 
@@ -39,7 +40,8 @@ bool PdfPages::changeable(const QString &path)
     return document.handle && FPDF_GetSecurityHandlerRevision(document.handle) == -1;
 }
 
-bool PdfPages::save(const QString &path, const QVariantList &layout, const QVariantList &added, const QVariantList &removed)
+bool PdfPages::save(const QString &path, const QVariantList &layout, const QVariantList &added, const QVariantList &removed,
+                    const QVariantList &filled)
 {
     m_error.clear();
 
@@ -80,8 +82,15 @@ bool PdfPages::save(const QString &path, const QVariantList &layout, const QVari
         if (k.page >= count)
             return fail(tr("The pages to save were not a list QOR Media can write."));
 
-    // The marks first, on the pages as the file has them and before any is turned: that is where the reader made them.
+    // The form first: what was filled names each widget by its place among its page's annotations as the file has them,
+    // and taking a mark away moves those after it. Through the form's own environment, let go of before anything else.
     QString why;
+    if (!filled.isEmpty()) {
+        PdfiumForm form(document.handle);
+        if (!fillFields(document.handle, form.handle(), filled, &why))
+            return fail(why);
+    }
+    // Then the marks, on the pages as the file has them and before any is turned: that is where the reader made them.
     if (!writeMarks(document.handle, added, removed, &why))
         return fail(why);
 

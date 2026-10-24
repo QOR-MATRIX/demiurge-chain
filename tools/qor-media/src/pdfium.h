@@ -1,4 +1,4 @@
-// QOR Media's own PDFium, shared by what changes a PDF (PdfPages, PdfMarks) and what draws a page with marks taken away
+// QOR Media's own PDFium, shared by what changes a PDF (PdfPages, PdfMarks, PdfForms) and what draws its pages
 // (PdfDrawing). It is a copy of its own, beside the one inside Qt PDF, and shares nothing with it.
 //
 // PDFium is not safe to use from two threads at once, and pages are drawn on the image provider's threads while the
@@ -14,6 +14,8 @@
 #include <QTransform>
 
 #include <fpdfview.h>
+#include <fpdf_annot.h>
+#include <fpdf_formfill.h>
 #include <fpdf_save.h>
 
 namespace qormedia {
@@ -61,11 +63,45 @@ struct PdfiumDocument
     void close();
 };
 
-/// A page, closed when it goes.
-struct PdfiumPage
+/// A document's form, through which PDFium draws its fields (FPDF_FFLDraw: nothing else does) and fills them; let go of
+/// when it goes, which is before its document closes. It runs none of the form's scripts: this PDFium has no JavaScript.
+class PdfiumForm
 {
-    FPDF_PAGE handle = nullptr;
+public:
+    explicit PdfiumForm(FPDF_DOCUMENT document);
+    ~PdfiumForm();
+    PdfiumForm(const PdfiumForm &) = delete;
+    PdfiumForm &operator=(const PdfiumForm &) = delete;
+
+    FPDF_FORMHANDLE handle() const { return m_handle; }
+
+private:
+    // PDFium keeps a pointer to it for as long as the form lives.
+    FPDF_FORMFILLINFO m_info{};
+    FPDF_FORMHANDLE m_handle = nullptr;
+};
+
+/// A page, closed when it goes. With a form, the form is told it is loaded, as it must be before it draws or fills the
+/// page's fields, and told again before it closes.
+class PdfiumPage
+{
+public:
+    explicit PdfiumPage(FPDF_PAGE page, FPDF_FORMHANDLE form = nullptr);
     ~PdfiumPage();
+    PdfiumPage(const PdfiumPage &) = delete;
+    PdfiumPage &operator=(const PdfiumPage &) = delete;
+
+    FPDF_PAGE handle = nullptr;
+
+private:
+    FPDF_FORMHANDLE m_form = nullptr;
+};
+
+/// An annotation of a page, let go of when it goes.
+struct PdfiumAnnot
+{
+    FPDF_ANNOTATION handle = nullptr;
+    ~PdfiumAnnot();
 };
 
 /// From a page as Qt PDF lays it out (in points, from its top left, turned as the page's own /Rotate turns it: the space

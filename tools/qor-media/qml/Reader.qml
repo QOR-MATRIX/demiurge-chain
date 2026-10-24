@@ -27,6 +27,12 @@ import QOR.Media
 // chosen (Shift for ten points), and [ and ] size a signature. A tap chooses a mark, the PDF's own too, and Delete takes
 // it away. A PDF's own note shows its words when tapped, even with the marks hidden. Marks are undone, redone and saved
 // with the pages' changes, in one write.
+//
+// And a form is filled (PdfForms, FieldItem): its fields are tinted, and a tap fills one. A text field is typed in where
+// it is, kept by Return or Tab and left by Esc; a check box is ticked, a radio button chosen, and a list's options chosen
+// from under it. Tab goes from field to field, on to the next page's, and into the first on the page in view. A tap on a
+// signature field places a picture of the person's signature in it, which certifies nothing. What is filled shows at once
+// in the page's image, drawn by PDFium as it will be saved, and is undone, redone and saved with the rest.
 FocusScope {
     id: reader
     objectName: "reader"
@@ -71,6 +77,20 @@ FocusScope {
     property var inking: null
     property var noteDraft: null
     property var dragged: null
+    // A form's fields (PdfForms): the file's, read a page at a time as each is shown (fieldsOn), afresh with each file and
+    // each save; what the person has filled and not yet saved, by field, each entry naming the widget it was filled
+    // through; and the field the keyboard is on, with whether it is typed in or its options shown: {page, index, mode: "",
+    // "typing" or "listing"}. The words being typed are kept in their field only on Return, Tab or leaving it.
+    property var fields: ({})
+    property var fills: ({})
+    property var fieldFocus: null
+    property string typingWords
+    // The filling the pages' images show: none (0), or the last one handed to PdfDrawing.
+    property int shownFills: 0
+    property int fillings: 0
+    property bool formSaid: false
+    // The signature field a signature being made goes into.
+    property var signTarget: null
     property bool editable: false
     // The widest page as laid out, in points.
     property real widest: 1
@@ -95,7 +115,7 @@ FocusScope {
     // Room either side of the widest page, and above the first.
     readonly property int margin: 24
     readonly property bool consumesEscape: dirty || asking.visible || finder.visible || pageField.activeFocus || signing.visible
-                                           || noteEditor.visible || tool.length > 0 || chosen !== null || marking
+                                           || noteEditor.visible || fieldFocus !== null || tool.length > 0 || chosen !== null || marking
     readonly property string markHint: tool === "ink" ? qsTr("Drag across a page to draw. D or Esc stops.")
         : chosen && chosen.from === "held" ? qsTr("One of the PDF's own marks. Delete takes it away.")
         : chosen ? qsTr("Drag it, or move it with the arrows. Delete takes it away.")
@@ -237,26 +257,39 @@ FocusScope {
         query.selectAll()
         query.forceActiveFocus()
     }
-    // The keyboard back to the pages, from a field, a button or a list. Focusing the reader itself would hand it back to
-    // whichever of them had it last, since the reader is a focus scope.
     // The key PdfDrawing opened this PDF under, for its pages' images; empty while none is open.
     property string drawingKey
     function pageImage(source) {
         if (!drawingKey.length) return ""
         const hidden = removed.filter((r) => r.page === source).map((r) => r.index)
-        return "image://pdfpage/" + drawingKey + "/" + source + (hidden.length ? "/" + hidden.join(",") : "")
+        // A page with fields, once something is filled, is drawn with them filled, afresh for each filling.
+        const filled = shownFills && fieldsOn(source).length ? "/" + shownFills : ""
+        return "image://pdfpage/" + drawingKey + "/" + source + (hidden.length || filled.length ? "/" + hidden.join(",") : "") + filled
     }
     function draw() {
         stopDrawing()
         drawingKey = PdfDrawing.open(path, triedPassword)
+        sendFills()
     }
+    // What is filled, to PdfDrawing first and then to the pages' images, so none is drawn with less.
+    function sendFills() {
+        if (!drawingKey.length) return
+        const list = Object.values(fills)
+        PdfDrawing.fill(drawingKey, list)
+        shownFills = list.length ? ++fillings : 0
+    }
+    onFillsChanged: sendFills()
     // Lets go of the file the pages are drawn from.
     function stopDrawing() {
         if (drawingKey.length) PdfDrawing.close(drawingKey)
         drawingKey = ""
     }
     Component.onDestruction: stopDrawing()
+    // The keyboard back to the pages, from a field, a button or a list, what was typed in a form's field kept. Focusing
+    // the reader itself would hand it back to whichever of them had it last, since the reader is a focus scope.
     function rest() {
+        keepTyping()
+        fieldFocus = null
         resting.forceActiveFocus()
     }
     Item { id: resting; focus: true }
@@ -303,17 +336,18 @@ FocusScope {
         if (fitting.length) fit()
     }
     function updateDirty() {
-        dirty = reordered || added.length > 0 || removed.length > 0
+        dirty = reordered || added.length > 0 || removed.length > 0 || Object.keys(fills).length > 0 || typedUnkept()
     }
-    // What undo and redo step between: the pages and the marks, together.
+    // What undo and redo step between: the pages, the marks and what is filled, together.
     function snapshot() {
-        return { layout: layout, added: added, removed: removed }
+        return { layout: layout, added: added, removed: removed, fills: fills }
     }
     function restore(state) {
         const moved = state.layout !== layout
         layout = state.layout
         added = state.added
         removed = state.removed
+        fills = state.fills
         chosen = null
         relayout()
         if (moved) goTo(Math.min(page, layout.length - 1))
@@ -506,21 +540,26 @@ FocusScope {
         addMark({ kind: "ink", page: line.page, colour: penColour, width: 2,
                   strokes: [line.points.length > 1 ? line.points : [line.points[0], line.points[0]]] })
     }
-    function sign() {
+    // A signature made on the pad, for the page in view or for the signature field `into`.
+    function sign(into) {
         if (!ready) return
         if (!canMark()) return
+        signTarget = into || null
         tool = ""
         signing.colour = penColour
         signing.open()
     }
-    // Placed in the middle of the page in view, no wider than 180 points and no higher than 72.
+    // Placed in the middle of the page in view, no wider than 180 points and no higher than 72; or in the signature field
+    // it was made for, as large as the field takes, in its middle.
     function placeSignature(signature) {
-        let width = Math.min(180, doc.pagePointSize(currentSource).width * 0.35)
-        if (width / signature.aspect > 72) width = 72 * signature.aspect
+        const into = signTarget
+        signTarget = null
+        let width = into ? Math.min(into.rect.width, into.rect.height * signature.aspect) : Math.min(180, doc.pagePointSize(currentSource).width * 0.35)
+        if (!into && width / signature.aspect > 72) width = 72 * signature.aspect
         const height = width / signature.aspect
-        const at = onPage(pages.width / 2, pages.height / 2, 0, 0)
-        const placed = { kind: "signature", page: currentSource, colour: signature.colour, x: at.x - width / 2, y: at.y - height / 2,
-                         width: width, height: height }
+        const at = into ? Qt.point(into.rect.x + into.rect.width / 2, into.rect.y + into.rect.height / 2) : onPage(pages.width / 2, pages.height / 2, 0, 0)
+        const placed = { kind: "signature", page: into ? into.page : currentSource, colour: signature.colour, x: at.x - width / 2,
+                         y: at.y - height / 2, width: width, height: height }
         Object.assign(placed, keptOn(placed, placed.x, placed.y, width))
         if (signature.strokes) {
             placed.strokes = signature.strokes
@@ -530,7 +569,8 @@ FocusScope {
         }
         penColour = signature.colour
         addMark(placed)
-        say(qsTr("A picture of your signature: it does not certify the PDF. Drag it into place."))
+        say(into ? qsTr("A picture of your signature, in its field: it does not certify the PDF.")
+                 : qsTr("A picture of your signature: it does not certify the PDF. Drag it into place."))
         rest()
     }
     // Choosing a mark, moving it, sizing it and taking it away.
@@ -591,6 +631,166 @@ FocusScope {
         else if (!isRemoved(gone)) markChange(added, removed.concat([{ page: gone.page, index: gone.index }]))
         return true
     }
+
+    // Filling a form. Each field has one entry at most, naming the widget it was filled through, and none while it holds
+    // what the file has, so filling a field back as it was leaves nothing to save.
+    function fieldsOn(source) {
+        if (!(source in fields)) {
+            const list = PdfForms.read(path, triedPassword, source)
+            fields[source] = list
+            // Said once, when a page with a form shows: later, since the pages' bindings read this.
+            const xfa = list.find((f) => f.xfa)
+            if (xfa) Qt.callLater(reader.sayForm, xfa.why)
+            else if (list.some((f) => f.fillable)) Qt.callLater(reader.sayForm, qsTr("A form: tap a field to fill it, or Tab through its fields."))
+        }
+        return fields[source]
+    }
+    function sayForm(words) {
+        if (formSaid || !editable) return
+        formSaid = true
+        say(words)
+    }
+    // The keyboard on a field: `mode` "", "typing" or "listing"; `keys` whether the keys brought it there, which shows
+    // the focus ring, as it shows for the keyboard alone. Left out, it stays as it was.
+    function focusOn(spot, mode, keys) {
+        fieldFocus = { page: spot.page, index: spot.index, mode: mode, keys: keys === undefined ? fieldFocus !== null && fieldFocus.keys : keys }
+    }
+    function fieldKey(f) {
+        return f.name.length ? f.name : f.page + "/" + f.index
+    }
+    function fieldAt(spot) {
+        return spot ? fieldsOn(spot.page).find((f) => f.index === spot.index) : undefined
+    }
+    function isFieldFocus(f, mode) {
+        return fieldFocus !== null && fieldFocus.page === f.page && fieldFocus.index === f.index && (mode === undefined || fieldFocus.mode === mode)
+    }
+    // What a field holds now: what the person filled in, or the file's.
+    function wordsOf(f) {
+        const entry = fills[fieldKey(f)]
+        if (entry && entry.text !== undefined) return entry.text
+        if (entry && entry.chosen !== undefined && entry.chosen.length) return f.options[entry.chosen[0]]
+        return f.value
+    }
+    function chosenOf(f) {
+        const entry = fills[fieldKey(f)]
+        if (entry && entry.chosen !== undefined) return entry.chosen
+        return entry && entry.text !== undefined ? [] : f.chosen
+    }
+    function checkedOf(f) {
+        const entry = fills[fieldKey(f)]
+        return entry && entry.checked !== undefined ? entry.checked && entry.state === f.state : f.checked
+    }
+    function canFill(f) {
+        if (!editable) {
+            say(locked || triedPassword.length ? qsTr("A locked PDF is read here, not filled.") : qsTr("This PDF cannot be filled here."))
+            return false
+        }
+        if (f.fillable || f.kind === "signature") return true
+        say(f.why)
+        return false
+    }
+    function fill(f, value) {
+        const key = fieldKey(f)
+        const asFiled = value.text !== undefined ? value.text === f.value
+            : value.checked !== undefined ? value.checked === f.checked
+            : value.chosen.join(",") === f.chosen.join(",")
+        const next = Object.assign({}, fills)
+        if (asFiled) delete next[key]
+        else next[key] = Object.assign({ page: f.page, index: f.index, state: f.state }, value)
+        if (JSON.stringify(next) === JSON.stringify(fills)) return
+        record()
+        fills = next
+        updateDirty()
+    }
+    // A tap on a field, or Space or Return while the keyboard is on it (`byKeys`).
+    function activate(f, byKeys) {
+        keepTyping()
+        if (!canFill(f)) return
+        if (f.kind === "signature") {
+            sign(f)
+            return
+        }
+        focusOn(f, f.kind === "combo" || f.kind === "list" ? "listing" : "", byKeys)
+        if (f.kind === "text") startTyping(f)
+        else if (f.kind === "check") fill(f, { checked: !checkedOf(f) })
+        else if (f.kind === "radio" && !checkedOf(f)) fill(f, { checked: true })
+    }
+    function startTyping(f) {
+        typingWords = wordsOf(f)
+        focusOn(f, "typing")
+    }
+    function typedUnkept() {
+        const f = fieldFocus !== null && fieldFocus.mode === "typing" ? fieldAt(fieldFocus) : undefined
+        return f !== undefined && typingWords !== wordsOf(f)
+    }
+    function edited(text) {
+        typingWords = text
+        updateDirty()
+    }
+    // The words typed kept in their field, which keeps the keyboard; or, by Esc, left as they were.
+    function keepTyping() {
+        if (fieldFocus === null || fieldFocus.mode !== "typing") return
+        const f = fieldAt(fieldFocus)
+        focusOn(fieldFocus, "")
+        if (f) fill(f, { text: typingWords })
+        updateDirty()
+    }
+    function leaveTyping() {
+        if (fieldFocus === null || fieldFocus.mode !== "typing") return
+        focusOn(fieldFocus, "")
+        updateDirty()
+    }
+    function chooseFrom(f, places) {
+        fill(f, { chosen: places })
+        // A list that takes several stays open for the next.
+        if (!(f.kind === "list" && f.multiple)) closeOptions()
+    }
+    function writeChoice(f, text) {
+        fill(f, { text: text })
+        closeOptions()
+    }
+    function closeOptions() {
+        if (fieldFocus !== null && fieldFocus.mode === "listing") focusOn(fieldFocus, "")
+    }
+    // Tab and Shift+Tab: the next field to fill on this page, or on the pages after it as they are laid out; past the
+    // last, the keyboard goes back to the pages. What was typed is kept first.
+    function stepField(from, back) {
+        keepTyping()
+        const start = rowOf(from.page)
+        for (let row = start; row >= 0 && row < layout.length; row += back ? -1 : 1) {
+            let list = fieldsOn(entryAt(row).page).filter((f) => f.fillable)
+            if (back) list = list.reverse()
+            const next = row !== start ? list[0] : list.find((f) => back ? f.index < from.index : f.index > from.index)
+            if (next) {
+                focusField(next, row)
+                return
+            }
+        }
+        rest()
+    }
+    // Tab with the keyboard on the pages: the first field to fill on the page in view.
+    function enterFields() {
+        const first = ready && editable ? fieldsOn(currentSource).find((f) => f.fillable) : undefined
+        if (first) focusField(first, page)
+        return first !== undefined
+    }
+    // The keyboard on a field, in view with room around it; a text field is typed in at once.
+    function focusField(f, row) {
+        let item = pageItem(row)
+        if (!item) {
+            goTo(row)
+            item = pageItem(row)
+        }
+        if (item) {
+            const r = item.paper.mapToItem(item, f.rect.x * zoom, f.rect.y * zoom, f.rect.width * zoom, f.rect.height * zoom)
+            pages.positionViewAtCell(Qt.point(0, row), TableView.Contain, Qt.point(0, 0),
+                                     Qt.rect(Math.max(0, r.x - 24), Math.max(0, r.y - 24), r.width + 48, r.height + 48))
+            pages.forceLayout()
+        }
+        page = row
+        focusOn(f, "", true)
+        if (f.kind === "text") startTyping(f)
+    }
     // Write the change to the file. Qt PDF holds the file it shows, so a copy is shown while the file is replaced; then
     // the file is opened again, at the same page. On failure the change stays, unsaved, and the file is as it was.
     //
@@ -601,6 +801,7 @@ FocusScope {
     function save(then) {
         const done = then || (() => {})
         if (saveJob) return
+        keepTyping()
         if (!dirty) return done(true)
         if (!editable) {
             say(qsTr("This PDF's pages cannot be changed here."))
@@ -611,7 +812,8 @@ FocusScope {
             say(qsTr("There was no room to save. The PDF is as it was."))
             return done(false)
         }
-        saveJob = { copy: copy, entries: layout.map((e) => ({ page: e.page, turn: e.turn })), added: added, removed: removed, then: done }
+        saveJob = { copy: copy, entries: layout.map((e) => ({ page: e.page, turn: e.turn })), added: added, removed: removed,
+                    filled: Object.values(fills), then: done }
         returnTo = page
         swapping = true
         // The view lets its pages go now rather than at its next frame, so they are gone by the next turn.
@@ -623,12 +825,13 @@ FocusScope {
         stopDrawing()
         saving = true
         doc.source = job.copy
-        const saved = writer.save(path, job.entries, job.added, job.removed)
+        const saved = writer.save(path, job.entries, job.added, job.removed, job.filled)
         saving = false
         keepLayout = !saved
         if (saved) {
             added = []
             removed = []
+            fills = ({})
             chosen = null
             reordered = false
             dirty = false
@@ -660,6 +863,7 @@ FocusScope {
         saveChoice.forceActiveFocus()
     }
     function goBack() {
+        keepTyping()
         if (dirty) ask(() => reader.back())
         else reader.back()
     }
@@ -673,6 +877,8 @@ FocusScope {
             layout = identity()
             added = []
             removed = []
+            fills = ({})
+            fieldFocus = null
             chosen = null
             undoStack = []
             redoStack = []
@@ -703,6 +909,12 @@ FocusScope {
         added = []
         removed = []
         held = ({})
+        fields = ({})
+        fills = ({})
+        fieldFocus = null
+        typingWords = ""
+        formSaid = false
+        signTarget = null
         chosen = null
         tool = ""
         inking = null
@@ -745,6 +957,7 @@ FocusScope {
                 reader.editable = !reader.triedPassword.length && writer.changeable(reader.path)
                 if (!reader.editable) reader.marking = false
                 reader.held = ({})
+                reader.fields = ({})
                 reader.draw()
                 reader.relayout()
                 const back = reader.returnTo
@@ -1193,6 +1406,33 @@ FocusScope {
                     }
                 }
 
+                // A form's fields, over the widgets the page's image draws: tinted while they can be filled, and filled by
+                // a tap or the keys (FieldItem). Drawing by hand goes over them.
+                Repeater {
+                    model: reader.fieldsOn(holder.entry.page)
+                    delegate: FieldItem {
+                        required property var modelData
+                        field: modelData
+                        zoom: reader.zoom
+                        enabled: reader.tool !== "ink"
+                        fillable: reader.editable && (modelData.fillable || modelData.kind === "signature")
+                        current: reader.isFieldFocus(modelData)
+                        typing: reader.isFieldFocus(modelData, "typing")
+                        listing: reader.isFieldFocus(modelData, "listing")
+                        words: typing ? reader.typingWords : reader.wordsOf(modelData)
+                        chosen: reader.chosenOf(modelData)
+                        checked: reader.checkedOf(modelData)
+                        byKeys: current && reader.fieldFocus.keys
+                        onActivated: (byKeys) => reader.activate(modelData, byKeys)
+                        onEdited: (text) => reader.edited(text)
+                        onKept: reader.keepTyping()
+                        onStepped: (back) => reader.stepField(modelData, back)
+                        onChose: (places) => reader.chooseFrom(modelData, places)
+                        onWrote: (text) => reader.writeChoice(modelData, text)
+                        onListClosed: reader.closeOptions()
+                    }
+                }
+
                 // The PDF's own marks, drawn in the page's image: chosen by a tap while marking up, and a note's words read
                 // by a tap at any time.
                 Repeater {
@@ -1433,6 +1673,7 @@ FocusScope {
         onPlaced: (signature) => reader.placeSignature(signature)
         onCancelled: {
             signing.visible = false
+            reader.signTarget = null
             reader.rest()
         }
     }
@@ -1453,7 +1694,7 @@ FocusScope {
             anchors.margins: 22
             spacing: 8
             Text { text: qsTr("Save the changes to %1?").arg(Files.nameOf(reader.path)); color: Theme.ink; font.family: Theme.ui; font.pixelSize: Theme.sizeHeading; font.weight: Font.DemiBold; Layout.fillWidth: true; elide: Text.ElideMiddle }
-            Text { text: qsTr("Its pages and marks go back as they were if you don't."); color: Theme.inkMuted; font.family: Theme.text; font.pixelSize: Theme.sizeBody }
+            Text { text: qsTr("Its pages, marks and form go back as they were if you don't."); color: Theme.inkMuted; font.family: Theme.text; font.pixelSize: Theme.sizeBody }
             Item { Layout.fillHeight: true }
             RowLayout {
                 Layout.alignment: Qt.AlignRight
@@ -1506,6 +1747,8 @@ FocusScope {
 
     Keys.onPressed: (event) => {
         if (!reader.ready || asking.visible || signing.visible || noteText.activeFocus) return
+        // Typing in a field, or choosing from its options, the keys are theirs.
+        if (reader.fieldFocus !== null && reader.fieldFocus.mode !== "") return
         const wide = pages.contentWidth > pages.width + 1
         const alt = event.modifiers & Qt.AltModifier
         const step = event.modifiers & Qt.ShiftModifier ? 10 : 1
@@ -1534,6 +1777,8 @@ FocusScope {
         case Qt.Key_BracketRight: reader.resizeChosen(1 / 0.9); break
         case Qt.Key_F: reader.fullScreenToggled(); break
         case Qt.Key_F9: reader.panel = !reader.panel; break
+        // Into a form's fields; on a page without them, on to the next control.
+        case Qt.Key_Tab: if (event.modifiers !== Qt.NoModifier || !reader.enterFields()) return; break
         default: return
         }
         event.accepted = true
@@ -1558,6 +1803,9 @@ FocusScope {
             else if (noteEditor.visible) reader.closeNote(false)
             else if (finder.visible) reader.closeFinder()
             else if (pageField.activeFocus) reader.rest()
+            else if (reader.fieldFocus !== null && reader.fieldFocus.mode === "listing") reader.closeOptions()
+            else if (reader.fieldFocus !== null && reader.fieldFocus.mode === "typing") reader.leaveTyping()
+            else if (reader.fieldFocus !== null) reader.rest()
             else if (reader.tool.length) reader.tool = ""
             else if (reader.chosen !== null) reader.chosen = null
             else if (reader.marking) reader.toggleMarking()

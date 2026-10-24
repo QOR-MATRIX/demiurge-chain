@@ -54,10 +54,38 @@ void PdfiumDocument::close()
     handle = nullptr;
 }
 
+PdfiumForm::PdfiumForm(FPDF_DOCUMENT document)
+{
+    // Version 1: AcroForm alone, as this PDFium has no XFA. No callbacks: nothing is shown or timed by the form itself.
+    m_info.version = 1;
+    if (document)
+        m_handle = FPDFDOC_InitFormFillEnvironment(document, &m_info);
+}
+
+PdfiumForm::~PdfiumForm()
+{
+    if (m_handle)
+        FPDFDOC_ExitFormFillEnvironment(m_handle);
+}
+
+PdfiumPage::PdfiumPage(FPDF_PAGE page, FPDF_FORMHANDLE form) : handle(page), m_form(page ? form : nullptr)
+{
+    if (m_form)
+        FORM_OnAfterLoadPage(handle, m_form);
+}
+
 PdfiumPage::~PdfiumPage()
 {
+    if (m_form)
+        FORM_OnBeforeClosePage(handle, m_form);
     if (handle)
         FPDF_ClosePage(handle);
+}
+
+PdfiumAnnot::~PdfiumAnnot()
+{
+    if (handle)
+        FPDFPage_CloseAnnot(handle);
 }
 
 QTransform pageSpace(FPDF_PAGE page)

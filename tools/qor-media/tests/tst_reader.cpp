@@ -3,8 +3,11 @@
 // page, and only the web or mail leave the document; the pages and the contents sit beside it; a locked PDF opens with
 // its password and not without; a broken one says so; and every control is reached by Tab. It is marked up: words
 // highlighted, underlined and struck through, notes, ink and a picture of a signature, each shown at once, undone,
-// redone and saved with the pages, and the PDF's own marks read and taken away. Every PDF here is written by the test,
-// byte by byte, so what each holds is known exactly.
+// redone and saved with the pages, and the PDF's own marks read and taken away. Its form is filled: words typed where the
+// field is, a box ticked, a button of a group chosen, a list's option chosen, Tab from field to field and Esc out of
+// them, each drawn at once, undone and saved; a signature field signed with a picture; a locked PDF's form read, not
+// filled; and words half typed asked about before going. Every PDF here is written by the test, byte by byte, so what
+// each holds is known exactly.
 
 #include <QClipboard>
 #include <QDir>
@@ -21,6 +24,7 @@
 
 #include "medialink.h"
 #include "pdfdrawing.h"
+#include "pdfforms.h"
 #include "pdfmarks.h"
 #include "testpdf.h"
 
@@ -28,6 +32,7 @@ Q_IMPORT_QML_PLUGIN(QOR_MediaPlugin)
 
 using qormedia::MediaLink;
 using qormedia::PdfDrawing;
+using qormedia::PdfForms;
 using qormedia::PdfMarks;
 using namespace testpdf;
 
@@ -168,9 +173,80 @@ class TestReader : public QObject
     {
         return itemsUnder(window->contentItem(), [&](QQuickItem *i) { return i->objectName() == name; });
     }
+    // The one item named so that shows, wherever it is: on a page, or over everything, as a list's options are.
+    QQuickItem *shown(const QString &name)
+    {
+        const QList<QQuickItem *> showing = itemsUnder(window->contentItem(), [&](QQuickItem *i) { return i->objectName() == name && i->isVisible(); });
+        return showing.size() == 1 ? showing.first() : nullptr;
+    }
     QPointF centreOf(QQuickItem *item)
     {
         return item->mapToScene(QPointF(item->width() / 2, item->height() / 2));
+    }
+
+    // A form of one page, each field a widget at the place named: words, a check box, a group of three, a drop-down
+    // list, words read only, and a signature field.
+    enum At { Name, Agree, Small, Medium, Large, Colour, Fixed, Sign };
+    QString form(const QString &name, const QByteArray &password = {})
+    {
+        Page page{{"Form"}, {}};
+        page.fields = {Field{Field::Text, "name", QRectF(100, 600, 200, 24), "Ada Lovelace"},
+                       Field{Field::Check, "agree", QRectF(100, 560, 20, 20), "Off", {"Yes"}},
+                       Field{Field::Radio, "size", QRectF(100, 520, 20, 20), "S", {"S", "M", "L"}, {QRectF(140, 520, 20, 20), QRectF(180, 520, 20, 20)}},
+                       Field{Field::Combo, "colour", QRectF(100, 470, 120, 24), "Red", {"Red", "Green", "Blue"}},
+                       Field{Field::Text, "fixed", QRectF(100, 420, 200, 24), "Locked", {}, {}, 1},
+                       Field{Field::Signature, "sign", QRectF(300, 100, 200, 50)}};
+        const QString path = dir.filePath(name);
+        save(path, writePdf({page}, {}, password));
+        return path;
+    }
+    // A value the reader holds, as plain data: a map made in QML is a script value.
+    static QVariant plainOf(const QVariant &v)
+    {
+        return v.metaType() == QMetaType::fromType<QJSValue>() ? v.value<QJSValue>().toVariant() : v;
+    }
+    // The field on the page at a place, as the reader shows it.
+    QQuickItem *fieldAt(int index)
+    {
+        for (QQuickItem *item : itemsNamed(QStringLiteral("formField")))
+            if (plainOf(item->property("field")).toMap().value("index").toInt() == index)
+                return item;
+        return nullptr;
+    }
+    // Whether a field shows the focus ring.
+    bool ringOn(QQuickItem *field)
+    {
+        const QList<QQuickItem *> rings = itemsUnder(field, [](QQuickItem *i) { return i->objectName() == QLatin1String("focusRing"); });
+        return !rings.isEmpty() && rings.first()->isVisible();
+    }
+    // What the reader holds filled, by field name.
+    static QVariantMap fillsOf(QQuickItem *reader)
+    {
+        return plainOf(reader->property("fills")).toMap();
+    }
+    static QVariantMap focusOf(QQuickItem *reader)
+    {
+        return plainOf(reader->property("fieldFocus")).toMap();
+    }
+    // How many pixels under an item, as the window shows it, are dark: a box ticked, a button chosen.
+    int darkUnder(QQuickItem *item)
+    {
+        const QImage shown = window->grabWindow();
+        const qreal ratio = shown.devicePixelRatio();
+        const QRect area = QRectF(item->mapToScene(QPointF(0, 0)) * ratio, item->size() * ratio).toAlignedRect().intersected(shown.rect());
+        int n = 0;
+        for (int y = area.top(); y <= area.bottom(); ++y)
+            for (int x = area.left(); x <= area.right(); ++x)
+                n += QColor(shown.pixel(x, y)).lightness() < 80;
+        return n;
+    }
+    // The fields' values read back from the file, by field name.
+    static QMap<QString, QVariantMap> filedIn(const QString &path)
+    {
+        QMap<QString, QVariantMap> filed;
+        for (const QVariant &w : PdfForms::read(path))
+            filed.insert(w.toMap().value("name").toString() + (w.toMap().value("kind") == QStringLiteral("radio") ? w.toMap().value("state").toString() : QString()), w.toMap());
+        return filed;
     }
 
 private slots:
@@ -964,6 +1040,265 @@ private slots:
         QTest::keyClick(window, Qt::Key_Escape);
         QTest::keyClick(window, Qt::Key_Escape);
         QTRY_VERIFY(!window->isVisible());
+    }
+
+    void a_form_is_filled_where_it_is_shown_at_once_undone_and_saved()
+    {
+        const QString path = form(QStringLiteral("form.pdf"));
+        const QByteArray before = bytesOf(path);
+        QQuickItem *reader = read(path);
+        QVERIFY(reader);
+        QTRY_VERIFY(reader->property("editable").toBool());
+        // Its fields over their widgets, and a word that it is a form.
+        QTRY_COMPARE(itemsNamed(QStringLiteral("formField")).size(), 8);
+        QTRY_VERIFY(reader->property("notice").toString().contains(QStringLiteral("form")));
+        // Typed where the field is: the editor over it, holding its words.
+        QQuickItem *name = fieldAt(Name);
+        QVERIFY(click(name));
+        QQuickItem *editor = nullptr;
+        QTRY_VERIFY((editor = shown(QStringLiteral("fieldEditor"))) && editor->hasActiveFocus());
+        QCOMPARE(editor->property("text").toString(), QStringLiteral("Ada Lovelace"));
+        QTest::keyClick(window, Qt::Key_A, Qt::ControlModifier);
+        type(QStringLiteral("Grace"));
+        // Not kept yet, and not to be lost: going now would ask.
+        QTRY_VERIFY(reader->property("dirty").toBool());
+        QVERIFY(fillsOf(reader).isEmpty());
+        QTest::keyClick(window, Qt::Key_Return);
+        QTRY_COMPARE(fillsOf(reader).value("name").toMap().value("text").toString(), QStringLiteral("Grace"));
+        QTRY_VERIFY(!shown(QStringLiteral("fieldEditor")));
+        QTRY_VERIFY(name->hasActiveFocus());
+        // The page drawn again by PDFium, filled as it will be saved.
+        QList<QQuickItem *> images;
+        QTRY_VERIFY(!(images = itemsNamed(QStringLiteral("pageImage"))).isEmpty()
+                    && images.first()->property("source").toString().contains(QStringLiteral("/0//")));
+        // A box ticked and a button of the group chosen, each drawn at once.
+        QQuickItem *agree = fieldAt(Agree);
+        QVERIFY(darkUnder(agree) < 20);
+        QVERIFY(click(agree));
+        QTRY_VERIFY(fillsOf(reader).value("agree").toMap().value("checked").toBool());
+        QTRY_VERIFY(darkUnder(agree) > 60);
+        // Tapped, it has the keyboard without the focus ring, which shows for the keys alone.
+        QTRY_VERIFY(agree->hasActiveFocus());
+        QVERIFY(!ringOn(agree));
+        QVERIFY(darkUnder(fieldAt(Small)) > 60);
+        QVERIFY(click(fieldAt(Large)));
+        QTRY_COMPARE(fillsOf(reader).value("size").toMap().value("index").toInt(), int(Large));
+        QTRY_VERIFY(darkUnder(fieldAt(Large)) > 60);
+        QTRY_VERIFY(darkUnder(fieldAt(Small)) < 20);
+        // An option chosen from under the list, by the keys.
+        QVERIFY(click(fieldAt(Colour)));
+        QQuickItem *options = nullptr;
+        QTRY_VERIFY((options = shown(QStringLiteral("fieldOptionList"))) && options->hasActiveFocus());
+        QTest::keyClick(window, Qt::Key_Down);
+        QTest::keyClick(window, Qt::Key_Down);
+        QTest::keyClick(window, Qt::Key_Return);
+        QTRY_COMPARE(fillsOf(reader).value("colour").toMap().value("chosen").toList().size(), 1);
+        QCOMPARE(fillsOf(reader).value("colour").toMap().value("chosen").toList().first().toInt(), 2);
+        QTRY_VERIFY(!shown(QStringLiteral("fieldOptionList")));
+        // Undone and redone with the rest; nothing has reached the file.
+        QTest::keyClick(window, Qt::Key_Z, Qt::ControlModifier);
+        QTRY_VERIFY(!fillsOf(reader).contains("colour"));
+        QTest::keyClick(window, Qt::Key_Y, Qt::ControlModifier);
+        QTRY_VERIFY(fillsOf(reader).contains("colour"));
+        QCOMPARE(bytesOf(path), before);
+        // A box ticked back as the file has it leaves nothing to save for it.
+        QVERIFY(click(agree));
+        QTRY_VERIFY(!fillsOf(reader).contains("agree"));
+        QVERIFY(click(agree));
+        QTRY_VERIFY(fillsOf(reader).contains("agree"));
+        // The field read only says so, and is not typed in. The whole page in view first, to reach it.
+        QTest::keyClick(window, Qt::Key_0);
+        QTRY_COMPARE(reader->property("fitting").toString(), QStringLiteral("page"));
+        QTRY_VERIFY(fieldAt(Fixed) && centreOf(fieldAt(Fixed)).y() < window->height() - 40);
+        reader->setProperty("notice", QString());
+        QVERIFY(click(fieldAt(Fixed)));
+        QTRY_VERIFY(reader->property("notice").toString().contains(QStringLiteral("read only")));
+        QVERIFY(!shown(QStringLiteral("fieldEditor")));
+        // Saved: the file holds them, read back as its own.
+        QTest::keyClick(window, Qt::Key_S, Qt::ControlModifier);
+        QTRY_VERIFY(!reader->property("dirty").toBool());
+        const QMap<QString, QVariantMap> filed = filedIn(path);
+        QCOMPARE(filed["name"].value("value").toString(), QStringLiteral("Grace"));
+        QVERIFY(filed["agree"].value("checked").toBool());
+        QVERIFY(filed["sizeL"].value("checked").toBool());
+        QVERIFY(!filed["sizeS"].value("checked").toBool());
+        QCOMPARE(filed["colour"].value("value").toString(), QStringLiteral("Blue"));
+        QCOMPARE(filed["fixed"].value("value").toString(), QStringLiteral("Locked"));
+        QVERIFY(fillsOf(reader).isEmpty());
+        QTRY_VERIFY(fieldAt(Agree) && darkUnder(fieldAt(Agree)) > 60);
+        QCOMPARE(copiesLeft(), QStringList());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!window->isVisible());
+    }
+
+    void tab_goes_through_the_fields_and_esc_leaves_them()
+    {
+        const QString path = form(QStringLiteral("tabbed.pdf"));
+        QQuickItem *reader = read(path);
+        QVERIFY(reader);
+        QTRY_VERIFY(reader->property("editable").toBool());
+        QTRY_COMPARE(itemsNamed(QStringLiteral("formField")).size(), 8);
+        // Tab from the pages goes into the first field, to type in it.
+        QTest::keyClick(window, Qt::Key_Tab);
+        QTRY_COMPARE(focusOf(reader).value("index").toInt(), int(Name));
+        QCOMPARE(focusOf(reader).value("mode").toString(), QStringLiteral("typing"));
+        QQuickItem *editor = nullptr;
+        QTRY_VERIFY((editor = shown(QStringLiteral("fieldEditor"))) && editor->hasActiveFocus());
+        // Esc leaves the words as they were and the keyboard on the field; Esc again lets go of it, and stays.
+        type(QStringLiteral(" Jr"));
+        QTRY_VERIFY(reader->property("dirty").toBool());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!shown(QStringLiteral("fieldEditor")));
+        QVERIFY(fillsOf(reader).isEmpty());
+        QVERIFY(!reader->property("dirty").toBool());
+        QTRY_VERIFY(fieldAt(Name)->hasActiveFocus());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(focusOf(reader).isEmpty());
+        QVERIFY(window->isVisible());
+        // In again: Tab keeps the words and goes on to the box, which Space ticks.
+        QTest::keyClick(window, Qt::Key_Tab);
+        QTRY_VERIFY((editor = shown(QStringLiteral("fieldEditor"))) && editor->hasActiveFocus());
+        QTest::keyClick(window, Qt::Key_End);
+        type(QStringLiteral("!"));
+        QTest::keyClick(window, Qt::Key_Tab);
+        QTRY_COMPARE(fillsOf(reader).value("name").toMap().value("text").toString(), QStringLiteral("Ada Lovelace!"));
+        QTRY_COMPARE(focusOf(reader).value("index").toInt(), int(Agree));
+        QTRY_VERIFY(fieldAt(Agree)->hasActiveFocus());
+        QVERIFY(ringOn(fieldAt(Agree)));
+        QTest::keyClick(window, Qt::Key_Space);
+        QTRY_VERIFY(fillsOf(reader).value("agree").toMap().value("checked").toBool());
+        // On through the group's buttons and the list, passing the field read only; past the last, back to the pages.
+        for (const int next : {Small, Medium, Large, Colour}) {
+            QTest::keyClick(window, Qt::Key_Tab);
+            QTRY_COMPARE(focusOf(reader).value("index").toInt(), next);
+        }
+        QTest::keyClick(window, Qt::Key_Tab);
+        QTRY_VERIFY(focusOf(reader).isEmpty());
+        // Shift+Tab goes back, from the box to the words, to type in them.
+        QTest::keyClick(window, Qt::Key_Tab);
+        QTRY_COMPARE(focusOf(reader).value("mode").toString(), QStringLiteral("typing"));
+        QTest::keyClick(window, Qt::Key_Tab);
+        QTRY_COMPARE(focusOf(reader).value("index").toInt(), int(Agree));
+        QTest::keyClick(window, Qt::Key_Tab, Qt::ShiftModifier);
+        QTRY_COMPARE(focusOf(reader).value("index").toInt(), int(Name));
+        QTRY_COMPARE(focusOf(reader).value("mode").toString(), QStringLiteral("typing"));
+        // Ctrl+S with words typed and not kept keeps them, and saves them.
+        QTRY_VERIFY((editor = shown(QStringLiteral("fieldEditor"))) && editor->hasActiveFocus());
+        type(QStringLiteral("?"));
+        QTest::keyClick(window, Qt::Key_S, Qt::ControlModifier);
+        QTRY_VERIFY(!reader->property("dirty").toBool());
+        QCOMPARE(filedIn(path)["name"].value("value").toString(), QStringLiteral("Ada Lovelace!?"));
+        QVERIFY(filedIn(path)["agree"].value("checked").toBool());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!window->isVisible());
+    }
+
+    void a_locked_pdfs_form_is_read_not_filled()
+    {
+        QQuickItem *reader = read(form(QStringLiteral("locked form.pdf"), "open sesame"));
+        QVERIFY(reader);
+        QTRY_VERIFY(named("password")->hasActiveFocus());
+        type(QStringLiteral("open sesame"));
+        QTest::keyClick(window, Qt::Key_Return);
+        QTRY_COMPARE(reader->property("pageCount").toInt(), 1);
+        QTRY_COMPARE(itemsNamed(QStringLiteral("formField")).size(), 8);
+        // Its words drawn, with its password; a tap says it is read, not filled; Tab does not go in.
+        QTRY_VERIFY(darkUnder(fieldAt(Name)) > 30);
+        reader->setProperty("notice", QString());
+        QVERIFY(click(fieldAt(Name)));
+        QTRY_VERIFY(reader->property("notice").toString().contains(QStringLiteral("not filled")));
+        QVERIFY(!shown(QStringLiteral("fieldEditor")));
+        QTest::keyClick(window, Qt::Key_Tab);
+        QVERIFY(focusOf(reader).isEmpty());
+        QVERIFY(!reader->property("dirty").toBool());
+        QVERIFY(fillsOf(reader).isEmpty());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!window->isVisible());
+    }
+
+    void a_form_kept_in_xfa_says_why_it_is_not_filled()
+    {
+        // The form's own default look traded for an XFA entry of the same length, so every offset holds.
+        const QString path = form(QStringLiteral("xfa form.pdf"));
+        QByteArray bytes = bytesOf(path);
+        const QByteArray look = "/DA <" + QByteArray("/Helv 0 Tf 0 g").toHex() + ">";
+        QCOMPARE(bytes.count(look), 1);
+        bytes.replace(look, QByteArray("/XFA []").leftJustified(look.size(), ' '));
+        save(path, bytes);
+        QQuickItem *reader = read(path);
+        QVERIFY(reader);
+        QTRY_VERIFY(reader->property("editable").toBool());
+        QTRY_COMPARE(itemsNamed(QStringLiteral("formField")).size(), 8);
+        // Said as it opens, and again by a tap; Tab does not go in.
+        QTRY_VERIFY(reader->property("notice").toString().contains(QStringLiteral("XFA")));
+        reader->setProperty("notice", QString());
+        QVERIFY(click(fieldAt(Name)));
+        QTRY_VERIFY(reader->property("notice").toString().contains(QStringLiteral("XFA")));
+        QVERIFY(!shown(QStringLiteral("fieldEditor")));
+        QTest::keyClick(window, Qt::Key_Tab);
+        QVERIFY(focusOf(reader).isEmpty());
+        QVERIFY(!reader->property("dirty").toBool());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!window->isVisible());
+    }
+
+    void a_signature_field_takes_a_picture_of_a_signature()
+    {
+        QQuickItem *reader = read(form(QStringLiteral("sign here.pdf")));
+        QVERIFY(reader);
+        QTRY_VERIFY(reader->property("editable").toBool());
+        QTRY_COMPARE(itemsNamed(QStringLiteral("formField")).size(), 8);
+        // The whole page in view, to reach the field at its foot.
+        QTest::keyClick(window, Qt::Key_0);
+        QTRY_VERIFY(fieldAt(Sign) && centreOf(fieldAt(Sign)).y() < window->height() - 40);
+        QVERIFY(click(fieldAt(Sign)));
+        QTRY_VERIFY(named("signaturePad")->isVisible());
+        QVERIFY(click(named("signType")));
+        QTRY_VERIFY(named("signatureName")->hasActiveFocus());
+        type(QStringLiteral("Ada"));
+        QTRY_VERIFY(named("signPlace")->isEnabled());
+        QTest::keyClick(window, Qt::Key_Return);
+        QTRY_COMPARE(marksOf(reader, "added").size(), 1);
+        // In the field's middle, as large as it takes: 300 to 500 across and 642 to 692 down the page as laid out.
+        const QVariantMap signature = marksOf(reader, "added").first().toMap();
+        QCOMPARE(signature.value("kind").toString(), QStringLiteral("signature"));
+        const QRectF box(signature.value("x").toDouble(), signature.value("y").toDouble(), signature.value("width").toDouble(),
+                         signature.value("height").toDouble());
+        QVERIFY2(qAbs(box.center().x() - 400) < 0.01 && qAbs(box.center().y() - 667) < 0.01,
+                 qPrintable(QStringLiteral("%1, %2").arg(box.center().x()).arg(box.center().y())));
+        QVERIFY(qAbs(box.width() - 200) < 0.01 || qAbs(box.height() - 50) < 0.01);
+        QVERIFY(box.width() <= 200.01 && box.height() <= 50.01);
+        QVERIFY(reader->property("notice").toString().contains(QStringLiteral("in its field")));
+        QTest::keyClick(window, Qt::Key_Escape);  // the mark chosen
+        QTest::keyClick(window, Qt::Key_Escape);  // asks, as it is unsaved
+        QTRY_VERIFY(named("asking")->isVisible());
+        QVERIFY(click(named("askDiscard")));
+        QTRY_VERIFY(!window->isVisible());
+    }
+
+    void words_half_typed_are_asked_about_before_going()
+    {
+        const QString path = form(QStringLiteral("half typed.pdf"));
+        const QByteArray before = bytesOf(path);
+        QQuickItem *reader = read(path);
+        QVERIFY(reader);
+        QTRY_VERIFY(reader->property("editable").toBool());
+        QTRY_COMPARE(itemsNamed(QStringLiteral("formField")).size(), 8);
+        QVERIFY(click(fieldAt(Name)));
+        QQuickItem *editor = nullptr;
+        QTRY_VERIFY((editor = shown(QStringLiteral("fieldEditor"))) && editor->hasActiveFocus());
+        type(QStringLiteral("xyz"));
+        // The bar's way back: the words are kept, and going asks first.
+        const QList<QQuickItem *> back = itemsUnder(window->contentItem(), [](QQuickItem *i) {
+            return i->property("iconName").toString() == QLatin1String("back") && i->isVisible();
+        });
+        QCOMPARE(back.size(), 1);
+        QVERIFY(click(back.first()));
+        QTRY_VERIFY(named("asking")->isVisible());
+        QVERIFY(fillsOf(reader).contains("name"));
+        QVERIFY(click(named("askDiscard")));
+        QTRY_VERIFY(!window->isVisible());
+        QCOMPARE(bytesOf(path), before);
     }
 
     void its_controls_are_reached_by_tab()

@@ -1,7 +1,7 @@
 # QOR Media (ADR-094): the Library's player, viewer and editor, in Qt 6, C++20 and QML, docked inside the QOR Launcher.
 #
 #   src/    the launcher link (media.next), docking into the launcher's window, files, text and highlighting, a PDF's
-#           pages drawn with their marks, and its pages and marks changed through PDFium
+#           pages drawn with their marks and fields, and its pages, marks and form changed through PDFium
 #   qml/    the module "QOR.Media": the window, the player, the viewer, the editor, the reader (Qt PDF); Tokens.qml, which
 #           docs/design/tokens.mjs generates from docs/design/tokens.json, and Theme, which binds to it (ADR-108)
 #   fonts/  Barlow, Barlow Semi Condensed and IBM Plex Mono, under the SIL Open Font License, copied by tokens.mjs; and
@@ -47,7 +47,9 @@ qt_add_library(qormedia_core STATIC
     src/pdfium.h src/pdfium.cpp
     src/pdfpages.h src/pdfpages.cpp
     src/pdfmarks.h src/pdfmarks.cpp
+    src/pdfforms.h src/pdfforms.cpp
     src/pdfdrawing.h src/pdfdrawing.cpp
+    src/qmlvalues.h
     src/tokens.h
 )
 target_include_directories(qormedia_core PUBLIC src)
@@ -71,6 +73,7 @@ qt_add_qml_module(qormedia_core
         qml/Reader.qml
         qml/MarkupBar.qml
         qml/MarkItem.qml
+        qml/FieldItem.qml
         qml/SignaturePad.qml
         qml/Swatch.qml
         qml/Elsewhere.qml
@@ -121,7 +124,7 @@ qt_add_executable(qor-media WIN32 src/main.cpp)
 target_link_libraries(qor-media PRIVATE qormedia_core qormedia_coreplugin Qt6::Multimedia Qt6::PdfQuick Qt6::QuickControls2 Qt6::QuickShapes Qt6::Svg)
 
 enable_testing()
-foreach(suite medialink files textfile playback look reader pdfpages pdfmarks)
+foreach(suite medialink files textfile playback look reader pdfpages pdfmarks pdfforms)
     qt_add_executable(tst_${suite} tests/tst_${suite}.cpp)
     target_link_libraries(tst_${suite} PRIVATE qormedia_core qormedia_coreplugin Qt6::Multimedia Qt6::PdfQuick Qt6::QuickControls2 Qt6::QuickShapes Qt6::Test)
     add_test(NAME ${suite} COMMAND tst_${suite})
