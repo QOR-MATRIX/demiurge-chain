@@ -130,6 +130,25 @@ qt_add_resources(arqade_core "synapse"
         ../games/synapse/assets/wrong.wav
         ../games/synapse/assets/mastered.wav
 )
+qt_add_resources(arqade_core "rift-survivor"
+    PREFIX /games/rift-survivor
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/../games/rift-survivor"
+    FILES
+        ../games/rift-survivor/scenes/rift-survivor.qml
+        ../games/rift-survivor/logic/rift-survivor.qml
+        ../games/rift-survivor/logic/rules.mjs
+        ../games/rift-survivor/assets/rift.hdr
+        ../games/rift-survivor/assets/run.wav
+        ../games/rift-survivor/assets/shot.wav
+        ../games/rift-survivor/assets/kill.wav
+        ../games/rift-survivor/assets/hit.wav
+        ../games/rift-survivor/assets/pulse.wav
+        ../games/rift-survivor/assets/fragment.wav
+        ../games/rift-survivor/assets/evolve.wav
+        ../games/rift-survivor/assets/perk.wav
+        ../games/rift-survivor/assets/complete.wav
+        ../games/rift-survivor/assets/lost.wav
+)
 
 qt_add_executable(arqade WIN32 src/main.cpp)
 target_link_libraries(arqade PRIVATE arqade_core arqade_coreplugin Qt6::GuiPrivate Qt6::QuickControls2)

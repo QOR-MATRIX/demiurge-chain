@@ -5,6 +5,8 @@
 //   Orbital: a miss, a pause, and ten locks to complete the orbit.
 //   Void Runner: lanes changed by each of them, hazards dodged and gems caught, then three hazards met to end the run.
 //   Synapse: a press while the signal shows is no answer; three signals repeated, then a node out of turn.
+//   Rift Survivor: moved each way there is; steered clear until the signal evolves and a perk is chosen; then left
+//   standing until its hull breaks.
 //
 // The run ARQADE kept of each replays in QQ to the same outcome, and so does each run kept in
 // products/arqade/tests/fixtures/, which the game's rules replay in Node (tests/<game>.test.mjs). The launcher's reduced
@@ -14,6 +16,7 @@
 // with ARQADE_RUN set to a folder, it writes each run it played there, as <game>-run.json (how the fixtures were made).
 
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QGuiApplication>
 #include <QJSValue>
@@ -46,6 +49,9 @@ namespace {
 const QUrl kOrbital(QStringLiteral("qrc:/games/orbital/scenes/orbital.qml"));
 const QUrl kVoidRunner(QStringLiteral("qrc:/games/void-runner/scenes/void-runner.qml"));
 const QUrl kSynapse(QStringLiteral("qrc:/games/synapse/scenes/synapse.qml"));
+const QUrl kRiftSurvivor(QStringLiteral("qrc:/games/rift-survivor/scenes/rift-survivor.qml"));
+// Rift Survivor's rules (logic/rules.mjs): a run's length in steps.
+constexpr int Rules_RUN_STEPS = 5400;
 // Orbital's rules (logic/rules.mjs): a whole turn, and half the capture arc.
 constexpr double kTurn = 6.283185307179586;
 constexpr double kArc = 0.29;
@@ -231,6 +237,71 @@ class TestGames : public QObject
 
     // Void Runner: one lane over, by the keyboard (A or D, or every other time the arrows), the pad's d-pad, or the Left
     // and Right buttons on the screen.
+    // Rift Survivor: which of the eight ways, or none, keeps the ship furthest from what threatens it (enemies, rifts not
+    // yet spent, the arena's edges) and nearest the closest fragment, as tests/rift-survivor.test.mjs's pilot chooses.
+    static std::pair<int, int> riftWay(const QVariantMap &now)
+    {
+        static const int dirs[9][2] = {{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+        const double gx = now.value("x").toDouble(), gy = now.value("y").toDouble();
+        const QVariantList enemies = asList(now.value("enemies")), pulses = asList(now.value("pulses")),
+                           fragments = asList(now.value("fragments"));
+        int best = 0;
+        double bestScore = -1e300;
+        for (int i = 0; i < 9; ++i) {
+            const double k = dirs[i][0] && dirs[i][1] ? 0.7071067811865476 : 1;
+            const double x = gx + dirs[i][0] * k * 30, y = gy + dirs[i][1] * k * 30;
+            double s = 0;
+            for (const QVariant &v : enemies) {
+                const QVariantMap e = asMap(v);
+                const double d = std::pow(e.value("x").toDouble() - x, 2) + std::pow(e.value("y").toDouble() - y, 2);
+                s -= 40000 / (d + 1);
+            }
+            for (const QVariant &v : pulses) {
+                const QVariantMap p = asMap(v);
+                if (p.value("age").toInt() < 102
+                    && std::pow(p.value("x").toDouble() - x, 2) + std::pow(p.value("y").toDouble() - y, 2) < 120 * 120)
+                    s -= 50;
+            }
+            double nearest = -1;
+            for (const QVariant &v : fragments) {
+                const QVariantMap f = asMap(v);
+                const double d = std::pow(f.value("x").toDouble() - x, 2) + std::pow(f.value("y").toDouble() - y, 2);
+                if (nearest < 0 || d < nearest)
+                    nearest = d;
+            }
+            if (nearest >= 0)
+                s += 8000 / (nearest + 400);
+            s -= std::pow((x - 500) / 500, 4) + std::pow((y - 310) / 310, 4);
+            if (s > bestScore) {
+                bestScore = s;
+                best = i;
+            }
+        }
+        return {dirs[best][0], dirs[best][1]};
+    }
+
+    // Rift Survivor: W, A, S and D held for a way, and let go for any other.
+    QSet<int> steering;
+    void steer(std::pair<int, int> way)
+    {
+        QSet<int> want;
+        if (way.first > 0)
+            want << Qt::Key_D;
+        if (way.first < 0)
+            want << Qt::Key_A;
+        if (way.second > 0)
+            want << Qt::Key_S;
+        if (way.second < 0)
+            want << Qt::Key_W;
+        for (int key : steering)
+            if (!want.contains(key))
+                QTest::keyRelease(window, Qt::Key(key));
+        for (int key : want)
+            if (!steering.contains(key))
+                QTest::keyPress(window, Qt::Key(key));
+        steering = want;
+    }
+
     // Synapse: node `n` (0 to 3) pressed by the keys 1 to 4 (way 0), the pad's X, Y, B and A (1), or its button (2).
     void node(int n, int way)
     {
@@ -296,6 +367,13 @@ class TestGames : public QObject
         for (int l = 0; l < 3; ++l)
             if (worth(l) > worth(best) || (worth(l) == worth(best) && std::abs(l - lane) < std::abs(best - lane)))
                 best = l;
+        // Two lanes over crosses the middle one, and the two presses can reach consecutive ticks: as a person would,
+        // wait for a hazard about to reach the middle lane to pass rather than cross it as it arrives.
+        if (!intoHazards && std::abs(best - lane) == 2) {
+            const QVariantMap middle = soonest(1);
+            if (!middle.isEmpty() && !middle.value("gem").toBool() && middle.value("z").toDouble() > 0.85)
+                return lane;
+        }
         return best;
     }
 
@@ -326,14 +404,15 @@ private slots:
         input->setReadsHardware(false);
     }
 
+    // The four games play here; the arenas, not rebuilt yet (P7.24), still open the website.
     void the_rebuilt_games_cards_play_here_and_the_others_open_the_website()
     {
-        for (const char *name : {"Orbital", "Void Runner", "Synapse"})
+        for (const char *name : {"Orbital", "Void Runner", "Synapse", "Rift Survivor"})
             QVERIFY2(find(window->contentItem(), [&](QQuickItem *i) {
                          return i->property("name").toString() == QLatin1String(name) && i->property("here").toBool();
                      }),
                      name);
-        for (const char *name : {"Rift Survivor"})
+        for (const char *name : {"Flux Four", "Rift Reversi"})
             QVERIFY2(find(window->contentItem(), [&](QQuickItem *i) {
                          return i->property("name").toString() == QLatin1String(name) && i->property("here").isValid()
                              && !i->property("here").toBool();
@@ -665,6 +744,132 @@ private slots:
     }
 
     void esc_leaves_synapse_too()
+    {
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_COMPARE(window->property("playing").toString(), QString());
+        QTRY_VERIFY(!game());
+        QVERIFY(home()->isVisible());
+        QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n')));
+    }
+
+    void rift_survivors_card_opens_it_and_play_starts_the_run()
+    {
+        behaviour = QStringLiteral("Rift Survivor");
+        open(QStringLiteral("Rift Survivor"), QStringLiteral("rift"), kRiftSurvivor, QStringLiteral("RIFT SURVIVOR"));
+        if (QTest::currentTestFailed())
+            return;
+        QTest::qWait(400);
+        save(window, "rift-title.png");
+        QVERIFY(click(QStringLiteral("Play")));
+        QTRY_COMPARE(state().value("phase").toString(), QStringLiteral("playing"));
+        QTRY_COMPARE(screenText(QStringLiteral("Hull")), QStringLiteral("HULL 4 / 4"));
+        QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n')));
+    }
+
+    // Held for a moment each way there is, the ship moves that way: D on the keys, the left arrow, the pad's d-pad down,
+    // and the screen's Up button under the pointer.
+    void the_ship_moves_by_keys_arrows_pad_and_the_screens_buttons()
+    {
+        struct Way { const char *name; double dx, dy; std::function<void(bool)> hold; };
+        const QList<Way> ways = {
+            {"D", 1, 0, [this](bool down) { down ? QTest::keyPress(window, Qt::Key_D) : QTest::keyRelease(window, Qt::Key_D); }},
+            {"the left arrow", -1, 0,
+             [this](bool down) { down ? QTest::keyPress(window, Qt::Key_Left) : QTest::keyRelease(window, Qt::Key_Left); }},
+            {"the d-pad's down", 0, 1,
+             [this](bool down) { input->gamepadButtons(down ? QStringList{QStringLiteral("Down")} : QStringList{}); }},
+            {"the Up button", 0, -1, [this](bool down) {
+                 QQuickItem *drawn = find(game(), [](QQuickItem *i) { return i->objectName() == QLatin1String("Up"); });
+                 const QPoint at = drawn->mapToScene(QPointF(drawn->width() / 2, drawn->height() / 2)).toPoint();
+                 down ? QTest::mousePress(window, Qt::LeftButton, Qt::NoModifier, at)
+                      : QTest::mouseRelease(window, Qt::LeftButton, Qt::NoModifier, at);
+             }},
+        };
+        for (const Way &way : ways) {
+            const double x = state().value("x").toDouble(), y = state().value("y").toDouble();
+            way.hold(true);
+            QTest::qWait(150);
+            way.hold(false);
+            QTest::qWait(30);
+            const double mx = state().value("x").toDouble() - x, my = state().value("y").toDouble() - y;
+            QVERIFY2(mx * way.dx > 20 || my * way.dy > 20,
+                     qPrintable(QStringLiteral("%1 moved the ship %2, %3").arg(QLatin1String(way.name)).arg(mx).arg(my)));
+            QVERIFY2(std::abs(mx * way.dy) + std::abs(my * way.dx) < 1, way.name);
+        }
+        QVERIFY(!asMap(state().value("held")).value("up").toBool());
+    }
+
+    // Steered as a person would, by the keys, away from enemies and armed rifts and toward fragments, until ten kills
+    // evolve the signal; the world holds while a perk is chosen, here Fracture by its button.
+    void a_pilot_keeps_away_until_the_signal_evolves_and_a_perk_is_chosen()
+    {
+        QVERIFY(logic());
+        int frame = 0;
+        while (state().value("phase").toString() == QLatin1String("playing") && state().value("steps").toInt() < 3600) {
+            steer(riftWay(state()));
+            if (++frame == 400)
+                save(window, "rift-running.png");
+            QTest::qWait(4);
+        }
+        steer({0, 0});
+        QCOMPARE(state().value("phase").toString(), QStringLiteral("choosing"));
+        QVERIFY(state().value("hull").toInt() > 0);
+        QVERIFY(state().value("kills").toInt() >= 10);
+        QTRY_COMPARE(screenText(QStringLiteral("Evolved")), QStringLiteral("SIGNAL EVOLVED  ·  LEVEL 2"));
+        const int steps = state().value("steps").toInt();
+        QTest::qWait(300);
+        QCOMPARE(state().value("steps").toInt(), steps);
+        QVERIFY(scene()->property("paused").toBool());
+        save(window, "rift-evolved.png");
+        QVERIFY(click(QStringLiteral("Fracture")));
+        QTRY_COMPARE(state().value("phase").toString(), QStringLiteral("playing"));
+        QCOMPARE(state().value("spread").toInt(), 1);
+        QTRY_VERIFY(state().value("steps").toInt() > steps);
+    }
+
+    // Then left standing still: enemies and the rifts that open under it breach the hull four times, a perk chosen by its
+    // key each time the signal evolves meanwhile.
+    void standing_still_the_hull_breaks()
+    {
+        QVERIFY(logic());
+        QElapsedTimer waited;
+        waited.start();
+        while (state().value("phase").toString() != QLatin1String("over")) {
+            QVERIFY2(waited.elapsed() < 120000, "two minutes passed and the hull held");
+            if (state().value("phase").toString() == QLatin1String("choosing"))
+                QTest::keyClick(window, Qt::Key_1);
+            if (state().value("hull").toInt() == 3 && state().value("hold").toInt() > 80)
+                save(window, "rift-breached.png");
+            QTest::qWait(10);
+            QVERIFY2(state().value("steps").toInt() < Rules_RUN_STEPS, "the run lasted to the end standing still");
+        }
+        QCOMPARE(state().value("hull").toInt(), 0);
+        QTRY_COMPARE(screenText(QStringLiteral("Result")), QStringLiteral("HULL BROKEN"));
+        QVERIFY(screenText(QStringLiteral("Final")).startsWith(QStringLiteral("SCORE ")));
+        QTest::qWait(400);
+        save(window, "rift-over.png");
+        QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n')));
+    }
+
+    void rift_survivors_kept_run_replays_to_its_outcome()
+    {
+        QVariantMap outcome;
+        keptRunReplays(kRiftSurvivor, QStringLiteral("rift-survivor"), &outcome);
+        if (QTest::currentTestFailed())
+            return;
+        QCOMPARE(outcome.value("hull").toInt(), 0);
+        QCOMPARE(outcome.value("survived").toBool(), false);
+        QCOMPARE(outcome.value("over").toBool(), true);
+        QVERIFY(outcome.value("level").toInt() >= 2);
+        QCOMPARE(QStringLiteral("SCORE ") + QLocale(QLocale::English, QLocale::UnitedKingdom).toString(outcome.value("score").toInt()),
+                 screenText(QStringLiteral("Final")));
+    }
+
+    void rift_survivors_kept_run_replays_in_qq_as_its_rules_replay_it()
+    {
+        fixtureReplays(QStringLiteral("rift-survivor"), kRiftSurvivor);
+    }
+
+    void esc_leaves_rift_survivor_too()
     {
         QTest::keyClick(window, Qt::Key_Escape);
         QTRY_COMPARE(window->property("playing").toString(), QString());

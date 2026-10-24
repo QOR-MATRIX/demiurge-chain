@@ -5,8 +5,8 @@ import QtQuick.Layouts
 import ARQADE
 
 // ARQADE's home (DIRECTION P7.19): the portal behind everything, the name and the player's Sparks over it, then the
-// games, the arenas and their rankings. The games are being rebuilt in 3D (P7.20): a rebuilt game's card plays it here
-// (playRequested); until each other arrives, its card opens today's version in the launcher's ARQADE window.
+// games, the arenas and their rankings. The four games are rebuilt in 3D (P7.20) and each card plays its game here
+// (playRequested); the arenas' cards open today's versions in the launcher's ARQADE window.
 Item {
     id: home
     required property var link
@@ -159,8 +159,8 @@ Item {
 
                 Heading {
                     eyebrow: qsTr("Games")
-                    title: qsTr("Four games, being rebuilt in 3D")
-                    line: qsTr("Each is being rebuilt with physically based light, particles and sound, and with rules that replay exactly, so a run can be confirmed and rewarded. Void Runner, Synapse and Orbital play here now; until Rift Survivor's rebuild arrives, its card opens today's version.")
+                    title: qsTr("Four games, rebuilt in 3D")
+                    line: qsTr("Each is rebuilt with physically based light, particles and sound, and with rules that replay exactly, so a run can be confirmed and rewarded. All four play here.")
                     Layout.fillWidth: true
                 }
                 GridLayout {
@@ -173,7 +173,7 @@ Item {
                             { kind: "void", number: "01", name: "Void Runner", tag: qsTr("Reflex / survival"), line: qsTr("Outrun the collapse."), here: true },
                             { kind: "synapse", number: "02", name: "Synapse", tag: qsTr("Memory / pattern"), line: qsTr("Trust the signal. Question your mind."), here: true },
                             { kind: "orbital", number: "03", name: "Orbital", tag: qsTr("Precision / timing"), line: qsTr("Find order in the chaos."), here: true },
-                            { kind: "rift", number: "04", name: "Rift Survivor", tag: qsTr("Survival / evolution"), line: qsTr("One signal. Ninety seconds. Evolve.") },
+                            { kind: "rift", number: "04", name: "Rift Survivor", tag: qsTr("Survival / evolution"), line: qsTr("One signal. Ninety seconds. Evolve."), here: true },
                         ]
                         GameCard {
                             id: solo

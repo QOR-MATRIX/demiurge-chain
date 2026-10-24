@@ -5,9 +5,9 @@ over its ARQADE screen, under the launcher's product host, as QOR Media is docke
 [ADR-102](../../../docs/decisions/ADR-102-arqade-in-the-launcher-on-qt.md) decided it, and roadmap item P7.19 in
 [`docs/DIRECTION.md`](../../../docs/DIRECTION.md) tracks it.
 
-This is the shell: the home, the games, the arenas' rankings and the player's Sparks. The games themselves are being
-rebuilt in QQ (P7.20), in [`../games/`](../games/README.md). Orbital's, Void Runner's and Synapse's rebuilds have arrived and play here. Until
-another game's rebuild arrives, its card opens today's version in the launcher's ARQADE window.
+This is the shell: the home, the games, the arenas' rankings and the player's Sparks. The four games are rebuilt in
+QQ (P7.20), in [`../games/`](../games/README.md), and all four play here. The arenas, not rebuilt yet (P7.24), open
+today's versions in the launcher's ARQADE window.
 
 ## What it does
 
@@ -45,10 +45,11 @@ another game's rebuild arrives, its card opens today's version in the launcher's
   written and reviewed in this repository and carried in the executable. QQ's lockdown (ADR-087 decision 2) is the
   second wall around a stranger's game, and a stranger's game never plays here: it plays in the browser (ADR-087
   decision 1).
-- **Opens the website** in the launcher's guarded ARQADE window (`arqade.web`), where today's versions of the games are
-  played.
+- **Opens the website** in the launcher's guarded ARQADE window (`arqade.web`), where the arenas are played today, as
+  are the website's own versions of the games.
 - **Says what rewards are** wherever Sparks are shown (ADR-102 decision 7): paid from ARQADE's reward pool for runs its
-  server confirms. Rewards arrive with the rebuilt games. On the devnet they are test CGT, with no value.
+  server confirms. Rewards arrive once runs are confirmed (P7.21, P7.22). On the devnet they are test CGT, with no
+  value.
 
 ## How it looks
 
@@ -98,8 +99,8 @@ pwsh products/arqade/qt/build.ps1 -Shots dir   # and save what the interface and
   Sparks, every game and arena, reduced motion holding it still, and a narrow window; and the one look: Theme equal to
   `tokens.json` value by value, every text the window shows in the look's faces, scale and colours (Barlow carried
   and drawn at its Regular), the primary's dark ink on ember and its focus ring. It needs a desktop session.
-- `tst_games`: Orbital's, Void Runner's and Synapse's cards open their games in ARQADE's window, from the keyboard
-  (Rift Survivor's still opens the website). Each is played as a person plays it, the pad driven through QQ's input with
+- `tst_games`: the four games' cards open their games in ARQADE's window, from the keyboard (the arenas' still open
+  the website). Each is played as a person plays it, the pad driven through QQ's input with
   the PC's own pads not read:
   - Orbital: the mouse on its Play and Resume buttons, Space and the pad's A to lock, and P and the pad's Start to
     pause. One lock outside the arc misses, a pause holds the satellite still, and ten locks in the arc complete the
@@ -109,6 +110,8 @@ pwsh products/arqade/qt/build.ps1 -Shots dir   # and save what the interface and
     hull whole; then steered into three hazards, which end the run.
   - Synapse: a node pressed while the signal shows is no answer; three signals repeated, each node pressed by the keys
     1 to 4, the pad's X, Y, B and A, and the screen's buttons in turn; then a node out of turn loses it for 450.
+  - Rift Survivor: moved by D, the left arrow, the d-pad and the screen's Up button; steered clear by the keys until
+    the signal evolves and a perk is chosen while the world holds; then left standing until the hull breaks.
 
   The run ARQADE kept of each replays in QQ, with no window, to the same outcome, and so does each run kept in
   `../tests/fixtures/`, which the game's Node test replays with its rules. The launcher's reduced motion reaches the
