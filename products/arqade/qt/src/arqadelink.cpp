@@ -208,6 +208,8 @@ void ArqadeLink::command(const QJsonObject &c)
         emit prefsChanged(c.value(QStringLiteral("prefs")).toObject().toVariantMap());
     } else if (type == QLatin1String("quit")) {
         emit quitRequested();
+    } else if (type == QLatin1String("play")) {
+        emit playRequested(c.value(QStringLiteral("game")).toString());
     }
 }
 

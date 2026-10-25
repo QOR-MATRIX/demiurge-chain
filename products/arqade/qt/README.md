@@ -19,6 +19,8 @@ against another person, on ARQADE's server.
   - wear the launcher's colours;
   - who is playing (QOR ID, level, and Sparks, written out by the launcher);
   - the person's preferences (reduced motion);
+  - open a game, when a `qor://arqade` link names one (ADR-118): it opens as its card would, and a name no card plays
+    opens nothing;
   - quit, when the person signs out of the launcher.
 
   The app's window becomes a child of the launcher's (`src/dock.h`, the same as QOR Media's). F11 lifts it to full

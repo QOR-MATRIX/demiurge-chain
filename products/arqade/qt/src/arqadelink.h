@@ -3,7 +3,7 @@
 // The launcher starts ARQADE with --launcher-channel <name> and a one-time token on its stdin. The link connects, says
 // hello with the token, and keeps one request waiting, `arqade.next`, which the launcher answers with its next command:
 // show at a rectangle of its window, hide, wear its colours, who is playing and their Sparks, the person's preferences,
-// or quit. ARQADE holds no key and no token of the person's.
+// open a game (a `qor://arqade` link named it, ADR-118), or quit. ARQADE holds no key and no token of the person's.
 //
 // Two other requests: signing in to ARQADE's server (`arqade.signin`), and opening ARQADE's website in the launcher's own
 // guarded window (`arqade.web`), where today's versions of the games play until their rebuilds arrive. The launcher
@@ -69,6 +69,8 @@ signals:
     void prefsChanged(const QVariantMap &prefs);
     /// The launcher asks ARQADE to close: the person signed out of the launcher.
     void quitRequested();
+    /// Open a game, by its card's name ("orbital", "flux"): a `qor://arqade` link named it (ADR-118).
+    void playRequested(const QString &game);
     /// QOR ID's answer to a sign-in: an address on ARQADE's server that completes it.
     void signedIn(const QUrl &redirect);
     void signInFailed(const QString &code, const QString &message);

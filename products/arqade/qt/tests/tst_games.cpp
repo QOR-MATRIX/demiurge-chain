@@ -849,13 +849,39 @@ private slots:
                      name);
     }
 
-    // A test that failed says what QML warned of on the way, and where the game stood: its screens and its state.
+    // A `qor://arqade` link names a game (ADR-118): the launcher asks, and it opens in place of the home, as its card
+    // would. A name no card plays opens nothing.
+    void a_game_the_launcher_asks_for_opens_as_its_card_would()
+    {
+        emit link->playRequested(QStringLiteral("chess"));
+        QTest::qWait(200);
+        QCOMPARE(window->property("playing").toString(), QString());
+        QVERIFY(home()->isVisible());
+        emit link->playRequested(QStringLiteral("synapse"));
+        QTRY_COMPARE(window->property("playing").toString(), QStringLiteral("synapse"));
+        QTRY_VERIFY_WITH_TIMEOUT(game() && game()->property("settled").toBool(), 15000);
+        QCOMPARE(QUrl(game()->property("file").toUrl()), kSynapse);
+        QVERIFY(!home()->isVisible());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTRY_VERIFY(!game());
+        QVERIFY(home()->isVisible());
+        QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n')));
+    }
+
+    // A test that failed says what QML warned of on the way, and where the game stood: its screens and its state; and
+    // whether the window was the active one, which Esc and every other shortcut need, and what held the keyboard.
     void cleanup()
     {
         if (!QTest::currentTestFailed())
             return;
         if (!warnings.isEmpty())
             qWarning().noquote() << "QML warned:" << warnings.join('\n');
+        QObject *focus = QGuiApplication::focusObject();
+        qWarning().noquote() << "Window active:" << window->isActive() << "; focus window is it:"
+                             << (QGuiApplication::focusWindow() == window) << "; keyboard with:"
+                             << (focus ? QString::fromLatin1(focus->metaObject()->className()) + QStringLiteral(" ")
+                                             + focus->objectName()
+                                       : QStringLiteral("nothing"));
         if (logic())
             qWarning().noquote() << "Screens:" << screens().join(", ") << "\nState:"
                                  << QJsonDocument(QJsonObject::fromVariantMap(state())).toJson(QJsonDocument::Compact);

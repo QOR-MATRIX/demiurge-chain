@@ -17,6 +17,8 @@ Window {
 
     /// The game being played, by its card's kind ("orbital"), or "" on the home.
     property string playing: ""
+    /// Every game a card plays, by its kind: all the launcher may ask to open (ADR-118).
+    readonly property var games: ["orbital", "void", "synapse", "rift", "flux", "reversi"]
 
     width: 1360
     height: 860
@@ -42,6 +44,11 @@ Window {
         function onPlayerChanged(player) {
             root.player = player
             root.server.setLauncherSignedIn(player.signed_in === true)
+        }
+        // A `qor://arqade` link named a game (ADR-118): it opens as its card would, in place of any being played.
+        function onPlayRequested(game) {
+            if (root.games.indexOf(game) >= 0)
+                root.playing = game
         }
         function onPrefsChanged(prefs) {
             Theme.reducedMotion = prefs.reduced_motion === true

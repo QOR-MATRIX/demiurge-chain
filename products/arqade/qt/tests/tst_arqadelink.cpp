@@ -97,6 +97,10 @@ private slots:
 
         launcher.command(launcher.read(), QJsonObject{{"type", "hide"}});
         QTRY_COMPARE(hidden.size(), 1);
+        QSignalSpy played(&link, &ArqadeLink::playRequested);
+        launcher.command(launcher.read(), QJsonObject{{"type", "play"}, {"game", "flux"}});
+        QTRY_COMPARE(played.size(), 1);
+        QCOMPARE(played.at(0).at(0).toString(), QStringLiteral("flux"));
         launcher.command(launcher.read(), QJsonObject{{"type", "quit"}});
         QTRY_COMPARE(quit.size(), 1);
         QCOMPARE(launcher.read().value("method").toString(), QStringLiteral("arqade.next"));
