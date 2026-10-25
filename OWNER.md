@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 24 October 2026. One page, rewritten every session.
+For Andrew, 25 October 2026. One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -18,14 +18,14 @@ two peers; **QOR ID** — *the one sign-in*; **Social** — *the chat service*; 
 
 1. **All four of ARQADE's games are rebuilt in 3D, merged and on your PC (P7.20 done)**,
    each sound heard from where it happens. Open ARQADE in the launcher and press a card.
-2. **The two arenas are rebuilt in 3D too (P7.24), waiting for your merge.** Flux Four and
-   Rift Reversi now play inside ARQADE's app against another person, on ARQADE's own server:
+2. **The two arenas are rebuilt in 3D too, merged and on your PC (P7.24 done).** Flux Four
+   and Rift Reversi play inside ARQADE's app against another person, on ARQADE's own server:
    the same matches and rankings as the website. A game made in **QQ** — *our game engine* —
    cannot reach the internet, so it asks the app it runs in, which answers from the server.
    That is a new **host channel** — *how a game talks to its app* — decided under your
    delegation (ADR-117). Tested against a stand-in server, not yet between two real people.
-3. **The website's games now point players to the launcher** (P7.23, waiting for your merge):
-   each game's first and last screen says it is rebuilt in 3D there, with a link to download it.
+3. **The website's games now point players to the launcher, live (P7.23 done):** each game's
+   first and last screen says it is rebuilt in 3D there, with a link to download it.
 4. **You authorised full automation.** Claude Code's own safety check still refuses to merge
    without a person's review, so merges stay with you.
 
@@ -37,10 +37,10 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 
 ## What only you can do
 
-1. **Merge #95, then #96 (the arenas), then #97 (the pointer).** Then I deploy ARQADE from `main` to your PC, and
-   you can play an arena with a friend: both sign in to the launcher, one opens a match in
-   ARQADE, the other joins it. To let me merge, add a permission rule for `gh pr merge`.
-2. **Play the four games** in the launcher and tell me what feels wrong.
+1. **Play an arena with a friend:** both sign in to the launcher, one opens a match in
+   ARQADE (Flux Four or Rift Reversi), the other joins it. That is the one test I cannot run.
+2. **Play the four games** too, and tell me what feels wrong. To let me merge pull requests
+   myself, add a permission rule for `gh pr merge`.
 3. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
@@ -61,9 +61,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    the email webhook; the key pasted on 5 October; `social-secrets.txt` on your Desktop and
    `archive-bZLIQp/` in the old checkout, each to keep or delete.
 
-**Next in engineering:** once #96 is merged, ARQADE deployed with the arenas; then a launcher
-release carrying QOR Media's PDF work, assets' levels, the games and the arenas, and a link
-that opens ARQADE in the launcher from the website. At your word: filling the IRS's forms, certified signatures (ADR-114), records
+**Next in engineering:** a launcher release carrying QOR Media's PDF work, assets' levels,
+the games and the arenas, and a link that opens ARQADE in the launcher from the website. At your word: filling the IRS's forms, certified signatures (ADR-114), records
 kept by games other than an asset's home game (ADR-113), or rental and fractions (M4.3).
 
 ## Cost per month

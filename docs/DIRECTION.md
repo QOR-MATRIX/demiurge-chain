@@ -2014,7 +2014,7 @@ here sets an economic value; payouts are U-16.
     **Proposed, 24 October 2026:** ADR-116, how a run is confirmed (one run is one game on an issued seed, a rule version
     is the SHA-256 of `rules.mjs`, what the service accepts, what a replay does not prove), for the owner to decide.
     Its confirming half can be built once it is accepted; paying waits on P7.21.
-23. [ ] The website without Energy (ADR-102): the Energy store, Energy Tokens and local token wallet removed; its own
+23. [x] The website without Energy (ADR-102): the Energy store, Energy Tokens and local token wallet removed; its own
     games point to the launcher.
 
     **Energy removed, 19 October 2026** (merged in #54 at `d93c3c5`, live on Vercel):
@@ -2024,15 +2024,14 @@ here sets an economic value; payouts are U-16.
       staked, won or lost.
     - `check-phone.mjs` counts six tabs (GATES change log).
 
-    **The games pointing to the launcher, built 24 October 2026, not merged** (HANDOFF §4 item 150): each game's start
-    and end screens on the website say it is rebuilt in 3D in the launcher's ARQADE, where runs ARQADE confirms will be
-    rewarded in Sparks (test CGT on the devnet, with no value), and link to the homepage's download. The phone check
-    holds the link to 44 by 44 pixels.
+    **The games pointing to the launcher, done 25 October 2026** (merged in #97 at `beafda4`, live on Vercel; HANDOFF
+    §4 items 150 and 151): each game's start and end screens on the website say it is rebuilt in 3D in the launcher's
+    ARQADE, where runs ARQADE confirms will be rewarded in Sparks (test CGT on the devnet, with no value), and link to
+    the homepage's download. The phone check holds the link to 44 by 44 pixels (18 checks, in CI).
+24. [x] The two multiplayer arenas rebuilt in QQ (ADR-102), on the ARQADE service. Depends on P7.19.
 
-    **Not yet:** merged and live on Vercel; then P7.23 is ticked.
-24. [ ] The two multiplayer arenas rebuilt in QQ (ADR-102), on the ARQADE service. Depends on P7.19.
-
-    **Built, 24 October 2026, not merged** (HANDOFF §4 item 149), on `session/qq-arenas`:
+    **Done, 25 October 2026:** merged as #96 (at `36f024c`) and deployed to the launcher's copy from `main` (HANDOFF §4
+    items 149 and 151):
     - Flux Four and Rift Reversi are one QQ package, `products/arqade/games/arenas/` (`games/README.md`), played in
       ARQADE's Qt app against another person on ARQADE's server, which keeps every match and decides every move, as it
       does for the website.
@@ -2040,9 +2039,9 @@ here sets an economic value; payouts are U-16.
       answers from the server with the player's session. The run keeps every answer, and replays in QQ and in Node to
       the server's verdict on the match.
     - Tests: 105 in Node (17 for the arenas, in CI); ARQADE's Qt suites 78, playing both arenas against a stand-in
-      server on the owner's PC.
+      server on the owner's PC. The launcher's own test started the deployed copy.
 
-    **Not yet:** merged and deployed to the launcher's copy, and a match played on the live server between two people.
+    **Not yet:** a match played on the live server between two people, and a launcher release carrying the arenas.
 25. [ ] ARQADE's site on phones and by touch (the owner, 18 October 2026: "optimize Arqade for its mobile browser
     users and screen tapping"). **Built, merged (#49, at `943815d`) and live on Vercel:**
     - Below 760 pixels the side rail is a tab bar along the bottom, and the content takes the whole width.
