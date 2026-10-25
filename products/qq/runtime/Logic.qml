@@ -54,6 +54,15 @@
 //   play("../assets/coin.wav", { at: target.position, group: "effects" })
 //   setVolume("music", 0.4)
 //
+// Its host (ADR-117): a game played inside another application, such as ARQADE, asks that host for what it cannot
+// reach itself, and hears what the host tells it. A message either way is a JSON value of 16 KiB at most. What the host
+// tells arrives at the next tick, after the screen buttons' clicks and before the presses, and the run keeps it, so a
+// replay hears it at the same tick. What the game asks goes out at once, and not from a replay, whose answers are
+// already in its record. The QQ Player hosts nothing, so there nothing answers.
+//
+//   onStarted: askHost({ ask: "lobby" })
+//   onTold: (message) => { if (message.match) show(message.match) }
+//
 // A state machine keeps what something is doing (idle, chasing, stunned), with what happens on entering a state, on
 // each step in it and on leaving it, how long it has been in it, and events that move it on:
 //
@@ -110,6 +119,21 @@ QtObject {
     /// An action became held, or was let go (P3.9): one of the scene's InputActions, or jump or run.
     signal pressed(string action)
     signal released(string action)
+
+    /// The game's host told it something (ADR-117): a JSON value, heard at the tick after it was told.
+    signal told(var message)
+
+    /// Ask the game's host something (ADR-117): a JSON value of 16 KiB at most. True if it went out; false for anything
+    /// else, and in a replay, which asks nothing.
+    function askHost(message) {
+        if (!scene || scene.replaying || !scene.playing)
+            return false
+        const copy = scene._jsonCopy(message)
+        if (copy === undefined)
+            return false
+        scene.asked(copy)
+        return true
+    }
 
     /// Whether an action is held now.
     function held(name) {
@@ -494,6 +518,11 @@ QtObject {
     function _frame(dt) {
         if (logic._begun)
             frame(dt)
+    }
+
+    /// What the host told, from the scene's tick: handed on through SceneIO, so its lists are still arrays.
+    function _told(message) {
+        SceneIO.tellLogic(logic, message)
     }
 
     /// A press or release, from the scene's tick.

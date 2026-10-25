@@ -63,6 +63,14 @@ World {
     sky: scene && String(scene.sky) !== "" ? SceneIO.resolvedUrl(scene, scene.sky) : ""
     skyTurn: scene ? scene.skyTurn : 0
 
+    /// The game asked its host something (ADR-117): a JSON value. Whoever hosts the game answers with tell().
+    signal asked(var message)
+    /// Tell the game something (ADR-117): a JSON value its logic hears at the next tick (Logic.onTold). False if it was
+    /// refused (not playing, not JSON, larger than 16 KiB, or too many waiting).
+    function tell(message) {
+        return scene ? scene.tell(message) : false
+    }
+
     /// A seed for this play, in place of the scene's (P3.11: the Player's --seed, a run ARQADE starts); 0 keeps the scene's.
     property int seed: 0
     /// What keeps the run (a RunRecord: the Player's --record), or null.
@@ -82,6 +90,7 @@ World {
         if (seed !== 0)
             next.playSeed = seed
         next.recorder = recorder
+        next.asked.connect(game.asked)
         next.playing = true
         problem = ""
         scene = next

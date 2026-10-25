@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include <QJSValue>
 #include <QObject>
 #include <QSize>
 #include <QString>
@@ -144,6 +145,9 @@ public:
     Q_INVOKABLE bool overlaps(QObject *a, QObject *b) const;
     /// A seed for a run that names none: never 0.
     Q_INVOKABLE int freshSeed() const;
+    /// `logic`'s told(message), the message handed on as the JavaScript value it is (ADR-117): a QML signal's var
+    /// argument, sent from QML, turns a JavaScript array into a Qt list, which Array.isArray does not know as one.
+    Q_INVOKABLE void tellLogic(QObject *logic, const QJSValue &message) const;
 
     /// Put a whole scene away (the Studio, opening another or stopping play). Its physics bodies are destroyed at once,
     /// before their world; everything else when control returns to the event loop.

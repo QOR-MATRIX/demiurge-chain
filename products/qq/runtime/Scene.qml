@@ -20,6 +20,10 @@
 // (P3.12), and logic steps (its timers, tweens and state machines, then onStep). What logic removes during a tick is
 // gone when it ends. A run is its seed and what each tick took, so
 // a RunRecord keeps it and a replay, with no window and no physics world, reaches the same outcome (run.h).
+//
+// Its host (ADR-117): an application that plays the scene inside itself (ARQADE) hears what the game asks (`asked`) and
+// tells it things (`tell`). What it tells waits for the next tick, which delivers it after the clicks and before the
+// presses, and the record keeps it with that tick.
 
 import QtQml
 import QtQuick
@@ -130,6 +134,8 @@ Node {
 
     property real _owed: 0
     property var _clicks: []
+    /// What the host told, waiting for the next tick (ADR-117).
+    property var _told: []
     property var _doomed: []
     property bool _ticking: false
 
@@ -142,6 +148,34 @@ Node {
         scene: root
     }
 
+    /// The game asked its host something (Logic.askHost, ADR-117): a JSON value.
+    signal asked(var message)
+
+    /// The host tells the game something (ADR-117): a JSON value of 16 KiB at most, which every logic hears at the next
+    /// tick and the record keeps. At most 64 wait at once. False, and nothing told, for anything else, or in a replay.
+    function tell(message) {
+        if (!playing || replaying || _told.length >= 64)
+            return false
+        const copy = _jsonCopy(message)
+        if (copy === undefined)
+            return false
+        _told = _told.concat([copy])
+        return true
+    }
+
+    /// `value` as JSON keeps it, copied: undefined if it is not JSON or is larger than 16 KiB.
+    function _jsonCopy(value) {
+        let text
+        try {
+            text = JSON.stringify(value)
+        } catch (error) {
+            return undefined
+        }
+        if (text === undefined || text.length > 16384)
+            return undefined
+        return JSON.parse(text)
+    }
+
     onPlayingChanged: {
         if (!playing)
             return
@@ -149,6 +183,7 @@ Node {
         steps = 0
         _owed = 0
         _clicks = []
+        _told = []
         _doomed = []
         if (!replaying) {
             if (playSeed === 0)
@@ -205,8 +240,14 @@ Node {
             Input.replayHands(hands)
         const clicks = replaying && recorder ? recorder.clicksAt(ticks) : _clicks
         _clicks = []
-        if (recorder && !replaying)
+        // A replay's come back from the record as Qt lists and maps: made JSON values again, as they were told.
+        const told = replaying && recorder ? JSON.parse(JSON.stringify(recorder.toldAt(ticks))) : _told
+        _told = []
+        if (recorder && !replaying) {
             recorder.capture(ticks, hands, clicks)
+            if (told.length > 0)
+                recorder.keepTold(ticks, told)
+        }
         ticks += 1
         _ticking = true
         try {
@@ -216,6 +257,10 @@ Node {
                 if (button)
                     button.clicked()
             }
+            for (const message of told)
+                for (const e of list)
+                    if (e._told)
+                        e._told(message)
             for (const edge of hands.edges)
                 for (const e of list)
                     if (e._hear)
