@@ -736,7 +736,7 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 
 1. [ ] Signed installers for Windows, macOS and Linux.
 2. [ ] An update channel that verifies signatures before installing. **Built 22 October 2026 (ADR-111), merged with #77;
-   first carried by launcher 0.1.15, published the same day; 0.1.16, published 23 October, is the first release it offers.** Ticked when a release reaches a tester's launcher through it.
+   first carried by launcher 0.1.15, published the same day; 0.1.16, published 23 October, is the first release it offers, and 0.1.17, 25 October, the second** (HANDOFF §4 item 155). Ticked when a release reaches a tester's launcher through it.
    - **The channel:** one fixed address,
      `https://github.com/QOR-MATRIX/demiurge-chain/releases/download/launcher-channel/latest.json`, which the release
      script replaces at each release; each installer stays in its own pre-release.
@@ -1938,7 +1938,7 @@ here sets an economic value; payouts are U-16.
 15. [ ] Agentic creation: ARQADE's tools on ADR-010's MCP server, used by an external LLM under an agent key the
     developer authorised; the model prepares, the developer signs what is public or moves CGT. Depends on M5.3, and on
     M5.2 for capped agent signing.
-16. [ ] Levels and tasks across the ecosystem (ADR-078): one level and XP per QOR ID, granted only by QOR ID or an app's
+16. [x] Levels and tasks across the ecosystem (ADR-078): one level and XP per QOR ID, granted only by QOR ID or an app's
     server for checked tasks, each once; the level bubble and the XP bar in the launcher and ARQADE; ring styles and
     themes as unlocks; at most three accounts per network address. Depends on nothing.
 
@@ -1951,9 +1951,9 @@ here sets an economic value; payouts are U-16.
     Checked end to end in Chrome against a local QOR ID: signing in to ARQADE granted 10 XP and the card showed it.
     **Ring styles are drawn** in the launcher since ADR-079 and ADR-080 (6 October 2026): a plain edge at level 0,
     a glowing ring from level 1 and a wider glow from level 6, in builds from 0.1.9 (17 October 2026). **Themes as
-    unlocks built, 25 October 2026, not merged** (HANDOFF §4 item 154): Dusk at level 2 and Nocturne at level 5, as
-    QOR ID's unlock list names them, offered in Settings and chosen only once the profile's progress lists them.
-    **Not yet:** merged, which ticks the item; testers have the themes with the next launcher release.
+    unlocks merged with #101, 25 October 2026, and in launcher 0.1.17** (HANDOFF §4 items 154 and 155): Dusk at level 2
+    and Nocturne at level 5, as QOR ID's unlock list names them, offered in Settings and chosen only once the profile's
+    progress lists them. Every part of the item is built, so it is ticked.
 17. [ ] The welcome grant (ADR-078): 100 CGT once per new QOR ID when the tutorial, the email and a key are confirmed,
     from the Welcome account; test CGT on the devnet first. Real CGT depends on U-18 and the owner's legal review.
     **Owed grants are recorded** by QOR ID (6 October 2026); paying them from the Welcome account is not built.
@@ -2032,7 +2032,8 @@ here sets an economic value; payouts are U-16.
     the homepage's download. The phone check holds the link to 44 by 44 pixels (18 checks, in CI).
 
     **Next:** a `qor://arqade` link opens the launcher at ARQADE, at the game it names (ADR-118, built 25 October 2026,
-    HANDOFF §4 item 152). The website offers it beside the download from the launcher release that carries it.
+    HANDOFF §4 item 152). The website offers it beside the download from the launcher release that carries it: 0.1.17,
+    published 25 October 2026 (item 155).
 24. [x] The two multiplayer arenas rebuilt in QQ (ADR-102), on the ARQADE service. Depends on P7.19.
 
     **Done, 25 October 2026:** merged as #96 (at `36f024c`) and deployed to the launcher's copy from `main` (HANDOFF §4
@@ -2046,7 +2047,10 @@ here sets an economic value; payouts are U-16.
     - Tests: 105 in Node (17 for the arenas, in CI); ARQADE's Qt suites 78, playing both arenas against a stand-in
       server on the owner's PC. The launcher's own test started the deployed copy.
 
-    **Not yet:** a match played on the live server between two people, and a launcher release carrying the arenas.
+    In launcher 0.1.17 (25 October 2026), whose release build found a rematch lost to a late poll of the finished match,
+    fixed before it (HANDOFF §4 item 155).
+
+    **Not yet:** a match played on the live server between two people.
 25. [ ] ARQADE's site on phones and by touch (the owner, 18 October 2026: "optimize Arqade for its mobile browser
     users and screen tapping"). **Built, merged (#49, at `943815d`) and live on Vercel:**
     - Below 760 pixels the side rail is a tab bar along the bottom, and the content takes the whole width.
