@@ -15,6 +15,10 @@
 // Nothing travels that a browser sign-in does not carry, and nothing is written to disk: the cookie jar lives in memory,
 // so the session ends with the app, which ends when the person signs out of the launcher. No address, code or cookie is
 // ever logged.
+//
+// The arenas (P7.24) are played through it as the website plays them: a match created, joined, moved in, resigned or
+// cancelled, and asked how it stands, each answered by the match as the server keeps it (`matchAnswered`) or why not
+// (`matchRefused`). A post carries the server's own origin, as the website's pages do, which its arena routes require.
 
 #pragma once
 
@@ -47,6 +51,9 @@ class ArqadeServer : public QObject
     Q_PROPERTY(QVariantMap me READ me NOTIFY liveChanged)
     /// Rankings by game ("all", "flux", "reversi"): lists of { rank, player, alias, wins, losses, draws, points, me }.
     Q_PROPERTY(QVariantMap standings READ standings NOTIFY liveChanged)
+    /// The live arcade's matches, the player's own first: { id, game, status, alias (the host's), seat (0 for someone
+    /// else's), moves }. A waiting match of someone else's is one to join.
+    Q_PROPERTY(QVariantList matches READ matches NOTIFY liveChanged)
 
 public:
     enum class State {
@@ -76,11 +83,19 @@ public:
     int online() const { return m_online; }
     QVariantMap me() const { return m_me; }
     QVariantMap standings() const { return m_standings; }
+    QVariantList matches() const { return m_matches; }
 
     /// Whether the launcher has a QOR ID session. On, ARQADE signs in once; off, it forgets its session.
     Q_INVOKABLE void setLauncherSignedIn(bool signedIn);
     Q_INVOKABLE void signIn();
     Q_INVOKABLE void refresh();
+
+    /// The arenas (P7.24). A new match of `game`, "flux" or "reversi"; a match as it stands; and an action on one:
+    /// "join", "move" (at `cell`), "resign" or "cancel", at the `revision` the player last saw. Each is answered once, by
+    /// matchAnswered or matchRefused. Anything else is refused here, and nothing is sent.
+    Q_INVOKABLE void createMatch(const QString &game);
+    Q_INVOKABLE void fetchMatch(const QString &id);
+    Q_INVOKABLE void actOnMatch(const QString &id, const QString &action, int cell, int revision);
 
     /// Whether `url` is on this server, scheme, host and port: the only place the app follows a sign-in to.
     bool isOurs(const QUrl &url) const;
@@ -88,6 +103,10 @@ public:
 signals:
     void changed();
     void liveChanged();
+    /// A match as the server keeps it: { id, game, status, state: { cells, turn, winner, placed, flipped }, revision,
+    /// moves, deadline, serverNow, host, guest, seat, legal }.
+    void matchAnswered(const QVariantMap &match);
+    void matchRefused(const QString &message);
 
 private:
     QNetworkRequest request(const QUrl &url) const;
@@ -97,6 +116,8 @@ private:
     void completed(const QUrl &redirect);
     void liveAnswered(class QNetworkReply *reply);
     void forget();
+    void post(const QString &path, const QJsonObject &body);
+    void matchReplied(class QNetworkReply *reply);
 
     QPointer<ArqadeLink> m_link;
     QUrl m_base;
@@ -111,6 +132,7 @@ private:
     int m_online = 0;
     QVariantMap m_me;
     QVariantMap m_standings;
+    QVariantList m_matches;
 };
 
 }  // namespace arqade

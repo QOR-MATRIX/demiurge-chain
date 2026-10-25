@@ -1,6 +1,6 @@
-// ARQADE's server, as the app signs in to it with the launcher's QOR ID and reads its rankings (ADR-102, P7.19). A fake
-// ARQADE answers HTTP; a fake launcher answers the link; QOR ID's sign-in page lives at "localhost", another host, as it
-// would in life.
+// ARQADE's server, as the app signs in to it with the launcher's QOR ID, reads its rankings (ADR-102, P7.19) and plays
+// its arenas (P7.24). A fake ARQADE answers HTTP; a fake launcher answers the link; QOR ID's sign-in page lives at
+// "localhost", another host, as it would in life.
 
 #include <QNetworkCookieJar>
 #include <QSignalSpy>
@@ -22,7 +22,9 @@ namespace {
 const QByteArray Live = R"({
   "me": {"id": "p-me", "name": "yaldabaoth", "qorVerified": true},
   "online": 3,
-  "matches": [], "messages": [], "serverNow": 0, "refreshMs": 2000,
+  "matches": [{"id": "00000000-0000-4000-8000-0000000000aa", "game": "reversi", "status": "waiting", "moves": 0,
+               "updated": 0, "alias": "sophia", "seat": 0}],
+  "messages": [], "serverNow": 0, "refreshMs": 2000,
   "standings": [
     {"player": "p-1", "game": "all", "wins": "9", "losses": "1", "draws": "0", "points": "27", "alias": "sophia"},
     {"player": "p-me", "game": "all", "wins": 4, "losses": 2, "draws": 1, "points": 13, "alias": "yaldabaoth"},
@@ -58,6 +60,26 @@ public:
                          {"Set-Cookie", "arq_login=; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=0"}},
                         {}};
             }
+            // The arenas, as arena-store.ts keeps them: signed in, and a post only as JSON from ARQADE's own pages,
+            // whose origin names the host it was sent to (origin.ts).
+            if (path.startsWith("/api/matches")) {
+                if (r.cookie("arq_session") != "S1")
+                    return {401, {{"Content-Type", "application/json"}}, R"({"error":"Sign in with QOR ID to join the live arcade."})"};
+                const QUrl origin(QString::fromUtf8(r.headers.value("origin")));
+                if (r.method == "POST" && (!origin.isValid() || origin.authority().toUtf8() != r.headers.value("host")
+                                           || !r.headers.value("content-type").startsWith("application/json")))
+                    return {403, {{"Content-Type", "application/json"}}, R"({"error":"This request must come from the arcade."})"};
+                if (refuseNext) {
+                    refuseNext = false;
+                    return {409, {{"Content-Type", "application/json"}}, R"({"error":"Wait for your turn."})"};
+                }
+                QJsonObject match{{"id", MatchId}, {"game", r.method == "POST" && path == "/api/matches"
+                                                               ? r.json().value("game").toString() : QStringLiteral("flux")},
+                                  {"status", "waiting"}, {"revision", ++revision}, {"seat", 1},
+                                  {"state", QJsonObject{{"cells", QJsonArray()}, {"turn", 1}}}};
+                return {path == "/api/matches" ? 201 : 200, {{"Content-Type", "application/json"}},
+                        QJsonDocument(match).toJson(QJsonDocument::Compact)};
+            }
             if (path == "/api/live") {
                 lives += 1;
                 if (r.cookie("arq_session") != "S1" || expired)
@@ -75,10 +97,14 @@ public:
 
     QUrl callback() const { return base().resolved(QUrl("api/auth/callback?code=c&state=s")); }
 
+    static constexpr const char *MatchId = "00000000-0000-4000-8000-000000000001";
+
     int logins = 0;
     int lives = 0;
+    int revision = 0;
     bool unconfigured = false;
     bool expired = false;
+    bool refuseNext = false;
 };
 
 }  // namespace
@@ -104,6 +130,16 @@ private:
     {
         launcher.command(waiting, QJsonValue());
         return launcher.read();
+    }
+
+    // The requests the stand-in ARQADE has had to its arena routes, in order.
+    static QList<Request> matchCalls(const Arqade &arqade)
+    {
+        QList<Request> calls;
+        for (const Request &r : arqade.seen)
+            if (r.url.path().startsWith(QLatin1String("/api/matches")))
+                calls.append(r);
+        return calls;
     }
 
     // Signed in all the way through, the launcher's next arqade.next put in `next`.
@@ -290,6 +326,88 @@ private slots:
         QVERIFY(!server.isOurs(QUrl("https://qor-arqade-tau.vercel.app.example.com/")));
         QVERIFY(!server.isOurs(QUrl("https://qor-arqade-tau.vercel.app:8443/")));
         QVERIFY(!server.isOurs(QUrl("https://id.qorsync.dev/oauth/authorize")));
+    }
+
+    // The arenas (P7.24), played as the website plays them: the open matches read from the live arcade, a match created,
+    // asked after and moved in, each post from ARQADE's own origin, as JSON, with the session; a refusal in the
+    // server's own words.
+    void the_arenas_are_played_through_it_as_the_website_plays_them()
+    {
+        Arqade arqade;
+        Launcher launcher;
+        ArqadeLink link;
+        ArqadeServer server(&link, arqade.base());
+        server.setActive(true);
+        QJsonObject next;
+        signIn(arqade, launcher, link, server, next);
+        QTRY_COMPARE(server.matches().size(), 1);
+        const QVariantMap open = server.matches().first().toMap();
+        QCOMPARE(open.value("game").toString(), QStringLiteral("reversi"));
+        QCOMPARE(open.value("status").toString(), QStringLiteral("waiting"));
+        QCOMPARE(open.value("alias").toString(), QStringLiteral("sophia"));
+        QCOMPARE(open.value("seat").toInt(), 0);
+
+        QSignalSpy answered(&server, &ArqadeServer::matchAnswered);
+        QSignalSpy refused(&server, &ArqadeServer::matchRefused);
+        // Each call is answered once; a refusal it should not have had fails with the server's words.
+        const auto heard = [&](qsizetype calls) {
+            QTRY_COMPARE(answered.size() + refused.size(), calls);
+            QVERIFY2(refused.isEmpty(), qPrintable(refused.value(0).value(0).toString()));
+        };
+
+        server.createMatch("flux");
+        heard(1);
+        QCOMPARE(matchCalls(arqade).size(), 1);
+        const Request created = matchCalls(arqade).last();
+        QCOMPARE(created.method, QByteArray("POST"));
+        QCOMPARE(created.url.path(), QStringLiteral("/api/matches"));
+        QCOMPARE(created.headers.value("origin"), QByteArray("http://127.0.0.1:") + QByteArray::number(arqade.server.serverPort()));
+        QCOMPARE(created.json().value("game").toString(), QStringLiteral("flux"));
+        QCOMPARE(answered.last().first().toMap().value("id").toString(), QString::fromLatin1(Arqade::MatchId));
+        QCOMPARE(answered.last().first().toMap().value("game").toString(), QStringLiteral("flux"));
+
+        server.fetchMatch(Arqade::MatchId);
+        heard(2);
+        QCOMPARE(matchCalls(arqade).last().method, QByteArray("GET"));
+        QCOMPARE(matchCalls(arqade).last().url.path(), QStringLiteral("/api/matches/") + Arqade::MatchId);
+
+        server.actOnMatch(Arqade::MatchId, "move", 3, 2);
+        heard(3);
+        const QJsonObject move = matchCalls(arqade).last().json();
+        QCOMPARE(move.value("action").toString(), QStringLiteral("move"));
+        QCOMPARE(move.value("cell").toInt(), 3);
+        QCOMPARE(move.value("revision").toInt(), 2);
+
+        // A join carries no cell.
+        server.actOnMatch(Arqade::MatchId, "join", 0, 3);
+        heard(4);
+        QVERIFY(!matchCalls(arqade).last().json().contains("cell"));
+
+        arqade.refuseNext = true;
+        server.actOnMatch(Arqade::MatchId, "move", 4, 4);
+        QTRY_COMPARE(refused.size(), 1);
+        QCOMPARE(refused.last().first().toString(), QStringLiteral("Wait for your turn."));
+        QCOMPARE(answered.size(), 4);
+    }
+
+    // A match's id goes into an address, so only a match's id is sent; an action or a game the arenas do not have is
+    // refused before anything is sent.
+    void a_match_call_with_a_bad_id_action_or_game_sends_nothing()
+    {
+        Arqade arqade;
+        Launcher launcher;
+        ArqadeLink link;
+        ArqadeServer server(&link, arqade.base());
+        QJsonObject next;
+        signIn(arqade, launcher, link, server, next);
+        QSignalSpy refused(&server, &ArqadeServer::matchRefused);
+        server.fetchMatch("../live");
+        server.actOnMatch(Arqade::MatchId, "delete", 0, 0);
+        server.actOnMatch("00000000-0000-4000-8000-00000000000Z", "move", 0, 0);
+        server.createMatch("chess");
+        QCOMPARE(refused.size(), 4);
+        QTest::qWait(200);
+        QVERIFY(matchCalls(arqade).isEmpty());
     }
 };
 
