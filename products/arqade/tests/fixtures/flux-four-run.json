@@ -1,0 +1,1037 @@
+{
+    "clicks": [
+        [
+            17,
+            [
+                "Create"
+            ]
+        ]
+    ],
+    "edges": [
+        [
+            17,
+            [
+                [
+                    "pressed",
+                    "pick"
+                ],
+                [
+                    "released",
+                    "pick"
+                ]
+            ]
+        ],
+        [
+            69,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            72,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            74,
+            [
+                [
+                    "pressed",
+                    "choose"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ],
+                [
+                    "released",
+                    "choose"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            144,
+            [
+                [
+                    "pressed",
+                    "column5"
+                ],
+                [
+                    "released",
+                    "column5"
+                ]
+            ]
+        ],
+        [
+            194,
+            [
+                [
+                    "pressed",
+                    "choose"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            197,
+            [
+                [
+                    "released",
+                    "choose"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            253,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            255,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            261,
+            [
+                [
+                    "pressed",
+                    "pick"
+                ],
+                [
+                    "released",
+                    "pick"
+                ]
+            ]
+        ]
+    ],
+    "hands": [
+        [
+            0,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            69,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    1,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            72,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            194,
+            {
+                "held": [
+                    "choose",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            197,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            253,
+            {
+                "held": [
+                    "left"
+                ],
+                "look": [
+                    -1,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            255,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ]
+    ],
+    "outcome": {
+        "Arena": {
+            "match": "794e57db-6042-4499-9107-c274dac7a312",
+            "moves": 7,
+            "result": "won",
+            "seat": 1
+        }
+    },
+    "qqRun": 1,
+    "scene": "flux-four",
+    "seed": 1084487662,
+    "store": {
+    },
+    "ticks": 318,
+    "told": [
+        [
+            1,
+            [
+                {
+                    "lobby": [
+                    ],
+                    "signedIn": true,
+                    "why": ""
+                }
+            ]
+        ],
+        [
+            29,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890015145,
+                        "game": "flux",
+                        "guest": null,
+                        "host": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "id": "794e57db-6042-4499-9107-c274dac7a312",
+                        "legal": [
+                        ],
+                        "moves": 0,
+                        "revision": 0,
+                        "seat": 1,
+                        "serverNow": 1792889925145,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                            ],
+                            "placed": -1,
+                            "turn": 1,
+                            "winner": null
+                        },
+                        "status": "waiting"
+                    }
+                }
+            ]
+        ],
+        [
+            66,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890016429,
+                        "game": "flux",
+                        "guest": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "id": "794e57db-6042-4499-9107-c274dac7a312",
+                        "legal": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6
+                        ],
+                        "moves": 0,
+                        "revision": 1,
+                        "seat": 1,
+                        "serverNow": 1792889926429,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                            ],
+                            "placed": -1,
+                            "turn": 1,
+                            "winner": null
+                        },
+                        "status": "active"
+                    }
+                }
+            ]
+        ],
+        [
+            82,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890016674,
+                        "game": "flux",
+                        "guest": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "id": "794e57db-6042-4499-9107-c274dac7a312",
+                        "legal": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6
+                        ],
+                        "moves": 1,
+                        "revision": 2,
+                        "seat": 1,
+                        "serverNow": 1792889926674,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                            ],
+                            "placed": 39,
+                            "turn": 2,
+                            "winner": null
+                        },
+                        "status": "active"
+                    }
+                }
+            ]
+        ],
+        [
+            140,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890017638,
+                        "game": "flux",
+                        "guest": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "id": "794e57db-6042-4499-9107-c274dac7a312",
+                        "legal": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6
+                        ],
+                        "moves": 2,
+                        "revision": 3,
+                        "seat": 1,
+                        "serverNow": 1792889927638,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                            ],
+                            "placed": 35,
+                            "turn": 1,
+                            "winner": null
+                        },
+                        "status": "active"
+                    }
+                }
+            ]
+        ],
+        [
+            151,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890017828,
+                        "game": "flux",
+                        "guest": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "id": "794e57db-6042-4499-9107-c274dac7a312",
+                        "legal": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6
+                        ],
+                        "moves": 3,
+                        "revision": 4,
+                        "seat": 1,
+                        "serverNow": 1792889927828,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                            ],
+                            "placed": 32,
+                            "turn": 2,
+                            "winner": null
+                        },
+                        "status": "active"
+                    }
+                }
+            ]
+        ],
+        [
+            191,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890019024,
+                        "game": "flux",
+                        "guest": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "id": "794e57db-6042-4499-9107-c274dac7a312",
+                        "legal": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6
+                        ],
+                        "moves": 4,
+                        "revision": 5,
+                        "seat": 1,
+                        "serverNow": 1792889929024,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                            ],
+                            "placed": 28,
+                            "turn": 1,
+                            "winner": null
+                        },
+                        "status": "active"
+                    }
+                }
+            ]
+        ],
+        [
+            205,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890019268,
+                        "game": "flux",
+                        "guest": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "id": "794e57db-6042-4499-9107-c274dac7a312",
+                        "legal": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6
+                        ],
+                        "moves": 5,
+                        "revision": 6,
+                        "seat": 1,
+                        "serverNow": 1792889929268,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                            ],
+                            "placed": 25,
+                            "turn": 2,
+                            "winner": null
+                        },
+                        "status": "active"
+                    }
+                }
+            ]
+        ],
+        [
+            252,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890020058,
+                        "game": "flux",
+                        "guest": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "id": "794e57db-6042-4499-9107-c274dac7a312",
+                        "legal": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6
+                        ],
+                        "moves": 6,
+                        "revision": 7,
+                        "seat": 1,
+                        "serverNow": 1792889930058,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                            ],
+                            "placed": 21,
+                            "turn": 1,
+                            "winner": null
+                        },
+                        "status": "active"
+                    }
+                }
+            ]
+        ],
+        [
+            269,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890020920,
+                        "game": "flux",
+                        "guest": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "id": "794e57db-6042-4499-9107-c274dac7a312",
+                        "legal": [
+                        ],
+                        "moves": 7,
+                        "revision": 8,
+                        "seat": 1,
+                        "serverNow": 1792889930920,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                            ],
+                            "placed": 18,
+                            "turn": 1,
+                            "winner": 1
+                        },
+                        "status": "done"
+                    }
+                }
+            ]
+        ]
+    ]
+}

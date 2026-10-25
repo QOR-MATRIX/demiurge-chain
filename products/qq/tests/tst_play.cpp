@@ -1611,6 +1611,88 @@ private slots:
         store->flush();
     }
 
+    // ── the game's host (ADR-117) ──
+
+    void aGameAsksItsHostAndHearsWhatItIsToldAtTheNextTickAndAReplayHearsItToo()
+    {
+        // A game that asks as it starts, and keeps what it hears and the step it heard it at: its outcome.
+        QTemporaryDir project;
+        writeFile(QDir(project.path()).filePath(QStringLiteral("logic/ask.qml")),
+                  "import QQ\nLogic {\n    property var heard: []\n"
+                  "    onStarted: askHost({ ask: \"hello\", n: 1 })\n"
+                  "    onTold: (message) => heard = heard.concat([{ at: steps, message: message,\n"
+                  "        lists: Array.isArray(message.names) && Array.isArray(message.deep.more) }])\n"
+                  "    outcome: ({ heard: heard })\n}\n");
+        const QUrl file = QUrl::fromLocalFile(QDir(project.path()).filePath(QStringLiteral("scenes/play.qml")));
+        const QString text = sceneText(QStringLiteral("    Behaviour { name: \"Asker\"; source: \"../logic/ask.qml\"; target: \"\" }\n"));
+        writeFile(file.toLocalFile(), text.toUtf8());
+
+        qq::RunRecord run;
+        {
+            Headless h;
+            QVERIFY(h.open(text, file, &run));
+            QSignalSpy asked(h.scene, SIGNAL(asked(QVariant)));
+            h.advance(1.0 / 60);
+            // Asked at once, a JSON value as the game wrote it.
+            QCOMPARE(asked.size(), 1);
+            QVariant question = asked.first().first();
+            if (question.canConvert<QJSValue>())
+                question = question.value<QJSValue>().toVariant();
+            QCOMPARE(question.toMap().value(QStringLiteral("ask")).toString(), QStringLiteral("hello"));
+            QCOMPARE(question.toMap().value(QStringLiteral("n")).toInt(), 1);
+
+            // Told, it hears nothing until the next tick, which delivers it.
+            auto tell = [&h](const QVariant &message) {
+                QVariant ok;
+                QMetaObject::invokeMethod(h.scene, "tell", Q_RETURN_ARG(QVariant, ok), Q_ARG(QVariant, message));
+                return ok.toBool();
+            };
+            QVERIFY(tell(QVariantMap{{QStringLiteral("answer"), 42}, {QStringLiteral("names"), QStringList{"a", "b"}},
+                                     {QStringLiteral("deep"), QVariantMap{{QStringLiteral("more"), QVariantList{1, 2}}}}}));
+            QObject *logic = h.logicOf(QStringLiteral("Asker"));
+            QVERIFY(logic);
+            auto heard = [logic] {
+                const QVariant v = logic->property("heard");
+                return v.canConvert<QJSValue>() ? v.value<QJSValue>().toVariant().toList() : v.toList();
+            };
+            QCOMPARE(heard().size(), 0);
+            h.advance(1.0 / 60);
+            QCOMPARE(heard().size(), 1);
+            // Heard in the second tick, before its step: the logic has taken one step.
+            const QVariantMap first = heard().first().toMap();
+            QCOMPARE(first.value(QStringLiteral("at")).toInt(), 1);
+            QCOMPARE(first.value(QStringLiteral("message")).toMap().value(QStringLiteral("answer")).toInt(), 42);
+            // A JSON value as JavaScript has one: its lists, however deep, are arrays.
+            QVERIFY(first.value(QStringLiteral("lists")).toBool());
+
+            // More than 16 KiB is refused, and nothing is told.
+            QVERIFY(!tell(QString(20000, QLatin1Char('x'))));
+            QVERIFY(tell(QStringLiteral("again")));
+            h.advance(5.0 / 60);
+            QCOMPARE(heard().size(), 2);
+            QCOMPARE(heard().last().toMap().value(QStringLiteral("message")).toString(), QStringLiteral("again"));
+            QMetaObject::invokeMethod(h.scene, "finishRecord");
+        }
+
+        // The run keeps what was told, at the ticks it was heard, so its replay reaches the same outcome, from its file too.
+        QQmlEngine engine;
+        const QVariantMap again = qq::replayRun(&engine, file, &run);
+        QCOMPARE(again.value(QStringLiteral("problem")).toString(), QString());
+        QVERIFY2(again.value(QStringLiteral("matches")).toBool(),
+                 qPrintable(QJsonDocument(QJsonObject::fromVariantMap(again)).toJson(QJsonDocument::Compact)));
+        qq::RunRecord reread;
+        QVERIFY(reread.fromJson(run.toJson()));
+        QCOMPARE(reread.toldAt(1).size(), 1);
+        QVERIFY(qq::replayRun(&engine, file, &reread).value(QStringLiteral("matches")).toBool());
+
+        // Without what it was told, the run reaches another outcome.
+        QJsonObject withoutTold = QJsonDocument::fromJson(run.toJson()).object();
+        withoutTold.remove(QStringLiteral("told"));
+        qq::RunRecord deaf;
+        QVERIFY(deaf.fromJson(QJsonDocument(withoutTold).toJson()));
+        QVERIFY(!qq::replayRun(&engine, file, &deaf).value(QStringLiteral("matches")).toBool());
+    }
+
     // ── animation (P3.12, ADR-105) ──
 
     void aModelPlaysItsGltfClipsOnTheGamesClock()

@@ -1,10 +1,11 @@
 // A game's run, kept so it can be played again (DIRECTION P3.11, ADR-105 decision 6).
 //
 // A scene plays in ticks of 1/60 s (Scene.qml). Each tick takes the player's hands (Input::takeStep: move, look, the
-// actions held, and the presses and releases since the last tick) and the screen buttons clicked, and only then lets
-// logic and QQ's own kinematics step. So a run is wholly its seed and what each tick took: a RunRecord keeps those, and
-// a replay gives them back tick by tick, with no window and no physics engine, to reach the same outcome. What a replay
-// cannot reach, PhysX's results among it, is never part of an outcome that is rewarded (ADR-102 decision 5).
+// actions held, and the presses and releases since the last tick), the screen buttons clicked and what the game's host
+// told it (ADR-117), and only then lets logic and QQ's own kinematics step. So a run is wholly its seed and what each
+// tick took: a RunRecord keeps those, and a replay gives them back tick by tick, with no window and no physics engine,
+// to reach the same outcome. What a replay cannot reach, PhysX's results among it, is never part of an outcome that is
+// rewarded (ADR-102 decision 5).
 //
 // Random numbers come from Random, seeded by the scene's `seed` or by whoever starts the run: xoshiro128**, in whole
 // numbers, so the same seed gives the same numbers on every machine.
@@ -92,6 +93,9 @@ public:
     Q_INVOKABLE QVariantMap handsAt(int tick) const;
     /// The buttons clicked at tick `tick`.
     Q_INVOKABLE QStringList clicksAt(int tick) const;
+    /// What the game's host told it, heard at tick `tick` (ADR-117), and what a replay hears there.
+    Q_INVOKABLE void keepTold(int tick, const QVariantList &told);
+    Q_INVOKABLE QVariantList toldAt(int tick) const;
     /// Forget everything.
     Q_INVOKABLE void clear();
 
@@ -111,6 +115,7 @@ private:
     QMap<int, QVariantMap> m_states;
     QMap<int, QVariantList> m_edges;
     QMap<int, QStringList> m_clicks;
+    QMap<int, QVariantList> m_told;
     QVariantMap m_last;
 };
 

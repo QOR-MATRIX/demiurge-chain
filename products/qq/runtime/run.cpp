@@ -170,11 +170,25 @@ QStringList RunRecord::clicksAt(int tick) const
     return m_clicks.value(tick);
 }
 
+void RunRecord::keepTold(int tick, const QVariantList &told)
+{
+    // Kept as JSON keeps it, as the hands are, so what a file gives back is what was heard.
+    m_told.insert(tick, QJsonArray::fromVariantList(told).toVariantList());
+    if (tick + 1 > m_ticks)
+        setTicks(tick + 1);
+}
+
+QVariantList RunRecord::toldAt(int tick) const
+{
+    return m_told.value(tick);
+}
+
 void RunRecord::clear()
 {
     m_states.clear();
     m_edges.clear();
     m_clicks.clear();
+    m_told.clear();
     m_last.clear();
     m_outcome.clear();
     m_store.clear();
@@ -193,6 +207,9 @@ QByteArray RunRecord::toJson() const
     QJsonArray clicks;
     for (auto it = m_clicks.cbegin(); it != m_clicks.cend(); ++it)
         clicks.append(QJsonArray{it.key(), QJsonArray::fromStringList(it.value())});
+    QJsonArray told;
+    for (auto it = m_told.cbegin(); it != m_told.cend(); ++it)
+        told.append(QJsonArray{it.key(), QJsonArray::fromVariantList(it.value())});
     const QJsonObject run{{QStringLiteral("qqRun"), 1},
                           {QStringLiteral("scene"), m_scene},
                           {QStringLiteral("seed"), m_seed},
@@ -201,7 +218,8 @@ QByteArray RunRecord::toJson() const
                           {QStringLiteral("store"), QJsonObject::fromVariantMap(m_store)},
                           {QStringLiteral("hands"), states},
                           {QStringLiteral("edges"), edges},
-                          {QStringLiteral("clicks"), clicks}};
+                          {QStringLiteral("clicks"), clicks},
+                          {QStringLiteral("told"), told}};
     return QJsonDocument(run).toJson(QJsonDocument::Indented);
 }
 
@@ -235,6 +253,9 @@ bool RunRecord::fromJson(const QByteArray &json, QString *why)
             names << name.toString();
         m_clicks.insert(v.toArray().at(0).toInt(), names);
     }
+    // A run kept before ADR-117 has none: its game heard nothing from a host.
+    for (const QJsonValue &v : run.value(QStringLiteral("told")).toArray())
+        m_told.insert(v.toArray().at(0).toInt(), v.toArray().at(1).toArray().toVariantList());
     if (m_ticks < 0)
         return fail(QStringLiteral("The run has no length."));
     emit changed();

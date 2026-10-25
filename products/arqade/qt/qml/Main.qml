@@ -5,7 +5,7 @@ import ARQADE
 
 // ARQADE's one window (ADR-102). Docked inside the launcher it is borderless, sits over the launcher's ARQADE screen and
 // shows when the launcher first places it; started by hand it is an ordinary window. It shows the home, or a game rebuilt
-// in QQ (P7.20) in its place while one is played.
+// in QQ (P7.20) or an arena (P7.24) in its place while one is played.
 Window {
     id: root
     required property var link
@@ -74,6 +74,7 @@ Window {
         active: root.playing !== ""
         sourceComponent: GameView {
             kind: root.playing
+            server: root.server
             onClosed: root.playing = ""
         }
     }

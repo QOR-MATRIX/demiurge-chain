@@ -64,6 +64,12 @@ Node {
             file.object._step(dt)
     }
     // Presses and releases come from the tick too, the same in play and in a replay.
+    // What the game's host told it comes from the tick too (ADR-117).
+    function _told(message) {
+        if (file.object)
+            file.object._told(message)
+    }
+
     function _hear(kind, action) {
         if (file.object)
             file.object._hear(kind, action)

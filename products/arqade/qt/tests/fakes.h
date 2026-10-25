@@ -107,6 +107,10 @@ struct Request
     QByteArray method;
     QUrl url;
     QHash<QByteArray, QByteArray> headers;
+    /// The body, as long as Content-Length says: a post's JSON.
+    QByteArray body;
+
+    QJsonObject json() const { return QJsonDocument::fromJson(body).object(); }
 
     QByteArray cookie(const QByteArray &name) const
     {
@@ -142,7 +146,16 @@ public:
                     const qsizetype end = buffer->indexOf("\r\n\r\n");
                     if (end < 0)
                         return;
-                    serve(socket, buffer->left(end));
+                    // The body follows the head, as long as Content-Length says: wait for all of it.
+                    qsizetype length = 0;
+                    for (const QByteArray &line : buffer->left(end).split('\n')) {
+                        const QByteArray trimmed = line.trimmed();
+                        if (trimmed.toLower().startsWith("content-length:"))
+                            length = trimmed.mid(15).trimmed().toLongLong();
+                    }
+                    if (buffer->size() < end + 4 + length)
+                        return;
+                    serve(socket, buffer->left(end), buffer->mid(end + 4, length));
                     buffer->clear();
                 });
                 QObject::connect(socket, &QTcpSocket::disconnected, socket, [socket, buffer] {
@@ -160,7 +173,7 @@ public:
     QList<Request> seen;
 
 private:
-    void serve(QTcpSocket *socket, const QByteArray &head)
+    void serve(QTcpSocket *socket, const QByteArray &head, const QByteArray &body)
     {
         const QList<QByteArray> lines = head.split('\n');
         const QList<QByteArray> first = lines.value(0).trimmed().split(' ');
@@ -173,6 +186,7 @@ private:
             if (colon > 0)
                 request.headers.insert(line.left(colon).trimmed().toLower(), line.mid(colon + 1).trimmed());
         }
+        request.body = body;
         seen.append(request);
         const Response response = route ? route(request) : Response{404, {}, {}};
         QByteArray out = "HTTP/1.1 " + QByteArray::number(response.status) + " Fake\r\n";

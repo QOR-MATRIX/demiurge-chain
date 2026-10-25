@@ -1,8 +1,9 @@
 # ARQADE's games, rebuilt in QQ
 
-ARQADE's four solo games are rebuilt as QQ games (ADR-102 decision 2; DIRECTION P7.20). They are played in
-ARQADE's Qt app ([`../qt/`](../qt/README.md)) by QQ's runtime ([`products/qq/`](../../qq/README.md)). Each game here is a
-QQ package, laid out as QQ Studio keeps a project, so it also opens in QQ Studio and plays in the QQ Player as it is.
+ARQADE's four solo games and its two arenas are rebuilt as QQ games (ADR-102 decision 2; DIRECTION P7.20 and P7.24).
+They are played in ARQADE's Qt app ([`../qt/`](../qt/README.md)) by QQ's runtime ([`products/qq/`](../../qq/README.md)).
+Each game here is a QQ package, laid out as QQ Studio keeps a project, so it also opens in QQ Studio and plays in the QQ
+Player as it is (an arena there has nobody to ask, so it stays in its lobby).
 
 | Game | State |
 | --- | --- |
@@ -10,6 +11,7 @@ QQ package, laid out as QQ Studio keeps a project, so it also opens in QQ Studio
 | Void Runner | Rebuilt, 24 October 2026: the same |
 | Synapse | Rebuilt, 24 October 2026: the same |
 | Rift Survivor | Rebuilt, 24 October 2026: the same |
+| Flux Four and Rift Reversi | Rebuilt, 24 October 2026: play in ARQADE against another person, on ARQADE's server; a run replays in QQ and in Node |
 
 ## A game's package
 
@@ -21,6 +23,10 @@ orbital/
   assets/              the sky (an HDR image) and the sounds, written by make_assets.py
   make_assets.py       writes assets/ with the standard library only, the same bytes every time
 ```
+
+The two arenas are one package, `arenas/`, with a scene for each (`scenes/flux-four.qml`, `scenes/rift-reversi.qml`),
+one logic that draws either board (`logic/arena.qml`), and in place of rules their conversation with ARQADE
+(`logic/arena.mjs`).
 
 ARQADE carries each package in its executable, at `qrc:/games/<name>/` (`../qt/CMakeLists.txt`), so the scene's paths,
 which are relative, mean the same there as on disk. Each package keeps its own rules whole, random numbers and all: a
@@ -123,6 +129,49 @@ each warning of the other, so each `make_assets.py` writes the sounds its game p
 to the satellite's white, and Void Runner's red hazards to white and its collapse to yellow. Each glow that carries a
 meaning is kept near or under 1, which keeps its hue. Synapse's lit node is capped at 0.77 for the same reason.
 
+## The arenas: Flux Four and Rift Reversi
+
+Two people play one board on ARQADE's server, which keeps every match and decides every move, as it does for the
+website's arcade (`../lib/arena-store.ts`, `../lib/arena-engine.ts`). The arenas have no rules here. Flux Four drops
+pulses into seven columns six deep, and four in a row, across, up or diagonally, win. Rift Reversi places discs on six
+by six, turning over the opponent's discs each one brackets, and the most discs at the end win. A move has 90 seconds.
+The server ranks every match, as it does the website's.
+
+**The conversation.** A QQ game reaches no server of its own (ADR-087), so an arena asks its host, ARQADE's app, through
+QQ's host channel (ADR-117): `askHost` to ask, `onTold` to hear. ARQADE's `GameView` answers from the server through
+`ArqadeServer`, with the player's session. It answers with the arena's open lobbies from the live arcade, read every 3
+seconds while the lobby shows, and with each match opened, joined, moved in, conceded or closed. It asks after the
+match being followed every 1.2 seconds, as the website does, and tells the game only what changed, so the run keeps
+each answer once. A match that could not be joined or opened is not followed, and the lobby is told again. `arena.mjs` is the game's side:
+what it asks for each thing a player does, what it makes of each answer (never an older board than the one drawn, nor
+another match's), and what the screens say. It decides no move: a move it asks for is one the server listed as legal,
+and the server checks it again. It keeps no clock and draws no chance: the seconds left are counted down in QQ's steps
+from the server's answer.
+
+**Playing.** From the lobby a player opens a match, joins the newest open lobby of someone else's, or returns to their
+own match. Their own lobby waits for a challenger, and can be closed before one comes. In Flux Four, left and right (A
+and D, the arrows, the d-pad) choose a column and Space, Enter or the pad's A drops a pulse; the keys 1 to 7 drop one
+straight into a column. In Rift Reversi, the arrows (W, A, S and D, the d-pad) move a cell at a time, Q and E (the pad's
+shoulders) jump between the legal moves, and Space, Enter or A places a disc. In both, the pointer over the board aims,
+and a click moves. Concede asks once more before it concedes. Lobby leaves a match while it goes on, its clock still
+running. A move the server refuses says why for five seconds.
+
+**In 3D.** Flux Four is an upright frame of wells between bronze rails on a plinth. Its pulses drop into their column
+and come to rest with a bounce, and four in a row pulse when the match is won. Rift Reversi's board is teal tiles in a
+pale frame: a disc set down grows into place, and each disc it turns lifts and flips over to the other colour. Both
+stand nearly facing the eye, turned a little so their depth shows, and a lamp beside the eye lights them and casts their
+shadows. The player's move waits over the board in their colour, the host's gold or the guest's cyan. In Flux Four it is a
+pulse held over the column, bobbing, with a ring where it would land. In Rift Reversi it is a see-through disc,
+breathing, with each legal cell marked. The last move holds a spark. A pulse landing, a disc set down and the discs
+turning are heard from where they happen. The player's move coming round, a challenger arriving, the match's end and
+the music are heard everywhere. With reduced motion, pulses arrive and discs turn at once, and nothing bobs, breathes or
+pulses.
+
+**Its run.** An arena's run is what the host told it and what the player did, and its outcome is the server's verdict
+on the match: `{ match, seat, result, moves }`. `arena.mjs`'s `replay(run, game)` plays a run in Node to the same state.
+Where the pointer was belongs to the window, not the run, so a replay makes nothing of a click on the board. The move it
+asked for is in the server's answer, which the run keeps. An arena's run is not rewarded: the server ranks its matches.
+
 ## Tests
 
 - `../tests/orbital.test.mjs`, `../tests/void-runner.test.mjs`, `../tests/synapse.test.mjs` and
@@ -153,6 +202,23 @@ meaning is kept near or under 1, which keeps its hue. Synapse's lit node is capp
   of each replays in QQ
   to its outcome, and so does each fixture. The launcher's reduced motion reaches the game, and Esc or Back returns to
   the home.
+- `../tests/arenas.test.mjs` (Node, in `npm test` and CI), 17 tests of the arenas' conversation, against boards made
+  by the server's own rules (`../lib/arena-engine.ts`). It covers the lobby kept to the arena's own matches, signed out
+  saying why and asking nothing, a match opened, closed and joined, a move as the cursor and the board last seen, an
+  older board or another match's never drawn, the cursor through a full column and onto the nearest legal move, a
+  concession asked twice, a Space that pressed a button not moving, a refusal fading, the clock counting down, each
+  result's words and outcome, and what is told read and never trusted. Both runs kept in `../tests/fixtures/` replay to
+  QQ's outcomes, and not without the server's last answer. The whole state at the end of each is pinned, and
+  `arena.mjs` uses no clock or chance of its own.
+- `../qt/tests/tst_games.cpp` plays both arenas against a stand-in ARQADE that signs in as the website does, keeps
+  matches as `arena-store.ts` keeps them and moves for the opponent. Signed out, an arena says why and offers nothing.
+  Flux Four opens a match, a challenger joins, and four pulses go down one column by Space, the key 5, the pad's A and
+  the pointer, each heard where it lands, to win. Then a rematch's lobby is closed before anyone joins. In Rift
+  Reversi, a lobby someone else takes just before the player joins it is said to be no longer available, and the lobby
+  then shows none open. Then Rift Reversi joins someone's open lobby. Its legal moves are marked, the arrows and E move the cursor, Space places a disc whose
+  sound comes from where it lands, and the discs it brackets turn to the guest's colour. A move the server refuses says
+  why. A disc is placed by the pointer, and the match is conceded only after Concede is asked twice. Each arena's kept
+  run, and its fixture, replays in QQ to its outcome.
 
 Faults planted to check these tests catch a change:
 
@@ -167,6 +233,13 @@ Faults planted to check these tests catch a change:
   never came.
 - Rift Survivor's hold after a breach changed from 96 steps to 95: the pinned state failed. Its logic not handing
   releases to the rules: the left arrow did not move the ship (right was still held).
+- The arenas' conversation drawing an older board, or another match's; a Space that pressed a button also moving; the
+  cursor not set on a legal move; the clock at half speed; a refusal leaving the ask waiting; a call to `Date`: each
+  failed `arenas.test.mjs`.
+- QQ handing a host's message on through the signal's own argument, which makes its lists Qt's rather than arrays:
+  QQ's play test failed (and the arenas' lobby never read as signed in). ARQADE's server posting a move without its
+  origin: the server's own suite failed. ARQADE's window never asking after the followed match: the Flux Four test
+  never saw its challenger join.
 
 ## Change a game
 
@@ -175,4 +248,5 @@ Faults planted to check these tests catch a change:
 - Rewrite the assets: `python products/arqade/games/<name>/make_assets.py`.
 - **A change to `rules.mjs` changes what every kept run replays to.** Make new fixtures with ARQADE's games suite:
   `ARQADE_RUN=<folder>` writes each run it played there, as `<name>-run.json`. Copy the game's into `../tests/fixtures/`,
-  set the outcome and the digest its test expects, and say why in the commit.
+  set the outcome and the digest its test expects, and say why in the commit. The same goes for the arenas'
+  `arena.mjs`, whose replayed state is pinned as the rules' is.

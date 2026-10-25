@@ -914,6 +914,13 @@ int SceneIO::freshSeed() const
     return Random::freshSeed();
 }
 
+void SceneIO::tellLogic(QObject *logic, const QJSValue &message) const
+{
+    // A QVariant holding the QJSValue reaches the handler as the value itself.
+    if (logic)
+        QMetaObject::invokeMethod(logic, "told", Q_ARG(QVariant, QVariant::fromValue(message)));
+}
+
 QObject *SceneIO::entityOf(QObject *scene, QObject *object) const
 {
     for (auto *o = qobject_cast<QQuick3DObject *>(object); o && o != scene; o = o->parentItem()) {

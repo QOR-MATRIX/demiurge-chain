@@ -5,8 +5,8 @@ import QtQuick.Layouts
 import ARQADE
 
 // ARQADE's home (DIRECTION P7.19): the portal behind everything, the name and the player's Sparks over it, then the
-// games, the arenas and their rankings. The four games are rebuilt in 3D (P7.20) and each card plays its game here
-// (playRequested); the arenas' cards open today's versions in the launcher's ARQADE window.
+// games, the arenas and their rankings. The four games and the two arenas are rebuilt in 3D (P7.20, P7.24), and each
+// card plays its game here (playRequested): an arena against another person, on ARQADE's server.
 Item {
     id: home
     required property var link
@@ -221,10 +221,11 @@ Item {
                         name: "Flux Four"
                         tag: qsTr("Arena / strategy")
                         line: qsTr("Gravity is a weapon. Think four moves ahead.")
+                        here: true
                         Layout.fillWidth: true
                         Layout.preferredHeight: 360
                         Layout.alignment: Qt.AlignTop
-                        onClicked: { home.webError = ""; home.link.openWeb() }
+                        onClicked: { home.webError = ""; home.playRequested("flux") }
                     }
                     GameCard {
                         kind: "reversi"
@@ -232,10 +233,11 @@ Item {
                         name: "Rift Reversi"
                         tag: qsTr("Arena / territory")
                         line: qsTr("Turn their territory into your advantage.")
+                        here: true
                         Layout.fillWidth: true
                         Layout.preferredHeight: 360
                         Layout.alignment: Qt.AlignTop
-                        onClicked: { home.webError = ""; home.link.openWeb() }
+                        onClicked: { home.webError = ""; home.playRequested("reversi") }
                     }
                     Rankings {
                         server: home.server
