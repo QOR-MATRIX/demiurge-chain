@@ -286,20 +286,20 @@ void ArqadeServer::liveAnswered(QNetworkReply *reply)
 void ArqadeServer::createMatch(const QString &game)
 {
     if (game != QLatin1String("flux") && game != QLatin1String("reversi")) {
-        emit matchRefused(tr("There is no arena by that name."));
+        emit matchRefused(tr("There is no arena by that name."), QString());
         return;
     }
-    post(QStringLiteral("api/matches"), {{QStringLiteral("game"), game}});
+    post(QStringLiteral("api/matches"), {{QStringLiteral("game"), game}}, QString());
 }
 
 void ArqadeServer::fetchMatch(const QString &id)
 {
     if (!matchId(id)) {
-        emit matchRefused(tr("That is not a match."));
+        emit matchRefused(tr("That is not a match."), id);
         return;
     }
     QNetworkReply *reply = m_net.get(request(m_base.resolved(QUrl(QStringLiteral("api/matches/") + id))));
-    connect(reply, &QNetworkReply::finished, this, [this, reply] { matchReplied(reply); });
+    connect(reply, &QNetworkReply::finished, this, [this, reply, id] { matchReplied(reply, id); });
 }
 
 void ArqadeServer::actOnMatch(const QString &id, const QString &action, int cell, int revision)
@@ -307,16 +307,16 @@ void ArqadeServer::actOnMatch(const QString &id, const QString &action, int cell
     static const QStringList actions = {QStringLiteral("join"), QStringLiteral("move"), QStringLiteral("resign"),
                                         QStringLiteral("cancel")};
     if (!matchId(id) || !actions.contains(action)) {
-        emit matchRefused(tr("That is not something a match can do."));
+        emit matchRefused(tr("That is not something a match can do."), id);
         return;
     }
     QJsonObject body{{QStringLiteral("action"), action}, {QStringLiteral("revision"), revision}};
     if (action == QLatin1String("move"))
         body.insert(QStringLiteral("cell"), cell);
-    post(QStringLiteral("api/matches/") + id, body);
+    post(QStringLiteral("api/matches/") + id, body, id);
 }
 
-void ArqadeServer::post(const QString &path, const QJsonObject &body)
+void ArqadeServer::post(const QString &path, const QJsonObject &body, const QString &asked)
 {
     QNetworkRequest r = request(m_base.resolved(QUrl(path)));
     r.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
@@ -325,29 +325,29 @@ void ArqadeServer::post(const QString &path, const QJsonObject &body)
                                  .toString(QUrl::RemoveUserInfo)
                                  .toUtf8());
     QNetworkReply *reply = m_net.post(r, QJsonDocument(body).toJson(QJsonDocument::Compact));
-    connect(reply, &QNetworkReply::finished, this, [this, reply] { matchReplied(reply); });
+    connect(reply, &QNetworkReply::finished, this, [this, reply, asked] { matchReplied(reply, asked); });
 }
 
-void ArqadeServer::matchReplied(QNetworkReply *reply)
+void ArqadeServer::matchReplied(QNetworkReply *reply, const QString &asked)
 {
     reply->deleteLater();
     const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     const QJsonObject answer = QJsonDocument::fromJson(reply->readAll()).object();
     if (status == 200 || status == 201) {
-        emit matchAnswered(answer.toVariantMap());
+        emit matchAnswered(answer.toVariantMap(), asked);
         return;
     }
     if (status == 0) {
-        emit matchRefused(tr("ARQADE's server could not be reached."));
+        emit matchRefused(tr("ARQADE's server could not be reached."), asked);
         return;
     }
     if (status == 401) {
-        emit matchRefused(tr("Sign in to the launcher with your QOR ID to play the arenas."));
+        emit matchRefused(tr("Sign in to the launcher with your QOR ID to play the arenas."), asked);
         return;
     }
     // The server says why, in words for the player ("Wait for your turn."), or nothing that can be shown.
     const QString why = answer.value(QStringLiteral("error")).toString();
-    emit matchRefused(why.isEmpty() || why.size() > 200 ? tr("ARQADE's server refused that.") : why);
+    emit matchRefused(why.isEmpty() || why.size() > 200 ? tr("ARQADE's server refused that.") : why, asked);
 }
 
 }  // namespace arqade

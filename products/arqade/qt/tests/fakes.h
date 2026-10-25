@@ -18,6 +18,7 @@
 #include <QUuid>
 #include <QtEndian>
 
+#include <algorithm>
 #include <functional>
 
 namespace fakes {
@@ -168,11 +169,44 @@ public:
 
     QUrl base() const { return QUrl(QStringLiteral("http://127.0.0.1:%1/").arg(server.serverPort())); }
 
+    /// How many answers to requests of `method` are kept back, unsent.
+    qsizetype held(const QByteArray &method) const
+    {
+        return std::count_if(kept.begin(), kept.end(), [&](const Kept &k) { return k.method == method; });
+    }
+
+    /// Sends the oldest answer kept back for a request of `method`; false if none is.
+    bool release(const QByteArray &method)
+    {
+        for (qsizetype i = 0; i < kept.size(); ++i) {
+            if (kept.at(i).method != method)
+                continue;
+            const Kept k = kept.takeAt(i);
+            if (!k.socket)
+                return false;
+            k.socket->write(k.out);
+            k.socket->disconnectFromHost();
+            return true;
+        }
+        return false;
+    }
+
     QTcpServer server;
     Route route;
     QList<Request> seen;
+    /// While set, a request it says yes to is answered at once but its answer kept back until release(): so a test can
+    /// have requests answered in another order than they were made, as a slow network may.
+    std::function<bool(const Request &)> hold;
 
 private:
+    struct Kept
+    {
+        QByteArray method;
+        QPointer<QTcpSocket> socket;
+        QByteArray out;
+    };
+    QList<Kept> kept;
+
     void serve(QTcpSocket *socket, const QByteArray &head, const QByteArray &body)
     {
         const QList<QByteArray> lines = head.split('\n');
@@ -194,6 +228,10 @@ private:
             out += name + ": " + value + "\r\n";
         out += "Content-Length: " + QByteArray::number(response.body.size()) + "\r\nConnection: close\r\n\r\n";
         out += response.body;
+        if (hold && hold(request)) {
+            kept.append({request.method, socket, out});
+            return;
+        }
         socket->write(out);
         socket->disconnectFromHost();
     }

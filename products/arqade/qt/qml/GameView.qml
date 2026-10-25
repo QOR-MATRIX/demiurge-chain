@@ -178,9 +178,13 @@ Item {
             play.tell(message)
         }
 
-        /// The match as the server keeps it: told if it is the one followed and it changed.
-        function answered(match) {
-            if (creating && match.game === view.arena) {
+        /// The match as the server keeps it, answering a request about `asked` (empty for a new match): told if it is the
+        /// one followed and it changed. Awaiting a new match, only the answer to its request is taken for it: a poll of
+        /// the match just finished can still be on its way, and answered first.
+        function answered(match, asked) {
+            if (creating) {
+                if (asked !== "" || match.game !== view.arena)
+                    return
                 creating = false
                 following = match.id
             }
@@ -196,9 +200,12 @@ Item {
         }
 
         /// Why something was not done; the same reason told once, however many polls meet it. A match that could not
-        /// be created, joined or opened is not followed, and the lobby is told again.
-        function refused(why) {
+        /// be created, joined or opened is not followed, and the lobby is told again. A refusal of an earlier request,
+        /// about a match no longer followed, is not this one's.
+        function refused(why, asked) {
             if (following === "" && !creating && !listening)
+                return
+            if (asked !== (creating ? "" : following))
                 return
             const lost = creating || finding
             if (finding)
@@ -269,13 +276,13 @@ Item {
         target: view.arena !== "" ? view.server : null
         function onLiveChanged() { host.lobby() }
         function onChanged() { host.lobby() }
-        function onMatchAnswered(match) {
+        function onMatchAnswered(match, asked) {
             host.polling = false
-            host.answered(match)
+            host.answered(match, asked)
         }
-        function onMatchRefused(message) {
+        function onMatchRefused(message, asked) {
             host.polling = false
-            host.refused(message)
+            host.refused(message, asked)
         }
     }
 

@@ -42,6 +42,7 @@
 #include <cmath>
 #include <functional>
 
+#include "activewindow.h"
 #include "arqadelink.h"
 #include "arqadeserver.h"
 #include "fakes.h"
@@ -833,6 +834,8 @@ private slots:
         QVERIFY(window);
         window->resize(1440, 900);
         QVERIFY(QTest::qWaitForWindowExposed(window));
+        activewindow::mayTakeTheKeyboard();
+        activewindow::holdTheKeyboard(window);
         // The pad is this test's alone: a real one on this PC moves nothing.
         input = engine->singletonInstance<qq::Input *>("QQ", "Input");
         QVERIFY(input);
@@ -866,6 +869,14 @@ private slots:
         QTRY_VERIFY(!game());
         QVERIFY(home()->isVisible());
         QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n')));
+    }
+
+    // Each test begins with the window active, which Esc and every other shortcut need: something else on the PC may
+    // have taken the keyboard since the last (activewindow.h).
+    void init()
+    {
+        if (!window->isActive() && !activewindow::activate(window))
+            qWarning("The window did not become active: another window kept the keyboard.");
     }
 
     // A test that failed says what QML warned of on the way, and where the game stood: its screens and its state; and
@@ -1488,12 +1499,30 @@ private slots:
         fixtureReplays(QStringLiteral("flux-four"), kFluxFour);
     }
 
-    // Play again opens a new lobby; closed before anyone joins, it says so, and the lobby is a button away.
+    // Play again opens a new lobby, even when a poll of the finished match is still on its way and answered first;
+    // closed before anyone joins, it says so, and the lobby is a button away.
     void a_rematchs_lobby_closed_before_anyone_joins()
     {
+        const QString finished = arcade->latest("flux")->id;
+        QSignalSpy answered(server, &ArqadeServer::matchAnswered);
+        // The finished match is asked after every 1.2 seconds: a poll's answer is kept back, and so is the rematch's.
+        arcade->hold = [](const fakes::Request &r) { return r.url.path().startsWith(QLatin1String("/api/matches")); };
+        QTRY_COMPARE(arcade->held("GET"), 1);
         QVERIFY(clickShown(QStringLiteral("Rematch")));
         QTRY_COMPARE(arcade->created, 2);
+        QTRY_COMPARE(arcade->held("POST"), 1);
+        arcade->hold = nullptr;
+        // The poll is answered first, naming the finished match; then the rematch, naming none.
+        QVERIFY(arcade->release("GET"));
+        QTRY_COMPARE(answered.size(), 1);
+        QCOMPARE(answered.first().at(0).toMap().value("id").toString(), finished);
+        QCOMPARE(answered.first().at(1).toString(), finished);
+        QVERIFY(arcade->release("POST"));
+        QTRY_COMPARE(answered.size(), 2);
+        QCOMPARE(answered.last().at(1).toString(), QString());
         QTRY_VERIFY(screens().contains(QStringLiteral("waiting")));
+        QVERIFY(match().value("id").toString() != finished);
+        QCOMPARE(match().value("id").toString(), arcade->latest("flux")->id);
         QVERIFY(clickShown(QStringLiteral("Close lobby")));
         QTRY_VERIFY(screens().contains(QStringLiteral("closed")));
         QCOMPARE(arcade->latest("flux")->status, QStringLiteral("cancelled"));

@@ -365,11 +365,14 @@ private slots:
         QCOMPARE(created.json().value("game").toString(), QStringLiteral("flux"));
         QCOMPARE(answered.last().first().toMap().value("id").toString(), QString::fromLatin1(Arqade::MatchId));
         QCOMPARE(answered.last().first().toMap().value("game").toString(), QStringLiteral("flux"));
+        // Each answer names the match its request asked about: for a new one, none.
+        QCOMPARE(answered.last().at(1).toString(), QString());
 
         server.fetchMatch(Arqade::MatchId);
         heard(2);
         QCOMPARE(matchCalls(arqade).last().method, QByteArray("GET"));
         QCOMPARE(matchCalls(arqade).last().url.path(), QStringLiteral("/api/matches/") + Arqade::MatchId);
+        QCOMPARE(answered.last().at(1).toString(), QString::fromLatin1(Arqade::MatchId));
 
         server.actOnMatch(Arqade::MatchId, "move", 3, 2);
         heard(3);
@@ -387,6 +390,7 @@ private slots:
         server.actOnMatch(Arqade::MatchId, "move", 4, 4);
         QTRY_COMPARE(refused.size(), 1);
         QCOMPARE(refused.last().first().toString(), QStringLiteral("Wait for your turn."));
+        QCOMPARE(refused.last().at(1).toString(), QString::fromLatin1(Arqade::MatchId));
         QCOMPARE(answered.size(), 4);
     }
 
@@ -406,6 +410,8 @@ private slots:
         server.actOnMatch("00000000-0000-4000-8000-00000000000Z", "move", 0, 0);
         server.createMatch("chess");
         QCOMPARE(refused.size(), 4);
+        QCOMPARE(refused.at(1).at(1).toString(), QString::fromLatin1(Arqade::MatchId));
+        QCOMPARE(refused.at(3).at(1).toString(), QString());
         QTest::qWait(200);
         QVERIFY(matchCalls(arqade).isEmpty());
     }

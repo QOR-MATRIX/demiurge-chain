@@ -15,6 +15,7 @@
 #include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
 
+#include "activewindow.h"
 #include "look.h"
 
 Q_IMPORT_QML_PLUGIN(QOR_MediaPlugin)
@@ -53,6 +54,7 @@ class TestLook : public QObject
 private slots:
     void initTestCase()
     {
+        activewindow::mayTakeTheKeyboard();
         qormedia::loadFonts();
     }
 
@@ -161,8 +163,7 @@ private slots:
         QVERIFY2(root, qPrintable(component.errorString()));
         auto *window = qobject_cast<QQuickWindow *>(root.get());
         QVERIFY(window);
-        window->requestActivate();
-        QVERIFY(QTest::qWaitForWindowActive(window));
+        QVERIFY(activewindow::activate(window));
 
         const auto ring = [](QQuickItem *control) {
             auto *r = control->findChild<QQuickItem *>(QStringLiteral("focusRing"));

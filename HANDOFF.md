@@ -4826,6 +4826,22 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   window, and Windows gives the foreground to what the person is using: with a full-screen game in front, every Esc
   failed and the arena tests after them (25 October 2026). The games' own keys still arrive, which hides it. A failed
   test prints `Window active:`; run the suite when the PC is free, and never over someone's game.
+- **Something on the owner's PC takes the keyboard from a test's window even when nobody is there** (25 October
+  2026): a Linux program's window shown through WSL (`msrdc`, WSLg's host), the owner's "QTOS · Prism", open since 24
+  October, comes to the front now and then, and a window started by a background process cannot take the keyboard
+  back on its own. Six release attempts stopped on it in one morning, ARQADE's arena tests and QOR Media's reader alike.
+  Since then the window suites ask for it (`tests/activewindow.h` in each project, through `Qt6::GuiPrivate`): Qt may
+  bring the window to the front (`AlwaysActivateWindow`), each `tst_games` test and each QOR Media window starts
+  active, asked again for five seconds, and a window that loses the keyboard mid-test asks for it back at once. That
+  holds ARQADE's one window (44 of 44 in four runs, the WSL window in front at three). QOR Media's reader, a new window
+  for each of its 31 tests, still failed a case in each of three runs begun with the WSL window in front, and passed
+  both begun without it: a key sent while another window has the keyboard is lost. Run window suites with that window
+  behind, and rerun a failure before believing it.
+- **A host's answers can cross** (item 155): a poll of a finished match was answered after Rematch had asked for a new
+  one, and the host took the old match for the new, so the rematch never showed. Each of `ArqadeServer`'s answers now
+  names the match its request asked about, and the host takes only its own request's answer. The stand-in server
+  (`tests/fakes.h`) can hold answers back and send them in another order (`hold`, `release`), which is how the test
+  makes the crossing happen every run instead of on a slow PC.
 
 **ARQADE's stylesheet (ADR-108's third slice)**
 - **The minifier folds `translate` into `transform` when one rule sets both,** so `transform: none` does not undo
@@ -5664,10 +5680,12 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
   a real Shift+Tab may: a handler takes both (item 140).
 - **`QPdfDocument::close()` does not let go of a file the document opened by name**; destroying the document does. Give
   it a `QFile` of your own (`load(QIODevice *)`) and close that, to free the file at a time you choose (item 137).
-- **QOR Media's reader suite stops now and then on its window-focus wait**: `read()` waits for the window to be
+- **QOR Media's reader suite stopped now and then on its window-focus wait**: `read()` waits for the window to be
   active, and Windows may keep the keyboard on another window, more often for a run started in the background. Four
-  times on 23 October 2026, each in a test that then passed on its own; the helper now warns which wait failed ("did not
-  become active" is this flake; anything else is not). Rerun the suite alone before suspecting the code (item 138).
+  times on 23 October 2026, each in a test that then passed on its own; the helper warns which wait failed ("did not
+  become active" is this flake; anything else is not). Since 25 October 2026 the window asks for the keyboard and holds
+  it (`tests/activewindow.h`, and the trap above on what takes it); rerun the suite alone before suspecting the code
+  (items 138 and 155).
 - **A `MouseArea` inside a `Flickable` (a `TableView` too) loses its drag to the view** once the pointer passes the drag
   distance, and is cancelled part way: a mark dragged on QOR Media's pages stopped half way. `preventStealing: true` on
   a `MouseArea` that drags (item 138).

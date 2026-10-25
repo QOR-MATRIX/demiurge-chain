@@ -52,6 +52,9 @@ against another person, on ARQADE's server.
   The view answers from the server: the arena's open lobbies as the live arcade changes (read every 3 seconds while an
   arena's lobby shows, where the home reads it every 15), and the match it follows, asked after every 1.2 seconds as
   the website asks. A match that could not be joined or opened is not followed, and the lobby is told again. It tells the game only what changed, so the run keeps each answer once.
+  Answers can cross: a poll of a finished match may be answered after Rematch was pressed. Each answer names the match
+  its request asked about (`ArqadeServer`'s `matchAnswered` and `matchRefused`), and the view takes only the answer
+  to its own request: a new match only from the create, a refusal only of the match it follows.
   It decides nothing of a match: the server does.
 
   The games play in ARQADE's own QML engine, as the QQ Player plays a person's own project. They are ARQADE's own,
@@ -109,7 +112,8 @@ pwsh products/arqade/qt/build.ps1 -Shots dir   # and save what the interface and
 - `tst_arqadeserver`: the sign-in, the rankings and the arenas, against a stand-in server and a stand-in launcher. An
   answer that leads elsewhere is not followed. A session that ends is renewed once, never in a loop. A match is created,
   asked after, moved in and joined, each post as JSON from the server's own origin with the session, and a refusal comes
-  back in the server's words. A bad id, action or arena sends nothing.
+  back in the server's words, each answer naming the match its request asked about. A bad id, action or arena sends
+  nothing.
 - `tst_interface`: the module loads without a warning and draws on the graphics card. It checks the player and their
   Sparks, every game and arena, reduced motion holding it still, and a narrow window; and the one look: Theme equal to
   `tokens.json` value by value, every text the window shows in the look's faces, scale and colours (Barlow carried
@@ -129,7 +133,8 @@ pwsh products/arqade/qt/build.ps1 -Shots dir   # and save what the interface and
   - The arenas, against a stand-in ARQADE that signs in as the website does, keeps matches as `arena-store.ts` keeps
     them and moves for the opponent. Signed out, an arena says why and offers nothing. Flux Four opens a match, a
     challenger joins, and four pulses dropped by Space, the key 5, the pad's A and the pointer win it; then a rematch's
-    lobby is closed. In Rift Reversi a lobby taken by someone else just first is said to be gone, and the lobby then
+    lobby opens though a poll of the finished match is answered after it was asked for (the stand-in holds both
+    answers back and sends them in that order), and is closed. In Rift Reversi a lobby taken by someone else just first is said to be gone, and the lobby then
     shows none open; then it joins someone's open lobby. Its discs are placed by the keys and the pointer, the
     discs they bracket turn over, a move the server refuses says why, and the match is conceded once the player is sure.
 

@@ -18,6 +18,7 @@
 #include <QtMath>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include "activewindow.h"
 #include "medialink.h"
 #include "tokens.h"
 
@@ -81,6 +82,7 @@ class TestPlayback : public QObject
 private slots:
     void initTestCase()
     {
+        activewindow::mayTakeTheKeyboard();
         QVERIFY(dir.isValid());
         writeTone(dir.filePath("tone.wav"));
         writeTone(dir.filePath("long.wav"), 10);
@@ -105,6 +107,7 @@ private slots:
         window = qobject_cast<QQuickWindow *>(engine->rootObjects().first());
         QVERIFY(window);
         QVERIFY(!window->isVisible());
+        activewindow::holdTheKeyboard(window);
     }
 
     void cleanup()
@@ -124,7 +127,7 @@ private slots:
         const QString tone = dir.filePath("tone.wav");
         open(tone, "audio");
         QTRY_VERIFY(window->isVisible());
-        QVERIFY(QTest::qWaitForWindowActive(window));
+        QVERIFY(activewindow::activate(window));
         QCOMPARE(window->property("kind").toString(), QStringLiteral("audio"));
         QTRY_VERIFY_WITH_TIMEOUT(!find(reportsSoFar(), "learned", tone).isEmpty(), 10000);
         const double duration = find(reportsSoFar(), "learned", tone).value("duration").toDouble();
@@ -154,7 +157,7 @@ private slots:
         const QString one = dir.filePath("one.png");
         open(one, "picture");
         QTRY_VERIFY(window->isVisible());
-        QVERIFY(QTest::qWaitForWindowActive(window));
+        QVERIFY(activewindow::activate(window));
         QTRY_VERIFY(!find(reportsSoFar(), "learned", one).isEmpty());
         QCOMPARE(find(reportsSoFar(), "learned", one).value("width").toInt(), 64);
         QCOMPARE(find(reportsSoFar(), "learned", one).value("height").toInt(), 48);
@@ -169,7 +172,7 @@ private slots:
         const QString notes = dir.filePath("notes.md");
         open(notes, "document");
         QTRY_VERIFY(window->isVisible());
-        QVERIFY(QTest::qWaitForWindowActive(window));
+        QVERIFY(activewindow::activate(window));
         QQuickItem *area = nullptr;
         QTRY_VERIFY((area = window->findChild<QQuickItem *>("editorArea")) != nullptr);
         QTRY_COMPARE(area->property("text").toString(), QStringLiteral("# Notes\n\nSome *words*.\n"));
@@ -199,7 +202,7 @@ private slots:
         f.close();
         open(sheet, "document");
         QTRY_VERIFY(window->isVisible());
-        QVERIFY(QTest::qWaitForWindowActive(window));
+        QVERIFY(activewindow::activate(window));
         QCOMPARE(window->property("path").toString(), sheet);
         // Its one action is ember with the dark ink on it (ADR-108): white, as it was, read 2.9:1.
         QQuickItem *button = nullptr;
@@ -216,7 +219,7 @@ private slots:
         const QString tone = dir.filePath("long.wav");
         open(tone, "audio");
         QTRY_VERIFY(window->isVisible());
-        QVERIFY(QTest::qWaitForWindowActive(window));
+        QVERIFY(activewindow::activate(window));
         QQuickItem *player = nullptr;
         QTRY_VERIFY((player = window->findChild<QQuickItem *>(QStringLiteral("player"))) != nullptr);
         QTRY_VERIFY_WITH_TIMEOUT(player->property("playing").toBool(), 10000);
@@ -267,7 +270,7 @@ private slots:
         QVERIFY(window->flags() & Qt::FramelessWindowHint);
 
         // F lifts it out to full screen, and again puts it back where it sat.
-        QVERIFY(QTest::qWaitForWindowActive(window));
+        QVERIFY(activewindow::activate(window));
         QTest::keyClick(window, Qt::Key_F);
         QTRY_VERIFY(window->visibility() == QWindow::FullScreen);
         QVERIFY(window->parent() == nullptr);
