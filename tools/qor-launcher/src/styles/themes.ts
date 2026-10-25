@@ -36,6 +36,11 @@ export interface Theme {
   name: string;
   /** One line shown in the picker. */
   note: string;
+  /**
+   * The level unlock that opens it (ADR-078 decision 4), as QOR ID names it in a profile's `unlocked` list, and the
+   * level it comes at (`services/qor-auth/src/handlers/progress.rs`, UNLOCKS). None for a theme everyone has.
+   */
+  unlock?: { name: string; level: number };
   tokens: {
     /** Deepest ground, behind everything. */
     void: string;
@@ -204,7 +209,60 @@ export const THEMES: Theme[] = [
       edgeSoft: '#2A1E3E',
     },
   },
+  // Unlocked by level (ADR-078): offered to everyone in the picker, chosen only once the profile's QOR ID has reached
+  // the level.
+  {
+    id: 'dusk',
+    name: 'Dusk',
+    note: 'Apricot light going down over plum. Warm, and late.',
+    unlock: { name: 'Theme: Dusk', level: 2 },
+    tokens: {
+      void: '#07050B',
+      base: '#0C0912',
+      surface: '#16101F',
+      raised: '#21172E',
+      well: '#0F0B17',
+      accent: '#FF9E64',
+      accentBright: '#FFBF91',
+      accentDim: '#B5592A',
+      counter: '#4A2A55',
+      ink: '#FFF7F2',
+      inkBody: '#E3D7DE',
+      inkMuted: '#AD98A9',
+      inkFaint: '#9C8698',
+      edge: '#43304F',
+      edgeSoft: '#2F2139',
+    },
+  },
+  {
+    id: 'nocturne',
+    name: 'Nocturne',
+    note: 'Moonlight on the deep blue of the small hours.',
+    unlock: { name: 'Theme: Nocturne', level: 5 },
+    tokens: {
+      void: '#03050A',
+      base: '#060A12',
+      surface: '#0D1420',
+      raised: '#141E2E',
+      well: '#080E18',
+      accent: '#C3CEF5',
+      accentBright: '#E2E8FF',
+      accentDim: '#6D7FB8',
+      counter: '#24365A',
+      ink: '#F4F7FF',
+      inkBody: '#D1D9E8',
+      inkMuted: '#93A2BC',
+      inkFaint: '#7F8FAA',
+      edge: '#2B3A55',
+      edgeSoft: '#1D2A40',
+    },
+  },
 ];
+
+/** Whether `theme` may be chosen by a profile whose QOR ID has `unlocked` (its progress's list of unlock names). */
+export function isOpen(theme: Theme, unlocked: readonly string[]): boolean {
+  return !theme.unlock || unlocked.includes(theme.unlock.name);
+}
 
 export const DEFAULT_THEME = 'obsidian';
 

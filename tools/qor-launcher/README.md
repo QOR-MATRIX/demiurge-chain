@@ -387,6 +387,12 @@ The rail's avatar carries the account's level in a small bubble, and an XP bar u
 Both are read from QOR ID (`GET /api/v1/profile/progress`, `qor_progress`), which is the only place XP is granted;
 finishing the tutorial reports it once (`qor_tutorial_done`). Signed out, nothing is shown.
 
+**Themes a level unlocks.** Settings offers every theme, two of them unlocked by level as QOR ID's list has it
+(`services/qor-auth/src/handlers/progress.rs`, UNLOCKS): **Dusk** at level 2 and **Nocturne** at level 5
+(`src/styles/themes.ts`, each with its `unlock`). Until the profile's progress lists the unlock, the theme shows its
+level and cannot be chosen. `scripts/check-themes-view.mjs` holds it: locked at level 1, chosen and worn once QOR ID
+lists it, the other still locked.
+
 ### Social (ADR-091, roadmap L8.5)
 
 The Social surface is the first client of Social (`services/social/`). **The host holds the one socket and the token**

@@ -30,7 +30,9 @@ two peers; **QOR ID** — *the one sign-in*; **Social** — *the chat service*; 
    `qor://arqade?play=flux` brings the launcher forward at ARQADE with Flux Four open. It pays,
    signs and signs in nothing (ADR-118, under your delegation). The website can offer it once a
    launcher release carries it; an older launcher would refuse it.
-5. **You authorised full automation.** Claude Code's own safety check still refuses to merge
+5. **The themes your level unlocks are built (waiting for your merge):** Dusk at level 2 and
+   Nocturne at level 5, in the launcher's Settings. QOR ID already promised them; now they exist.
+6. **You authorised full automation.** Claude Code's own safety check still refuses to merge
    without a person's review, so merges stay with you.
 
 ## The release gates (measured 22 October)
@@ -66,7 +68,7 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    `archive-bZLIQp/` in the old checkout, each to keep or delete.
 
 **Next in engineering, at your go:** launcher 0.1.17, carrying QOR Media's PDF work, assets'
-levels, the games, the arenas and the new link; then the website offering that link. At your word: filling the IRS's forms, certified signatures (ADR-114), records
+levels, the games, the arenas, the new link and the two themes; then the website offering that link. At your word: filling the IRS's forms, certified signatures (ADR-114), records
 kept by games other than an asset's home game (ADR-113), or rental and fractions (M4.3).
 
 ## Cost per month

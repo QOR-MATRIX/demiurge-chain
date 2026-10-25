@@ -7,7 +7,7 @@ import { Check, Eye, KeyRound, Link2, Loader2, ShieldAlert } from 'lucide-react'
 
 import { explain, identity, vault } from '../lib/ipc';
 import { selectActiveAccount, useQor } from '../state/store';
-import { THEMES } from '../styles/themes';
+import { THEMES, isOpen } from '../styles/themes';
 import { InfoTip } from '../components/ui/InfoTip';
 import { Surface } from '../components/ui/Surface';
 import { useProgress } from '../components/chrome/Level';
@@ -274,10 +274,9 @@ function RecoveryPanel() {
  * themes are CSS custom properties, so the whole interface re-colours in one
  * repaint with no reload and no flash.
  *
- * Level unlocks (ADR-078): cosmetic themes are unlocked at level 2 and level 5.
- * The `unlocked` array in progress lists them by name ("Theme: Dusk", etc.).
- * Until the Dusk and Nocturne palettes are built, those entries are shown as
- * locked cosmetics so the player can see what is coming.
+ * Level unlocks (ADR-078): Dusk opens at level 2 and Nocturne at level 5, once
+ * QOR ID lists them in the profile's progress ("Theme: Dusk"). Until then each
+ * is shown with its level and cannot be chosen, so a player sees what is coming.
  */
 function ThemePicker() {
   const theme = useQor((s) => s.theme);
@@ -285,8 +284,8 @@ function ThemePicker() {
   const session = useQor((s) => s.session);
   const progress = useProgress(Boolean(session));
 
-  // Which cosmetic names the player has unlocked. Format: "Theme: Foo".
-  const unlockedNames = new Set(progress?.unlocked ?? []);
+  // What the profile's QOR ID has unlocked, by name ("Theme: Dusk"): nothing while signed out or unread.
+  const unlocked = progress?.unlocked ?? [];
 
   return (
     <Panel className="p-6">
@@ -298,25 +297,28 @@ function ThemePicker() {
       <div className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3">
         {THEMES.map((t, i) => {
           const active = t.id === theme;
+          const locked = !isOpen(t, unlocked);
           return (
             <Surface
               key={t.id}
               as="button"
-              interactive
+              interactive={!locked}
               cut={active}
+              disabled={locked}
               onClick={() => setTheme(t.id)}
-              className="stagger flex flex-col gap-3 p-4 text-left"
+              className={`stagger flex flex-col gap-3 p-4 text-left ${locked ? 'cursor-not-allowed' : ''}`}
               style={{ '--i': i } as React.CSSProperties}
-              aria-label={`${t.name} theme`}
+              aria-label={locked ? `${t.name} theme, unlocks at level ${t.unlock?.level}` : `${t.name} theme`}
             >
               <div className="flex items-center gap-2">
-                <span className="heading flex-1 text-ui tracking-label">{t.name}</span>
+                <span className={`heading flex-1 text-ui tracking-label ${locked ? 'text-ink-muted' : ''}`}>{t.name}</span>
                 {active && <Check size={13} className="flex-none text-accent" />}
+                {locked && <span className="numeric flex-none text-caption text-ink-faint">Lv {t.unlock?.level}</span>}
               </div>
 
-              {/* A real preview: the theme's own ground, panel and accent. */}
+              {/* A real preview: the theme's own ground, panel and accent; dimmed while it is locked. */}
               <div
-                className="flex h-12 items-end gap-1.5 rounded-qor p-2"
+                className={`flex h-12 items-end gap-1.5 rounded-qor p-2 ${locked ? 'opacity-50' : ''}`}
                 style={{ background: t.tokens.base, border: `1px solid ${t.tokens.edge}` }}
               >
                 <span
@@ -333,17 +335,14 @@ function ThemePicker() {
                 />
               </div>
 
-              <p className="text-caption leading-snug text-ink-muted">{t.note}</p>
+              <p className="text-caption leading-snug text-ink-muted">
+                {t.note}
+                {locked && ` Unlocks at level ${t.unlock?.level}.`}
+              </p>
             </Surface>
           );
         })}
       </div>
-
-      {/* Upcoming cosmetic theme unlocks (ADR-078). Shown when the player has a
-          level and at least one theme unlock is not yet reached. Once the Dusk
-          and Nocturne palettes are built they move into the grid above and this
-          section shrinks to nothing. */}
-      <UpcomingThemeUnlocks unlockedNames={unlockedNames} />
     </Panel>
   );
 }
@@ -395,45 +394,6 @@ function BackdropPicker() {
         })}
       </div>
     </Panel>
-  );
-}
-
-/** Cosmetic theme unlocks from the level system that are not yet available as
- *  selectable themes. Shown with their unlock level so a player can see what
- *  earning XP unlocks. */
-function UpcomingThemeUnlocks({ unlockedNames }: { unlockedNames: Set<string> }) {
-  // Theme entries from the server-side UNLOCKS list that are not yet built into
-  // the launcher's THEMES array. Each entry is "Theme: <Name>".
-  const pending = [
-    { name: 'Dusk', level: 2 },
-    { name: 'Nocturne', level: 5 },
-  ].filter((t) => !THEMES.some((lt) => lt.name === t.name));
-
-  if (pending.length === 0) return null;
-
-  return (
-    <div className="mt-5 border-t border-edge pt-5">
-      <p className="eyebrow mb-3 text-ink-muted">Coming with levels</p>
-      <div className="flex flex-wrap gap-3">
-        {pending.map((t) => {
-          const earned = unlockedNames.has(`Theme: ${t.name}`);
-          return (
-            <div
-              key={t.name}
-              className="flex items-center gap-2 rounded-qor border border-edge bg-well px-3 py-2 text-ui"
-              aria-label={earned ? `${t.name} theme — unlocked` : `${t.name} theme — unlocks at level ${t.level}`}
-            >
-              <span className={earned ? 'text-accent' : 'text-ink-faint'}>{t.name}</span>
-              {earned ? (
-                <span className="text-caption text-ok">Unlocked</span>
-              ) : (
-                <span className="numeric text-caption text-ink-faint">Lv {t.level}</span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 
