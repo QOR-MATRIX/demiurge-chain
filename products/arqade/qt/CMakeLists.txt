@@ -8,8 +8,8 @@
 #   fonts/  Cinzel, Barlow Semi Condensed and Barlow, under the SIL Open Font License, copied by docs/design/tokens.mjs
 #   tests/  Qt Test suites
 #
-# The games rebuilt in QQ (P7.20) play here on QQ's runtime, built from products/qq/runtime, each from its package in
-# products/arqade/games/, carried in the executable.
+# The games and arenas rebuilt in QQ (P7.20, P7.24) play here on QQ's runtime, built from products/qq/runtime, each from
+# its package in products/arqade/games/, carried in the executable.
 #
 # Configure with the Qt the owner installed (commercial licence), MSVC 2022 and Ninja; build.ps1 does all of it:
 #
@@ -148,6 +148,25 @@ qt_add_resources(arqade_core "rift-survivor"
         ../games/rift-survivor/assets/perk.wav
         ../games/rift-survivor/assets/complete.wav
         ../games/rift-survivor/assets/lost.wav
+)
+# The two arenas (P7.24), one package with a scene for each, played on ARQADE's server, which keeps their rules.
+qt_add_resources(arqade_core "arenas"
+    PREFIX /games/arenas
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/../games/arenas"
+    FILES
+        ../games/arenas/scenes/flux-four.qml
+        ../games/arenas/scenes/rift-reversi.qml
+        ../games/arenas/logic/arena.qml
+        ../games/arenas/logic/arena.mjs
+        ../games/arenas/assets/arena.hdr
+        ../games/arenas/assets/arena.wav
+        ../games/arenas/assets/drop.wav
+        ../games/arenas/assets/place.wav
+        ../games/arenas/assets/flip.wav
+        ../games/arenas/assets/turn.wav
+        ../games/arenas/assets/joined.wav
+        ../games/arenas/assets/won.wav
+        ../games/arenas/assets/over.wav
 )
 
 qt_add_executable(arqade WIN32 src/main.cpp)

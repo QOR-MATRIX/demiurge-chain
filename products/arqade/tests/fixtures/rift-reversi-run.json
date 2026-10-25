@@ -1,0 +1,962 @@
+{
+    "clicks": [
+        [
+            203,
+            [
+                "Join"
+            ]
+        ],
+        [
+            576,
+            [
+                "Join"
+            ]
+        ],
+        [
+            731,
+            [
+                "Concede"
+            ]
+        ],
+        [
+            734,
+            [
+                "Keep playing"
+            ]
+        ],
+        [
+            736,
+            [
+                "Concede"
+            ]
+        ],
+        [
+            757,
+            [
+                "Concede match"
+            ]
+        ]
+    ],
+    "edges": [
+        [
+            203,
+            [
+                [
+                    "pressed",
+                    "pick"
+                ],
+                [
+                    "released",
+                    "pick"
+                ]
+            ]
+        ],
+        [
+            576,
+            [
+                [
+                    "pressed",
+                    "pick"
+                ],
+                [
+                    "released",
+                    "pick"
+                ]
+            ]
+        ],
+        [
+            661,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            663,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            664,
+            [
+                [
+                    "pressed",
+                    "up"
+                ],
+                [
+                    "released",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            666,
+            [
+                [
+                    "pressed",
+                    "next"
+                ]
+            ]
+        ],
+        [
+            668,
+            [
+                [
+                    "released",
+                    "next"
+                ]
+            ]
+        ],
+        [
+            670,
+            [
+                [
+                    "pressed",
+                    "choose"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            678,
+            [
+                [
+                    "released",
+                    "choose"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            705,
+            [
+                [
+                    "pressed",
+                    "choose"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            708,
+            [
+                [
+                    "released",
+                    "choose"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            722,
+            [
+                [
+                    "pressed",
+                    "pick"
+                ],
+                [
+                    "released",
+                    "pick"
+                ]
+            ]
+        ],
+        [
+            731,
+            [
+                [
+                    "pressed",
+                    "pick"
+                ],
+                [
+                    "released",
+                    "pick"
+                ]
+            ]
+        ],
+        [
+            734,
+            [
+                [
+                    "pressed",
+                    "pick"
+                ],
+                [
+                    "released",
+                    "pick"
+                ]
+            ]
+        ],
+        [
+            736,
+            [
+                [
+                    "pressed",
+                    "pick"
+                ],
+                [
+                    "released",
+                    "pick"
+                ]
+            ]
+        ],
+        [
+            757,
+            [
+                [
+                    "pressed",
+                    "pick"
+                ],
+                [
+                    "released",
+                    "pick"
+                ]
+            ]
+        ]
+    ],
+    "hands": [
+        [
+            0,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            661,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            663,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            666,
+            {
+                "held": [
+                    "next"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            668,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            670,
+            {
+                "held": [
+                    "choose",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            678,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            705,
+            {
+                "held": [
+                    "choose",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            708,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ]
+    ],
+    "outcome": {
+        "Arena": {
+            "match": "e5227b33-ea80-40e7-a488-ac822c633f43",
+            "moves": 4,
+            "result": "lost",
+            "seat": 2
+        }
+    },
+    "qqRun": 1,
+    "scene": "rift-reversi",
+    "seed": 290341770,
+    "store": {
+    },
+    "ticks": 794,
+    "told": [
+        [
+            1,
+            [
+                {
+                    "lobby": [
+                    ],
+                    "signedIn": true,
+                    "why": ""
+                }
+            ]
+        ],
+        [
+            199,
+            [
+                {
+                    "lobby": [
+                        {
+                            "alias": "sophia",
+                            "game": "reversi",
+                            "id": "938efff5-e2bd-447f-bcbd-24566e500da0",
+                            "seat": 0,
+                            "status": "waiting"
+                        }
+                    ],
+                    "signedIn": true,
+                    "why": ""
+                }
+            ]
+        ],
+        [
+            208,
+            [
+                {
+                    "refused": "This lobby is no longer available."
+                },
+                {
+                    "lobby": [
+                        {
+                            "alias": "sophia",
+                            "game": "reversi",
+                            "id": "938efff5-e2bd-447f-bcbd-24566e500da0",
+                            "seat": 0,
+                            "status": "waiting"
+                        }
+                    ],
+                    "signedIn": true,
+                    "why": ""
+                }
+            ]
+        ],
+        [
+            394,
+            [
+                {
+                    "lobby": [
+                        {
+                            "alias": "sophia",
+                            "game": "reversi",
+                            "id": "938efff5-e2bd-447f-bcbd-24566e500da0",
+                            "seat": 0,
+                            "status": "active"
+                        }
+                    ],
+                    "signedIn": true,
+                    "why": ""
+                }
+            ]
+        ],
+        [
+            573,
+            [
+                {
+                    "lobby": [
+                        {
+                            "alias": "sophia",
+                            "game": "reversi",
+                            "id": "938efff5-e2bd-447f-bcbd-24566e500da0",
+                            "seat": 0,
+                            "status": "active"
+                        },
+                        {
+                            "alias": "sophia",
+                            "game": "reversi",
+                            "id": "e5227b33-ea80-40e7-a488-ac822c633f43",
+                            "seat": 0,
+                            "status": "waiting"
+                        }
+                    ],
+                    "signedIn": true,
+                    "why": ""
+                }
+            ]
+        ],
+        [
+            583,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890034151,
+                        "game": "reversi",
+                        "guest": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "id": "e5227b33-ea80-40e7-a488-ac822c633f43",
+                        "legal": [
+                            8,
+                            13,
+                            22,
+                            27
+                        ],
+                        "moves": 0,
+                        "revision": 1,
+                        "seat": 2,
+                        "serverNow": 1792889944151,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                2,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                2,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                            ],
+                            "placed": -1,
+                            "turn": 1,
+                            "winner": null
+                        },
+                        "status": "active"
+                    }
+                }
+            ]
+        ],
+        [
+            659,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890035415,
+                        "game": "reversi",
+                        "guest": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "id": "e5227b33-ea80-40e7-a488-ac822c633f43",
+                        "legal": [
+                            16,
+                            26,
+                            28
+                        ],
+                        "moves": 1,
+                        "revision": 2,
+                        "seat": 2,
+                        "serverNow": 1792889945415,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                2,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                1,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                                21
+                            ],
+                            "placed": 22,
+                            "turn": 2,
+                            "winner": null
+                        },
+                        "status": "active"
+                    }
+                }
+            ]
+        ],
+        [
+            678,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890036322,
+                        "game": "reversi",
+                        "guest": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "id": "e5227b33-ea80-40e7-a488-ac822c633f43",
+                        "legal": [
+                            8,
+                            13,
+                            27,
+                            34
+                        ],
+                        "moves": 2,
+                        "revision": 3,
+                        "seat": 2,
+                        "serverNow": 1792889946322,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                2,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                2,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                                21
+                            ],
+                            "placed": 28,
+                            "turn": 1,
+                            "winner": null
+                        },
+                        "status": "active"
+                    }
+                }
+            ]
+        ],
+        [
+            702,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890037291,
+                        "game": "reversi",
+                        "guest": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "id": "e5227b33-ea80-40e7-a488-ac822c633f43",
+                        "legal": [
+                            7,
+                            9,
+                            16,
+                            19,
+                            23
+                        ],
+                        "moves": 3,
+                        "revision": 4,
+                        "seat": 2,
+                        "serverNow": 1792889947291,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                2,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                                14
+                            ],
+                            "placed": 8,
+                            "turn": 2,
+                            "winner": null
+                        },
+                        "status": "active"
+                    }
+                }
+            ]
+        ],
+        [
+            712,
+            [
+                {
+                    "refused": "The board has changed. Refreshing the match."
+                }
+            ]
+        ],
+        [
+            727,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890038332,
+                        "game": "reversi",
+                        "guest": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "id": "e5227b33-ea80-40e7-a488-ac822c633f43",
+                        "legal": [
+                            27,
+                            29,
+                            35
+                        ],
+                        "moves": 4,
+                        "revision": 5,
+                        "seat": 2,
+                        "serverNow": 1792889948332,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                2,
+                                2,
+                                2,
+                                0,
+                                0,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                                22
+                            ],
+                            "placed": 23,
+                            "turn": 1,
+                            "winner": null
+                        },
+                        "status": "active"
+                    }
+                }
+            ]
+        ],
+        [
+            766,
+            [
+                {
+                    "match": {
+                        "deadline": 1792890039573,
+                        "game": "reversi",
+                        "guest": {
+                            "id": "p-me",
+                            "name": "yaldabaoth",
+                            "qorVerified": true
+                        },
+                        "host": {
+                            "id": "p-1",
+                            "name": "sophia",
+                            "qorVerified": true
+                        },
+                        "id": "e5227b33-ea80-40e7-a488-ac822c633f43",
+                        "legal": [
+                        ],
+                        "moves": 4,
+                        "revision": 6,
+                        "seat": 2,
+                        "serverNow": 1792889949573,
+                        "state": {
+                            "cells": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                2,
+                                2,
+                                2,
+                                0,
+                                0,
+                                0,
+                                0,
+                                2,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ],
+                            "flipped": [
+                                22
+                            ],
+                            "placed": 23,
+                            "turn": 1,
+                            "winner": 1
+                        },
+                        "status": "done"
+                    }
+                }
+            ]
+        ]
+    ]
+}
