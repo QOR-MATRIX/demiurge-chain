@@ -1950,8 +1950,10 @@ here sets an economic value; payouts are U-16.
     reported. ARQADE: the bubble, the level row on the QOR Identity card, a first match and a first tip reported.
     Checked end to end in Chrome against a local QOR ID: signing in to ARQADE granted 10 XP and the card showed it.
     **Ring styles are drawn** in the launcher since ADR-079 and ADR-080 (6 October 2026): a plain edge at level 0,
-    a glowing ring from level 1 and a wider glow from level 6, in builds from 0.1.9 (17 October 2026). Themes as
-    unlocks are not built, so the item stays unticked.
+    a glowing ring from level 1 and a wider glow from level 6, in builds from 0.1.9 (17 October 2026). **Themes as
+    unlocks built, 25 October 2026, not merged** (HANDOFF §4 item 154): Dusk at level 2 and Nocturne at level 5, as
+    QOR ID's unlock list names them, offered in Settings and chosen only once the profile's progress lists them.
+    **Not yet:** merged, which ticks the item; testers have the themes with the next launcher release.
 17. [ ] The welcome grant (ADR-078): 100 CGT once per new QOR ID when the tutorial, the email and a key are confirmed,
     from the Welcome account; test CGT on the devnet first. Real CGT depends on U-18 and the owner's legal review.
     **Owed grants are recorded** by QOR ID (6 October 2026); paying them from the Welcome account is not built.
