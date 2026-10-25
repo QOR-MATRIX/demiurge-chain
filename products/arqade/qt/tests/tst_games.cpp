@@ -1504,22 +1504,24 @@ private slots:
     void a_rematchs_lobby_closed_before_anyone_joins()
     {
         const QString finished = arcade->latest("flux")->id;
-        QSignalSpy answered(server, &ArqadeServer::matchAnswered);
         // The finished match is asked after every 1.2 seconds: a poll's answer is kept back, and so is the rematch's.
         arcade->hold = [](const fakes::Request &r) { return r.url.path().startsWith(QLatin1String("/api/matches")); };
         QTRY_COMPARE(arcade->held("GET"), 1);
+        // Heard only from here: a poll is asked once the last is answered, so no earlier answer is still on its way.
+        QSignalSpy answered(server, &ArqadeServer::matchAnswered);
         QVERIFY(clickShown(QStringLiteral("Rematch")));
         QTRY_COMPARE(arcade->created, 2);
         QTRY_COMPARE(arcade->held("POST"), 1);
         arcade->hold = nullptr;
-        // The poll is answered first, naming the finished match; then the rematch, naming none.
+        // The poll is answered first, naming the finished match; then the rematch, naming none. Polls of the new
+        // match follow it, so the rematch's answer is the second, not necessarily the last.
         QVERIFY(arcade->release("GET"));
         QTRY_COMPARE(answered.size(), 1);
-        QCOMPARE(answered.first().at(0).toMap().value("id").toString(), finished);
-        QCOMPARE(answered.first().at(1).toString(), finished);
+        QCOMPARE(answered.at(0).at(0).toMap().value("id").toString(), finished);
+        QCOMPARE(answered.at(0).at(1).toString(), finished);
         QVERIFY(arcade->release("POST"));
-        QTRY_COMPARE(answered.size(), 2);
-        QCOMPARE(answered.last().at(1).toString(), QString());
+        QTRY_VERIFY(answered.size() >= 2);
+        QCOMPARE(answered.at(1).at(1).toString(), QString());
         QTRY_VERIFY(screens().contains(QStringLiteral("waiting")));
         QVERIFY(match().value("id").toString() != finished);
         QCOMPARE(match().value("id").toString(), arcade->latest("flux")->id);
