@@ -2011,16 +2011,38 @@ async fn pay_link(
     Ok((request, receipt))
 }
 
+// ── qor://arqade (ADR-118) ──────────────────────────────────────────────────
+
+/// A `qor://arqade` link opened the launcher: its window comes forward, the interface is told to show the ARQADE screen,
+/// and ARQADE's app opens the game the link names, if it names one it plays. Nothing else happens: nothing is paid,
+/// signed or signed in.
+fn handle_arqade_link(app: tauri::AppHandle, game: Option<&'static str>) {
+    use tauri::Emitter as _;
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+    if let Some(state) = app.try_state::<AppState>() {
+        state.arqade_app.ask(game);
+    }
+    // The interface asks what was asked for (`arqade_app_asked`), now and as it starts, so a link that started the
+    // launcher before the interface listened is not lost.
+    let _ = app.emit("arqade://asked", ());
+}
+
 // ── qor://agent (ADR-112) ───────────────────────────────────────────────────
 
 /// Agents' challenges being answered right now, so two clicks on one link cannot both reach the dialog.
 static AUTHORISING: parking_lot::Mutex<std::collections::BTreeSet<String>> =
     parking_lot::Mutex::new(std::collections::BTreeSet::new());
 
-/// A `qor://` link opened the launcher: an agent's request (`qor://agent`), or anything else, which is read as a
-/// payment request and refused there if it is not one (ADR-076).
+/// A `qor://` link opened the launcher: ARQADE's screen (`qor://arqade`, ADR-118), an agent's request (`qor://agent`),
+/// or anything else, which is read as a payment request and refused there if it is not one (ADR-076).
 fn handle_qor_link(app: tauri::AppHandle, link: String) {
-    if link.starts_with("qor://agent") {
+    if let Some(game) = arqade::open_link(&link) {
+        handle_arqade_link(app, game);
+    } else if link.starts_with("qor://agent") {
         handle_agent_link(app, link);
     } else {
         handle_pay_link(app, link);
@@ -2338,6 +2360,7 @@ pub fn run() {
             qor_set_auth_endpoint,
             arqade_open,
             arqade::app::arqade_app_open,
+            arqade::app::arqade_app_asked,
             arqade::app::arqade_app_place,
             arqade::app::arqade_app_hide,
             arqade::app::arqade_app_theme,

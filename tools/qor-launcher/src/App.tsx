@@ -17,7 +17,7 @@ import { Onboarding } from './components/onboarding/Onboarding';
 import { Rail } from './components/chrome/Rail';
 import { TitleBar } from './components/chrome/TitleBar';
 import { type Motion, wantsLessMotion } from './lib/a11y';
-import { shell } from './lib/ipc';
+import { arqadeApp, shell } from './lib/ipc';
 import { selectVaultUnlocked, useQor } from './state/store';
 import { QQView } from './qq/editor/QQView';
 import { ArqadeView } from './views/ArqadeView';
@@ -79,10 +79,26 @@ export function App() {
   const clearNotice = useQor((s) => s.clearNotice);
   const motionSetting = useQor((s) => s.a11y.motion);
   const lessMotion = useQor((s) => wantsLessMotion(s.a11y));
+  const go = useQor((s) => s.go);
 
   useEffect(() => {
     void bootstrap();
   }, [bootstrap]);
+
+  // A `qor://arqade` link asks for the ARQADE screen (ADR-118): asked once as the interface starts, since the link may
+  // be what started the launcher, and again whenever one comes. Before the vault opens, it is the screen shown after.
+  useEffect(() => {
+    const follow = () => {
+      void arqadeApp
+        .asked()
+        .then((asked) => {
+          if (asked) go('arqade');
+        })
+        .catch(() => undefined);
+    };
+    follow();
+    return arqadeApp.onAsked(follow);
+  }, [go]);
 
   // The person's Motion setting, for what the launcher starts from now on: QQ Studio, QOR Media and ARQADE's app take
   // it as QOR_REDUCED_MOTION (ADR-108 decision 5).

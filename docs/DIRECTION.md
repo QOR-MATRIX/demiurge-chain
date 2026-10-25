@@ -2028,6 +2028,9 @@ here sets an economic value; payouts are U-16.
     §4 items 150 and 151): each game's start and end screens on the website say it is rebuilt in 3D in the launcher's
     ARQADE, where runs ARQADE confirms will be rewarded in Sparks (test CGT on the devnet, with no value), and link to
     the homepage's download. The phone check holds the link to 44 by 44 pixels (18 checks, in CI).
+
+    **Next:** a `qor://arqade` link opens the launcher at ARQADE, at the game it names (ADR-118, built 25 October 2026,
+    HANDOFF §4 item 152). The website offers it beside the download from the launcher release that carries it.
 24. [x] The two multiplayer arenas rebuilt in QQ (ADR-102), on the ARQADE service. Depends on P7.19.
 
     **Done, 25 October 2026:** merged as #96 (at `36f024c`) and deployed to the launcher's copy from `main` (HANDOFF §4

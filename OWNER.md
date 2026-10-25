@@ -26,7 +26,11 @@ two peers; **QOR ID** — *the one sign-in*; **Social** — *the chat service*; 
    delegation (ADR-117). Tested against a stand-in server, not yet between two real people.
 3. **The website's games now point players to the launcher, live (P7.23 done):** each game's
    first and last screen says it is rebuilt in 3D there, with a link to download it.
-4. **You authorised full automation.** Claude Code's own safety check still refuses to merge
+4. **A link that opens a game in the launcher is built (#99, waiting for your merge):**
+   `qor://arqade?play=flux` brings the launcher forward at ARQADE with Flux Four open. It pays,
+   signs and signs in nothing (ADR-118, under your delegation). The website can offer it once a
+   launcher release carries it; an older launcher would refuse it.
+5. **You authorised full automation.** Claude Code's own safety check still refuses to merge
    without a person's review, so merges stay with you.
 
 ## The release gates (measured 22 October)
@@ -39,8 +43,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 
 1. **Play an arena with a friend:** both sign in to the launcher, one opens a match in
    ARQADE (Flux Four or Rift Reversi), the other joins it. That is the one test I cannot run.
-2. **Play the four games** too, and tell me what feels wrong. To let me merge pull requests
-   myself, add a permission rule for `gh pr merge`.
+2. **Play the four games** too, and tell me what feels wrong. **Merge #99** (the link). To let
+   me merge pull requests myself, add a permission rule for `gh pr merge`.
 3. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
@@ -61,8 +65,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    the email webhook; the key pasted on 5 October; `social-secrets.txt` on your Desktop and
    `archive-bZLIQp/` in the old checkout, each to keep or delete.
 
-**Next in engineering:** a launcher release carrying QOR Media's PDF work, assets' levels,
-the games and the arenas, and a link that opens ARQADE in the launcher from the website. At your word: filling the IRS's forms, certified signatures (ADR-114), records
+**Next in engineering, at your go:** launcher 0.1.17, carrying QOR Media's PDF work, assets'
+levels, the games, the arenas and the new link; then the website offering that link. At your word: filling the IRS's forms, certified signatures (ADR-114), records
 kept by games other than an asset's home game (ADR-113), or rental and fractions (M4.3).
 
 ## Cost per month

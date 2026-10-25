@@ -6,9 +6,11 @@
 //! only `main`), so ARQADE's page cannot call the host at all.
 //!
 //! What the window may load is decided here, by [`route`], on every navigation and every request for a new window:
-//! ARQADE itself and QOR ID (where its sign-in happens) stay in the window; a `qor://pay` link is handed to the same
-//! path a link from the browser takes, so it is checked, asked in the host dialog and paid there, with no round trip
-//! through the operating system; any other web address opens in the person's own browser; anything else is refused.
+//! ARQADE itself and QOR ID (where its sign-in happens) stay in the window; a `qor://arqade` link opens the launcher's
+//! ARQADE screen, as it would from a browser (ADR-118, [`open_link`]); any other `qor://` link is handed to the same
+//! path a payment link from the browser takes, so it is checked, asked in the host dialog and paid there, with no
+//! round trip through the operating system; any other web address opens in the person's own browser; anything else
+//! is refused.
 //!
 //! **Signed in with the launcher's session.** When the launcher is signed in to QOR ID, the window opens at ARQADE's
 //! own sign-in, and the launcher stops the window on its way to QOR ID's sign-in page (`/oauth/authorize`). It sends
@@ -31,12 +33,40 @@ pub const ARQADE_URL: &str = "https://qor-arqade-tau.vercel.app/";
 /// The window's label. Not in any capability, so the page in it reaches no host command.
 pub const WINDOW: &str = "arqade";
 
+/// The games ARQADE's app plays, by its cards' names (`products/arqade/qt/qml/GameView.qml`): all a `qor://arqade`
+/// link may name (ADR-118).
+pub const GAMES: &[&str] = &["orbital", "void", "synapse", "rift", "flux", "reversi"];
+
+/// A `qor://arqade` link (ADR-118): `None` if `link` is not one; otherwise the game it opens, if it names one ARQADE's
+/// app plays (`?play=<game>`). Nothing else the link carries goes further, and a link with more after `arqade` opens
+/// only the screen.
+pub fn open_link(link: &str) -> Option<Option<&'static str>> {
+    let url = Url::parse(link).ok()?;
+    if url.scheme() != "qor"
+        || !url
+            .host_str()
+            .is_some_and(|h| h.eq_ignore_ascii_case("arqade"))
+    {
+        return None;
+    }
+    if !matches!(url.path(), "" | "/") {
+        return Some(None);
+    }
+    Some(
+        url.query_pairs()
+            .find(|(key, _)| key == "play")
+            .and_then(|(_, game)| GAMES.iter().copied().find(|g| *g == game)),
+    )
+}
+
 /// What happens to an address the ARQADE window is asked to load.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Route {
     /// Load it in the ARQADE window.
     Stay,
-    /// A `qor://` link: hand it to the pay path, and load nothing.
+    /// A `qor://arqade` link: open the launcher's ARQADE screen (ADR-118), and load nothing.
+    Open,
+    /// Another `qor://` link: hand it to the pay path, and load nothing.
     Pay,
     /// Another web address: open it in the person's browser, and load nothing here.
     Browser,
@@ -47,6 +77,7 @@ pub enum Route {
 /// Where `url` goes. `allowed` is the hosts that may load in the window: ARQADE's and QOR ID's.
 pub fn route(url: &Url, allowed: &[&str]) -> Route {
     match url.scheme() {
+        "qor" if open_link(url.as_str()).is_some() => Route::Open,
         "qor" => Route::Pay,
         "https" => match url.host_str() {
             Some(host) if allowed.iter().any(|a| a.eq_ignore_ascii_case(host)) => Route::Stay,
@@ -160,6 +191,10 @@ fn follow(app: &tauri::AppHandle, guard: &Guard, url: &Url) -> bool {
     let allowed: Vec<&str> = guard.hosts.iter().map(String::as_str).collect();
     match route(url, &allowed) {
         Route::Stay => true,
+        Route::Open => {
+            crate::handle_arqade_link(app.clone(), open_link(url.as_str()).flatten());
+            false
+        }
         Route::Pay => {
             crate::handle_pay_link(app.clone(), url.to_string());
             false
@@ -241,6 +276,51 @@ mod tests {
     #[test]
     fn a_pay_link_goes_to_the_pay_path() {
         assert_eq!(at("qor://pay?r=00&s=00"), Route::Pay);
+    }
+
+    #[test]
+    fn an_arqade_link_opens_the_launcher_s_arqade_screen() {
+        assert_eq!(at("qor://arqade"), Route::Open);
+        assert_eq!(at("qor://arqade?play=flux"), Route::Open);
+        assert_eq!(at("qor://arqadex?play=flux"), Route::Pay);
+    }
+
+    #[test]
+    fn an_arqade_link_names_only_a_game_arqade_plays() {
+        for game in GAMES {
+            assert_eq!(
+                open_link(&format!("qor://arqade?play={game}")),
+                Some(Some(*game))
+            );
+        }
+        assert_eq!(open_link("qor://arqade"), Some(None));
+        assert_eq!(open_link("qor://arqade/"), Some(None));
+        assert_eq!(
+            open_link("qor://ARQADE?play=orbital"),
+            Some(Some("orbital"))
+        );
+        // Anything else it carries goes no further: an unknown game, more after `arqade`, another key.
+        assert_eq!(open_link("qor://arqade?play=chess"), Some(None));
+        assert_eq!(open_link("qor://arqade?play=Orbital"), Some(None));
+        assert_eq!(open_link("qor://arqade?play=../orbital"), Some(None));
+        assert_eq!(open_link("qor://arqade/pay?play=flux"), Some(None));
+        assert_eq!(open_link("qor://arqade?game=flux"), Some(None));
+        // A repeated key: the first decides, and a second is not looked for.
+        assert_eq!(open_link("qor://arqade?play=chess&play=rift"), Some(None));
+        assert_eq!(
+            open_link("qor://arqade?play=rift&play=chess"),
+            Some(Some("rift"))
+        );
+        // Not an arqade link at all.
+        for link in [
+            "qor://pay?r=00",
+            "qor://agent?r=00",
+            "https://arqade/?play=flux",
+            "qor://arqadex",
+            "arqade",
+        ] {
+            assert_eq!(open_link(link), None, "{link}");
+        }
     }
 
     #[test]
