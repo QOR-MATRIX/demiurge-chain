@@ -2024,7 +2024,12 @@ here sets an economic value; payouts are U-16.
       staked, won or lost.
     - `check-phone.mjs` counts six tabs (GATES change log).
 
-    **Not yet:** the games pointing to the launcher, which waits on P7.20's rebuilt games.
+    **The games pointing to the launcher, built 24 October 2026, not merged** (HANDOFF §4 item 150): each game's start
+    and end screens on the website say it is rebuilt in 3D in the launcher's ARQADE, where runs ARQADE confirms will be
+    rewarded in Sparks (test CGT on the devnet, with no value), and link to the homepage's download. The phone check
+    holds the link to 44 by 44 pixels.
+
+    **Not yet:** merged and live on Vercel; then P7.23 is ticked.
 24. [ ] The two multiplayer arenas rebuilt in QQ (ADR-102), on the ARQADE service. Depends on P7.19.
 
     **Built, 24 October 2026, not merged** (HANDOFF §4 item 149), on `session/qq-arenas`:
