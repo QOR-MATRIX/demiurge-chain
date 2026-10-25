@@ -7,7 +7,8 @@
 //     a tab opens its section;
 //   - every button and link on the home screen, the arenas and the play screen is at least 44 by 44 pixels;
 //   - the world chat's button sits above the tab bar, not over it;
-//   - a game opens filling the screen, and its close button is a target of 44 by 44 or more;
+//   - a game opens filling the screen, its close button is a target of 44 by 44 or more, and it points to the QOR
+//     Launcher, where it is rebuilt in 3D, by a link of 44 by 44 or more (P7.23);
 //   - Orbital's playfield takes a tap as its lock, and Void Runner's playfield takes touches without scrolling;
 //   - and on a desktop the sections are still the rail along the left.
 //
@@ -174,6 +175,9 @@ try {
   const modal = await evaluate(`(() => { const r = document.querySelector('.game-modal').getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; })()`);
   check('a game opens filling the screen', modal.x === 0 && modal.y === 0 && modal.w === 390 && modal.h === 844, JSON.stringify(modal));
   check('its close button is a target of 44 pixels or more', await evaluate(`(() => { const r = document.querySelector('.game-modal [data-slot=dialog-close]').getBoundingClientRect(); return r.width >= 44 && r.height >= 44; })()`));
+  // P7.23: the website's games point players to the launcher, where they are rebuilt in 3D.
+  const pointer = await evaluate(`(() => { const a = document.querySelector('.game-modal .launcher-note a'); if (!a) return null; const r = a.getBoundingClientRect(); return { href: a.href, w: r.width, h: r.height }; })()`);
+  check('it points to the QOR Launcher, by a link of 44 pixels or more', !!pointer && pointer.href === 'https://qorsync.dev/' && pointer.w >= 44 && pointer.h >= 44, JSON.stringify(pointer));
   await clickText('.game-modal button', 'begin');
   await until(`!!document.querySelector('.game-modal canvas.play-canvas')`, 'Orbital\u2019s playfield');
   await sleep(400);
