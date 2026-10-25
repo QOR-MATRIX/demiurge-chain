@@ -16,19 +16,15 @@ two peers; **QOR ID** — *the one sign-in*; **Social** — *the chat service*; 
 
 ## This session
 
-1. **PDFs in QOR Media — *the launcher's media app* — are done** and on your PC: read, pages
-   changed, marked up, signed with a picture, and forms filled. The IRS's forms are shown but
-   not filled: they use **XFA** — *an older Adobe form format*.
-2. **CI's security check is green again.** You chose the guarded ignore for a flaw in a crypto
-   library none of our code uses (ADR-115), and merged it with the rest.
-3. **All four of ARQADE's games are rebuilt in 3D and merged (P7.20 done):** Orbital, Void
-   Runner, Synapse and Rift Survivor. They play inside ARQADE's app, which is now **on your
-   PC**, from `main`: open ARQADE in the launcher and press a game's card. Each game's rules are one small
-   file that the game and a plain script both run, so a recorded game replays to the same
-   score. That is how ARQADE's server will confirm a run before paying Sparks (P7.22).
-4. **Sound now comes from where things happen,** as P7.20 asked: a lock from the satellite,
-   Synapse's notes from left to right. You merged it (#93), and it is on your PC.
-5. **You authorised full automation.** Claude Code's own safety check still refuses to merge
+1. **All four of ARQADE's games are rebuilt in 3D, merged and on your PC (P7.20 done)**,
+   each sound heard from where it happens. Open ARQADE in the launcher and press a card.
+2. **The two arenas are rebuilt in 3D too (P7.24), waiting for your merge.** Flux Four and
+   Rift Reversi now play inside ARQADE's app against another person, on ARQADE's own server:
+   the same matches and rankings as the website. A game made in **QQ** — *our game engine* —
+   cannot reach the internet, so it asks the app it runs in, which answers from the server.
+   That is a new **host channel** — *how a game talks to its app* — decided under your
+   delegation (ADR-117). Tested against a stand-in server, not yet between two real people.
+3. **You authorised full automation.** Claude Code's own safety check still refuses to merge
    without a person's review, so merges stay with you.
 
 ## The release gates (measured 22 October)
@@ -39,9 +35,10 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 
 ## What only you can do
 
-1. **Play the four games** in the launcher and tell me what feels wrong.
-2. **No pull request is waiting.** To let me merge future ones, add a permission rule for
-   `gh pr merge`.
+1. **Merge #95, then #96** (the arenas). Then I deploy ARQADE from `main` to your PC, and
+   you can play an arena with a friend: both sign in to the launcher, one opens a match in
+   ARQADE, the other joins it. To let me merge, add a permission rule for `gh pr merge`.
+2. **Play the four games** in the launcher and tell me what feels wrong.
 3. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
@@ -62,10 +59,11 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    the email webhook; the key pasted on 5 October; `social-secrets.txt` on your Desktop and
    `archive-bZLIQp/` in the old checkout, each to keep or delete.
 
-**Next in engineering:** the two arenas in QQ (P7.24), and a launcher release carrying QOR
-Media's PDF work, assets' levels and the four games. At your word: filling the IRS's forms,
-certified signatures (ADR-114), records kept by games other than an asset's home game
-(ADR-113), or rental and fractions (M4.3).
+**Next in engineering:** once #96 is merged, ARQADE deployed with the arenas; then the
+website's own games pointing players to the launcher (P7.23's last part, which waited on the
+rebuilt games), and a launcher release carrying QOR Media's PDF work, assets' levels, the games
+and the arenas. At your word: filling the IRS's forms, certified signatures (ADR-114), records
+kept by games other than an asset's home game (ADR-113), or rental and fractions (M4.3).
 
 ## Cost per month
 

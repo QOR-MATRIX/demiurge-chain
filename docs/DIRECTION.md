@@ -2026,6 +2026,18 @@ here sets an economic value; payouts are U-16.
 
     **Not yet:** the games pointing to the launcher, which waits on P7.20's rebuilt games.
 24. [ ] The two multiplayer arenas rebuilt in QQ (ADR-102), on the ARQADE service. Depends on P7.19.
+
+    **Built, 24 October 2026, not merged** (HANDOFF §4 item 149), on `session/qq-arenas`:
+    - Flux Four and Rift Reversi are one QQ package, `products/arqade/games/arenas/` (`games/README.md`), played in
+      ARQADE's Qt app against another person on ARQADE's server, which keeps every match and decides every move, as it
+      does for the website.
+    - A QQ game reaches no server, so an arena asks ARQADE's app through QQ's host channel (ADR-117), and the app
+      answers from the server with the player's session. The run keeps every answer, and replays in QQ and in Node to
+      the server's verdict on the match.
+    - Tests: 105 in Node (17 for the arenas, in CI); ARQADE's Qt suites 78, playing both arenas against a stand-in
+      server on the owner's PC.
+
+    **Not yet:** merged and deployed to the launcher's copy, and a match played on the live server between two people.
 25. [ ] ARQADE's site on phones and by touch (the owner, 18 October 2026: "optimize Arqade for its mobile browser
     users and screen tapping"). **Built, merged (#49, at `943815d`) and live on Vercel:**
     - Below 760 pixels the side rail is a tab bar along the bottom, and the content takes the whole width.
