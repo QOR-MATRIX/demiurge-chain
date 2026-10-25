@@ -4,7 +4,11 @@
 //! private channel and a one-time token, ended with the launcher. Its window becomes a child of the launcher's and sits
 //! over the ARQADE screen. It keeps one request waiting, `arqade.next`, which the launcher answers with its next
 //! [`Command`] (show at a rectangle of its window, hide, wear its colours, who is playing and their Sparks, the person's
-//! preferences, quit), or with nothing after [`WAIT`].
+//! preferences, open a game, quit), or with nothing after [`WAIT`].
+//!
+//! A `qor://arqade` link (ADR-118, `super::open_link`) asks for the ARQADE screen, and may name a game: the game is
+//! sent at once if ARQADE runs, or as soon as it starts, and the interface asks whether the screen was wanted
+//! ([`arqade_app_asked`]), so a link that started the launcher is not lost before the interface listens.
 //!
 //! It asks two things besides:
 //!
@@ -106,6 +110,10 @@ pub enum Command {
     Prefs {
         prefs: Prefs,
     },
+    /// Open a game, by its card's name (one of `super::GAMES`): a `qor://arqade` link named it (ADR-118).
+    Play {
+        game: String,
+    },
     /// Close: the person signed out of the launcher, and what ARQADE knew of them goes with it.
     Quit,
 }
@@ -118,6 +126,7 @@ impl Supersedes for Command {
                 | (Command::Theme { .. }, Command::Theme { .. })
                 | (Command::Player { .. }, Command::Player { .. })
                 | (Command::Prefs { .. }, Command::Prefs { .. })
+                | (Command::Play { .. }, Command::Play { .. })
         )
     }
 }
@@ -255,6 +264,9 @@ pub struct App {
     theme: Mutex<BTreeMap<String, String>>,
     player: Mutex<Option<Player>>,
     prefs: Mutex<Option<Prefs>>,
+    /// A game a link asked for before ARQADE ran, sent as it starts; and whether a link asked for the screen.
+    play: Mutex<Option<String>>,
+    asked: Mutex<bool>,
 }
 
 impl Default for App {
@@ -267,6 +279,8 @@ impl Default for App {
             theme: Mutex::new(BTreeMap::new()),
             player: Mutex::new(None),
             prefs: Mutex::new(None),
+            play: Mutex::new(None),
+            asked: Mutex::new(false),
         }
     }
 }
@@ -339,12 +353,36 @@ impl App {
             if let Some(prefs) = *self.prefs.lock() {
                 self.queue.push(Command::Prefs { prefs });
             }
+            // And the game a link asked for meanwhile.
+            if let Some(game) = self.play.lock().take() {
+                self.queue.push(Command::Play { game });
+            }
         }
         // Read after it is marked running, so a place the screen sent meanwhile is not lost.
         if let Some(rect) = *self.rect.lock() {
             self.queue.push(Command::Place { rect, parent });
         }
         Ok(())
+    }
+
+    /// A `qor://arqade` link asked for the ARQADE screen, and perhaps a game (ADR-118): the game is sent now if ARQADE
+    /// runs, or kept for when it starts.
+    pub fn ask(&self, game: Option<&str>) {
+        *self.asked.lock() = true;
+        if let Some(game) = game {
+            if self.running() {
+                self.queue.push(Command::Play {
+                    game: game.to_string(),
+                });
+            } else {
+                *self.play.lock() = Some(game.to_string());
+            }
+        }
+    }
+
+    /// Whether a link asked for the ARQADE screen since this was last asked.
+    pub fn take_asked(&self) -> bool {
+        std::mem::take(&mut *self.asked.lock())
     }
 
     /// The person signed out of the launcher: ARQADE closes, and nothing of them is kept to send it again.
@@ -420,6 +458,13 @@ pub fn arqade_app_player(state: tauri::State<'_, crate::AppState>, player: Playe
     let player = player.tidy();
     *state.arqade_app.player.lock() = Some(player.clone());
     state.arqade_app.tell(Command::Player { player });
+}
+
+/// Whether a `qor://arqade` link asked for the ARQADE screen since the interface last asked (ADR-118): asked as the
+/// interface starts, and each time the launcher says a link came (`arqade://asked`).
+#[tauri::command]
+pub fn arqade_app_asked(state: tauri::State<'_, crate::AppState>) -> bool {
+    state.arqade_app.take_asked()
 }
 
 /// The person's preferences ARQADE follows.

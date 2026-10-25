@@ -994,6 +994,23 @@ export const arqadeApp = {
   theme: (colors: Record<string, string>) => call<void>('arqade_app_theme', { colors }),
   player: (player: ArqadePlayer) => call<void>('arqade_app_player', { player }),
   prefs: (prefs: { reduced_motion: boolean }) => call<void>('arqade_app_prefs', { prefs }),
+  /** Whether a `qor://arqade` link asked for the ARQADE screen since this was last asked (ADR-118). */
+  asked: () => call<boolean>('arqade_app_asked'),
+  /** Told when a `qor://arqade` link comes. Returns how to stop listening. */
+  onAsked: (handler: () => void): (() => void) => {
+    let stop: (() => void) | null = null;
+    let stopped = false;
+    listen('arqade://asked', () => handler())
+      .then((unlisten) => {
+        if (stopped) unlisten();
+        else stop = unlisten;
+      })
+      .catch(() => {});
+    return () => {
+      stopped = true;
+      stop?.();
+    };
+  },
   /** Told when ARQADE ends, however it ends. Returns how to stop listening. */
   onExit: (handler: (exit: ProductExit) => void): (() => void) => {
     let stop: (() => void) | null = null;

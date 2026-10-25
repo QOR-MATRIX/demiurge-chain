@@ -188,6 +188,12 @@ fn commands_are_written_as_the_app_reads_them() {
     assert_eq!(written(Command::Hide), json!({ "type": "hide" }));
     assert_eq!(written(Command::Quit), json!({ "type": "quit" }));
     assert_eq!(
+        written(Command::Play {
+            game: "flux".into()
+        }),
+        json!({ "type": "play", "game": "flux" })
+    );
+    assert_eq!(
         written(Command::Player {
             player: Player {
                 signed_in: true,
@@ -559,6 +565,28 @@ async fn docked_signed_in_and_quit() {
         None,
         "who was playing is not kept after a sign-out"
     );
+}
+
+#[tokio::test]
+async fn a_game_a_link_asks_for_is_sent_now_if_arqade_runs_or_kept_for_its_start() {
+    let arqade = App::default();
+    // Not running: kept for its start, and the screen was asked for, once.
+    arqade.ask(Some("flux"));
+    assert_eq!(*arqade.play.lock(), Some("flux".to_string()));
+    assert!(arqade.take_asked());
+    assert!(!arqade.take_asked(), "asked once, told once");
+    // Running: sent at once, a newer game in place of an older one not yet taken; a link naming none sends none.
+    *arqade.running.lock() = true;
+    arqade.ask(Some("orbital"));
+    arqade.ask(Some("reversi"));
+    arqade.ask(None);
+    assert_eq!(
+        arqade.queue.next().await,
+        Some(Command::Play {
+            game: "reversi".into()
+        })
+    );
+    assert!(arqade.take_asked());
 }
 
 #[tokio::test]

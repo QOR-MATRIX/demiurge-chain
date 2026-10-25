@@ -357,6 +357,22 @@ To see it, with a launcher of 0.1.16 or later installed and signed in: `cargo ru
 `src-tauri/` plays a test agent against the live QOR ID (`--qor-id` for another, `--print` to print the link instead
 of opening it). Its key lives only in that process.
 
+### Opening ARQADE: `qor://arqade` (ADR-118)
+
+```
+qor://arqade                 the ARQADE screen
+qor://arqade?play=<game>     and one of ARQADE's games: orbital, void, synapse, rift, flux or reversi
+```
+
+The launcher's window comes forward at the ARQADE screen (before the vault is open, it is the screen shown after), and
+ARQADE's app opens the game the link names: at once if it runs, or as it starts. `src-tauri/src/arqade.rs` (`open_link`)
+reads the link: only one of the six names goes further, the first `play` decides, and anything else, or anything after
+`arqade`, opens only the screen. The link pays nothing, signs nothing and signs nobody in. The interface asks the host
+whether a link came (`arqade_app_asked`) as it starts and on each `arqade://asked`, so a link that started the launcher is
+not lost. ARQADE's own website window routes the link here too, where any other `qor://` link still goes to the pay path.
+A launcher older than this refuses the link as a payment request, so the website offers it only from the release that
+answers it.
+
 ### Avatars (ADR-079)
 
 The account's avatar, with its level on a ring that glows from level 1 (ADR-080), sits in the rail and, at 64 px, on the
