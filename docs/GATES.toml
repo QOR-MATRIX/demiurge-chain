@@ -983,6 +983,12 @@ type = "tightening"
 change = "The language rule's scan in CI's security job ('No financial language in what people read (ADR-008)') also reads products/arqade/games/, where the games rebuilt in QQ live (DIRECTION P7.20): their scenes, logic and rules. [ci].quality_gates updated."
 reason = "Orbital, the first of them, puts words in front of players from its own QML (its title, its HUD, its result), outside every folder the scan read. Nothing there matched when the scope was widened."
 
+[[change_log]]
+date = "2026-10-25"
+type = "tightening"
+change = "products/arqade/scripts/check-phone.mjs, which CI's arqade job runs (arqade.phone): its check 'it points to the QOR Launcher, by a link of 44 pixels or more', which read the first link of a game's launcher note, becomes two: 'it offers the game in the QOR Launcher, by a link of 44 pixels or more' (qor://arqade?play=orbital, ADR-118 decision 4) and 'and the launcher's download beside it, by a link of 44 pixels or more' (https://qorsync.dev/, held as before, now found by its address rather than by being first). 18 checks become 19."
+reason = "A tightening: the download is held to the same address and size as before, and the new link is held too; nothing is relaxed. It is found by its address because the play link now comes first. Proven to fail first: the play link hidden was planted and failed the new check (18 passed, 1 failed)."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------

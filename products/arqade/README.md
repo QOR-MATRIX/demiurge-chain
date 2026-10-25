@@ -20,7 +20,7 @@ npm test          # 88 tests (24 October 2026): arenas and chat against Postgres
 npm run typecheck
 npm run lint
 npm run build     # migrations (production only, see below), then next build
-npm run check:phone  # the build as a phone sees it, by touch, in Edge or Chrome: 17 checks (scripts/check-phone.mjs)
+npm run check:phone  # the build as a phone sees it, by touch, in Edge or Chrome: 19 checks (scripts/check-phone.mjs)
 npm run check:design # Demiurge's one look, ADR-108 (scripts/check-design.mjs)
 node scripts/shots.mjs <folder>  # every screen of the build, desktop and phone, as PNGs for design review
 ```
