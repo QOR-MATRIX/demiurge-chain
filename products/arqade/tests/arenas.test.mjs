@@ -18,7 +18,7 @@ const following=(game,seat=1)=>{const s=arena.create(game);arena.heard(s,lobby([
 const playing=(game,seat=1)=>{const s=following(game,seat);arena.heard(s,{match:snapshot(game,initialBoard(game),{revision:2,seat})});return s};
 
 test('it asks for the lobby, and keeps only this arena\'s open matches and the player\'s own',()=>{
- const s=arena.create('flux');assert.deepEqual(arena.begin(s),{ask:'lobby'});
+ const s=arena.create('flux');assert.deepEqual(arena.begin(),{ask:'lobby'});
  arena.heard(s,lobby([
   {id:ID,game:'flux',status:'waiting',alias:'sophia',seat:0},{id:OTHER,game:'reversi',status:'waiting',alias:'barbelo',seat:0},
   {id:'00000000-0000-4000-8000-000000000003',game:'flux',status:'active',alias:'me',seat:2},
@@ -65,7 +65,6 @@ test('a move is the cursor\'s column at the board last seen, and the server\'s a
 
 test('1 to 7 drop straight into a column, and the cursor passes over a full one',()=>{
  let board=initialBoard('flux');for(const c of [0,1,0,1,0,1])board=moveBoard('flux',board,c);
- for(const c of [3,3,3,3,3,3]){board={...board,cells:board.cells.slice()};board.cells[board.cells.indexOf(0,0)]=0}
  const s=playing('flux');let full={...board,cells:board.cells.slice()};for(let r=0;r<6;r++)full.cells[r*7+2]=r%2+1;
  arena.heard(s,{match:snapshot('flux',full,{revision:3,legal:[0,1,3,4,5,6]})});
  s.cursor=1;arena.press(s,'right');assert.equal(s.cursor,3,'column 3 has no room');

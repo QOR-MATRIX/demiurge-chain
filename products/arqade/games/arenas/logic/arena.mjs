@@ -38,8 +38,6 @@ export const BOARDS = {
 /** How long a notice stays, in steps of 1/60 s. */
 export const NOTICE_STEPS = 300
 
-/** What the game asks, and while it is unanswered asks nothing more. */
-const ASKS = ["create", "join", "open", "move", "resign", "cancel"]
 /** What brings a match to follow. */
 const FINDING = ["create", "join", "open"]
 
@@ -207,7 +205,7 @@ function ask(state, what, fields) {
 }
 
 /** What the game asks as it starts. */
-export function begin(state) {
+export function begin() {
     return { ask: "lobby" }
 }
 

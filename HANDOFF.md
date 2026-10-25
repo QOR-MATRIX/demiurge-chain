@@ -4638,7 +4638,11 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        keeps them and moves for the opponent. QQ's eight suites 177 cases. All on the owner's PC, 24 October 2026.
        In QQ's full run, one case of `tst_agent` (`qqMcpRelaysAClientToARunningStudio`) failed once, the Studio's MCP
        answer not arriving in time; it passed alone twice and in its suite again. A timing flake, recorded here, not
-       yet a trap.
+       yet a trap. And the arena tests failed in two runs back to back (a rematch's lobby never shown, Down not moving
+       Rift Reversi's cursor), with nothing changed but an unused argument, then passed in four runs after; the real
+       pointer had not moved. The cause is not found. The likeliest is the window not drawing for a while, as when the
+       display sleeps: QQ's ticks come with drawn frames, so what is told and what is pressed wait. A failed test in
+       `tst_games` now prints the game's screens and state, to find it if it comes again.
      - **Planted faults caught:** six in `arena.mjs` (an older board or another match's drawn, a Space that pressed a
        button also moving, the cursor not set, the clock at half speed, a refusal leaving the ask waiting, a call to
        `Date`); the host's message through the signal's own argument (QQ's play test); a post without its origin (the

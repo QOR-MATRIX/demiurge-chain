@@ -849,11 +849,16 @@ private slots:
                      name);
     }
 
-    // A test that failed says what QML warned of on the way.
+    // A test that failed says what QML warned of on the way, and where the game stood: its screens and its state.
     void cleanup()
     {
-        if (QTest::currentTestFailed() && !warnings.isEmpty())
+        if (!QTest::currentTestFailed())
+            return;
+        if (!warnings.isEmpty())
             qWarning().noquote() << "QML warned:" << warnings.join('\n');
+        if (logic())
+            qWarning().noquote() << "Screens:" << screens().join(", ") << "\nState:"
+                                 << QJsonDocument(QJsonObject::fromVariantMap(state())).toJson(QJsonDocument::Compact);
     }
 
     void cleanupTestCase()

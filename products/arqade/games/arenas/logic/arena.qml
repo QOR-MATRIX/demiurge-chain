@@ -374,7 +374,7 @@ Logic {
                     show()
                 })
         }
-        send(Arena.begin(game))
+        send(Arena.begin())
         show()
     }
 
