@@ -8,7 +8,8 @@
 //   - every button and link on the home screen, the arenas and the play screen is at least 44 by 44 pixels;
 //   - the world chat's button sits above the tab bar, not over it;
 //   - a game opens filling the screen, its close button is a target of 44 by 44 or more, and it points to the QOR
-//     Launcher, where it is rebuilt in 3D, by a link of 44 by 44 or more (P7.23);
+//     Launcher, where it is rebuilt in 3D (P7.23): the game itself there, by a `qor://arqade` link (ADR-118), and the
+//     download beside it, each a link of 44 by 44 or more;
 //   - Orbital's playfield takes a tap as its lock, and Void Runner's playfield takes touches without scrolling;
 //   - and on a desktop the sections are still the rail along the left.
 //
@@ -175,9 +176,14 @@ try {
   const modal = await evaluate(`(() => { const r = document.querySelector('.game-modal').getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; })()`);
   check('a game opens filling the screen', modal.x === 0 && modal.y === 0 && modal.w === 390 && modal.h === 844, JSON.stringify(modal));
   check('its close button is a target of 44 pixels or more', await evaluate(`(() => { const r = document.querySelector('.game-modal [data-slot=dialog-close]').getBoundingClientRect(); return r.width >= 44 && r.height >= 44; })()`));
-  // P7.23: the website's games point players to the launcher, where they are rebuilt in 3D.
-  const pointer = await evaluate(`(() => { const a = document.querySelector('.game-modal .launcher-note a'); if (!a) return null; const r = a.getBoundingClientRect(); return { href: a.href, w: r.width, h: r.height }; })()`);
-  check('it points to the QOR Launcher, by a link of 44 pixels or more', !!pointer && pointer.href === 'https://qorsync.dev/' && pointer.w >= 44 && pointer.h >= 44, JSON.stringify(pointer));
+  // P7.23: the website's games point players to the launcher, where they are rebuilt in 3D: the game itself there, by
+  // a `qor://arqade` link the launcher answers from 0.1.17 (ADR-118), and the download beside it.
+  const pointers = await evaluate(`[...document.querySelectorAll('.game-modal .launcher-note a')].map((a) => { const r = a.getBoundingClientRect(); return { href: a.getAttribute('href'), w: r.width, h: r.height }; })`);
+  const bigEnough = (link) => !!link && link.w >= 44 && link.h >= 44;
+  const inLauncher = pointers.find((link) => link.href.startsWith('qor:'));
+  const download = pointers.find((link) => link.href === 'https://qorsync.dev/');
+  check('it offers the game in the QOR Launcher, by a link of 44 pixels or more', bigEnough(inLauncher) && inLauncher.href === 'qor://arqade?play=orbital', JSON.stringify(pointers));
+  check('and the launcher\u2019s download beside it, by a link of 44 pixels or more', bigEnough(download), JSON.stringify(pointers));
   await clickText('.game-modal button', 'begin');
   await until(`!!document.querySelector('.game-modal canvas.play-canvas')`, 'Orbital\u2019s playfield');
   await sleep(400);

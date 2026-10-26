@@ -2029,11 +2029,13 @@ here sets an economic value; payouts are U-16.
     **The games pointing to the launcher, done 25 October 2026** (merged in #97 at `beafda4`, live on Vercel; HANDOFF
     §4 items 150 and 151): each game's start and end screens on the website say it is rebuilt in 3D in the launcher's
     ARQADE, where runs ARQADE confirms will be rewarded in Sparks (test CGT on the devnet, with no value), and link to
-    the homepage's download. The phone check holds the link to 44 by 44 pixels (18 checks, in CI).
+    the homepage's download. The phone check holds the link to 44 by 44 pixels (18 checks, in CI; 19 with the play link
+    below).
 
-    **Next:** a `qor://arqade` link opens the launcher at ARQADE, at the game it names (ADR-118, built 25 October 2026,
-    HANDOFF §4 item 152). The website offers it beside the download from the launcher release that carries it: 0.1.17,
-    published 25 October 2026 (item 155).
+    **Then:** a `qor://arqade` link opens the launcher at ARQADE, at the game it names (ADR-118, built 25 October 2026,
+    HANDOFF §4 item 152), carried by launcher 0.1.17, published 25 October 2026 (item 155). **Built the same day, not
+    merged** (#103, item 156): each game's note offers **Play it in the QOR Launcher** beside the download, saying it
+    needs 0.1.17 or later; the phone check holds both links (19 checks).
 24. [x] The two multiplayer arenas rebuilt in QQ (ADR-102), on the ARQADE service. Depends on P7.19.
 
     **Done, 25 October 2026:** merged as #96 (at `36f024c`) and deployed to the launcher's copy from `main` (HANDOFF §4
@@ -2058,7 +2060,7 @@ here sets an economic value; payouts are U-16.
       above the tab bar.
     - Void Runner and Orbital are played by tapping their playfields, and the page reaches the screen's edges inside
       its safe area.
-    - Held to it by `scripts/check-phone.mjs`, 17 checks, in CI (GATES `arqade.phone`).
+    - Held to it by `scripts/check-phone.mjs`, 17 checks then and 19 since 25 October 2026, in CI (GATES `arqade.phone`).
 
     **Not yet:** tried on the owner's own phone.
 

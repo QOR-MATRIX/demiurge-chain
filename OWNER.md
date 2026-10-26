@@ -40,7 +40,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 
 ## What only you can do
 
-1. **Merge #102**, so the homepage offers 0.1.17.
+1. **Merge #102**, so the homepage offers 0.1.17; then **#103**, so each game on ARQADE's
+   website offers itself in the launcher, beside the download.
 2. **Take 0.1.17 through Update and restart** (ticks L6.2), then **play an arena with a
    friend:** both sign in to the launcher, one opens a match in ARQADE, the other joins it.
    That is the one test I cannot run.
@@ -63,8 +64,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    the email webhook; the key pasted on 5 October; `social-secrets.txt` on your Desktop and
    `archive-bZLIQp/` in the old checkout, each to keep or delete.
 
-**Next in engineering:** the ARQADE website's "Play in the QOR Launcher" link beside the
-download, now that 0.1.17 answers it. At your word: filling the IRS's forms, certified
+**Next in engineering, built and waiting for you:** #103, ARQADE's website offering each game
+in the launcher now that 0.1.17 answers the link. At your word: filling the IRS's forms, certified
 signatures (ADR-114), records kept by games other than an asset's home game (ADR-113), or
 rental and fractions (M4.3).
 
