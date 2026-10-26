@@ -22,6 +22,7 @@
 #include <QWheelEvent>
 #include <QtQml/qqmlextensionplugin.h>
 
+#include "activewindow.h"
 #include "medialink.h"
 #include "pdfdrawing.h"
 #include "pdfforms.h"
@@ -50,12 +51,13 @@ class TestReader : public QObject
     QQuickItem *read(const QString &path)
     {
         QMetaObject::invokeMethod(link, "openRequested", Q_ARG(QString, path), Q_ARG(QString, QStringLiteral("document")), Q_ARG(double, 0));
-        // Each wait that fails says so: the window not becoming active is the flake of a run in the background (HANDOFF §5).
+        // Each wait that fails says so. The window is asked to take the keyboard (activewindow.h); not becoming active
+        // even so is the desktop's doing, not the reader's (HANDOFF §5).
         if (!QTest::qWaitFor([&] { return window->isVisible(); })) {
             qWarning("The window did not show.");
             return nullptr;
         }
-        if (!QTest::qWaitForWindowActive(window)) {
+        if (!activewindow::activate(window)) {
             qWarning("The window showed but did not become active: another window kept the keyboard.");
             return nullptr;
         }
@@ -252,6 +254,7 @@ class TestReader : public QObject
 private slots:
     void initTestCase()
     {
+        activewindow::mayTakeTheKeyboard();
         QVERIFY(dir.isValid());
         save(dir.filePath("three.pdf"), writePdf({{{"alpha one"}, {{QRectF(72, 600, 200, 40), 2, {}}, {QRectF(72, 500, 200, 40), -1, "https://qorsync.dev/"}}},
                                                   {{"beta two"}, {}},
@@ -273,6 +276,7 @@ private slots:
         QCOMPARE(engine->rootObjects().size(), 1);
         window = qobject_cast<QQuickWindow *>(engine->rootObjects().first());
         QVERIFY(window);
+        activewindow::holdTheKeyboard(window);
     }
 
     void cleanup()

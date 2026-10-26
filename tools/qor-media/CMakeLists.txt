@@ -20,7 +20,7 @@ project(QorMedia VERSION 0.1.0 DESCRIPTION "QOR Media" LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Multimedia Network Pdf PdfQuick Qml Quick QuickControls2 QuickShapes Svg Test)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui GuiPrivate Multimedia Network Pdf PdfQuick Qml Quick QuickControls2 QuickShapes Svg Test)
 # PDFium's own interface, for changing a PDF (ADR-094 decision 3). build.ps1 fetches the pinned release and points
 # PDFium_DIR at it; its DLL goes beside every program built here.
 find_package(PDFium REQUIRED)
@@ -126,7 +126,8 @@ target_link_libraries(qor-media PRIVATE qormedia_core qormedia_coreplugin Qt6::M
 enable_testing()
 foreach(suite medialink files textfile playback look reader pdfpages pdfmarks pdfforms)
     qt_add_executable(tst_${suite} tests/tst_${suite}.cpp)
-    target_link_libraries(tst_${suite} PRIVATE qormedia_core qormedia_coreplugin Qt6::Multimedia Qt6::PdfQuick Qt6::QuickControls2 Qt6::QuickShapes Qt6::Test)
+    # Qt6::GuiPrivate for tests/activewindow.h: a window suite's window takes the keyboard.
+    target_link_libraries(tst_${suite} PRIVATE qormedia_core qormedia_coreplugin Qt6::GuiPrivate Qt6::Multimedia Qt6::PdfQuick Qt6::QuickControls2 Qt6::QuickShapes Qt6::Test)
     add_test(NAME ${suite} COMMAND tst_${suite})
 endforeach()
 # The look's test reads the source itself, not the file generated from it.

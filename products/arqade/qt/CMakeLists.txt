@@ -182,6 +182,9 @@ foreach(suite arqadelink arqadeserver interface games)
     target_link_libraries(tst_${suite} PRIVATE arqade_core arqade_coreplugin Qt6::QuickControls2 Qt6::Test)
     add_test(NAME ${suite} COMMAND tst_${suite})
 endforeach()
+# The games suite plays by the keys: its window takes the keyboard (tests/activewindow.h, through Qt6::GuiPrivate).
+target_sources(tst_games PRIVATE tests/activewindow.h)
+target_link_libraries(tst_games PRIVATE Qt6::GuiPrivate)
 # The one look's source, which the interface test holds Theme to, value by value.
 target_compile_definitions(tst_interface PRIVATE
     ARQADE_TOKENS="${CMAKE_CURRENT_SOURCE_DIR}/../../../docs/design/tokens.json")

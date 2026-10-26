@@ -4,7 +4,7 @@ The sovereign gateway to the Demiurge ecosystem. One desktop application through
 which every chain and engine system is reached: QOR ID, the CGT Vault, the game
 library, community, peer-to-peer distribution and the node itself.
 
-**Status:** Version 0.1.16 (unsigned; 23 October 2026: an agent asks through `qor://agent` and is allowed only by the profile's own key, after the host's dialog (ADR-112, L5.1); the first release offered through the update channel. 0.1.15, 22 October 2026: the first that updates itself (ADR-111, L6.2); Obsidian, Demiurge's one look, with QOR Media and ARQADE's app in it (ADR-108, ADR-109); the wallet in the core shared with Android (L13.2); and amounts read more strictly. 0.1.14, 18 October 2026: the ARQADE screen docks ARQADE's Qt
+**Status:** Version 0.1.17 (unsigned; 25 October 2026: ARQADE's app plays its six games rebuilt in QQ, Orbital, Void Runner, Synapse and Rift Survivor, and the two arenas, Flux Four and Rift Reversi, against another player (P7.20, P7.24); a `qor://arqade` link opens ARQADE, at a game if it names one (ADR-118); the themes a level unlocks, Dusk and Nocturne (P7.16); an asset's level and XP on its card (ADR-113); and QOR Media reads PDFs, rearranges their pages, marks them up (a drawn or typed signature among the marks, which certifies nothing) and fills in their forms (L9.5, ADR-114). 0.1.16, 23 October 2026: an agent asks through `qor://agent` and is allowed only by the profile's own key, after the host's dialog (ADR-112, L5.1); the first release offered through the update channel. 0.1.15, 22 October 2026: the first that updates itself (ADR-111, L6.2); Obsidian, Demiurge's one look, with QOR Media and ARQADE's app in it (ADR-108, ADR-109); the wallet in the core shared with Android (L13.2); and amounts read more strictly. 0.1.14, 18 October 2026: the ARQADE screen docks ARQADE's Qt
 app, a 3D home with the games, the player's Sparks and the rankings, signed in through the launcher (ADR-102, P7.19);
 and amounts are shown and typed in Sparks, 1,000 to a CGT (ADR-101). 0.1.13 the same day made each QOR ID on a PC a
 profile of its own, with its own wallet and data, opened with its PIN and closed completely when it signs out
@@ -13,7 +13,7 @@ the Library that publishes it to the Mesh, and a premium look throughout: a bund
 face, a grouped rail with a gliding marker, lit buttons and panels. 0.1.10 brought the Mesh's
 paid work and QOR Media inside the Windows installer; 0.1.9 avatars, rings, Social and the
 Library). Testers download it from the GitHub Release
-[`launcher-v0.1.10`](https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.10). Gate, Nexus, Vault, Inventory, Projects, Chain, Gates
+[`launcher-v0.1.17`](https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.17). Gate, Nexus, Vault, Inventory, Projects, Chain, Gates
 and Settings are built and running, and so is the first slice of Market (L7.2):
 every listing the chain holds, read through the connected node, with no search
 and no indexer behind it. So are payments asked by websites (`qor://pay`), the

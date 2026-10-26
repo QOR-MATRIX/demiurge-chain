@@ -18,7 +18,9 @@
 //
 // The arenas (P7.24) are played through it as the website plays them: a match created, joined, moved in, resigned or
 // cancelled, and asked how it stands, each answered by the match as the server keeps it (`matchAnswered`) or why not
-// (`matchRefused`). A post carries the server's own origin, as the website's pages do, which its arena routes require.
+// (`matchRefused`). Each answer names the match its request asked about, or none for a new one, since requests cross:
+// a poll of a finished match can be answered after a rematch was asked for. A post carries the server's own origin, as
+// the website's pages do, which its arena routes require.
 
 #pragma once
 
@@ -92,7 +94,8 @@ public:
 
     /// The arenas (P7.24). A new match of `game`, "flux" or "reversi"; a match as it stands; and an action on one:
     /// "join", "move" (at `cell`), "resign" or "cancel", at the `revision` the player last saw. Each is answered once, by
-    /// matchAnswered or matchRefused. Anything else is refused here, and nothing is sent.
+    /// matchAnswered or matchRefused, with the id it asked about (empty for createMatch). Anything else is refused here,
+    /// and nothing is sent.
     Q_INVOKABLE void createMatch(const QString &game);
     Q_INVOKABLE void fetchMatch(const QString &id);
     Q_INVOKABLE void actOnMatch(const QString &id, const QString &action, int cell, int revision);
@@ -104,9 +107,9 @@ signals:
     void changed();
     void liveChanged();
     /// A match as the server keeps it: { id, game, status, state: { cells, turn, winner, placed, flipped }, revision,
-    /// moves, deadline, serverNow, host, guest, seat, legal }.
-    void matchAnswered(const QVariantMap &match);
-    void matchRefused(const QString &message);
+    /// moves, deadline, serverNow, host, guest, seat, legal }. `asked` is the id the request named, empty for a new match.
+    void matchAnswered(const QVariantMap &match, const QString &asked);
+    void matchRefused(const QString &message, const QString &asked);
 
 private:
     QNetworkRequest request(const QUrl &url) const;
@@ -116,8 +119,8 @@ private:
     void completed(const QUrl &redirect);
     void liveAnswered(class QNetworkReply *reply);
     void forget();
-    void post(const QString &path, const QJsonObject &body);
-    void matchReplied(class QNetworkReply *reply);
+    void post(const QString &path, const QJsonObject &body, const QString &asked);
+    void matchReplied(class QNetworkReply *reply, const QString &asked);
 
     QPointer<ArqadeLink> m_link;
     QUrl m_base;

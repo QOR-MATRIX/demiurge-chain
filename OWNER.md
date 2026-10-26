@@ -12,27 +12,24 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 The homepage at **qorsync.dev**; **Devnet** — *the test chain on servers* — on runtime 10,
 two peers; **QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** —
-*the gaming website*. **Launcher 0.1.16** is the tester download.
+*the gaming website*. **Launcher 0.1.17 is published**; the homepage links it once you
+merge **#102**, and offers 0.1.16 until then.
 
 ## This session
 
-1. **All four of ARQADE's games are rebuilt in 3D, merged and on your PC (P7.20 done)**,
-   each sound heard from where it happens. Open ARQADE in the launcher and press a card.
-2. **The two arenas are rebuilt in 3D too, merged and on your PC (P7.24 done).** Flux Four
-   and Rift Reversi play inside ARQADE's app against another person, on ARQADE's own server:
-   the same matches and rankings as the website. A game made in **QQ** — *our game engine* —
-   cannot reach the internet, so it asks the app it runs in, which answers from the server.
-   That is a new **host channel** — *how a game talks to its app* — decided under your
-   delegation (ADR-117). Tested against a stand-in server, not yet between two real people.
-3. **The website's games now point players to the launcher, live (P7.23 done):** each game's
-   first and last screen says it is rebuilt in 3D there, with a link to download it.
-4. **A link that opens a game in the launcher is merged (#99), in no release yet:**
-   `qor://arqade?play=flux` brings the launcher forward at ARQADE with Flux Four open. It pays,
-   signs and signs in nothing (ADR-118, under your delegation). The website can offer it once a
-   launcher release carries it; an older launcher would refuse it.
-5. **The themes your level unlocks are built (waiting for your merge):** Dusk at level 2 and
-   Nocturne at level 5, in the launcher's Settings. QOR ID already promised them; now they exist.
-6. **You authorised full automation.** Claude Code's own safety check still refuses to merge
+1. **Launcher 0.1.17 is out** (`launcher-v0.1.17` on GitHub). It carries everything merged
+   since 0.1.16: ARQADE's four games and two arenas rebuilt in 3D, the `qor://arqade` link,
+   the Dusk and Nocturne themes, an asset's level and XP, and QOR Media's PDF reading,
+   marking and form filling. With 0.1.16 installed, Settings › Updates offers it.
+2. **The release build caught a real bug, fixed before release:** a rematch in an arena could
+   be lost. The app takes only the answer to its own request now, and a new test makes the
+   problem happen deliberately on every run.
+3. **Test windows on your PC lose the keyboard** to your Linux app "QTOS · Prism" from **WSL**
+   — *Linux programs running inside Windows* — even when you are away. Six release attempts
+   stopped on it. The tests now take the keyboard back; I left QTOS and its runner alone.
+4. **Earlier today, all merged:** the arenas in 3D (P7.24), the website pointing to the
+   launcher (P7.23), the `qor://arqade` link (ADR-118) and the level themes (**P7.16 done**).
+5. **You authorised full automation.** Claude Code's own safety check still refuses to merge
    without a person's review, so merges stay with you.
 
 ## The release gates (measured 22 October)
@@ -43,17 +40,16 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 
 ## What only you can do
 
-1. **Play an arena with a friend:** both sign in to the launcher, one opens a match in
-   ARQADE (Flux Four or Rift Reversi), the other joins it. That is the one test I cannot run.
-2. **Play the four games** too, and tell me what feels wrong. To let me merge pull
-   requests myself, add a permission rule for `gh pr merge`.
+1. **Merge #102**, so the homepage offers 0.1.17.
+2. **Take 0.1.17 through Update and restart** (ticks L6.2), then **play an arena with a
+   friend:** both sign in to the launcher, one opens a match in ARQADE, the other joins it.
+   That is the one test I cannot run.
 3. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
 4. **For rewards in ARQADE:** decide **ADR-116** — *how a run is confirmed before it is
    paid* — and set the reward pool's numbers (largest payout, budget per epoch, most per player).
-5. **Install 0.1.15 yourself, then take 0.1.16 when it offers it** (ticks L6.2). Then let a
-   test agent ask you: in `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run
+5. **Let a test agent ask you:** in `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run
    `cargo run --example agent_link` and press *Allow agent* (ticks L5.1).
 6. **Terms of Service and a privacy policy, with a lawyer,** and **the legal opinion** on
    rewards, prizes and **KYC** — *identity checks* — before anything carries value.
@@ -67,9 +63,10 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    the email webhook; the key pasted on 5 October; `social-secrets.txt` on your Desktop and
    `archive-bZLIQp/` in the old checkout, each to keep or delete.
 
-**Next in engineering, at your go:** launcher 0.1.17, carrying QOR Media's PDF work, assets'
-levels, the games, the arenas, the new link and the two themes; then the website offering that link. At your word: filling the IRS's forms, certified signatures (ADR-114), records
-kept by games other than an asset's home game (ADR-113), or rental and fractions (M4.3).
+**Next in engineering:** the ARQADE website's "Play in the QOR Launcher" link beside the
+download, now that 0.1.17 answers it. At your word: filling the IRS's forms, certified
+signatures (ADR-114), records kept by games other than an asset's home game (ADR-113), or
+rental and fractions (M4.3).
 
 ## Cost per month
 
