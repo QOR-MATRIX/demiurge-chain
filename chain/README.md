@@ -6,11 +6,11 @@ the custom Rust devnet that lived in `framework/`, which was retired and deleted
 
 ## State
 
-**Today (23 October 2026):** `spec_version` 10 in the tree, with DRC-369 assets (royalties, remix provenance, nesting,
-and since this version progress records, M4.2's state and XP, ADR-113) over `pallet-nfts`, `pallet-utility`'s atomic
-batch, the ARQ Wallet and the Mesh's hosting escrow. **190 workspace tests** passed with the wasm built on 23 October
-2026. **Demiurge Devnet** runs `spec_version` 10 at `wss://rpc.qorsync.dev` since the owner's sudo upgrade of 23 October
-2026, read back that day (ADR-068, "The devnet image" below). No fees, no issuance, no mainnet.
+**Today (26 October 2026):** `spec_version` 11 in the tree, with DRC-369 assets (royalties, remix provenance, nesting,
+progress records, M4.2's state and XP, ADR-113, and since this version rental, M4.3's first third, ADR-119) over
+`pallet-nfts`, `pallet-utility`'s atomic batch, the ARQ Wallet and the Mesh's hosting escrow. **213 workspace tests**
+passed with the wasm built on 26 October 2026. **Demiurge Devnet** runs `spec_version` 10 at `wss://rpc.qorsync.dev` since the owner's sudo upgrade of 23 October
+2026, read back that day (ADR-068, "The devnet image" below); 11 reaches it with the owner's next upgrade. No fees, no issuance, no mainnet.
 
 **How it began.** Run on 2026-09-17: a development node authored blocks with Aura and GRANDPA finalised them, which is the
 first finality this project has had. The custom devnet it replaced had none and reported every transaction as
