@@ -31,13 +31,12 @@ website offers each game in the launcher (#102 and #103, merged).
    launcher (P7.23), the `qor://arqade` link (ADR-118) and the level themes (**P7.16 done**).
 5. **The update channel works end to end (L6.2 ticked):** your launcher took 0.1.17 through
    Update and restart.
-6. **Renting an asset is built (#106, waiting for your merge after #105):** a holder offers
-   an asset at a price per period, a renter pays up front and the creator's royalty is paid
-   on rent, as on a sale; the asset is locked until the rental ends by itself. Four product
-   choices are yours to reverse (**ADR-119** — *its decision record*). Then your **sudo key**
-   — *the devnet's admin key* — moves the devnet to it: the file is in your Downloads,
-   `demiurge-runtime-v11.compact.compressed.wasm`, rehearsed against the devnet's own runtime
-   (43 checks passed). Steps in HANDOFF §4 item 159.
+6. **Renting an asset is built and live on the devnet** (your sudo upgrade to runtime 11,
+   read back: the exact rehearsed file). A holder offers an asset at a price per period, a
+   renter pays up front, the creator's royalty is paid on rent as on a sale, and the asset is
+   locked until the rental ends by itself. Four product choices are yours to reverse
+   (**ADR-119** — *its decision record*). **#106 still waits for your merge**, so the code
+   on `main` catches up with the devnet.
 7. **You authorised full automation.** Claude Code's own safety check still refuses to merge
    without a person's review, so merges stay with you.
 
@@ -49,24 +48,25 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 
 ## What only you can do
 
-1. **Play an arena,** with a friend or alone with a second QOR ID: open a match in the
+1. **Merge #106** (renting an asset), so `main` matches what the devnet runs.
+2. **Play an arena,** with a friend or alone with a second QOR ID: open a match in the
    launcher's ARQADE, join it from ARQADE's website in a private window. The website wants a
    QOR ID with a password, which only QOR ID's API makes (HANDOFF §4 item 157 has the
    command). That is the one test I cannot run.
-2. **Back up the update key now.** From any folder, run
+3. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
-3. **For rewards in ARQADE:** decide **ADR-116** — *how a run is confirmed before it is
+4. **For rewards in ARQADE:** decide **ADR-116** — *how a run is confirmed before it is
    paid* — and set the reward pool's numbers (largest payout, budget per epoch, most per player).
-4. **Let a test agent ask you:** in `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run
+5. **Let a test agent ask you:** in `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run
    `cargo run --example agent_link` and press *Allow agent* (ticks L5.1).
-5. **Terms of Service and a privacy policy, with a lawyer,** and **the legal opinion** on
+6. **Terms of Service and a privacy policy, with a lawyer,** and **the legal opinion** on
    rewards, prizes and **KYC** — *identity checks* — before anything carries value.
-6. **The economic numbers** — *issuance, the genesis split, the decay curve, fee and burn
+7. **The economic numbers** — *issuance, the genesis split, the decay curve, fee and burn
    shares* (OPEN-1 to OPEN-4, U-4, U-11). Most of the Beta gate waits on them.
-7. **Code-signing certificates**, an **external security review**, and **names** for the
+8. **Code-signing certificates**, an **external security review**, and **names** for the
    indexer, the SDK and the **MCP server** — *how AI tools reach Demiurge*.
-8. **Still open, as HANDOFF §4.0 records:** godmode's 100,000,000 CGT (its address); Social's
+9. **Still open, as HANDOFF §4.0 records:** godmode's 100,000,000 CGT (its address); Social's
    report rules; the Android app on your phone; whether #46's gate change reads to you as
    loosening; Search Console and the GitHub preview image; the welcome-grant payer; Qt for CI;
    the email webhook; the key pasted on 5 October; `social-secrets.txt` on your Desktop and

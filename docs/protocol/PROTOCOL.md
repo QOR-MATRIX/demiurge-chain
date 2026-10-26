@@ -8,7 +8,7 @@ Section 13, the Mesh's hosting escrow, was added on **17 October 2026** at `spec
 since the owner's upgrade that day (read from `wss://rpc.qorsync.dev` on 23 October 2026). Section 12's progress
 records were added on **23 October 2026** at `spec_version` 10, which the devnet has run since the owner's upgrade
 that day (block #289,065, read back from `wss://rpc.qorsync.dev`). Section 12's rental was added on **26 October 2026**
-at `spec_version` 11, which is in the tree and **not yet on the devnet**: the devnet runs 10 until the owner's upgrade.
+at `spec_version` 11, which the devnet has run since the owner's upgrade that day (read back from `wss://rpc.qorsync.dev` the same day: `:code` 566,765 bytes, SHA-256 `7189a5b5…75f0`, the rehearsed file).
 Measurements on running nodes keep the dates they were made. Where the direction intends something the code does not
 yet do, it says so under "Not yet". Decisions behind these rules are in [`../DECISIONS.md`](../DECISIONS.md).
 
@@ -183,8 +183,8 @@ royalty terms and settles sales in CGT (ADR-061). `pallet-arq-wallet`, mounted a
 and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369::mint` gained its
 `derived_from` argument. No existing call's encoding changed on 1 or 2 October. `spec_version` 10, in the tree since
 23 October 2026 and on the devnet since the same day, adds progress records (ADR-113, below) as five new calls on `Drc369`; no
-existing call changed, so `transaction_version` stays 2. `spec_version` 11, in the tree since 26 October 2026 and not yet on
-the devnet, adds rental (ADR-119, below) as four new calls on `Drc369Royalties` (indices 5 to 8) and the runtime API
+existing call changed, so `transaction_version` stays 2. `spec_version` 11, in the tree since 26 October 2026 and on the
+devnet since the same day, adds rental (ADR-119, below) as four new calls on `Drc369Royalties` (indices 5 to 8) and the runtime API
 `Drc369RentalApi`; no existing call changed, so `transaction_version` stays 2.
 
 - **An asset is `(collection, item)`**, two `u32`s. Each creator has one **singles collection**, created by their first
@@ -336,8 +336,8 @@ the devnet, adds rental (ADR-119, below) as four new calls on `Drc369Royalties` 
   without the API.
 - **Royalty events:** `TermsSet`, `Listed`, `Unlisted` and `Sold { collection, item, from, to, price, source, remix,
   royalties, seller_received }`, where `remix` and `royalties` list each payment as `(account, amount)`.
-- **Renting an asset** (ADR-119, M4.3's rental; `spec_version` 11, in the tree since 26 October 2026, **not on the
-  devnet** until the owner's upgrade). A rental is a right to use for a number of blocks, not ownership: the holder
+- **Renting an asset** (ADR-119, M4.3's rental; `spec_version` 11, in the tree since 26 October 2026, and on the
+  devnet since the owner's upgrade the same day). A rental is a right to use for a number of blocks, not ownership: the holder
   keeps the asset, and until block `until` the renter is its **user**. Time is the block number (ADR-047 decision 13
   row 9).
   - **`offer_rental(collection, item, price_per_period, period, max_periods, renter)`**: only the holder. A price per
@@ -462,8 +462,8 @@ Each of these is a roadmap item, not an omission from this description.
 - **The rest of DRC-369**: physics, fractional ownership and burning (M4.2 to M4.5); and sponsorship and
   agent caps (M4.4, M5). Their pallets are named (ADR-032) and not written. Remix provenance and royalties exist since
   29 September 2026, nesting with cycles refused (R-2) since 1 October 2026, and state and XP, as records kept by an
-  asset's home game, since 23 October 2026 in the tree (ADR-113), and rental since 26 October 2026 in the tree
-  (ADR-119), not yet on the devnet; remix *rights* do not, nor extending a rental in place, nor records kept by games
+  asset's home game, since 23 October 2026 in the tree (ADR-113), and rental since 26 October 2026, in the tree
+  and on the devnet (ADR-119); remix *rights* do not, nor extending a rental in place, nor records kept by games
   other than the home game (ADR-113 decision 11, its second phase). Moving a parent together with what it holds does not exist either: a tree
   is held in place.
 - **Governance that can execute.** ADR-021's collective and then OpenGov. Until one exists, the governance

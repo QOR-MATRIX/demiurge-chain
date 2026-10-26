@@ -454,7 +454,7 @@ The core of the first release.
    holder offers an asset at a price per period of blocks (zero lends it), a renter pays up front, divided by `split` as
    a sale is so the creator's royalty is paid on rent, and until a block the renter is the asset's user while
    `pallet-drc369`'s `Locker` holds it in place. It ends by itself; the renter may hand it back early, the holder may
-   not. `spec_version` 11, which the devnet runs once the owner upgrades it. **Not yet:** fractional ownership, which
+   not. `spec_version` 11, which the devnet runs since the owner's upgrade of 26 October 2026, read back. **Not yet:** fractional ownership, which
    waits for the legal review; physics; the launcher's renting surface. The item stays unticked until all three thirds
    are built.
 4. [ ] Sponsored fees and deposits, so that a new creator can mint without holding CGT first (inventory
