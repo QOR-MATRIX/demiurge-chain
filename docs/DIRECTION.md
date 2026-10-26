@@ -2033,8 +2033,8 @@ here sets an economic value; payouts are U-16.
     below).
 
     **Then:** a `qor://arqade` link opens the launcher at ARQADE, at the game it names (ADR-118, built 25 October 2026,
-    HANDOFF §4 item 152), carried by launcher 0.1.17, published 25 October 2026 (item 155). **Built the same day, not
-    merged** (#103, item 156): each game's note offers **Play it in the QOR Launcher** beside the download, saying it
+    HANDOFF §4 item 152), carried by launcher 0.1.17, published 25 October 2026 (item 155). **Built the same day, merged
+    as #103 and live** (items 156 and 157): each game's note offers **Play it in the QOR Launcher** beside the download, saying it
     needs 0.1.17 or later; the phone check holds both links (19 checks).
 24. [x] The two multiplayer arenas rebuilt in QQ (ADR-102), on the ARQADE service. Depends on P7.19.
 

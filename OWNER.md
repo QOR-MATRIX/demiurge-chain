@@ -12,8 +12,8 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 The homepage at **qorsync.dev**; **Devnet** — *the test chain on servers* — on runtime 10,
 two peers; **QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** —
-*the gaming website*. **Launcher 0.1.17 is published**; the homepage links it once you
-merge **#102**, and offers 0.1.16 until then.
+*the gaming website*. **Launcher 0.1.17** is the homepage's download, and ARQADE's
+website offers each game in the launcher (#102 and #103, merged).
 
 ## This session
 
@@ -40,11 +40,11 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 
 ## What only you can do
 
-1. **Merge #102**, so the homepage offers 0.1.17; then **#103**, so each game on ARQADE's
-   website offers itself in the launcher, beside the download.
-2. **Take 0.1.17 through Update and restart** (ticks L6.2), then **play an arena with a
-   friend:** both sign in to the launcher, one opens a match in ARQADE, the other joins it.
-   That is the one test I cannot run.
+1. **Tell me whether 0.1.17 came through Update and restart** (that ticks L6.2).
+2. **Play an arena,** with a friend or alone with a second QOR ID: open a match in the
+   launcher's ARQADE, join it from ARQADE's website in a private window. The website wants a
+   QOR ID with a password, which only QOR ID's API makes (HANDOFF §4 item 157 has the
+   command). That is the one test I cannot run.
 3. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
@@ -64,8 +64,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    the email webhook; the key pasted on 5 October; `social-secrets.txt` on your Desktop and
    `archive-bZLIQp/` in the old checkout, each to keep or delete.
 
-**Next in engineering, built and waiting for you:** #103, ARQADE's website offering each game
-in the launcher now that 0.1.17 answers the link. At your word: filling the IRS's forms, certified
+**Next in engineering:** a way to make a QOR ID with a password without the API, if you
+want one. At your word: filling the IRS's forms, certified
 signatures (ADR-114), records kept by games other than an asset's home game (ADR-113), or
 rental and fractions (M4.3).
 
