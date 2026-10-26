@@ -735,8 +735,8 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 #### L6: Distribution (no chain dependency; before the public testnet)
 
 1. [ ] Signed installers for Windows, macOS and Linux.
-2. [ ] An update channel that verifies signatures before installing. **Built 22 October 2026 (ADR-111), merged with #77;
-   first carried by launcher 0.1.15, published the same day; 0.1.16, published 23 October, is the first release it offers, and 0.1.17, 25 October, the second** (HANDOFF §4 item 155). Ticked when a release reaches a tester's launcher through it.
+2. [x] An update channel that verifies signatures before installing. **Built 22 October 2026 (ADR-111), merged with #77;
+   first carried by launcher 0.1.15, published the same day; 0.1.16, published 23 October, is the first release it offers, and 0.1.17, 25 October, the second** (HANDOFF §4 item 155). **Ticked 26 October 2026:** the owner's launcher took 0.1.17 through *Update and restart* (the owner's word, HANDOFF §4 item 158).
    - **The channel:** one fixed address,
      `https://github.com/QOR-MATRIX/demiurge-chain/releases/download/launcher-channel/latest.json`, which the release
      script replaces at each release; each installer stays in its own pre-release.
