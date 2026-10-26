@@ -35,7 +35,9 @@ website offers each game in the launcher (#102 and #103, merged).
    an asset at a price per period, a renter pays up front and the creator's royalty is paid
    on rent, as on a sale; the asset is locked until the rental ends by itself. Four product
    choices are yours to reverse (**ADR-119** — *its decision record*). Then your **sudo key**
-   — *the devnet's admin key* — moves the devnet to it.
+   — *the devnet's admin key* — moves the devnet to it: the file is in your Downloads,
+   `demiurge-runtime-v11.compact.compressed.wasm`, rehearsed against the devnet's own runtime
+   (43 checks passed). Steps in HANDOFF §4 item 159.
 7. **You authorised full automation.** Claude Code's own safety check still refuses to merge
    without a person's review, so merges stay with you.
 

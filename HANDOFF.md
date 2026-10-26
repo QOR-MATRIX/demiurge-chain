@@ -4857,8 +4857,26 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        runtime ones; the comment saying the royalties mock has no `Locker` is corrected.
      - **Records:** ADR-119 indexed (119 ADRs), ADR-061's status notes the amendment, `PROTOCOL.md` §12 and its header,
        `chain/README.md`, `CGT.md`'s access gating, DIRECTION's M4.3 (unticked).
-     - **Not yet:** merged; the devnet upgrade to 11 with the owner's sudo key, after a rehearsal against its live
-       runtime as for 10 (item 133); the launcher's renting surface (offering, renting, returning, and a rented asset
+     - **Rehearsed against the devnet's own live runtime, and passed, 43 checks** (`chain/scripts/rehearse-upgrade.mjs`,
+       which gains rental checks). The devnet, read first over `https://rpc.qorsync.dev`: `demiurge` `spec_version` 10,
+       `transaction_version` 2, its `:code` 554,535 bytes with SHA-256 `6192023b…5dd5`, the file set on 23 October
+       (item 136). **The file:** `cargo build -p demiurge-node --release --features sudo --locked` at this branch's head,
+       `chain/Cargo.lock` untouched: `demiurge_runtime.compact.compressed.wasm`, **566,765 bytes, SHA-256
+       `7189a5b5747267271d984b0c8c7af4352bf18be8a252d6194d86dd178ce275f0`**, copied to the owner's Downloads as
+       `demiurge-runtime-v11.compact.compressed.wasm`. **The rehearsal:** a raw development specification whose genesis
+       `:code` is the devnet's live runtime 10, without the Mesh's genesis period and answer window (as the devnet has
+       none); one local validator; a transfer and a mint left behind on 10; then
+       `sudo.sudoUncheckedWeight(system.setCode(wasm))`. Every earlier check held (Sudo with the same key, the transfer
+       and the asset kept, an ARQ Wallet payout and a round, the Mesh at 600 and 100 blocks with an escrow opened and
+       closed, progress records), and the rental's: `Drc369RentalApi` at version 1, the asset minted on 10 offered and
+       rented for two periods of 3 CGT paid to its holder, the renter its user until a block, a transfer refused
+       (`nfts.ItemLocked`), a listing refused (`Rented`), the holder refused an early end (`NotRenter`), and the renter
+       handing it back. The client logged its two decode warnings for the upgrade block's events, as at every rehearsal
+       (item 44). **If #106 changes before it merges, the file is rebuilt and rehearsed again.**
+     - **Not yet:** merged; the devnet upgrade to 11 with the owner's sudo key and the file above, as for 10 (item 136):
+       in polkadot.js Apps on the devnet, `Developer → Sudo`, `sudo.sudoUncheckedWeight` with `system.setCode` (the field
+       reading `code`, item 88's trap), then `spec_version` 11 read back and `:code` matched to the hash; the launcher's
+       renting surface (offering, renting, returning, and a rented asset
        shown in the Inventory) and ARQADE's SDK reading `user_of`; fractional ownership, which waits for the legal
        review, and physics, so M4.3 stays unticked.
 
