@@ -19,6 +19,10 @@ pub trait WeightInfo {
     fn unlist() -> Weight;
     fn buy() -> Weight;
     fn buy_exact() -> Weight;
+    fn offer_rental() -> Weight;
+    fn withdraw_rental_offer() -> Weight;
+    fn rent() -> Weight;
+    fn end_rental() -> Weight;
 }
 
 /// The placeholder the runtime uses until M7.2.
@@ -60,6 +64,36 @@ impl<T: crate::Config> WeightInfo for PlaceholderWeight<T> {
     fn buy_exact() -> Weight {
         Self::buy()
     }
+
+    /// Reads the asset's record and its holder; writes the offer (ADR-119).
+    fn offer_rental() -> Weight {
+        T::DbWeight::get().reads_writes(2, 1)
+    }
+
+    /// Reads the offer and the holder; removes the offer.
+    fn withdraw_rental_offer() -> Weight {
+        T::DbWeight::get().reads_writes(2, 1)
+    }
+
+    /// The worst case, as `buy`'s: a remix whose source and itself both name the
+    /// most recipients. Reads the offer, the record, the holder, the listing, the
+    /// rental and both sets of terms; pays every recipient of both and the
+    /// holder, each payment reading and writing the payee's account and the
+    /// renter's; clears an ended rental and its index entry, and writes the new
+    /// rental and its index entry. Nothing is handed over.
+    fn rent() -> Weight {
+        let payees = u64::from(T::MaxRoyaltyRecipients::get())
+            .saturating_mul(2)
+            .saturating_add(1);
+        T::DbWeight::get()
+            .reads_writes(7, 4)
+            .saturating_add(T::DbWeight::get().reads_writes(2, 2).saturating_mul(payees))
+    }
+
+    /// Reads the rental; removes it and its index entry.
+    fn end_rental() -> Weight {
+        T::DbWeight::get().reads_writes(1, 2)
+    }
 }
 
 /// For tests.
@@ -77,6 +111,18 @@ impl WeightInfo for () {
         Weight::zero()
     }
     fn buy_exact() -> Weight {
+        Weight::zero()
+    }
+    fn offer_rental() -> Weight {
+        Weight::zero()
+    }
+    fn withdraw_rental_offer() -> Weight {
+        Weight::zero()
+    }
+    fn rent() -> Weight {
+        Weight::zero()
+    }
+    fn end_rental() -> Weight {
         Weight::zero()
     }
 }

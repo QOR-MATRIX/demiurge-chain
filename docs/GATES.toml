@@ -989,6 +989,12 @@ type = "tightening"
 change = "products/arqade/scripts/check-phone.mjs, which CI's arqade job runs (arqade.phone): its check 'it points to the QOR Launcher, by a link of 44 pixels or more', which read the first link of a game's launcher note, becomes two: 'it offers the game in the QOR Launcher, by a link of 44 pixels or more' (qor://arqade?play=orbital, ADR-118 decision 4) and 'and the launcher's download beside it, by a link of 44 pixels or more' (https://qorsync.dev/, held as before, now found by its address rather than by being first). 18 checks become 19."
 reason = "A tightening: the download is held to the same address and size as before, and the new link is held too; nothing is relaxed. It is found by its address because the play link now comes first. Proven to fail first: the play link hidden was planted and failed the new check (18 passed, 1 failed)."
 
+[[change_log]]
+date = "2026-10-26"
+type = "tightening"
+change = "M4.3's rental (ADR-119, spec_version 11). alpha.pallets requires twenty more tests, eighteen of pallet-drc369-royalties and two of pallet-drc369: rent paid up front and divided by split as a sale is, a remix's source first; a rental that ends by itself at its block; a rented asset held in place (not transferred, approved away, listed, revised, nested, or taken apart); never listed and rented at once; the holder unable to end a rental early and the renter able to, with no refund; an ended rental cleared by anyone and replaced in its renter's index; an offer to one account; the renter's limit and the content they saw; a void offer; well-formed offers; a loan that moves no CGT; a part that cannot be received refusing the whole; a rent too large or ending too late refused; the largest rent pinned at u128::MAX; the rent preview; and a renter's play still counting. alpha.asset-core-tests requires three runtime tests: the rental calls' indices and the filter, a rented asset unmovable in this runtime, and the runtime API. Its comment that the royalties pallet's mock has no Locker is corrected: it has mounted pallet-drc369 as its Locker since this change."
+reason = "A tightening: more required tests, nothing relaxed; no kind's met condition, evidence rule or threshold changed and no unit became unmeasurable. Proven to fail first, against fifteen planted faults, each failing at least one of these tests: the lock ignoring a rental, a rental that never ends, rent paid to the holder whole, the renter's limit unchecked, an offer to one account rented by anyone, a rented asset listed, a rented asset revised, the holder ending a rental early, a rent wrapped instead of refused, a listed asset rented, an ended rental left in the index, a part taken out of a rented whole, a rented asset's records held still, a revised asset rented anyway, and a rental lasting one period whatever was paid for."
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1293,6 +1299,28 @@ nothing holds value."""
     "records_stay_with_their_game_when_the_home_changes",
     "a_record_never_holds_an_asset_or_moves_currency",
     "an_issuer_is_a_tag_and_a_cartridge",
+    # M4.3's rental (ADR-119, spec_version 11): fifteen of its rules each shown to
+    # fail against a planted fault first (HANDOFF.md section 4 item 159).
+    "rent_pays_the_royalties_then_the_holder_and_makes_the_renter_its_user",
+    "rent_of_a_remix_pays_its_source_first",
+    "a_rental_ends_by_itself_at_its_block",
+    "a_rented_asset_is_held_in_place",
+    "nothing_inside_a_rented_asset_is_taken_out",
+    "listed_and_rented_never_at_once",
+    "the_holder_cannot_end_a_rental_early_and_the_renter_can_with_no_refund",
+    "anyone_clears_a_rental_that_has_ended",
+    "a_new_rental_after_one_ends_replaces_its_record",
+    "an_offer_to_one_account_is_rented_by_it_alone",
+    "a_renter_pays_no_more_than_they_agreed_for_the_work_they_saw",
+    "an_offer_is_void_once_its_maker_no_longer_holds_the_asset",
+    "offers_must_be_well_formed",
+    "a_loan_moves_no_cgt_and_holds_the_asset_as_a_rental_does",
+    "a_part_that_cannot_be_received_refuses_the_whole_rental",
+    "rent_too_large_to_count_or_ending_too_late_is_refused",
+    "the_largest_rent_cannot_overflow",
+    "a_rent_preview_names_the_parts_a_rental_then_pays_and_why_it_could_not",
+    "a_rented_asset_is_locked_and_cannot_be_revised_nested_or_taken_apart",
+    "a_renters_play_still_counts_on_a_rented_asset",
   ]
 
   [[gates.criteria]]
@@ -1377,9 +1405,14 @@ nothing holds value."""
     "a_nested_asset_cannot_be_transferred_in_this_runtime",
     "a_batch_cannot_move_a_nested_asset",
     "a_nested_asset_cannot_be_sold",
-    # The preview through the runtime API, nesting included: the pallet's mock
-    # has no Locker, so only this test catches a preview that ignores it.
+    # The preview through the runtime API, nesting included, against the
+    # runtime's own Locker (the pallet's mock has mounted one since ADR-119).
     "the_runtime_api_previews_what_a_sale_would_pay",
+    # A rented asset stays where it is in this runtime, and the rental calls and
+    # runtime API are the ones recorded (ADR-119).
+    "the_rental_calls_are_new_indices_and_pass_the_filter",
+    "a_rented_asset_cannot_be_moved_in_this_runtime",
+    "the_runtime_api_answers_who_uses_an_asset_and_what_renting_would_pay",
   ]
 
   [[gates.criteria]]

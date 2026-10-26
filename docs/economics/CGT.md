@@ -141,7 +141,9 @@ seeder's side.
 
 **Access gating.** Licenses, unlocks, remix rights and entitlements settle only in CGT. A player who
 wants the sword, a studio that wants the track, a creator who wants to remix a model: all of them need
-CGT at the moment of the transaction, and no other currency will do.
+CGT at the moment of the transaction, and no other currency will do. Renting an asset for a number of
+blocks (ADR-119) is the same entitlement bounded in time, and its rent pays the creator's royalty as a
+sale does.
 
 **Staking for distribution.** Creators stake CGT for reach and shelf space in Market and Nexus,
 instead of buying advertising. Visibility is a scarce resource, and it is allocated by committing the

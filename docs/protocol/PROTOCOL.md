@@ -7,7 +7,8 @@ minimum, genesis specifications, pallet indices, call filter, deposits, bounds, 
 Section 13, the Mesh's hosting escrow, was added on **17 October 2026** at `spec_version` 9, which the devnet has run
 since the owner's upgrade that day (read from `wss://rpc.qorsync.dev` on 23 October 2026). Section 12's progress
 records were added on **23 October 2026** at `spec_version` 10, which the devnet has run since the owner's upgrade
-that day (block #289,065, read back from `wss://rpc.qorsync.dev`).
+that day (block #289,065, read back from `wss://rpc.qorsync.dev`). Section 12's rental was added on **26 October 2026**
+at `spec_version` 11, which is in the tree and **not yet on the devnet**: the devnet runs 10 until the owner's upgrade.
 Measurements on running nodes keep the dates they were made. Where the direction intends something the code does not
 yet do, it says so under "Not yet". Decisions behind these rules are in [`../DECISIONS.md`](../DECISIONS.md).
 
@@ -171,7 +172,7 @@ is no faucet method (the devnet's faucet is an account, §9), no admin mint and 
 Devnet's public node runs with `--rpc-methods safe`, which refuses every method that changes the node. What the chain does, it does through signed
 transactions in blocks (D-008).
 
-## 12. Assets (DRC-369: M4.1, M4.2's royalties, nesting, state and XP, and R-2)
+## 12. Assets (DRC-369: M4.1, M4.2's royalties, nesting, state and XP, R-2, and M4.3's rental)
 
 `pallet-nfts` is the ownership ledger (ADR-025), mounted as `Nfts` at index 7. `pallet-drc369`, mounted as `Drc369` at
 index 8, makes an item a DRC-369 asset (ADR-047, ADR-052). `pallet-utility`, mounted as `Utility` at index 9, puts
@@ -182,7 +183,9 @@ royalty terms and settles sales in CGT (ADR-061). `pallet-arq-wallet`, mounted a
 and `unnest`); `transaction_version` is 2, since 29 September 2026, when `Drc369::mint` gained its
 `derived_from` argument. No existing call's encoding changed on 1 or 2 October. `spec_version` 10, in the tree since
 23 October 2026 and on the devnet since the same day, adds progress records (ADR-113, below) as five new calls on `Drc369`; no
-existing call changed, so `transaction_version` stays 2.
+existing call changed, so `transaction_version` stays 2. `spec_version` 11, in the tree since 26 October 2026 and not yet on
+the devnet, adds rental (ADR-119, below) as four new calls on `Drc369Royalties` (indices 5 to 8) and the runtime API
+`Drc369RentalApi`; no existing call changed, so `transaction_version` stays 2.
 
 - **An asset is `(collection, item)`**, two `u32`s. Each creator has one **singles collection**, created by their first
   mint; they own it, pay its deposit and administer it.
@@ -333,6 +336,44 @@ existing call changed, so `transaction_version` stays 2.
   without the API.
 - **Royalty events:** `TermsSet`, `Listed`, `Unlisted` and `Sold { collection, item, from, to, price, source, remix,
   royalties, seller_received }`, where `remix` and `royalties` list each payment as `(account, amount)`.
+- **Renting an asset** (ADR-119, M4.3's rental; `spec_version` 11, in the tree since 26 October 2026, **not on the
+  devnet** until the owner's upgrade). A rental is a right to use for a number of blocks, not ownership: the holder
+  keeps the asset, and until block `until` the renter is its **user**. Time is the block number (ADR-047 decision 13
+  row 9).
+  - **`offer_rental(collection, item, price_per_period, period, max_periods, renter)`**: only the holder. A price per
+    period in embers (zero lends it), a period of at least one block, at most `max_periods` periods (at least one),
+    and optionally the one account it is offered to, which cannot be the holder (`OwnAsset`). `period × max_periods`
+    must be a block number (`RentalTooLong`). One offer per asset; offering again replaces it. An offer does not lock
+    the asset, and it serves rental after rental.
+  - **`withdraw_rental_offer(collection, item)`**: whoever made it or the holder; or anyone, once its maker no longer
+    holds the asset and it is void. A rental already made runs on.
+  - **`rent(collection, item, periods, max_price, content)`**: refused if the asset is not offered (`NotOffered`), the
+    offer is void (`OfferStale`), the renter holds it (`OwnAsset`), it is offered to someone else (`NotOfferedToYou`),
+    it is rented now (`Rented`), it is listed for sale (`Listed`), its current content is not `content`
+    (`ContentChanged`), `periods` is none or more than the offer allows (`PeriodsOutOfRange`), the rent
+    `price_per_period × periods` would pass a `u128` (`RentTooLarge`, a checked multiplication), the rent is above
+    `max_price` (`PriceAboveLimit`), or `now + period × periods` would pass a block number (`RentalTooLong`). The rent
+    is paid up front, from the renter, divided exactly as a sale at that price (above): the source's remix share, the
+    asset's own royalties, the holder the rest. A part that cannot be received refuses the whole rental
+    (`PaymentCannotBeReceived`). The rental records `{ owner, renter, until = now + period × periods }`.
+  - **It ends by itself.** A rental lasts while the current block is below `until`; nothing is sent and nothing runs in
+    a hook. **`end_rental(collection, item)`**: before `until`, only the renter, ending it early with no refund
+    (`NotRenter` for anyone else, the holder included); from `until`, anyone, which clears its record. A later rental
+    of the same asset replaces an ended one's record.
+  - **Held in place while it lasts.** `Drc369`, as the ledger's `Locker`, answers that a rented asset is locked, so
+    `pallet-nfts` refuses every transfer of it (`ItemLocked`), bare, approved, batched or at the end of a sale.
+    `Drc369::revise` is refused (`Drc369::Rented`), and so are `nest` and `unnest` when either the asset or its parent
+    is rented. `list` is refused while it is rented (`Rented`). `make_permanent` and progress records are not: a record
+    never moves an asset, and a renter's play counts on it.
+  - **Events:** `RentalOffered { collection, item, owner, price_per_period, period, max_periods, renter }`,
+    `RentalOfferWithdrawn { collection, item, by }`, `Rented { collection, item, owner, renter, periods, until, price,
+    source, remix, royalties, owner_received }` and `RentalEnded { collection, item, renter, by, early }`.
+  - **Asking.** The runtime API **`Drc369RentalApi`**: `user_of(collection, item)` (the renter while a rental lasts,
+    else the holder), `rental_of` (while it lasts), `rental_offer_of`, `rentals_of(renter)` (each asset and its
+    `until`), and `rent_preview(collection, item, periods, renter)`, which answers as `sale_preview` does: the parts,
+    the whole rent, `until` if it began now, and `refusal`, run and rolled back with a renter, or what would stop every
+    renter without one. It moves nothing.
+  - No deposit of its own (U-14), no fee, no platform share.
 - **Weights are placeholders** (ADR-052 decision 8, ADR-061), owed to M7.2. No fee is charged anyway.
 
 ### ARQ Wallets (`pallet-arq-wallet`, ADR-070)
@@ -418,10 +459,11 @@ existing call changed, so `transaction_version` stays 2.
 Each of these is a roadmap item, not an omission from this description.
 
 - **Fees, issuance, burn and a treasury.** Nothing is charged or paid in CGT (OPEN-1 to OPEN-4, M6).
-- **The rest of DRC-369**: physics, rental, fractional ownership and burning (M4.2 to M4.5); and sponsorship and
+- **The rest of DRC-369**: physics, fractional ownership and burning (M4.2 to M4.5); and sponsorship and
   agent caps (M4.4, M5). Their pallets are named (ADR-032) and not written. Remix provenance and royalties exist since
   29 September 2026, nesting with cycles refused (R-2) since 1 October 2026, and state and XP, as records kept by an
-  asset's home game, since 23 October 2026 in the tree (ADR-113); remix *rights* do not, nor records kept by games
+  asset's home game, since 23 October 2026 in the tree (ADR-113), and rental since 26 October 2026 in the tree
+  (ADR-119), not yet on the devnet; remix *rights* do not, nor extending a rental in place, nor records kept by games
   other than the home game (ADR-113 decision 11, its second phase). Moving a parent together with what it holds does not exist either: a tree
   is held in place.
 - **Governance that can execute.** ADR-021's collective and then OpenGov. Until one exists, the governance

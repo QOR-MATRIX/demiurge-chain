@@ -1074,3 +1074,201 @@ fn the_runtime_api_previews_what_a_sale_would_pay() {
         assert_eq!(balances(), before);
     });
 }
+
+// ---------------------------------------------------------------------------
+// Renting (ADR-119)
+// ---------------------------------------------------------------------------
+
+fn offer_rental_of(
+    item: u32,
+    price_per_period: Balance,
+    period: u32,
+    max_periods: u32,
+) -> RuntimeCall {
+    RuntimeCall::Drc369Royalties(pallet_drc369_royalties::Call::offer_rental {
+        collection: 0,
+        item,
+        price_per_period,
+        period,
+        max_periods,
+        renter: None,
+    })
+}
+
+fn rent_of(item: u32, periods: u32, max_price: Balance) -> RuntimeCall {
+    RuntimeCall::Drc369Royalties(pallet_drc369_royalties::Call::rent {
+        collection: 0,
+        item,
+        periods,
+        max_price,
+        content: content(1),
+    })
+}
+
+/// The rental calls are new indices in pallet 10, after `buy_exact`, and pass
+/// the filter; `buy` keeps its encoding (pinned above).
+#[test]
+fn the_rental_calls_are_new_indices_and_pass_the_filter() {
+    let calls = [
+        offer_rental_of(2, 3, 4, 5),
+        RuntimeCall::Drc369Royalties(pallet_drc369_royalties::Call::withdraw_rental_offer {
+            collection: 1,
+            item: 2,
+        }),
+        rent_of(2, 3, 4),
+        RuntimeCall::Drc369Royalties(pallet_drc369_royalties::Call::end_rental {
+            collection: 1,
+            item: 2,
+        }),
+    ];
+    for (call, index) in calls.iter().zip(5u8..) {
+        assert_eq!(&call.encode()[..2], &[10u8, index]);
+        assert!(AssetCallFilter::contains(call));
+    }
+    assert_eq!(VERSION.spec_version, 11);
+    assert_eq!(VERSION.transaction_version, 2);
+}
+
+/// While rented, an asset does not move in this runtime by any route: a bare
+/// transfer, an approved account, a batch or a sale. When the rental runs out,
+/// with nothing sent, it moves again.
+#[test]
+fn a_rented_asset_cannot_be_moved_in_this_runtime() {
+    let alice = account(1);
+    let bob = account(2);
+    let carol = account(3);
+    chain_with(vec![
+        (alice.clone(), 10_000 * CGT),
+        (bob.clone(), 10_000 * CGT),
+        (carol.clone(), 10_000 * CGT),
+    ])
+    .execute_with(|| {
+        mint(&alice, b"car");
+        assert_ok!(Nfts::approve_transfer(
+            RuntimeOrigin::signed(alice.clone()),
+            0,
+            0,
+            MultiAddress::Id(carol.clone()),
+            None
+        ));
+        assert_ok!(
+            offer_rental_of(0, 10 * CGT, 100, 2).dispatch(RuntimeOrigin::signed(alice.clone()))
+        );
+        assert_ok!(rent_of(0, 1, 10 * CGT).dispatch(RuntimeOrigin::signed(bob.clone())));
+        assert_eq!(Balances::free_balance(&bob), 9_990 * CGT);
+
+        let locked: sp_runtime::DispatchError = pallet_nfts::Error::<Runtime>::ItemLocked.into();
+        assert_eq!(refusal(transfer_of(0, &carol), &alice), locked);
+        assert_eq!(refusal(transfer_of(0, &carol), &carol), locked);
+        assert_eq!(
+            refusal(
+                RuntimeCall::Utility(pallet_utility::Call::batch_all {
+                    calls: vec![transfer_of(0, &carol)]
+                }),
+                &alice
+            ),
+            locked
+        );
+        assert_eq!(
+            refusal(
+                RuntimeCall::Drc369Royalties(pallet_drc369_royalties::Call::list {
+                    collection: 0,
+                    item: 0,
+                    price: CGT,
+                }),
+                &alice
+            ),
+            pallet_drc369_royalties::Error::<Runtime>::Rented.into()
+        );
+        assert_eq!(Nfts::owner(0, 0), Some(alice.clone()));
+
+        // Rented at block 1 for a hundred blocks.
+        System::set_block_number(101);
+        assert_ok!(transfer_of(0, &carol).dispatch(RuntimeOrigin::signed(alice.clone())));
+        assert_eq!(Nfts::owner(0, 0), Some(carol));
+    });
+}
+
+#[test]
+fn the_runtime_api_answers_who_uses_an_asset_and_what_renting_would_pay() {
+    use pallet_drc369_royalties::runtime_api::runtime_decl_for_drc_369_rental_api::Drc369RentalApiV1;
+    let alice = account(1);
+    let bob = account(2);
+    let dave = account(4);
+    chain_with(vec![
+        (alice.clone(), 10_000 * CGT),
+        (bob.clone(), 10_000 * CGT),
+        (dave.clone(), 10_000 * CGT),
+    ])
+    .execute_with(|| {
+        assert_eq!(
+            <Runtime as Drc369RentalApiV1<Block, AccountId, u32>>::user_of(0, 0),
+            None
+        );
+        mint(&alice, b"stem");
+        assert_ok!(Drc369Royalties::set_terms(
+            RuntimeOrigin::signed(alice.clone()),
+            0,
+            0,
+            vec![(dave.clone(), sp_runtime::Permill::from_percent(10))]
+                .try_into()
+                .unwrap(),
+            sp_runtime::Permill::zero(),
+        ));
+        let user = || <Runtime as Drc369RentalApiV1<Block, AccountId, u32>>::user_of(0, 0);
+        let preview = |periods: u32, renter: Option<&AccountId>| {
+            <Runtime as Drc369RentalApiV1<Block, AccountId, u32>>::rent_preview(
+                0,
+                0,
+                periods,
+                renter.cloned(),
+            )
+        };
+        assert_eq!(user(), Some(alice.clone()));
+        assert_eq!(preview(1, None), None);
+
+        assert_ok!(
+            offer_rental_of(0, 50 * CGT, 600, 3).dispatch(RuntimeOrigin::signed(alice.clone()))
+        );
+        assert_eq!(
+            <Runtime as Drc369RentalApiV1<Block, AccountId, u32>>::rental_offer_of(0, 0)
+                .map(|offer| (offer.price_per_period, offer.period, offer.max_periods)),
+            Some((50 * CGT, 600, 3))
+        );
+        let before = [&alice, &bob, &dave].map(Balances::free_balance);
+        for renter in [None, Some(&bob)] {
+            let answer = preview(2, renter).expect("the asset is offered");
+            assert_eq!(answer.price, 100 * CGT);
+            assert_eq!(answer.royalties, vec![(dave.clone(), 10 * CGT)]);
+            assert_eq!(answer.owner, alice);
+            assert_eq!(answer.owner_receives, 90 * CGT);
+            assert_eq!(answer.until, 1_201);
+            assert_eq!(answer.refusal, None);
+        }
+        assert_eq!([&alice, &bob, &dave].map(Balances::free_balance), before);
+        assert_eq!(
+            preview(2, Some(&alice)).unwrap().refusal,
+            Some(pallet_drc369_royalties::Error::<Runtime>::OwnAsset.into())
+        );
+
+        assert_ok!(rent_of(0, 2, 100 * CGT).dispatch(RuntimeOrigin::signed(bob.clone())));
+        assert_eq!(user(), Some(bob.clone()));
+        assert_eq!(
+            <Runtime as Drc369RentalApiV1<Block, AccountId, u32>>::rental_of(0, 0)
+                .map(|rental| (rental.renter, rental.until)),
+            Some((bob.clone(), 1_201))
+        );
+        assert_eq!(
+            <Runtime as Drc369RentalApiV1<Block, AccountId, u32>>::rentals_of(bob.clone()),
+            vec![((0, 0), 1_201)]
+        );
+
+        System::set_block_number(1_201);
+        assert_eq!(user(), Some(alice));
+        assert_eq!(
+            <Runtime as Drc369RentalApiV1<Block, AccountId, u32>>::rental_of(0, 0),
+            None
+        );
+        assert!(<Runtime as Drc369RentalApiV1<Block, AccountId, u32>>::rentals_of(bob).is_empty());
+    });
+}

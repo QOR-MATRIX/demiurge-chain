@@ -947,3 +947,596 @@ fn a_preview_at_the_largest_price_cannot_overflow() {
         }
     });
 }
+
+// ---------------------------------------------------------------------------
+// Renting (ADR-119)
+// ---------------------------------------------------------------------------
+
+/// Offer `asset` from `who` at `price` a period of `period` blocks, for at most
+/// `max` periods, to anyone.
+fn offer(
+    who: u8,
+    asset: (CollectionId, ItemId),
+    price: Balance,
+    period: u64,
+    max: u32,
+) -> DispatchResult {
+    Royalties::offer_rental(signed(who), asset.0, asset.1, price, period, max, None)
+}
+
+/// Rent `asset` for `periods`, agreeing to pay up to `max_price` for the content
+/// minted from `seed`.
+fn rent(
+    who: u8,
+    asset: (CollectionId, ItemId),
+    periods: u32,
+    max_price: Balance,
+    seed: u8,
+) -> DispatchResult {
+    Royalties::rent(
+        signed(who),
+        asset.0,
+        asset.1,
+        periods,
+        max_price,
+        content(seed),
+    )
+}
+
+fn transfer(who: u8, asset: (CollectionId, ItemId), to: u8) -> DispatchResult {
+    Nfts::transfer(signed(who), asset.0, asset.1, account(to))
+}
+
+#[test]
+fn rent_pays_the_royalties_then_the_holder_and_makes_the_renter_its_user() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        assert_ok!(set_terms(
+            ALICE,
+            work,
+            &[(DAVE, percent(10))],
+            Permill::zero()
+        ));
+        assert_ok!(offer(ALICE, work, 100, 10, 5));
+        assert_eq!(
+            Royalties::rental_offer(work.0, work.1),
+            Some(RentalOffer {
+                owner: account(ALICE),
+                price_per_period: 100,
+                period: 10,
+                max_periods: 5,
+                renter: None,
+            })
+        );
+
+        let before = snapshot(&[ALICE, CAROL, DAVE]);
+        assert_ok!(rent(CAROL, work, 3, 300, 1));
+
+        // Three periods of 100: Dave's 10% is paid on rent as on a sale, and the
+        // holder receives the rest. The asset does not move.
+        assert_eq!(
+            changes(&before),
+            vec![(ALICE, 270), (CAROL, -300), (DAVE, 30)]
+        );
+        assert_eq!(holder(work), Some(account(ALICE)));
+        assert_eq!(Royalties::user_of(work.0, work.1), Some(account(CAROL)));
+        assert!(Royalties::is_rented(work.0, work.1));
+        // Rented at block 1 for thirty blocks.
+        assert_eq!(
+            Royalties::rental(work.0, work.1),
+            Some(Rental {
+                owner: account(ALICE),
+                renter: account(CAROL),
+                until: 31,
+            })
+        );
+        assert_eq!(Royalties::rentals_of(&account(CAROL)), vec![(work, 31)]);
+        assert_eq!(
+            events().last(),
+            Some(&Event::Rented {
+                collection: work.0,
+                item: work.1,
+                owner: account(ALICE),
+                renter: account(CAROL),
+                periods: 3,
+                until: 31,
+                price: 300,
+                source: None,
+                remix: vec![],
+                royalties: vec![(account(DAVE), 30)],
+                owner_received: 270,
+            })
+        );
+        // The offer stays, to serve the next rental.
+        assert!(Royalties::rental_offer(work.0, work.1).is_some());
+    });
+}
+
+#[test]
+fn rent_of_a_remix_pays_its_source_first() {
+    new_test_ext().execute_with(|| {
+        // Alice's original: 30% to Alice and 10% to Dave, and a 20% remix share.
+        // Bob's remix: 50% to Bob.
+        let (_, remix) = a_remix_with_terms();
+        assert_ok!(offer(BOB, remix, 1_000, 5, 1));
+        let before = snapshot(&[ALICE, BOB, CAROL, DAVE]);
+        assert_ok!(rent(CAROL, remix, 1, 1_000, 2));
+        // The pool is 200, divided three to one; Bob's 50% of the 800 left is
+        // 400, and Bob as holder receives the other 400.
+        assert_eq!(
+            changes(&before),
+            vec![(ALICE, 150), (BOB, 800), (CAROL, -1_000), (DAVE, 50)]
+        );
+    });
+}
+
+#[test]
+fn a_rental_ends_by_itself_at_its_block() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        assert_ok!(offer(ALICE, work, 100, 10, 2));
+        assert_ok!(rent(CAROL, work, 1, 100, 1));
+
+        System::set_block_number(10);
+        assert!(Royalties::is_rented(work.0, work.1));
+        assert_eq!(Royalties::user_of(work.0, work.1), Some(account(CAROL)));
+        assert_noop!(
+            transfer(ALICE, work, BOB),
+            pallet_nfts::Error::<Test>::ItemLocked
+        );
+
+        // Rented at block 1 for ten blocks: over at block 11, with nothing sent.
+        System::set_block_number(11);
+        assert!(!Royalties::is_rented(work.0, work.1));
+        assert_eq!(Royalties::rental(work.0, work.1), None);
+        assert_eq!(Royalties::user_of(work.0, work.1), Some(account(ALICE)));
+        assert_eq!(Royalties::rentals_of(&account(CAROL)), vec![]);
+        assert_ok!(transfer(ALICE, work, BOB));
+        assert_eq!(Royalties::user_of(work.0, work.1), Some(account(BOB)));
+    });
+}
+
+#[test]
+fn a_rented_asset_is_held_in_place() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        let other = mint(ALICE, 2, None);
+        assert_ok!(offer(ALICE, work, 100, 10, 1));
+        assert_ok!(rent(CAROL, work, 1, 100, 1));
+
+        // Not moved, by a transfer or by anyone Alice approved.
+        assert_noop!(
+            transfer(ALICE, work, BOB),
+            pallet_nfts::Error::<Test>::ItemLocked
+        );
+        assert_ok!(Nfts::approve_transfer(
+            signed(ALICE),
+            work.0,
+            work.1,
+            account(BOB),
+            None
+        ));
+        assert_noop!(
+            transfer(BOB, work, BOB),
+            pallet_nfts::Error::<Test>::ItemLocked
+        );
+        // Not sold.
+        assert_noop!(
+            Royalties::list(signed(ALICE), work.0, work.1, 1_000),
+            Error::<Test>::Rented
+        );
+        // Not changed: what the renter rented is what they have.
+        assert_noop!(
+            Drc369::revise(signed(ALICE), work.0, work.1, content(9), None),
+            pallet_drc369::Error::<Test>::Rented
+        );
+        assert_noop!(
+            Drc369::nest(signed(ALICE), work.0, work.1, other),
+            pallet_drc369::Error::<Test>::Rented
+        );
+        assert_noop!(
+            Drc369::nest(signed(ALICE), other.0, other.1, work),
+            pallet_drc369::Error::<Test>::Rented
+        );
+        // Not rented twice.
+        assert_noop!(rent(BOB, work, 1, 100, 1), Error::<Test>::Rented);
+
+        // Once it ends, all of it is the holder's again.
+        System::set_block_number(11);
+        assert_ok!(Drc369::nest(signed(ALICE), other.0, other.1, work));
+        assert_ok!(Drc369::unnest(signed(ALICE), other.0, other.1));
+        assert_ok!(Drc369::revise(
+            signed(ALICE),
+            work.0,
+            work.1,
+            content(9),
+            None
+        ));
+        assert_ok!(Royalties::list(signed(ALICE), work.0, work.1, 1_000));
+    });
+}
+
+#[test]
+fn nothing_inside_a_rented_asset_is_taken_out() {
+    new_test_ext().execute_with(|| {
+        let car = mint(ALICE, 1, None);
+        let engine = mint(ALICE, 2, None);
+        assert_ok!(Drc369::nest(signed(ALICE), engine.0, engine.1, car));
+        assert_ok!(offer(ALICE, car, 0, 10, 1));
+        assert_ok!(rent(CAROL, car, 1, 0, 1));
+        assert_noop!(
+            Drc369::unnest(signed(ALICE), engine.0, engine.1),
+            pallet_drc369::Error::<Test>::Rented
+        );
+        System::set_block_number(11);
+        assert_ok!(Drc369::unnest(signed(ALICE), engine.0, engine.1));
+    });
+}
+
+#[test]
+fn listed_and_rented_never_at_once() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        // An offer and a listing may stand together.
+        assert_ok!(offer(ALICE, work, 100, 10, 1));
+        assert_ok!(Royalties::list(signed(ALICE), work.0, work.1, 1_000));
+        assert_noop!(rent(CAROL, work, 1, 100, 1), Error::<Test>::Listed);
+
+        assert_ok!(Royalties::unlist(signed(ALICE), work.0, work.1));
+        assert_ok!(rent(CAROL, work, 1, 100, 1));
+        assert_noop!(
+            Royalties::list(signed(ALICE), work.0, work.1, 1_000),
+            Error::<Test>::Rented
+        );
+    });
+}
+
+#[test]
+fn the_holder_cannot_end_a_rental_early_and_the_renter_can_with_no_refund() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        assert_ok!(offer(ALICE, work, 100, 10, 3));
+        assert_ok!(rent(CAROL, work, 3, 300, 1));
+
+        assert_noop!(
+            Royalties::end_rental(signed(ALICE), work.0, work.1),
+            Error::<Test>::NotRenter
+        );
+        assert_noop!(
+            Royalties::end_rental(signed(BOB), work.0, work.1),
+            Error::<Test>::NotRenter
+        );
+
+        let before = snapshot(&[ALICE, CAROL]);
+        assert_ok!(Royalties::end_rental(signed(CAROL), work.0, work.1));
+        assert_eq!(changes(&before), vec![(ALICE, 0), (CAROL, 0)]);
+        assert!(!Royalties::is_rented(work.0, work.1));
+        assert_eq!(Royalties::rentals_of(&account(CAROL)), vec![]);
+        assert_eq!(
+            events().last(),
+            Some(&Event::RentalEnded {
+                collection: work.0,
+                item: work.1,
+                renter: account(CAROL),
+                by: account(CAROL),
+                early: true,
+            })
+        );
+        assert_ok!(transfer(ALICE, work, BOB));
+        assert_noop!(
+            Royalties::end_rental(signed(CAROL), work.0, work.1),
+            Error::<Test>::NotRented
+        );
+    });
+}
+
+#[test]
+fn anyone_clears_a_rental_that_has_ended() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        assert_ok!(offer(ALICE, work, 100, 10, 1));
+        assert_ok!(rent(CAROL, work, 1, 100, 1));
+        System::set_block_number(11);
+        assert_ok!(Royalties::end_rental(signed(DAVE), work.0, work.1));
+        assert_eq!(Rentals::<Test>::get(work.0, work.1), None);
+        assert!(!RentalsOf::<Test>::contains_key(account(CAROL), work));
+        assert_eq!(
+            events().last(),
+            Some(&Event::RentalEnded {
+                collection: work.0,
+                item: work.1,
+                renter: account(CAROL),
+                by: account(DAVE),
+                early: false,
+            })
+        );
+    });
+}
+
+#[test]
+fn a_new_rental_after_one_ends_replaces_its_record() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        assert_ok!(offer(ALICE, work, 100, 10, 1));
+        assert_ok!(rent(CAROL, work, 1, 100, 1));
+        System::set_block_number(11);
+        assert_ok!(rent(BOB, work, 1, 100, 1));
+        assert_eq!(Royalties::user_of(work.0, work.1), Some(account(BOB)));
+        assert_eq!(Royalties::rentals_of(&account(BOB)), vec![(work, 21)]);
+        // Carol's ended rental leaves nothing behind in the index.
+        assert!(!RentalsOf::<Test>::contains_key(account(CAROL), work));
+    });
+}
+
+#[test]
+fn an_offer_to_one_account_is_rented_by_it_alone() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        assert_ok!(Royalties::offer_rental(
+            signed(ALICE),
+            work.0,
+            work.1,
+            100,
+            10,
+            1,
+            Some(account(CAROL))
+        ));
+        assert_noop!(rent(BOB, work, 1, 100, 1), Error::<Test>::NotOfferedToYou);
+        assert_ok!(rent(CAROL, work, 1, 100, 1));
+    });
+}
+
+#[test]
+fn a_renter_pays_no_more_than_they_agreed_for_the_work_they_saw() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        assert_ok!(offer(ALICE, work, 100, 10, 3));
+        assert_noop!(rent(CAROL, work, 3, 299, 1), Error::<Test>::PriceAboveLimit);
+        assert_noop!(
+            rent(CAROL, work, 0, 300, 1),
+            Error::<Test>::PeriodsOutOfRange
+        );
+        assert_noop!(
+            rent(CAROL, work, 4, 400, 1),
+            Error::<Test>::PeriodsOutOfRange
+        );
+        // Revised after Carol looked: refused whole.
+        assert_ok!(Drc369::revise(
+            signed(ALICE),
+            work.0,
+            work.1,
+            content(9),
+            None
+        ));
+        assert_noop!(rent(CAROL, work, 1, 100, 1), Error::<Test>::ContentChanged);
+        assert_ok!(rent(CAROL, work, 1, 100, 9));
+        // The holder cannot rent their own asset.
+        let mine = mint(BOB, 2, None);
+        assert_ok!(offer(BOB, mine, 100, 10, 1));
+        assert_noop!(rent(BOB, mine, 1, 100, 2), Error::<Test>::OwnAsset);
+    });
+}
+
+#[test]
+fn an_offer_is_void_once_its_maker_no_longer_holds_the_asset() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        assert_ok!(offer(ALICE, work, 100, 10, 1));
+        // A live offer is withdrawn by its maker or the holder, nobody else.
+        assert_noop!(
+            Royalties::withdraw_rental_offer(signed(BOB), work.0, work.1),
+            Error::<Test>::NotOwner
+        );
+        assert_ok!(transfer(ALICE, work, BOB));
+        assert_noop!(rent(CAROL, work, 1, 100, 1), Error::<Test>::OfferStale);
+        // Void, it is anyone's to clear.
+        assert_ok!(Royalties::withdraw_rental_offer(
+            signed(DAVE),
+            work.0,
+            work.1
+        ));
+        assert_eq!(Royalties::rental_offer(work.0, work.1), None);
+        assert_noop!(rent(CAROL, work, 1, 100, 1), Error::<Test>::NotOffered);
+    });
+}
+
+#[test]
+fn offers_must_be_well_formed() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        assert_noop!(offer(BOB, work, 100, 10, 1), Error::<Test>::NotOwner);
+        assert_noop!(
+            offer(ALICE, (99, 0), 100, 10, 1),
+            Error::<Test>::UnknownAsset
+        );
+        assert_noop!(offer(ALICE, work, 100, 0, 1), Error::<Test>::NoPeriods);
+        assert_noop!(offer(ALICE, work, 100, 10, 0), Error::<Test>::NoPeriods);
+        assert_noop!(
+            offer(ALICE, work, 100, u64::MAX, 2),
+            Error::<Test>::RentalTooLong
+        );
+        assert_noop!(
+            Royalties::offer_rental(
+                signed(ALICE),
+                work.0,
+                work.1,
+                100,
+                10,
+                1,
+                Some(account(ALICE))
+            ),
+            Error::<Test>::OwnAsset
+        );
+    });
+}
+
+#[test]
+fn a_loan_moves_no_cgt_and_holds_the_asset_as_a_rental_does() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        assert_ok!(set_terms(
+            ALICE,
+            work,
+            &[(DAVE, percent(10))],
+            Permill::zero()
+        ));
+        assert_ok!(offer(ALICE, work, 0, 100, 1));
+        let before = snapshot(&[ALICE, CAROL, DAVE]);
+        assert_ok!(rent(CAROL, work, 1, 0, 1));
+        assert_eq!(changes(&before), vec![(ALICE, 0), (CAROL, 0), (DAVE, 0)]);
+        assert_eq!(Royalties::user_of(work.0, work.1), Some(account(CAROL)));
+        assert_noop!(
+            Royalties::end_rental(signed(ALICE), work.0, work.1),
+            Error::<Test>::NotRenter
+        );
+    });
+}
+
+#[test]
+fn a_part_that_cannot_be_received_refuses_the_whole_rental() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        // 1% of 500 is 5, below the existential deposit of 10.
+        assert_ok!(set_terms(
+            ALICE,
+            work,
+            &[(NOBODY, percent(1))],
+            Permill::zero()
+        ));
+        assert_ok!(offer(ALICE, work, 500, 10, 2));
+        assert_noop!(
+            rent(CAROL, work, 1, 500, 1),
+            Error::<Test>::PaymentCannotBeReceived
+        );
+        assert!(!Royalties::is_rented(work.0, work.1));
+        // Two periods make the part 10, enough to open the account.
+        assert_ok!(rent(CAROL, work, 2, 1_000, 1));
+        assert_eq!(free(NOBODY), EXISTENTIAL_DEPOSIT);
+    });
+}
+
+#[test]
+fn rent_too_large_to_count_or_ending_too_late_is_refused() {
+    new_test_ext().execute_with(|| {
+        let work = mint(ALICE, 1, None);
+        assert_ok!(offer(ALICE, work, u128::MAX, 10, 2));
+        assert_noop!(
+            rent(CAROL, work, 2, u128::MAX, 1),
+            Error::<Test>::RentTooLarge
+        );
+
+        let late = mint(ALICE, 2, None);
+        assert_ok!(offer(ALICE, late, 1, u64::MAX / 2, 2));
+        System::set_block_number(u64::MAX / 2);
+        assert_noop!(rent(CAROL, late, 2, 2, 2), Error::<Test>::RentalTooLong);
+    });
+}
+
+#[test]
+fn the_largest_rent_cannot_overflow() {
+    new_test_ext().execute_with(|| {
+        // A whole-price remix share, a whole-price royalty, and the largest rent:
+        // the intermediate `split` forms is pinned at `u128::MAX` here as for a
+        // sale, and the multiplication by the periods is checked (ADR-035).
+        let original = mint(ALICE, 1, None);
+        assert_ok!(set_terms(
+            ALICE,
+            original,
+            &[(ALICE, ppm(999_999)), (DAVE, ppm(1))],
+            Permill::one()
+        ));
+        let remix = mint(BOB, 2, Some(original));
+        assert_ok!(set_terms(
+            BOB,
+            remix,
+            &[(DAVE, Permill::one())],
+            Permill::zero()
+        ));
+        assert_ok!(offer(BOB, remix, u128::MAX, 10, 1));
+
+        let preview = Royalties::rent_preview(remix.0, remix.1, 1, None).unwrap();
+        assert_eq!(preview.price, u128::MAX);
+        let total = preview
+            .remix
+            .iter()
+            .chain(preview.royalties.iter())
+            .map(|(_, amount)| *amount)
+            .sum::<u128>()
+            + preview.owner_receives;
+        assert_eq!(total, u128::MAX);
+
+        // Tried for Carol, it is refused in the rental's own words and moves
+        // nothing.
+        let before = snapshot(&[ALICE, BOB, CAROL, DAVE]);
+        let tried = Royalties::rent_preview(remix.0, remix.1, 1, Some(account(CAROL)))
+            .unwrap()
+            .refusal;
+        let rental = rent(CAROL, remix, 1, u128::MAX, 2);
+        assert!(tried.is_some());
+        assert_eq!(tried, rental.err());
+        assert_eq!(
+            changes(&before),
+            vec![(ALICE, 0), (BOB, 0), (CAROL, 0), (DAVE, 0)]
+        );
+    });
+}
+
+#[test]
+fn a_rent_preview_names_the_parts_a_rental_then_pays_and_why_it_could_not() {
+    new_test_ext().execute_with(|| {
+        let (_, remix) = a_remix_with_terms();
+        assert_eq!(Royalties::rent_preview(remix.0, remix.1, 1, None), None);
+        assert_ok!(offer(BOB, remix, 1_000, 5, 2));
+
+        let preview = Royalties::rent_preview(remix.0, remix.1, 2, None).unwrap();
+        assert_eq!(preview.price, 2_000);
+        assert_eq!(preview.until, 11);
+        assert_eq!(preview.owner, account(BOB));
+        assert_eq!(preview.refusal, None);
+
+        // With a renter, it is the transaction run and undone.
+        let before = snapshot(&[ALICE, BOB, CAROL, DAVE]);
+        let tried = Royalties::rent_preview(remix.0, remix.1, 2, Some(account(CAROL))).unwrap();
+        assert_eq!(tried.refusal, None);
+        assert_eq!(
+            changes(&before),
+            vec![(ALICE, 0), (BOB, 0), (CAROL, 0), (DAVE, 0)]
+        );
+        assert!(!Royalties::is_rented(remix.0, remix.1));
+
+        assert_ok!(rent(CAROL, remix, 2, 2_000, 2));
+        assert_eq!(
+            changes(&before),
+            vec![
+                (ALICE, preview.remix[0].1 as i128),
+                (
+                    BOB,
+                    (preview.royalties[0].1 + preview.owner_receives) as i128
+                ),
+                (CAROL, -2_000),
+                (DAVE, preview.remix[1].1 as i128)
+            ]
+        );
+
+        // Rented now: every renter would be refused, and says so.
+        assert_eq!(
+            Royalties::rent_preview(remix.0, remix.1, 1, None)
+                .unwrap()
+                .refusal,
+            Some(Error::<Test>::Rented.into())
+        );
+        assert_eq!(
+            Royalties::rent_preview(remix.0, remix.1, 3, None)
+                .unwrap()
+                .refusal,
+            Some(Error::<Test>::Rented.into())
+        );
+        System::set_block_number(11);
+        assert_eq!(
+            Royalties::rent_preview(remix.0, remix.1, 3, None)
+                .unwrap()
+                .refusal,
+            Some(Error::<Test>::PeriodsOutOfRange.into())
+        );
+    });
+}

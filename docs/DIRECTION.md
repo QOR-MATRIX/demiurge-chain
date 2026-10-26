@@ -449,6 +449,14 @@ The core of the first release.
    so a nested asset and the asset holding it cannot be transferred, sold or burned until taken out. `spec_version`
    is 5.
 3. [ ] Rental, fractional ownership and fixed-point physics.
+
+   **Rental built 26 October 2026, not merged** (ADR-119, the owner's choice of next work; HANDOFF §4 item 159): a
+   holder offers an asset at a price per period of blocks (zero lends it), a renter pays up front, divided by `split` as
+   a sale is so the creator's royalty is paid on rent, and until a block the renter is the asset's user while
+   `pallet-drc369`'s `Locker` holds it in place. It ends by itself; the renter may hand it back early, the holder may
+   not. `spec_version` 11, which the devnet runs once the owner upgrades it. **Not yet:** fractional ownership, which
+   waits for the legal review; physics; the launcher's renting surface. The item stays unticked until all three thirds
+   are built.
 4. [ ] Sponsored fees and deposits, so that a new creator can mint without holding CGT first (inventory
    F-Q1, F-D7).
 5. [x] **The DRC-369 acceptance tests, and requirement R-2**: state and XP, nesting, royalty arithmetic,

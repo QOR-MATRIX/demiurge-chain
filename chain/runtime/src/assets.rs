@@ -181,6 +181,8 @@ impl pallet_drc369::Config for Runtime {
     type MaxWriters = ConstU32<16>;
     /// ADR-113 decision 7: an asset offered for sale keeps its records still.
     type ListedForSale = ListedForSale;
+    /// ADR-119 decision 5: a rented asset is held in place.
+    type Rented = Rented;
 }
 
 /// Whether an asset is offered for sale in `pallet-drc369-royalties`, which
@@ -192,6 +194,18 @@ pub struct ListedForSale;
 impl Contains<(pallet_drc369::CollectionId, pallet_drc369::ItemId)> for ListedForSale {
     fn contains((collection, item): &(pallet_drc369::CollectionId, pallet_drc369::ItemId)) -> bool {
         pallet_drc369_royalties::Listings::<Runtime>::contains_key(collection, item)
+    }
+}
+
+/// Whether an asset is rented now in `pallet-drc369-royalties` (ADR-119), which
+/// `pallet-drc369` asks before it lets the asset move or change: its `Locker`
+/// holds a rented asset in place as it holds a nested one. Met here for the same
+/// reason as [`ListedForSale`].
+pub struct Rented;
+
+impl Contains<(pallet_drc369::CollectionId, pallet_drc369::ItemId)> for Rented {
+    fn contains((collection, item): &(pallet_drc369::CollectionId, pallet_drc369::ItemId)) -> bool {
+        pallet_drc369_royalties::Pallet::<Runtime>::is_rented(*collection, *item)
     }
 }
 
