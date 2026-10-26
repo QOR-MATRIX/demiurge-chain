@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 25 October 2026. One page, rewritten every session.
+For Andrew, 26 October 2026. One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -27,9 +27,11 @@ website offers each game in the launcher (#102 and #103, merged).
 3. **Test windows on your PC lose the keyboard** to your Linux app "QTOS · Prism" from **WSL**
    — *Linux programs running inside Windows* — even when you are away. Six release attempts
    stopped on it. The tests now take the keyboard back; I left QTOS and its runner alone.
-4. **Earlier today, all merged:** the arenas in 3D (P7.24), the website pointing to the
+4. **On 25 October, all merged:** the arenas in 3D (P7.24), the website pointing to the
    launcher (P7.23), the `qor://arqade` link (ADR-118) and the level themes (**P7.16 done**).
-5. **You authorised full automation.** Claude Code's own safety check still refuses to merge
+5. **The update channel works end to end (L6.2 ticked):** your launcher took 0.1.17 through
+   Update and restart. **Next, your choice: renting an asset (M4.3).**
+6. **You authorised full automation.** Claude Code's own safety check still refuses to merge
    without a person's review, so merges stay with you.
 
 ## The release gates (measured 22 October)
@@ -40,34 +42,33 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 
 ## What only you can do
 
-1. **Tell me whether 0.1.17 came through Update and restart** (that ticks L6.2).
-2. **Play an arena,** with a friend or alone with a second QOR ID: open a match in the
+1. **Play an arena,** with a friend or alone with a second QOR ID: open a match in the
    launcher's ARQADE, join it from ARQADE's website in a private window. The website wants a
    QOR ID with a password, which only QOR ID's API makes (HANDOFF §4 item 157 has the
    command). That is the one test I cannot run.
-3. **Back up the update key now.** From any folder, run
+2. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
-4. **For rewards in ARQADE:** decide **ADR-116** — *how a run is confirmed before it is
+3. **For rewards in ARQADE:** decide **ADR-116** — *how a run is confirmed before it is
    paid* — and set the reward pool's numbers (largest payout, budget per epoch, most per player).
-5. **Let a test agent ask you:** in `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run
+4. **Let a test agent ask you:** in `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run
    `cargo run --example agent_link` and press *Allow agent* (ticks L5.1).
-6. **Terms of Service and a privacy policy, with a lawyer,** and **the legal opinion** on
+5. **Terms of Service and a privacy policy, with a lawyer,** and **the legal opinion** on
    rewards, prizes and **KYC** — *identity checks* — before anything carries value.
-7. **The economic numbers** — *issuance, the genesis split, the decay curve, fee and burn
+6. **The economic numbers** — *issuance, the genesis split, the decay curve, fee and burn
    shares* (OPEN-1 to OPEN-4, U-4, U-11). Most of the Beta gate waits on them.
-8. **Code-signing certificates**, an **external security review**, and **names** for the
+7. **Code-signing certificates**, an **external security review**, and **names** for the
    indexer, the SDK and the **MCP server** — *how AI tools reach Demiurge*.
-9. **Still open, as HANDOFF §4.0 records:** godmode's 100,000,000 CGT (its address); Social's
+8. **Still open, as HANDOFF §4.0 records:** godmode's 100,000,000 CGT (its address); Social's
    report rules; the Android app on your phone; whether #46's gate change reads to you as
    loosening; Search Console and the GitHub preview image; the welcome-grant payer; Qt for CI;
    the email webhook; the key pasted on 5 October; `social-secrets.txt` on your Desktop and
    `archive-bZLIQp/` in the old checkout, each to keep or delete.
 
-**Next in engineering:** a way to make a QOR ID with a password without the API, if you
-want one. At your word: filling the IRS's forms, certified
-signatures (ADR-114), records kept by games other than an asset's home game (ADR-113), or
-rental and fractions (M4.3).
+**Next in engineering, your choice:** renting an asset (M4.3), its design written down first as
+an **ADR** — *a numbered decision record*. Fractions wait for the legal review. At your word:
+filling the IRS's forms, certified signatures (ADR-114), or a QOR ID with a password made
+without the API.
 
 ## Cost per month
 
