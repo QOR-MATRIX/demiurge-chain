@@ -180,7 +180,11 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // new indices, and new storage; `Drc369Api` moves to version 2 with `progress_of` and
     // `home_game`. No existing call or stored value changed its encoding, so no migration and the same
     // `transaction_version`.
-    spec_version: 10,
+    // 11: renting an asset (ADR-119, M4.3's rental): `Drc369Royalties::offer_rental`,
+    // `withdraw_rental_offer`, `rent` and `end_rental`, new calls with new indices, new storage, and a new
+    // runtime API, `Drc369RentalApi`; `pallet-drc369`'s `Locker` holds a rented asset in place. No existing
+    // call or stored value changed its encoding, so no migration and the same `transaction_version`.
+    spec_version: 11,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -543,6 +547,40 @@ impl_runtime_apis! {
             buyer: Option<AccountId>,
         ) -> Option<pallet_drc369_royalties::SalePreview<AccountId>> {
             Drc369Royalties::sale_preview(collection, item, price, buyer)
+        }
+    }
+
+    impl pallet_drc369_royalties::runtime_api::Drc369RentalApi<Block, AccountId, BlockNumber> for Runtime {
+        fn user_of(
+            collection: pallet_drc369::CollectionId,
+            item: pallet_drc369::ItemId,
+        ) -> Option<AccountId> {
+            Drc369Royalties::user_of(collection, item)
+        }
+        fn rental_of(
+            collection: pallet_drc369::CollectionId,
+            item: pallet_drc369::ItemId,
+        ) -> Option<pallet_drc369_royalties::Rental<AccountId, BlockNumber>> {
+            Drc369Royalties::rental(collection, item)
+        }
+        fn rental_offer_of(
+            collection: pallet_drc369::CollectionId,
+            item: pallet_drc369::ItemId,
+        ) -> Option<pallet_drc369_royalties::RentalOffer<AccountId, BlockNumber>> {
+            Drc369Royalties::rental_offer(collection, item)
+        }
+        fn rentals_of(
+            renter: AccountId,
+        ) -> Vec<((pallet_drc369::CollectionId, pallet_drc369::ItemId), BlockNumber)> {
+            Drc369Royalties::rentals_of(&renter)
+        }
+        fn rent_preview(
+            collection: pallet_drc369::CollectionId,
+            item: pallet_drc369::ItemId,
+            periods: u32,
+            renter: Option<AccountId>,
+        ) -> Option<pallet_drc369_royalties::RentPreview<AccountId, BlockNumber>> {
+            Drc369Royalties::rent_preview(collection, item, periods, renter)
         }
     }
 

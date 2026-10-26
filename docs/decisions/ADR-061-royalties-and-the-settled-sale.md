@@ -3,6 +3,8 @@
 **Status:** Accepted, 29 September 2026. **Decision 2 superseded the same day by
 [ADR-062](ADR-062-royalty-terms-a-creator-can-correct.md)**, on the owner's ruling: terms can be corrected while the
 creator holds the asset. Decision 4, one level of remix royalty, was confirmed by the owner in the same ruling.
+**Decision 1 amended on 26 October 2026 by [ADR-119](ADR-119-renting-an-asset-for-blocks-paid-in-cgt.md):** the pallet
+holds the terms, the sale and the rental, and rent is divided by `split` as a sale is.
 **Accepted under the owner's standing delegation for engineering choices.** It invents no economic value: every share
 is set by a creator, not by the protocol; no platform share is taken (U-15 is open), no fee is charged (OPEN-4), no
 deposit amount is chosen (U-14) and no CGT is created. The pallet's name, `pallet-drc369-royalties`, was confirmed by

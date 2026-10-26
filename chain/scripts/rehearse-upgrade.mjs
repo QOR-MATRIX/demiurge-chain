@@ -9,7 +9,7 @@
 //   4. checks the new spec_version, that Sudo survived with the same key, that the
 //      transfer and the asset are still there, and that the new pallets work (the
 //      ARQ Wallet from 7, its rounds from 8, the Mesh from 9 with the devnet's period,
-//      and progress records from 10).
+//      progress records from 10, and rental from 11).
 //
 // It signs only with the well-known development keys, and refuses any node whose
 // chain type is not Development. It never touches the devnet.
@@ -161,6 +161,30 @@ if (api.tx.drc369.recordProgress) {
   await send(api, api.tx.drc369.correctProgress(collection, item, game, 1, 10, []), alice);
   [record] = (await api.call.drc369Api.progressOf(collection, item)).toJSON();
   check(record.level === 1 && record.xp === 10 && record.stats.length === 0, "the Cartridge's holder corrected the record downwards");
+}
+
+// Rental (spec_version 11 onwards, ADR-119): the asset minted before the upgrade is offered and rented, the rent paid
+// whole to its holder (it has no royalty terms); while rented its renter is its user, and it is neither transferred,
+// which the Locker refuses, nor listed; its renter hands it back early.
+if (api.tx.drc369Royalties.offerRental) {
+  const refusal = (tx, signer) => send(api, tx, signer).then(() => 'accepted', (error) => error.message);
+  const rentalApi = api.runtimeVersion.apis.find(([id]) => id.toHex() === blake2AsHex('Drc369RentalApi', 64));
+  check(rentalApi?.[1].toNumber() === 1, 'Drc369RentalApi is at version 1');
+  check((await api.call.drc369RentalApi.userOf(collection, item)).toString() === alice.address, 'before any rental, the holder is the user');
+  await send(api, api.tx.drc369Royalties.offerRental(collection, item, 3n * CGT, 100, 2, null), alice);
+  const current = (await api.call.drc369Api.asset(collection, item)).unwrap().current;
+  const free = async (who) => (await api.query.system.account(who.address)).data.free.toBigInt();
+  const [aliceHad, charlieHad] = [await free(alice), await free(charlie)];
+  await send(api, api.tx.drc369Royalties.rent(collection, item, 2, 6n * CGT, current), charlie);
+  check(await free(charlie) === charlieHad - 6n * CGT && await free(alice) === aliceHad + 6n * CGT, 'two periods of 3 CGT were paid to the holder');
+  check((await api.call.drc369RentalApi.userOf(collection, item)).toString() === charlie.address, 'the renter is the user');
+  const rental = (await api.call.drc369RentalApi.rentalOf(collection, item)).unwrap();
+  check(rental.renter.toString() === charlie.address && rental.until.toNumber() > 0, `rented until block ${rental.until.toNumber()}`);
+  check(await refusal(api.tx.nfts.transfer(collection, item, bob.address), alice) === 'nfts.ItemLocked', 'a rented asset is not transferred');
+  check(await refusal(api.tx.drc369Royalties.list(collection, item, CGT), alice) === 'drc369Royalties.Rented', 'nor listed');
+  check(await refusal(api.tx.drc369Royalties.endRental(collection, item), alice) === 'drc369Royalties.NotRenter', 'its holder cannot end it early');
+  await send(api, api.tx.drc369Royalties.endRental(collection, item), charlie);
+  check((await api.call.drc369RentalApi.userOf(collection, item)).toString() === alice.address, 'handed back early, the holder is the user again');
 }
 
 await api.disconnect();

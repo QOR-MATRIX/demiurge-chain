@@ -83,6 +83,15 @@
 //! `unnest` reverses `nest` exactly, and may take out an asset that still holds
 //! others: the depth of what it holds is never stored, only walked.
 //!
+//! # A rented asset stays as it was rented (ADR-119)
+//!
+//! Rental lives in `pallet-drc369-royalties`, beside the sale, and this pallet
+//! asks the runtime whether an asset is rented now ([`Config::Rented`]). While it
+//! is, the `Locker` below holds it in place as nesting does, so `pallet-nfts`
+//! refuses every transfer and burn of it, and `revise`, `nest` and `unnest`
+//! refuse to change what the renter holds. Progress records stay writable: a
+//! record never moves an asset, and a renter's play counts on it.
+//!
 //! # A mint must be authorised (requirement 7)
 //!
 //! A mint is signed, and it mints **to the signer, into the signer's own
@@ -387,6 +396,12 @@ pub mod pallet {
         /// may change (ADR-113 decision 7). The runtime answers from
         /// `pallet-drc369-royalties`, which this pallet does not depend on.
         type ListedForSale: Contains<(CollectionId, ItemId)>;
+
+        /// Whether an asset is rented now, while which it is held in place: not
+        /// transferred, sold, revised, nested or taken apart (ADR-119 decision
+        /// 5). The runtime answers from `pallet-drc369-royalties`, as it answers
+        /// [`Config::ListedForSale`].
+        type Rented: Contains<(CollectionId, ItemId)>;
     }
 
     /// One issuer's record of an asset's progress, at this runtime's bound.
@@ -661,6 +676,9 @@ pub mod pallet {
         ListedForSale,
         /// The game keeps no record of this asset yet.
         NoRecord,
+        /// The asset is rented, and stays as the renter has it until the rental
+        /// ends (ADR-119).
+        Rented,
     }
 
     #[pallet::call]
@@ -763,6 +781,11 @@ pub mod pallet {
                 let asset = maybe.as_mut().ok_or(Error::<T>::UnknownAsset)?;
                 Self::ensure_owner(&who, collection, item)?;
                 ensure!(asset.revisable, Error::<T>::Permanent);
+                // The renter rented this content (ADR-119 decision 5).
+                ensure!(
+                    !T::Rented::contains(&(collection, item)),
+                    Error::<T>::Rented
+                );
                 ensure!(
                     asset.current != content || asset.commit != commit,
                     Error::<T>::Unchanged
@@ -841,6 +864,11 @@ pub mod pallet {
             // owner can do with it, so only its owner may (requirement 7).
             Self::ensure_owner(&who, collection, item)?;
             Self::ensure_owner(&who, parent.0, parent.1)?;
+            // Either way, it would change what a renter holds (ADR-119 decision 5).
+            ensure!(
+                !T::Rented::contains(&child) && !T::Rented::contains(&parent),
+                Error::<T>::Rented
+            );
             ensure!(
                 !ParentOf::<T>::contains_key(collection, item),
                 Error::<T>::AlreadyNested
@@ -884,6 +912,12 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let parent = ParentOf::<T>::get(collection, item).ok_or(Error::<T>::NotNested)?;
             Self::ensure_owner(&who, collection, item)?;
+            // Taking a part out of a rented whole, or a rented part out, changes
+            // what a renter holds (ADR-119 decision 5).
+            ensure!(
+                !T::Rented::contains(&(collection, item)) && !T::Rented::contains(&parent),
+                Error::<T>::Rented
+            );
 
             ParentOf::<T>::remove(collection, item);
             ChildCount::<T>::mutate_exists(parent.0, parent.1, |count| {
@@ -1320,12 +1354,13 @@ pub mod pallet {
 
 /// `pallet-nfts` asks this before it transfers or burns an item (ADR-025: "a
 /// nested child is locked in `pallet-nfts`"). Mounted as the runtime's
-/// `pallet_nfts::Config::Locker`, it holds a nested asset and the asset holding
-/// it in place by whatever route the move arrives: a bare call, a batch, an
-/// approved account, or a sale.
+/// `pallet_nfts::Config::Locker`, it holds a nested asset, the asset holding it,
+/// and a rented asset (ADR-119) in place by whatever route the move arrives: a
+/// bare call, a batch, an approved account, or a sale.
 impl<T: Config> frame_support::traits::Locker<CollectionId, ItemId> for Pallet<T> {
     fn is_locked(collection: CollectionId, item: ItemId) -> bool {
         Self::is_held_in_place(collection, item)
+            || <T::Rented as frame_support::traits::Contains<_>>::contains(&(collection, item))
     }
 }
 

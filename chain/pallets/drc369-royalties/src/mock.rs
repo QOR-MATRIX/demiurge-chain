@@ -65,7 +65,8 @@ impl pallet_nfts::Config for Test {
     type Currency = Balances;
     type CreateOrigin = AsEnsureOriginWithArg<NeverEnsureOrigin<AccountId>>;
     type ForceOrigin = frame_system::EnsureRoot<AccountId>;
-    type Locker = ();
+    // As in the runtime: `pallet-drc369` holds a nested or rented asset in place.
+    type Locker = Drc369;
     type CollectionDeposit = ConstU128<1_000>;
     type ItemDeposit = ConstU128<100>;
     type MetadataDepositBase = ConstU128<10>;
@@ -97,6 +98,17 @@ impl pallet_drc369::Config for Test {
     type MaxWriters = ConstU32<16>;
     // Progress records are `pallet-drc369`'s to test; nothing is held still here.
     type ListedForSale = frame_support::traits::Nothing;
+    // As the runtime answers it: from this pallet's own rentals (ADR-119).
+    type Rented = RentedHere;
+}
+
+/// What `pallet-drc369` asks before an asset may move or change: whether this
+/// pallet has it rented now.
+pub struct RentedHere;
+impl frame_support::traits::Contains<(u32, u32)> for RentedHere {
+    fn contains((collection, item): &(u32, u32)) -> bool {
+        pallet_drc369_royalties::Pallet::<Test>::is_rented(*collection, *item)
+    }
 }
 
 /// The runtime's value (ADR-057), so the bound is tested as it will run.

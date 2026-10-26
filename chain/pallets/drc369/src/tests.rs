@@ -1260,3 +1260,60 @@ fn an_issuer_is_a_tag_and_a_cartridge() {
     assert_eq!(Issuer::max_encoded_len(), 9);
     assert!(Issuer::decode_all(&mut &[1u8, 0, 0, 0, 0, 0, 0, 0, 0][..]).is_err());
 }
+
+// ---------------------------------------------------------------------------
+// A rented asset stays as it was rented (ADR-119)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_rented_asset_is_locked_and_cannot_be_revised_nested_or_taken_apart() {
+    new_test_ext().execute_with(|| {
+        alice_mints(3);
+        assert_ok!(nest(ALICE, (0, 2), (0, 0)));
+        RentedItems::set(&vec![(0, 0)]);
+
+        // `pallet-nfts` asks the Locker, which says so.
+        assert!(<Drc369 as frame_support::traits::Locker<
+            CollectionId,
+            ItemId,
+        >>::is_locked(0, 0));
+        assert_noop!(
+            Nfts::transfer(signed(ALICE), 0, 0, account(BOB)),
+            pallet_nfts::Error::<Test>::ItemLocked
+        );
+        assert_noop!(
+            Drc369::revise(signed(ALICE), 0, 0, content(9), commit(9)),
+            Error::<Test>::Rented
+        );
+        // Into it, it into another, or out of it: each changes what the renter holds.
+        assert_noop!(nest(ALICE, (0, 1), (0, 0)), Error::<Test>::Rented);
+        assert_noop!(nest(ALICE, (0, 0), (0, 1)), Error::<Test>::Rented);
+        assert_noop!(unnest(ALICE, (0, 2)), Error::<Test>::Rented);
+        // Making it permanent changes nothing a renter sees, and stays open.
+        assert_ok!(Drc369::make_permanent(signed(ALICE), 0, 1));
+
+        // An asset nobody rents is untouched by another's rental.
+        assert!(!<Drc369 as frame_support::traits::Locker<
+            CollectionId,
+            ItemId,
+        >>::is_locked(0, 1));
+
+        RentedItems::set(&Vec::new());
+        assert_ok!(unnest(ALICE, (0, 2)));
+        assert_ok!(Drc369::revise(signed(ALICE), 0, 0, content(9), commit(9)));
+        assert_ok!(Nfts::transfer(signed(ALICE), 0, 0, account(BOB)));
+    });
+}
+
+#[test]
+fn a_renters_play_still_counts_on_a_rented_asset() {
+    new_test_ext().execute_with(|| {
+        // ADR-119 decision 5: a record never moves an asset, so it is written
+        // while the asset is rented, unlike while it is listed.
+        a_game_with_items(1);
+        RentedItems::set(&vec![(ITEMS, 0)]);
+        assert_ok!(record(WRITER, 0, GAME, 5, Some(2), &[(1, 3)]));
+        assert_eq!(kept(0, GAME).unwrap().xp, 5);
+        assert_ok!(correct(ALICE, 0, 1, 0, &[]));
+    });
+}

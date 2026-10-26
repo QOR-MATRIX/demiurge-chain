@@ -123,6 +123,20 @@ impl frame_support::traits::Contains<(u32, u32)> for Listed {
     }
 }
 
+parameter_types! {
+    /// The assets a test has marked as rented now; the runtime reads
+    /// `pallet-drc369-royalties` instead (ADR-119).
+    pub storage RentedItems: Vec<(u32, u32)> = Vec::new();
+}
+
+/// What `Rented` answers in these tests.
+pub struct RentedNow;
+impl frame_support::traits::Contains<(u32, u32)> for RentedNow {
+    fn contains(asset: &(u32, u32)) -> bool {
+        RentedItems::get().contains(asset)
+    }
+}
+
 impl pallet_drc369::Config for Test {
     type WeightInfo = ();
     type MaxRemixDepth = frame_support::traits::ConstU8<MAX_REMIX_DEPTH>;
@@ -131,6 +145,7 @@ impl pallet_drc369::Config for Test {
     type MaxStats = ConstU32<MAX_STATS>;
     type MaxWriters = ConstU32<MAX_WRITERS>;
     type ListedForSale = Listed;
+    type Rented = RentedNow;
 }
 
 pub fn account(id: u8) -> AccountId {

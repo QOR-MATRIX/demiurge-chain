@@ -30,8 +30,15 @@ website offers each game in the launcher (#102 and #103, merged).
 4. **On 25 October, all merged:** the arenas in 3D (P7.24), the website pointing to the
    launcher (P7.23), the `qor://arqade` link (ADR-118) and the level themes (**P7.16 done**).
 5. **The update channel works end to end (L6.2 ticked):** your launcher took 0.1.17 through
-   Update and restart. **Next, your choice: renting an asset (M4.3).**
-6. **You authorised full automation.** Claude Code's own safety check still refuses to merge
+   Update and restart.
+6. **Renting an asset is built (#106, waiting for your merge after #105):** a holder offers
+   an asset at a price per period, a renter pays up front and the creator's royalty is paid
+   on rent, as on a sale; the asset is locked until the rental ends by itself. Four product
+   choices are yours to reverse (**ADR-119** — *its decision record*). Then your **sudo key**
+   — *the devnet's admin key* — moves the devnet to it: the file is in your Downloads,
+   `demiurge-runtime-v11.compact.compressed.wasm`, rehearsed against the devnet's own runtime
+   (43 checks passed). Steps in HANDOFF §4 item 159.
+7. **You authorised full automation.** Claude Code's own safety check still refuses to merge
    without a person's review, so merges stay with you.
 
 ## The release gates (measured 22 October)
@@ -65,8 +72,8 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
    the email webhook; the key pasted on 5 October; `social-secrets.txt` on your Desktop and
    `archive-bZLIQp/` in the old checkout, each to keep or delete.
 
-**Next in engineering, your choice:** renting an asset (M4.3), its design written down first as
-an **ADR** — *a numbered decision record*. Fractions wait for the legal review. At your word:
+**Next in engineering:** after #106 merges, the devnet upgrade's file and rehearsal for your
+sudo key, then renting in the launcher. Fractions wait for the legal review. At your word:
 filling the IRS's forms, certified signatures (ADR-114), or a QOR ID with a password made
 without the API.
 

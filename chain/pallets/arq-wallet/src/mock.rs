@@ -98,6 +98,8 @@ impl pallet_drc369::Config for Test {
     type MaxWriters = ConstU32<16>;
     // Progress records are `pallet-drc369`'s to test; nothing is held still here.
     type ListedForSale = frame_support::traits::Nothing;
+    // Rental (ADR-119) is not this pallet's to test; nothing is rented here.
+    type Rented = frame_support::traits::Nothing;
 }
 
 /// Test values for the protocol's bounds (U-16).
