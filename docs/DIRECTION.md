@@ -934,7 +934,8 @@ the Rust core, app ID `app.qorsync.dev`, Android 9 and later, delivered as a sig
    ID's client, the chain client, Social's client, the Library's index and the Mesh. The Windows launcher keeps every
    test green throughout.
 
-   **Done, 26 October 2026, on `session/core-host-modules` (#107, open for the owner's review; HANDOFF §4 item 161):**
+   **Done, 26 October 2026, on `session/core-host-modules`, and merged with #107 at `e99c7ce` on 27 October 2026
+   (HANDOFF §4 items 161 and 162):**
    - Sparks and errors (18 October 2026, #50).
    - The vault, profiles and the confirmation they ask through (19 October 2026, merged in #56 at `c4972b0`):
      - Their 52 tests moved with them. The core had 73 tests and the Windows launcher 270, and both suites passed.
@@ -950,8 +951,8 @@ the Rust core, app ID `app.qorsync.dev`, Android 9 and later, delivered as a sig
        PC the core passes 245 with 11 ignored, and the launcher 106 with 6 ignored.
      - The arm64 APK still builds.
      - Signing under the Mesh grant is now the core's alone.
-     - Whether the core's audit may ignore the advisory subxt brings with it, as the launcher's does, is ADR-121,
-       proposed for the owner.
+     - ADR-121, accepted by the owner on 27 October 2026, extends to the core's audit the launcher's guarded ignore of
+       the advisory subxt brings with it.
 3. [ ] Keys on Android: the wallet's key sealed with its profile's PIN and wrapped by Android Keystore. The Gate, the
    profiles and the Vault with Sparks in Qt, and a check that the shell cannot read a key.
 4. [ ] QOR ID's sign-in and Social.
