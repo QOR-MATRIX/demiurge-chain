@@ -1908,4 +1908,20 @@ mod tests {
             }
         }
     }
+
+    /// An ADR counts as met only when its Status cell begins with `Accepted`, so
+    /// the index never writes that word in bold: `**Accepted**` would read as not met.
+    #[test]
+    fn no_status_cell_in_the_index_holds_accepted_in_bold() {
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        let index = std::fs::read_to_string(repo.join("docs/decisions/README.md"))
+            .expect("docs/decisions/README.md reads");
+        let mut bold: Vec<String> = parse_adr_statuses(&index)
+            .into_iter()
+            .filter(|(_, status)| status.starts_with("**Accepted**"))
+            .map(|(adr, _)| adr)
+            .collect();
+        bold.sort();
+        assert!(bold.is_empty(), "written in bold: {bold:?}");
+    }
 }
