@@ -127,11 +127,18 @@ Anthropic key, no signed JWT and no mnemonic. The public repository was publishe
     claim in this file that none of the ten was reachable.** The audit runs in CI as a report that does not
     fail the run; it is not a gate, because making it pass today would need an exemption file.
   - `tools/qor-launcher/src-tauri`: no exemption file, deliberately, until 15 October 2026. **It now ignores
-    two advisories, each while a CI step proves it does not apply:** RUSTSEC-2026-0344 (`ruzstd` 0.8.3, never
-    built; ADR-089) and, since 20 October 2026, RUSTSEC-2026-0383 (`webpki-root-certs` 0.26.11, a wrapper
+    three advisories, each while a CI step proves it does not apply:** RUSTSEC-2026-0344 (`ruzstd` 0.8.3, never
+    built; ADR-089); since 20 October 2026, RUSTSEC-2026-0383 (`webpki-root-certs` 0.26.11, a wrapper
     that holds no certificates of its own, re-exporting the fixed 1.x, and is built only for WebAssembly;
-    ADR-107). Two of its warnings arrive with `subxt`, and why `lru` is not in the compiled graph is recorded
-    beside the dependency in `Cargo.toml`, where someone would turn that feature on.
+    ADR-107); and since 24 October 2026, RUSTSEC-2026-0387 (below). Two of its warnings arrive with
+    `subxt`, and why `lru` is not in the compiled graph is recorded beside the dependency in `Cargo.toml`, where
+    someone would turn that feature on.
+  - `tools/qor-launcher/core`, the lockfile the Android launcher and QOR OS build from: **since #107 merged on 27
+    October 2026 it also ignores RUSTSEC-2026-0344** (`ruzstd` 0.8.3, never built; ADR-121, accepted by the owner
+    that day), on ADR-089's condition. `ruzstd` came into its lockfile with the chain client (DIRECTION L13.2),
+    through subxt's light client, which nothing enables, and CI's "Condition of the ruzstd ignore" proves on every
+    run that it stays out of the core's compiled graph with every feature on. Its other ignore is RUSTSEC-2026-0387
+    (below).
   - RUSTSEC-2026-0381 to 0383 (`webpki-roots`, `rustls-webpki`, `webpki-root-certs`, published 19 and 20
     October 2026) are fixed by updates in QOR ID's, Social's and both launcher lockfiles (0.103.16 and 1.0.10),
     except the one ADR-107 covers. `chain/` carries them too, in its report.

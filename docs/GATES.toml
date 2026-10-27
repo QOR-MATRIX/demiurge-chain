@@ -1009,6 +1009,13 @@ reason = "The chain client moved into the core with DIRECTION L13.2, so the core
 condition = "ruzstd is outside the launcher's and the core's compiled graphs (the core's with every feature on), and still in each lockfile, checked on every CI run"
 approved_by = "not yet: ADR-121 is proposed for the owner, 26 October 2026"
 
+[[change_log]]
+date = "2026-10-27"
+type = "approval"
+change = "The 2026-10-26 ci-exemption entry above (cargo audit of tools/qor-launcher/core also ignoring RUSTSEC-2026-0344, ADR-121 option A) is APPROVED by the owner, retroactively: the ignore reached main with the merge of #107 (e99c7ce, 15:18 UTC) before the owner's answer. ADR-121 is Accepted, and the core audit's entry in [ci].quality_gates says so. No ignore, condition, CI step, criterion, kind, met condition or counting rule changes."
+reason = "Loosening is the owner's decision of its own, recorded here. The owner merged #107, which carried the ignore in a commit of its own (d080ded), at e99c7ce on 2026-10-27, and CI passed on main (run 40529629572), its ruzstd condition and the core's audit among it; the same day the owner answered \"proceed with\" to a list, written by the assistant, that included marking ADR-121 accepted. A merge alone does not decide a proposal (HANDOFF section 4 item 148); that answer does. The ignore reached main with the owner's own merge of #107, before this approval was given; GATES asks for approval before the change, and here the merge came first. The earlier entry stays as written; this entry is the approval it lacked."
+approved_by = "owner, 2026-10-27 (retroactive): merged #107 with ADR-121 option A in it, then answered \"proceed with\" to a list, written by the assistant, that included marking ADR-121 accepted"
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1059,7 +1066,7 @@ quality_gates = [
   "cargo audit of services/social, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside Social's compiled graph (services/social/.cargo/audit.toml)",
   "cargo audit of tools/qor-launcher/src-tauri, ignoring only RUSTSEC-2026-0344 while CI confirms ruzstd is outside the compiled graph and still in the lockfile (tools/qor-launcher/src-tauri/.cargo/audit.toml, ADR-089), and RUSTSEC-2026-0383 while CI confirms webpki-root-certs 0.26 re-exports a fixed 1.x, is built for no Windows, Linux or macOS target, and is still in the lockfile (ADR-107, since 2026-10-20), and RUSTSEC-2026-0387 on ADR-115's conditions, as for QOR ID (since 2026-10-24)",
   "cargo audit of tools/qor-launcher/qontrol-git, the libgit2 helper",
-  "cargo audit of tools/qor-launcher/core, the Android launcher's lockfile and QOR OS's (ADR-104, ADR-120). Since 2026-10-19, ignoring nothing until 2026-10-24, then only RUSTSEC-2026-0387 on ADR-115's conditions, as for QOR ID, and since the chain client moved in (2026-10-26) also RUSTSEC-2026-0344 while CI confirms ruzstd is outside the core's compiled graph with every feature on and still in its lockfile, as for the launcher (tools/qor-launcher/core/.cargo/audit.toml, ADR-121, proposed for the owner)",
+  "cargo audit of tools/qor-launcher/core, the Android launcher's lockfile and QOR OS's (ADR-104, ADR-120). Since 2026-10-19, ignoring nothing until 2026-10-24, then only RUSTSEC-2026-0387 on ADR-115's conditions, as for QOR ID, and since the chain client moved in (2026-10-26) also RUSTSEC-2026-0344 while CI confirms ruzstd is outside the core's compiled graph with every feature on and still in its lockfile, as for the launcher (tools/qor-launcher/core/.cargo/audit.toml, ADR-121, accepted by the owner on 2026-10-27)",
   "framework/ stays retired: the security job fails if the directory returns, and with it the six advisories its audit.toml exempted until M3.5",
   "no private key material tracked in git",
   "no credentials committed in configuration files",
