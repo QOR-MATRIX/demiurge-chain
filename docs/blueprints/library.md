@@ -36,7 +36,7 @@ from now on.
 - **Docked:** on Windows QOR Media's window is a child of the launcher's, so it moves, resizes, minimises and stacks
   with it; the launcher sends its content rectangle in physical pixels whenever it changes.
 
-## 2. The index (the launcher's host, `src-tauri/src/library/`)
+## 2. The index (the launcher's core, `core/src/library/`)
 
 | Part | What it does |
 | --- | --- |

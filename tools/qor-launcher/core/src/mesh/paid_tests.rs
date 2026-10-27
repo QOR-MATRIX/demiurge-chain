@@ -3,7 +3,7 @@
 //!
 //! ```text
 //! chain/target/release/demiurge-node --dev --tmp
-//! cargo test -p qor-launcher --lib mesh::paid::tests::live -- --ignored --nocapture
+//! cargo test --manifest-path tools/qor-launcher/core/Cargo.toml --features desktop --lib mesh::paid::tests::live -- --ignored --nocapture
 //! ```
 
 use super::*;
@@ -72,10 +72,9 @@ async fn a_proof_from_the_store_is_the_proof_the_chain_checks() {
 }
 
 /// The Mesh grant signs with no dialog, so only the Mesh's own code may reach it: the module that encodes and checks
-/// granted calls, and the one that builds receipts (ADR-097 decision 2). A new caller anywhere else fails here. Since
-/// the vault moved into the core (ADR-104), signing under a grant and restoring one are public there, across a crate
-/// boundary, so restoring a recorded grant is held to the Mesh's settings here too; the core's own test shows nothing
-/// in the core calls either.
+/// granted calls, and the one that builds receipts (ADR-097 decision 2). A new caller anywhere else in the core fails
+/// here. Since the Mesh moved into the core with the vault (DIRECTION L13.2), signing under a grant and restoring one are
+/// the core's alone, so nothing outside it can reach either, and the vault's own test holds the Windows launcher to that.
 #[test]
 fn only_the_mesh_signs_under_its_grant() {
     let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
@@ -469,7 +468,7 @@ pub(crate) mod live {
         std::fs::write(&source, &bytes).unwrap();
         let file = crate::content::ContentRef::of_file(&source).unwrap();
         let (name, manifest) =
-            crate::library::commands::publication("Holiday.jpg", 1_700_000_000, file).unwrap();
+            crate::library::publication("Holiday.jpg", 1_700_000_000, file).unwrap();
         let reference = manifest.reference();
         let store = crate::content::TemporaryStore::in_data_dir(&me.dir.0);
         let publish = |confirm: Scripted| {

@@ -147,9 +147,11 @@ pub struct MeshGrant {
 }
 
 impl MeshGrant {
-    /// An approval the person gave earlier, as the Mesh's settings recorded it. Public only because the Mesh is still in
-    /// the Windows launcher's crate (DIRECTION L13.2): the Mesh alone calls it, and a test there keeps it that way.
-    pub fn recorded(account: [u8; 32]) -> Self {
+    /// An approval the person gave earlier, as the Mesh's settings recorded it. Only the Mesh calls it, and a test keeps
+    /// it that way (`mesh::paid::tests::only_the_mesh_signs_under_its_grant`); since the Mesh moved into this core
+    /// (DIRECTION L13.2) nothing outside the core can.
+    #[cfg(feature = "mesh")]
+    pub(crate) fn recorded(account: [u8; 32]) -> Self {
         Self { account }
     }
 
@@ -646,9 +648,10 @@ impl Vault {
 
     /// Sign `message` under the Mesh grant, with no dialog (ADR-097). Only the Mesh's own code calls this, with bytes it
     /// built itself: a granted call it encoded and checked (`chain::mesh::ChainClient::mesh_submit`), or a receipt
-    /// (`chain::mesh::receipt_message`). A test keeps it that way. Public only because the Mesh is still in the Windows
-    /// launcher's crate (DIRECTION L13.2); nothing in this core calls it, and a test here keeps that so too.
-    pub fn sign_granted(&self, grant: &MeshGrant, message: &[u8]) -> QorResult<[u8; 64]> {
+    /// (`chain::mesh::receipt_message`). A test keeps it that way. Since the Mesh moved into this core (DIRECTION L13.2)
+    /// it is the crate's alone, so neither the Windows launcher nor any shell built on the core can reach it.
+    #[cfg(feature = "chain")]
+    pub(crate) fn sign_granted(&self, grant: &MeshGrant, message: &[u8]) -> QorResult<[u8; 64]> {
         self.with_account(&derive::address_of(&grant.account), |account| {
             account.sign(message)
         })
@@ -1573,17 +1576,19 @@ mod tests {
         assert_eq!(asked(&hello), 0);
     }
 
-    /// The Mesh grant signs with no dialog (ADR-097), so only the Mesh may use it. The Mesh is still in the Windows
-    /// launcher's crate, which is why the vault's signing under the grant and the grant's restoring are public: nothing
-    /// in this core calls either, and that crate's own test names the files there that do.
+    /// The Mesh grant signs with no dialog (ADR-097), so only the Mesh may use it. Since the Mesh moved into this core
+    /// (DIRECTION L13.2), signing under the grant and restoring one are the crate's alone, which the compiler holds; and
+    /// inside the core, `mesh::paid::tests::only_the_mesh_signs_under_its_grant` names the files that may. This holds
+    /// the Windows launcher, which builds on the core, to calling neither, should either be made public again.
     #[test]
-    fn nothing_in_the_core_signs_under_the_mesh_grant() {
+    fn nothing_outside_the_core_signs_under_the_mesh_grant() {
         // Built from pieces, so this test does not find itself.
         let calls = [
             [".sign", "_granted("].concat(),
             ["MeshGrant::", "recorded"].concat(),
         ];
-        let mut paths = vec![Path::new(env!("CARGO_MANIFEST_DIR")).join("src")];
+        let launcher = Path::new(env!("CARGO_MANIFEST_DIR")).join("../src-tauri/src");
+        let mut paths = vec![launcher];
         let mut found = Vec::new();
         let mut read = 0;
         while let Some(path) = paths.pop() {
@@ -1601,7 +1606,10 @@ mod tests {
                 }
             }
         }
-        assert!(read >= 10, "read the core's sources: {read} files");
+        assert!(
+            read >= 10,
+            "read the Windows launcher's sources: {read} files"
+        );
         assert!(found.is_empty(), "{found:#?}");
     }
 

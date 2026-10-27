@@ -66,7 +66,7 @@ QOR ID's HTTP log.
 
 ## The launcher
 
-The launcher's `social_url` defaults to this deployment (`src-tauri/src/social.rs`, `DEFAULT_SOCIAL`); a saved setting or
+The launcher's `social_url` defaults to this deployment (`core/src/social.rs`, `DEFAULT_SOCIAL`); a saved setting or
 `QOR_SOCIAL_URL` still wins, and `ws://127.0.0.1:8090/v1/socket` reaches one running on this machine.
 
 ## Before anyone else uses it (L8.7)

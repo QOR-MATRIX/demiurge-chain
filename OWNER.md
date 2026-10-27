@@ -10,36 +10,32 @@ sign-in, one asset format and one currency. Code: `github.com/QOR-MATRIX/demiurg
 
 ## Live today (checked this session, from outside)
 
-The homepage at **qorsync.dev**; **Devnet** — *the test chain on servers* — on runtime 10,
-two peers; **QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** —
-*the gaming website*. **Launcher 0.1.17** is the homepage's download, and ARQADE's
-website offers each game in the launcher (#102 and #103, merged).
+The homepage at **qorsync.dev**; **Devnet** — *the test chain on servers* — on runtime 11,
+with renting, two peers; **QOR ID** — *the one sign-in*; **Social** — *the chat service*;
+**ARQADE** — *the gaming website*. **Launcher 0.1.17** is the newest release and the
+homepage's download. **#106** (renting) is merged, so `main` matches the devnet.
 
 ## This session
 
-1. **Launcher 0.1.17 is out** (`launcher-v0.1.17` on GitHub). It carries everything merged
-   since 0.1.16: ARQADE's four games and two arenas rebuilt in 3D, the `qor://arqade` link,
-   the Dusk and Nocturne themes, an asset's level and XP, and QOR Media's PDF reading,
-   marking and form filling. With 0.1.16 installed, Settings › Updates offers it.
-2. **The release build caught a real bug, fixed before release:** a rematch in an arena could
-   be lost. The app takes only the answer to its own request now, and a new test makes the
-   problem happen deliberately on every run.
-3. **Test windows on your PC lose the keyboard** to your Linux app "QTOS · Prism" from **WSL**
-   — *Linux programs running inside Windows* — even when you are away. Six release attempts
-   stopped on it. The tests now take the keyboard back; I left QTOS and its runner alone.
-4. **On 25 October, all merged:** the arenas in 3D (P7.24), the website pointing to the
-   launcher (P7.23), the `qor://arqade` link (ADR-118) and the level themes (**P7.16 done**).
-5. **The update channel works end to end (L6.2 ticked):** your launcher took 0.1.17 through
-   Update and restart.
-6. **Renting an asset is built (#106, waiting for your merge after #105):** a holder offers
-   an asset at a price per period, a renter pays up front and the creator's royalty is paid
-   on rent, as on a sale; the asset is locked until the rental ends by itself. Four product
-   choices are yours to reverse (**ADR-119** — *its decision record*). Then your **sudo key**
-   — *the devnet's admin key* — moves the devnet to it: the file is in your Downloads,
-   `demiurge-runtime-v11.compact.compressed.wasm`, rehearsed against the devnet's own runtime
-   (43 checks passed). Steps in HANDOFF §4 item 159.
-7. **You authorised full automation.** Claude Code's own safety check still refuses to merge
-   without a person's review, so merges stay with you.
+1. **QOR OS begins.** You chose to merge QTOS — *your Qt operating system* — with this
+   project's device-side work into **QOR OS**, in a private repository. **ADR-120** — *its
+   decision record* — says what that means here:
+   - QQ, QOR Media and ARQADE's app are carried there with their history.
+   - This repository stays their source.
+   - QOR OS uses the launcher's **core** — *the code that holds keys* — at a fixed commit, never a copy.
+   - Nothing in the network moves.
+2. **The launcher's core is finished (L13.2).** Everything that holds a key or talks to a
+   service moved into it with its 181 tests: QOR ID, Social, the chain, the Library, the Mesh
+   and Qontrol. The Windows launcher behaves as before, and the phone app builds what it did
+   (its APK built again today). On your PC 351 tests pass and none fail. It is pull request
+   **#107**, waiting for you.
+3. **One decision before #107 merges: ADR-121.** Moving the chain code put a known
+   **advisory** — *a published flaw in a library* — into the core's dependency check. It sits
+   in code nothing builds, and the launcher's check has ignored the same one since ADR-089. I
+   recommend the same guarded ignore; CI proves every run that the code stays unbuilt. Ignoring
+   it is your call, so it is a separate commit you can drop.
+4. **Disk space:** X: had 9.6 GB free. Build leftovers and three finished agent copies are
+   cleared, and it has 204.7 GB free.
 
 ## The release gates (measured 22 October)
 
@@ -49,33 +45,31 @@ test* — has 8 of 45 checks met; most of the rest wait on the list below.
 
 ## What only you can do
 
-1. **Play an arena,** with a friend or alone with a second QOR ID: open a match in the
-   launcher's ARQADE, join it from ARQADE's website in a private window. The website wants a
-   QOR ID with a password, which only QOR ID's API makes (HANDOFF §4 item 157 has the
-   command). That is the one test I cannot run.
-2. **Back up the update key now.** From any folder, run
+1. **Decide ADR-121, then merge #107.** Then QOR OS can fix its copy of the core to that merge.
+2. **Play an arena,** with a friend or alone with a second QOR ID: open a match in the
+   launcher's ARQADE, join it from ARQADE's website in a private window (HANDOFF §4 item 157).
+3. **Back up the update key now.** From any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    It names the key file and shows its password once; keep both offline, together.
-3. **For rewards in ARQADE:** decide **ADR-116** — *how a run is confirmed before it is
+4. **For rewards in ARQADE:** decide **ADR-116** — *how a run is confirmed before it is
    paid* — and set the reward pool's numbers (largest payout, budget per epoch, most per player).
-4. **Let a test agent ask you:** in `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run
+5. **Let a test agent ask you:** in `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run
    `cargo run --example agent_link` and press *Allow agent* (ticks L5.1).
-5. **Terms of Service and a privacy policy, with a lawyer,** and **the legal opinion** on
+6. **Terms of Service and a privacy policy, with a lawyer,** and **the legal opinion** on
    rewards, prizes and **KYC** — *identity checks* — before anything carries value.
-6. **The economic numbers** — *issuance, the genesis split, the decay curve, fee and burn
+7. **The economic numbers** — *issuance, the genesis split, the decay curve, fee and burn
    shares* (OPEN-1 to OPEN-4, U-4, U-11). Most of the Beta gate waits on them.
-7. **Code-signing certificates**, an **external security review**, and **names** for the
+8. **Code-signing certificates**, an **external security review**, and **names** for the
    indexer, the SDK and the **MCP server** — *how AI tools reach Demiurge*.
-8. **Still open, as HANDOFF §4.0 records:** godmode's 100,000,000 CGT (its address); Social's
+9. **Still open, as HANDOFF §4.0 records:** godmode's 100,000,000 CGT (its address); Social's
    report rules; the Android app on your phone; whether #46's gate change reads to you as
    loosening; Search Console and the GitHub preview image; the welcome-grant payer; Qt for CI;
    the email webhook; the key pasted on 5 October; `social-secrets.txt` on your Desktop and
-   `archive-bZLIQp/` in the old checkout, each to keep or delete.
+   `archive-bZLIQp/` in the old checkout, each to keep or delete; and which licence governs the
+   launcher's crates (their manifests say MIT, the repository Apache-2.0).
 
-**Next in engineering:** after #106 merges, the devnet upgrade's file and rehearsal for your
-sudo key, then renting in the launcher. Fractions wait for the legal review. At your word:
-filling the IRS's forms, certified signatures (ADR-114), or a QOR ID with a password made
-without the API.
+**Next in engineering:** after #107 merges, QOR OS pins the core. Then, at your word, renting
+in the launcher, or keys on Android (L13.3).
 
 ## Cost per month
 

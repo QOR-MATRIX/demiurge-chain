@@ -1,7 +1,7 @@
 // Does the Library draw what the index holds, and ask the host exactly what the person did? (ADR-094, L9.1 and L9.2)
 //
-// The host's tests prove the index (src-tauri/src/library: folders, scan, watch, search, thumbnails) and QOR Media's
-// queue (src-tauri/src/media). This check covers what reaches the screen: it serves the built frontend in a real
+// The core's tests prove the index (core/src/library: folders, scan, watch, search, thumbnails), and the host's prove
+// QOR Media's queue (src-tauri/src/media). This check covers what reaches the screen: it serves the built frontend in a real
 // rendering engine with a stand-in host that answers the `library_*` and `media_*` commands from a FIXTURE, then drives
 // the Library as a person would.
 //

@@ -454,7 +454,7 @@ The core of the first release.
    holder offers an asset at a price per period of blocks (zero lends it), a renter pays up front, divided by `split` as
    a sale is so the creator's royalty is paid on rent, and until a block the renter is the asset's user while
    `pallet-drc369`'s `Locker` holds it in place. It ends by itself; the renter may hand it back early, the holder may
-   not. `spec_version` 11, which the devnet runs once the owner upgrades it. **Not yet:** fractional ownership, which
+   not. `spec_version` 11, which the devnet runs since the owner's upgrade of 26 October 2026, read back. **Not yet:** fractional ownership, which
    waits for the legal review; physics; the launcher's renting surface. The item stays unticked until all three thirds
    are built.
 4. [ ] Sponsored fees and deposits, so that a new creator can mint without holding CGT first (inventory
@@ -704,14 +704,14 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 
    **Since 2026-10-01 the launcher calls the settled sale.** Sell publishes a price on chain (`list`), Withdraw
    removes it (`unlist`), and an asset looked up by its number can be bought (`buy`); each shows what the sale
-   pays before the host dialog, and a declined prompt moves nothing (`src-tauri/src/chain/sales.rs`, live test
+   pays before the host dialog, and a declined prompt moves nothing (`core/src/chain/sales.rs`, live test
    `a_sale_pays_every_part_and_hands_the_asset_over`). **Unticked:** nobody can find a listing without being
    given the asset's number (no indexer, M5.4), royalty terms cannot be set from the launcher, and no person has
    run it against the native dialogs.
 
    **The first half was built on 2026-09-23, and it was the half nobody else can see.** It is now Sell's
    second screen: a form that drafts a listing's description on this machine
-   (`src-tauri/src/listings.rs`, `src/views/SellDialog.tsx`): a title, a kind, the questions that kind asks, a
+   (`core/src/listings.rs`, `src/views/SellDialog.tsx`): a title, a kind, the questions that kind asks, a
    price and a description. The draft is a file in the launcher's data directory, is sent nowhere and is
    visible to nobody else, and the form says so in the product — a banner before anything is typed, and a line
    after saving that says it went no further. **It was built so the shape of a listing is decided by looking
@@ -873,7 +873,7 @@ L10.2, because finding who holds a root reads the escrow's assignments on chain.
 
 1. [ ] The network, and one's own published work seeded: an iroh node in the launcher's host, seeding opt-in with disk
    and upload limits, the temporary content store's roots served and fetched verified. No CGT moves. Built 2026-10-17 and
-   merged with #40 (`580aa9e`) the same day: `src-tauri/src/mesh/` and the Mesh page, between two launchers on one PC; not yet
+   merged with #40 (`580aa9e`) the same day: `core/src/mesh/` and the Mesh page, between two launchers on one PC; not yet
    between two PCs over the internet.
 2. [ ] Seeding others' published work: finding who holds a root, fetching and verifying it, holding it within the
    person's limits, and the Mesh page showing what is seeded and served. **Built 2026-10-17 and merged with #40 (`580aa9e`) the
@@ -930,19 +930,28 @@ the Rust core, app ID `app.qorsync.dev`, Android 9 and later, delivered as a sig
      as 1,250 Sparks.
 
    **Not yet:** on a phone.
-2. [ ] The core moved out of the Tauri crate, module by module with its tests: Sparks, errors, the vault, profiles, QOR
+2. [x] The core moved out of the Tauri crate, module by module with its tests: Sparks, errors, the vault, profiles, QOR
    ID's client, the chain client, Social's client, the Library's index and the Mesh. The Windows launcher keeps every
    test green throughout.
 
-   **Moved so far:**
+   **Done, 26 October 2026, on `session/core-host-modules` (#107, open for the owner's review; HANDOFF §4 item 161):**
    - Sparks and errors (18 October 2026, #50).
    - The vault, profiles and the confirmation they ask through (19 October 2026, merged in #56 at `c4972b0`):
-     - Their 52 tests moved with them. The core has 73 tests and the Windows launcher 270, and both suites pass.
-     - The arm64 APK still builds, with sp-core, schnorrkel and secp256k1's C library compiled for Android.
+     - Their 52 tests moved with them. The core had 73 tests and the Windows launcher 270, and both suites passed.
      - On Android the core has no keychain, because `keyring` would keep a wallet's key in memory there. L13.3 gives
        the vault Android's Keystore instead.
-
-   **Next:** QOR ID's client, then the chain client.
+   - The rest (#107): QOR ID's client, Social's socket, the chain client with the object model, `qor://pay` and
+     `qor://agent`, listings and trading partners, the Library's index, the Mesh and, beyond this list, Qontrol.
+     - 181 tests moved with them.
+     - Each is behind a feature of the core, none on by default. `desktop` is all of them, which the Windows launcher
+       and QOR OS (ADR-120) build. The Android shell builds the default features, so the phone links what it did
+       before.
+     - Counted as written, the core has 256 tests and the Windows launcher 113, 369 in all, as before. On the owner's
+       PC the core passes 245 with 11 ignored, and the launcher 106 with 6 ignored.
+     - The arm64 APK still builds.
+     - Signing under the Mesh grant is now the core's alone.
+     - Whether the core's audit may ignore the advisory subxt brings with it, as the launcher's does, is ADR-121,
+       proposed for the owner.
 3. [ ] Keys on Android: the wallet's key sealed with its profile's PIN and wrapped by Android Keystore. The Gate, the
    profiles and the Vault with Sparks in Qt, and a check that the shell cannot read a key.
 4. [ ] QOR ID's sign-in and Social.
@@ -979,7 +988,7 @@ Version control for creative work. [`blueprints/qontrol.md`](blueprints/qontrol.
 
    **Done on 2026-09-23, when the diffs arrived.** The rest was built on 2026-09-21 (`5a44207`) and left
    unticked because the diffs were not. Choosing a change shows what changed inside it, line by line with
-   the file's own line numbers, read by gitoxide in `src-tauri/src/qontrol/diff.rs`: the index's blob
+   the file's own line numbers, read by gitoxide in `core/src/qontrol/diff.rs`: the index's blob
    against the working-tree file **converted to what git would store** under the repository's own
    `core.autocrlf` and `.gitattributes`, which is what `git diff` compares. So CRLF on disk under autocrlf is
    no change, a `text` attribute normalises on its own, `-diff` or a NUL byte makes a file binary (shown with
@@ -1903,7 +1912,7 @@ here sets an economic value; payouts are U-16.
    dialog approves it (not Windows Hello), no fee is shown because none is charged, the devnet is checked by genesis.
 
    **Built 5 October 2026**, with tips to a game's creator as its first use (the owner's choice; ADR-071's
-   tips). Launcher: `src-tauri/src/pay.rs` and `src-tauri/src/chain/pay.rs`, the `qor` scheme; 8 tests, among them ARQADE's own link pinned.
+   tips). Launcher: `core/src/pay.rs` and `core/src/chain/pay.rs`, the `qor` scheme; 8 tests, among them ARQADE's own link pinned.
    ARQADE: the signed request, the scan of finalised blocks, the Tip panel, migration `0002`; 6 tests. A real `batch_all`
    on a local dev chain was found, and a forgery, a wrong amount and a wrong recipient were not.
 
@@ -2086,6 +2095,10 @@ here sets an economic value; payouts are U-16.
 The other product tracks (§7) are planned, not active scope. Qontrol's Projects surface, its `qontrol-git`
 helper, QFX layer one and Market's first slice are part of `tools/qor-launcher/`. A product gets a directory under `products/`
 only by ADR-050's decision 10, once its defining record is accepted.
+
+QQ, QOR Media and ARQADE's Qt app are also carried, as `git subtree`s, in **QOR OS**, the owner's operating system in
+the private `QOR-MATRIX/qor-os`, which builds `tools/qor-launcher/core` at a pinned commit (ADR-120, 26 October 2026).
+This repository stays their upstream and the core's only source, and nothing in this roadmap moves there.
 
 `framework/`, the custom Rust devnet `chain/` replaced, was retired at M3.5 on 20 September 2026 and
 deleted. It is not active, not a reference, and not to be restored; CI fails if the directory returns.

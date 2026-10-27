@@ -4,7 +4,7 @@
  * # It does no arithmetic
  *
  * Every amount here was worked out by the host, with the chain's own helpers,
- * from the royalty terms it read from the chain (`src-tauri/src/chain/sales.rs`).
+ * from the royalty terms it read from the chain (`core/src/chain/sales.rs`).
  * This draws them in the order the chain pays them — the work a remix came
  * from, then the asset's own royalties, then the seller — and adds nothing up.
  * The total it shows is the price the host returned, not a sum made here.

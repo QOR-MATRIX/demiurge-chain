@@ -40,7 +40,6 @@ use tokio::sync::Mutex;
 use crate::content::TemporaryStore;
 use crate::error::{QorError, QorResult};
 
-pub mod commands;
 pub mod paid;
 #[cfg(test)]
 mod tests;

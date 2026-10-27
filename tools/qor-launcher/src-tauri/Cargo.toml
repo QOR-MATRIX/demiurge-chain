@@ -30,19 +30,13 @@ tauri-plugin-shell        = "2"
 tauri-plugin-deep-link    = "2"
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 
-# Qontrol's read paths: status, log, diff, branches. Pure Rust, so it links into
-# the host that holds the vault without dragging a C parser in with it.
-# Its write path is NOT used: gitoxide's own crate-status.md (checked 2026-09-21
-# against 0.87.1) marks "add files with .gitignore handling", "tree from index"
-# and "add and remove entries" unimplemented. Staging happens in the
-# qontrol-git sidecar instead; see tools/qor-launcher/qontrol-git.
-gix = "0.87"
-
 serde      = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror  = "2"
-# What holds the keys and talks to the chain, shared with the Android launcher (ADR-104).
-qor-launcher-core = { path = "../core", features = ["net"] }
+# What holds the keys and talks to the chain, shared with the Android launcher and QOR OS (ADR-104, ADR-120): the
+# wallet, QOR ID's and Social's clients, the chain client, the Library's index, the Mesh and Qontrol (DIRECTION L13.2).
+# Their dependencies, and the audit notes on them, are the core's Cargo.toml's.
+qor-launcher-core = { path = "../core", features = ["net", "desktop"] }
 toml       = "0.9"
 
 tokio   = { version = "1", features = ["full"] }
@@ -60,68 +54,6 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 # secp256k1 (ADR-115): using `sp_core::ecdsa`, or any of those crates, fails CI
 # until ADR-115 is revisited.
 sp-core          = { version = "=43.0.0", features = ["full_crypto", "serde"] }
-# No `sp-arithmetic`: what a sale pays is asked of the chain itself, through
-# the runtime API `Drc369RoyaltiesApi::sale_preview`, and the launcher carries
-# no copy of the pallet's arithmetic (`src/chain/sales.rs`).
-
-# ── The chain client (ADR-040) ──────────────────────────────────────────────
-# subxt reads the connected node's runtime metadata and builds calls, storage
-# keys and the signer payload from it. It is not published as part of the
-# Polkadot SDK release, so ADR-033 rule 2 governs it: latest stable, upgraded
-# promptly, never pinned to the SDK. It depends on no SDK crate, so it cannot
-# drag the pin forward. `scale-decode` is what `DecodeAsType` comes from, for
-# reading `System::Account` by field name.
-#
-# AUDIT NOTE, and a reason not to widen this line. `cargo audit` reports no
-# vulnerability here, and no advisory is exempted: there is deliberately no
-# .cargo/audit.toml in this crate, because an exemption file is a place for
-# things to go quiet. Two of its warnings arrive with subxt:
-#   - smallstr, RUSTSEC-2026-0215 (unmaintained), through scale-info-legacy and
-#     frame-decode. Compiled. Nothing to do about it but watch it.
-#   - lru, RUSTSEC-2026-0253 (unsound: a use-after-free if LruCache::pop panics)
-#     through smoldot-light, under subxt's OPTIONAL "light-client" feature.
-#     THAT FEATURE IS NOT ENABLED, so lru is in the lockfile and not in the
-#     compiled graph. Enabling "light-client" pulls it in for real. Do not
-#     enable it without checking whether RUSTSEC-2026-0253 is still open.
-# Default features are jsonrpsee + native, which is what is wanted: a WebSocket
-# transport and nothing else.
-# Not the light client (`unstable-light-client`): its `smoldot` brings `ruzstd` 0.8, under RUSTSEC-2026-0344 (a
-# decompression bomb) with no release on the fixed 0.9 line. It is in Cargo.lock without being built, and
-# .cargo/audit.toml ignores that advisory only on that condition (ADR-089). Enabling the light client builds it, and
-# CI's "Condition of the ruzstd ignore" step then fails: the ignore must be revisited first.
-subxt        = "0.51"
-scale-decode = { version = "0.16", features = ["derive"] }
-
-# ── Social (ADR-091 decision 3, L8.5) ───────────────────────────────────────
-# The WebSocket transport subxt already brings (jsonrpsee's, over soketto and rustls), named so Social's
-# socket uses it directly: no new library in the process that holds the vault. Both versions and every
-# feature named here are already in the graph through subxt.
-# Its TLS verifier, rustls-platform-verifier 0.5, brings webpki-root-certs 0.26 for wasm32 alone, under
-# RUSTSEC-2026-0383 with no fix on that line. 0.26 only re-exports the fixed 1.x, and is never built here, so
-# .cargo/audit.toml ignores that advisory on both conditions (ADR-107); CI's "Condition of the webpki-root-certs
-# ignore" step fails if either stops holding.
-jsonrpsee-client-transport = { version = "0.24", default-features = false, features = ["ws", "tls-rustls-platform-verifier"] }
-jsonrpsee-core = { version = "0.24", default-features = false, features = ["client"] }
-# The version subxt 0.51 itself uses, for deriving `EncodeAsType` on the
-# DRC-369 call arguments (M4.1), which are then encoded against the node's own
-# metadata like everything else.
-scale-encode = { version = "0.10", features = ["derive"] }
-# `derive`, for the object model's canonical encoding (ADR-047 decision 5): the
-# manifest is SCALE, the chain's own encoding, field by field.
-codec        = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
-
-# ── The object model (ADR-047) ──────────────────────────────────────────────
-# An asset is the BLAKE3-256 of its manifest (decision 1). The reference
-# implementation, by the algorithm's authors.
-blake3 = "1.8"
-# The Mesh's storage proof, the same code the chain checks it with (ADR-096): a seeder's answer is made by the crate
-# `pallet-mesh` verifies it with, so the two cannot disagree about the tree.
-mesh-proof = { path = "../../../chain/primitives/mesh-proof" }
-bip39            = "2"
-argon2           = "0.5"
-chacha20poly1305 = "0.10"
-hkdf             = "0.12"
-hmac             = "0.12"
 sha2             = "0.10"
 zeroize          = { version = "1", features = ["derive"] }
 rand             = "0.8"
@@ -132,9 +64,7 @@ hex        = "0.4"
 base64     = "0.22"
 chrono     = { version = "0.4", features = ["serde"] }
 uuid       = { version = "1", features = ["v4", "serde"] }
-directories = "5"
 parking_lot = "0.12"
-keyring     = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
 # The product host's operating-system checks (ADR-046, ADR-088): its own crate, because they are FFI and this one
 # forbids unsafe code.
 qor-host-proof = { path = "../host-proof" }
@@ -143,19 +73,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 zstd = { version = "0.14.3", default-features = false }
 whatlang = "0.18.0"
 sys-locale = "0.3.2"
-rusqlite = { version = "0.40.2", features = ["bundled"] }
-notify = "8"
-walkdir = "2.5.0"
-kamadak-exif = "0.6.1"
-lofty = "0.24.0"
-image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
-# The Mesh (ADR-095): peer-to-peer connections dialled by public key, through home routers, and blobs streamed verified
-# against their BLAKE3 hash in 16 KiB groups, ADR-047's fingerprint and granularity. iroh-blobs' own README calls this
-# line not yet production quality; its fs store keeps what the launcher seeds.
-iroh       = "1.3"
-iroh-blobs = { version = "0.103", default-features = false, features = ["fs-store"] }
-# The streams iroh-blobs answers with (already in the tree through iroh).
-n0-future  = "0.3"
 # The update channel (L6.2, ADR-111): Tauri's updater, at the release that fits this Tauri (2.14 needs a newer one), and
 # minisign's verifier, with which the host checks each download a second time, against the signed file's name. Without
 # the updater's `zip` feature: a Windows update is the signed installer itself, never an archive, and zip 4, which that
@@ -163,24 +80,15 @@ n0-future  = "0.3"
 tauri-plugin-updater = { version = "2.12", default-features = false, features = ["rustls-tls", "system-proxy"] }
 minisign-verify      = "0.2"
 
-# Windows Hello, read only to move a vault sealed under it (ADR-055) to the
-# keychain once (ADR-056).
-[target.'cfg(windows)'.dependencies]
-windows = { version = "0.62", features = [
-  "Foundation",
-  "Security_Credentials",
-  "Security_Cryptography",
-  "Storage_Streams",
-] }
-
 [features]
 default = []
 # Test-only. Qontrol's tests that commit need the qontrol-git helper, and one
 # needs git itself; without them they skip, and a skipped test reports ok. This
 # feature makes them fail instead, for any run that is meant to be evidence: CI,
 # and the Qontrol gate's suite in docs/GATES.toml. It changes nothing in the
-# application.
-qontrol-no-skips = []
+# application. Qontrol's tests are the core's since DIRECTION L13.2, so this turns
+# on the core's feature of the same name, and holds the one test that stays here.
+qontrol-no-skips = ["qor-launcher-core/qontrol-no-skips"]
 
 [profile.release]
 codegen-units = 1
@@ -190,10 +98,8 @@ panic         = "abort"
 strip         = true
 
 [dev-dependencies]
-# The core's test stand-ins (an in-memory keychain, a scripted confirmation), for tests only (ADR-104).
-qor-launcher-core = { path = "../core", features = ["net", "testing"] }
+# The core's test stand-ins (an in-memory keychain, a scripted confirmation, the test process's logger), for tests only
+# (ADR-104).
+qor-launcher-core = { path = "../core", features = ["net", "desktop", "testing"] }
 tempfile = "3"
-# A stand-in Social server for the socket's tests, on the WebSocket library already in the graph.
-soketto = "0.8"
-tokio-util = { version = "0.7", features = ["compat"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

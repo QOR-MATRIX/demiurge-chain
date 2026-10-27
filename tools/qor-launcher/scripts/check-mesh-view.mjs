@@ -1,7 +1,7 @@
 // Does the Mesh page ask the host exactly what the person chose, and say plainly what seeding is and is not? (ADR-095,
 // ADR-097, L10.1 to L10.4)
 //
-// The host's tests prove the Mesh itself (src-tauri/src/mesh: two real nodes, verified transfer, the limits, refusing a
+// The core's tests prove the Mesh itself (core/src/mesh: two real nodes, verified transfer, the limits, refusing a
 // seeder whose bytes changed). This check covers what reaches the screen: it serves the built frontend in a real
 // rendering engine with a stand-in host that answers the `mesh_*` commands, then drives the page as a person would.
 //

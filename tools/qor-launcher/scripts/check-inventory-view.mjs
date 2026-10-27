@@ -1,6 +1,6 @@
 // Does the Inventory show exactly the assets the chain holds for this account? (M4.1)
 //
-// The host's live test proves that `src-tauri/src/chain/assets.rs` reads a real
+// The core's live test proves that `core/src/chain/assets.rs` reads a real
 // chain correctly: a mint against a development node finalises and appears in
 // the owner's enumeration, read from storage. That says nothing about what
 // reaches the screen. This check covers the other half: it serves the built

@@ -1,6 +1,6 @@
 // Does the Market draw exactly what the host read from the chain? (L7.2)
 //
-// The host's tests prove that `src-tauri/src/chain/market.rs` arranges, windows
+// The core's tests prove that `core/src/chain/market.rs` arranges, windows
 // and classifies listings correctly, and its live test reads a listing back
 // from a real node. That says nothing about what reaches the screen. This check
 // covers the other half: it serves the built frontend in a real rendering

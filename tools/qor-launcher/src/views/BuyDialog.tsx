@@ -13,7 +13,7 @@
  * # What this view does not decide
  *
  * Whether the purchase is possible, what it pays and to whom are the host's
- * reading of the chain (`src-tauri/src/chain/sales.rs`); this draws them. It
+ * reading of the chain (`core/src/chain/sales.rs`); this draws them. It
  * sends back the price and the fingerprint that were on screen, and the host
  * refuses — asking nobody — if either has changed on chain since. The price on
  * screen is also the most the chain may take, so a price raised between this

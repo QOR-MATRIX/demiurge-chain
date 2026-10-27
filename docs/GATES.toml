@@ -995,6 +995,20 @@ type = "tightening"
 change = "M4.3's rental (ADR-119, spec_version 11). alpha.pallets requires twenty more tests, eighteen of pallet-drc369-royalties and two of pallet-drc369: rent paid up front and divided by split as a sale is, a remix's source first; a rental that ends by itself at its block; a rented asset held in place (not transferred, approved away, listed, revised, nested, or taken apart); never listed and rented at once; the holder unable to end a rental early and the renter able to, with no refund; an ended rental cleared by anyone and replaced in its renter's index; an offer to one account; the renter's limit and the content they saw; a void offer; well-formed offers; a loan that moves no CGT; a part that cannot be received refusing the whole; a rent too large or ending too late refused; the largest rent pinned at u128::MAX; the rent preview; and a renter's play still counting. alpha.asset-core-tests requires three runtime tests: the rental calls' indices and the filter, a rented asset unmovable in this runtime, and the runtime API. Its comment that the royalties pallet's mock has no Locker is corrected: it has mounted pallet-drc369 as its Locker since this change."
 reason = "A tightening: more required tests, nothing relaxed; no kind's met condition, evidence rule or threshold changed and no unit became unmeasurable. Proven to fail first, against fifteen planted faults, each failing at least one of these tests: the lock ignoring a rental, a rental that never ends, rent paid to the holder whole, the renter's limit unchecked, an offer to one account rented by anyone, a rented asset listed, a rented asset revised, the holder ending a rental early, a rent wrapped instead of refused, a listed asset rented, an ended rental left in the index, a part taken out of a rented whole, a rented asset's records held still, a revised asset rented anyway, and a rental lasting one period whatever was paid for."
 
+[[change_log]]
+date = "2026-10-26"
+type = "ci-scope"
+change = "DIRECTION L13.2 completes: QOR ID's client (identity/), Social's socket (social.rs), the chain client (chain/: assets, config, market, mesh, pay, sales) with the object model (content/), qor://pay and qor://agent (pay.rs, agents.rs), listings and trading partners (listings.rs, partners.rs), the Library's index (library/), the Mesh (mesh/) and Qontrol (qontrol/) move from the launcher's Tauri crate into its core (tools/qor-launcher/core, ADR-104), each behind a feature the Android shell leaves off; the launcher keeps their Tauri commands. 181 tests move with them from suite launcher to suite launcher_core; one more of Qontrol's (a_qq_scene_commits_and_one_changed_value_is_one_changed_line) stays in suite launcher, moved into the launcher's qq.rs, which it saves through. Counted as written, ignored ones included: suite launcher has 113 tests where it had 294; suite launcher_core has 256 where it had 75 (the guard nothing_in_the_core_signs_under_the_mesh_grant becomes nothing_outside_the_core_signs_under_the_mesh_grant, since the Mesh is now in the core and signing under its grant is the core's alone). suite launcher_core's command gains --all-features, and suite qontrol's dir is the core. library.tests reads suite launcher_core for the index's ten tests, and a new criterion, library.media-tests, reads suite launcher for QOR Media's five, which stay in the launcher. mesh.tests reads suite launcher_core. CI's core step lints with its default features and with every feature, and tests with every feature ([ci].quality_gates updated)."
+reason = "A scope change rather than a tightening, because tests leave a suite criteria read (alpha.launcher-tests requires every test in suite launcher; library.tests and mesh.tests named tests that moved). None is removed or relaxed: every one still runs on every pull request, in CI's core step, and the twenty-three that library.tests and mesh.tests require are required where they now run. The core's step is a tightening: before, its tests ran with default features only."
+
+[[change_log]]
+date = "2026-10-26"
+type = "ci-exemption"
+change = "cargo audit of tools/qor-launcher/core also ignores RUSTSEC-2026-0344 (ruzstd 0.8.3: a decompression bomb), which the launcher's has ignored since ADR-089. Recorded, with its justification, in tools/qor-launcher/core/.cargo/audit.toml; ADR-121 option A. CI's step 'Condition of the ruzstd ignore' checks the core's lockfile as well as the launcher's, the core's with every feature on, and the core audit's step and its entry in [ci].quality_gates say so."
+reason = "The chain client moved into the core with DIRECTION L13.2, so the core's lockfile holds what the launcher's has held since 15 October 2026: ruzstd 0.8.3 through subxt's optional light client, which nothing enables. cargo tree --locked -i ruzstd --target all -e all --all-features prints nothing in the core (26 October 2026), and with default features, which the Android shell builds, ruzstd is not in its graph at all. It is the advisory ADR-089 ignores, for the same crate reached the same way, on the same condition, now checked in both lockfiles. RUSTSEC-2026-0383 (webpki-root-certs) needs no entry: the advisory database lists 0.26.11 as unaffected (26 October 2026). This is loosening of the core's audit, so it is the owner's decision of its own: ADR-121 is Proposed, and the pull request that moves the chain client carries this in a commit of its own and does not merge before the owner decides it."
+condition = "ruzstd is outside the launcher's and the core's compiled graphs (the core's with every feature on), and still in each lockfile, checked on every CI run"
+approved_by = "not yet: ADR-121 is proposed for the owner, 26 October 2026"
+
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
@@ -1040,12 +1054,12 @@ quality_gates = [
   "chain/: two validators agree, finalise and catch up. A job of its own, because it needs a release build with the sudo feature: cargo build -p demiurge-node --release --features sudo --locked, then node scripts/check-two-validators.mjs. It fails the run; criterion alpha.multi-validator reads it. Since 2026-09-21 it runs NIGHTLY (03:00 UTC) and on workflow_dispatch, not on every push",
   "services/qor-auth: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test -- --include-ignored, against a migrated Postgres 16 and a Redis 7.4",
   "services/social: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test, against a Postgres 16 (a database per test) and a real WebSocket on a loopback port; its log, SQL and migration checks run with the tests",
-  "tools/qor-launcher: npm ci, frontend build and npm run check, eighteen checks (design, the one look, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the Library view, the Mesh view, the profiles view, the ARQADE view, the updates view and the release script's signature check since 2026-10-22, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; the host-proof crate's and the core's (tools/qor-launcher/core, ADR-104) cargo fmt --check, clippy -D warnings and tests; then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
+  "tools/qor-launcher: npm ci, frontend build and npm run check, eighteen checks (design, the one look, accessibility, gates view, Projects view, Inventory view, Market view, the QQ view, the Social view, the Library view, the Mesh view, the profiles view, the ARQADE view, the updates view and the release script's signature check since 2026-10-22, the vault gate, QFX contrast and readability); the qontrol-git helper's cargo fmt --check, clippy -D warnings, tests and build; the host-proof crate's cargo fmt --check, clippy -D warnings and tests; the core's (tools/qor-launcher/core, ADR-104) cargo fmt --check, clippy -D warnings with its default features (as the Android shell builds it) and with every feature, and its tests with every feature, so the modules DIRECTION L13.2 moved there are tested and a Qontrol test whose helper or git is missing fails (since 2026-10-26); then cargo fmt --check, cargo clippy --all-targets -D warnings and cargo test --features qontrol-no-skips in src-tauri, so a Qontrol test whose helper or git is missing fails rather than skips",
   "cargo audit of services/qor-auth, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside the compiled graph (services/qor-auth/.cargo/audit.toml), and RUSTSEC-2026-0387 while CI confirms crypto-bigint 0.5 is reached only through sp-core's k256, nothing below 0.7.6 is beside it, no code here uses ECDSA or secp256k1, and 0.5 is still in the lockfile (ADR-115, since 2026-10-24)",
   "cargo audit of services/social, ignoring only RUSTSEC-2023-0071 while CI confirms rsa is outside Social's compiled graph (services/social/.cargo/audit.toml)",
   "cargo audit of tools/qor-launcher/src-tauri, ignoring only RUSTSEC-2026-0344 while CI confirms ruzstd is outside the compiled graph and still in the lockfile (tools/qor-launcher/src-tauri/.cargo/audit.toml, ADR-089), and RUSTSEC-2026-0383 while CI confirms webpki-root-certs 0.26 re-exports a fixed 1.x, is built for no Windows, Linux or macOS target, and is still in the lockfile (ADR-107, since 2026-10-20), and RUSTSEC-2026-0387 on ADR-115's conditions, as for QOR ID (since 2026-10-24)",
   "cargo audit of tools/qor-launcher/qontrol-git, the libgit2 helper",
-  "cargo audit of tools/qor-launcher/core, the Android launcher's lockfile (ADR-104). Since 2026-10-19, ignoring nothing until 2026-10-24, and since then only RUSTSEC-2026-0387 on ADR-115's conditions, as for QOR ID (tools/qor-launcher/core/.cargo/audit.toml)",
+  "cargo audit of tools/qor-launcher/core, the Android launcher's lockfile and QOR OS's (ADR-104, ADR-120). Since 2026-10-19, ignoring nothing until 2026-10-24, then only RUSTSEC-2026-0387 on ADR-115's conditions, as for QOR ID, and since the chain client moved in (2026-10-26) also RUSTSEC-2026-0344 while CI confirms ruzstd is outside the core's compiled graph with every feature on and still in its lockfile, as for the launcher (tools/qor-launcher/core/.cargo/audit.toml, ADR-121, proposed for the owner)",
   "framework/ stays retired: the security job fails if the directory returns, and with it the six advisories its audit.toml exempted until M3.5",
   "no private key material tracked in git",
   "no credentials committed in configuration files",
@@ -1116,7 +1130,7 @@ needs = "DATABASE_URL pointing at a Postgres whose user can create databases (#[
 # none either and stays unmeasurable until products/gnosis exists.
 
 [suites.qontrol]
-dir = "tools/qor-launcher/src-tauri"
+dir = "tools/qor-launcher/core"  # Qontrol is the core's since DIRECTION L13.2 (2026-10-26); it was the launcher host's.
 command = "cargo test --features qontrol-no-skips qontrol::"
 needs = "the qontrol-git helper built (cargo build --manifest-path tools/qor-launcher/qontrol-git/Cargo.toml) and git installed. Under qontrol-no-skips a test missing either fails rather than skips, because a skipped test reports ok"
 
@@ -1171,8 +1185,11 @@ command = "node scripts/check-arqade-view.mjs"
 needs = "npm run build first, and a Chromium-family browser (set BROWSER_PATH for one not in the usual places)"
 
 [suites.launcher_core]
-dir = "tools/qor-launcher/core"  # The core shared with the Android launcher (ADR-104). Since 2026-10-18.
-command = "cargo test"
+dir = "tools/qor-launcher/core"  # The core shared with the Android launcher and QOR OS (ADR-104, ADR-120). Since 2026-10-18.
+# Every feature: the modules DIRECTION L13.2 moved here are behind features the Android shell leaves off, and their
+# tests run only with them on.
+command = "cargo test --all-features"
+needs = "the qontrol-git helper built (cargo build --manifest-path tools/qor-launcher/qontrol-git/Cargo.toml) and git installed: qontrol-no-skips is among the features, so a Qontrol test missing either fails rather than skips"
 
 [suites.gnosis]
 dir = ""  # products/gnosis does not exist
@@ -2021,7 +2038,7 @@ themes."""
   questions = ["U-7", "U-15"]
 
   # No tests criterion yet. Market's first slice is launcher code since
-  # 2026-10-02 (src/views/Market.tsx, src-tauri/src/chain/market.rs), checked by
+  # 2026-10-02 (src/views/Market.tsx, core/src/chain/market.rs), checked by
   # scripts/check-market-view.mjs (127 checks), which CI runs through
   # npm run check; no criterion here reads it. Adding one is a tightening.
 
@@ -2258,15 +2275,12 @@ Everything a person has in one SteamOS-like view in the launcher, searched insta
   kind = "roadmap"
   items = ["L9.1", "L9.2", "L9.3", "L9.4", "L9.5"]
 
-  # The index, and QOR Media's queue and reports on the launcher's side
-  # (src-tauri/src/library/tests.rs, src-tauri/src/media/tests.rs). The test
-  # that starts the real QOR Media is opt-in (it needs the owner's Qt build) and
-  # is not required here. QOR Media's own Qt Test suites run on the owner's PC
-  # (tools/qor-media/build.ps1), as QQ's do, since CI has no licensed Qt.
+  # The index (core/src/library/tests.rs, and the object model's core/src/content/), the core's since DIRECTION L13.2.
+  # QOR Media's side is library.media-tests below, because a criterion reads one suite.
   [[gates.criteria]]
   id = "library.tests"
   kind = "tests"
-  suite = "launcher"
+  suite = "launcher_core"
   require = [
     "a_scan_shelves_each_file_by_kind_with_what_can_be_read_of_it",
     "search_finds_names_tags_and_words_as_they_are_typed",
@@ -2276,14 +2290,25 @@ Everything a person has in one SteamOS-like view in the launcher, searched insta
     "what_was_opened_is_remembered_with_where_it_stopped",
     "a_file_that_arrives_in_a_watched_folder_is_found_without_a_scan",
     "every_extension_is_shelved_once",
+    # Publishing a Library file to the Mesh (L10.2): what it becomes, and its bytes stored a piece at a time.
+    "a_published_file_is_one_entry_named_as_the_file_and_the_same_every_time",
+    "a_file_is_fingerprinted_and_stored_a_piece_at_a_time_and_a_changed_one_is_refused",
+  ]
+
+  # QOR Media's queue and reports on the launcher's side (src-tauri/src/media/tests.rs), which stays in the launcher:
+  # the five tests library.tests required until the index moved into the core (2026-10-26). The test that starts the
+  # real QOR Media is opt-in (it needs the owner's Qt build) and is not required here. QOR Media's own Qt Test suites
+  # run on the owner's PC (tools/qor-media/build.ps1), as QQ's do, since CI has no licensed Qt.
+  [[gates.criteria]]
+  id = "library.media-tests"
+  kind = "tests"
+  suite = "launcher"
+  require = [
     "media_next_answers_a_command_at_once_and_nothing_after_the_wait",
     "a_newer_place_replaces_an_older_one_and_order_is_kept",
     "reports_record_where_playback_stopped_and_what_was_learned",
     "only_colours_written_rrggbb_make_a_theme",
     "qor_media_is_found_where_qor_media_points_where_it_is_installed_or_where_it_is_deployed",
-    # Publishing a Library file to the Mesh (L10.2): what it becomes, and its bytes stored a piece at a time.
-    "a_published_file_is_one_entry_named_as_the_file_and_the_same_every_time",
-    "a_file_is_fingerprinted_and_stored_a_piece_at_a_time_and_a_changed_one_is_refused",
   ]
 
   # The view, in a real browser against a stand-in host.
@@ -2338,12 +2363,12 @@ A peer-to-peer network inside every launcher holding published work and each per
     "a_proof_made_a_piece_at_a_time_is_the_same_proof",
   ]
 
-  # The node on the launcher's side (src-tauri/src/mesh/tests.rs): two launchers on
-  # this PC, each rule seen to fail against a planted fault first.
+  # The node (core/src/mesh/tests.rs, the core's since DIRECTION L13.2): two launchers
+  # on this PC, each rule seen to fail against a planted fault first.
   [[gates.criteria]]
   id = "mesh.tests"
   kind = "tests"
-  suite = "launcher"
+  suite = "launcher_core"
   require = [
     "seeding_is_off_until_the_person_turns_it_on_with_both_limits",
     "own_published_work_is_seeded_and_another_launcher_fetches_it_verified",
@@ -2353,7 +2378,7 @@ A peer-to-peer network inside every launcher holding published work and each per
     "turning_seeding_off_stops_serving",
     "serving_keeps_to_the_upload_limit",
     "a_file_filed_under_a_root_it_does_not_hash_to_is_not_seeded",
-    # Paid work (src-tauri/src/mesh/paid_tests.rs, src-tauri/src/chain/mesh.rs), ADR-097. The
+    # Paid work (core/src/mesh/paid_tests.rs, core/src/chain/mesh.rs), ADR-097. The
     # whole paid path against a development node is mesh::paid::tests::live, ignored by default
     # because it needs one, and run before this was written (HANDOFF.md section 4 item 86).
     "a_proof_from_the_store_is_the_proof_the_chain_checks",

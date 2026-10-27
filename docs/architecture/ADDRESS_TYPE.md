@@ -47,7 +47,7 @@ Two consequences follow, both observed while building the launcher's client (ADR
 
 - **The address field is 32 bytes**, with no variant byte in front of it. A client that assumes
   `MultiAddress` writes 33 and the node refuses the transaction. **V** (a test in
-  `tools/qor-launcher/src-tauri/src/chain/config.rs` pins the 32).
+  `tools/qor-launcher/core/src/chain/config.rs` pins the 32).
 - **`Balances`' `dest` argument is a bare account too**, not a `MultiAddress`. **V** (a live transfer
   against `demiurge-node --dev`, 2026-09-20).
 

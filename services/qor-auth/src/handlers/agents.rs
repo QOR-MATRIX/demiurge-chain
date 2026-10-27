@@ -630,7 +630,7 @@ mod authorisation_tests {
         .expect("agents")
     }
 
-    /// The launcher builds these exact bytes for the same request (`tools/qor-launcher/src-tauri/src/agents.rs`, the
+    /// The launcher builds these exact bytes for the same request (`tools/qor-launcher/core/src/agents.rs`, the
     /// test of the same name): if either side changes, both tests must.
     #[test]
     fn the_statement_is_the_one_the_launcher_signs() {

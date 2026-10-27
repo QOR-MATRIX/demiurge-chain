@@ -8,7 +8,7 @@ the **hosting escrow** of whoever put the work there. **Decided by**
 carrying out ADR-005 and ADR-006. **Proofs:** [`../architecture/MESH_PROOFS.md`](../architecture/MESH_PROOFS.md), a
 proposal for the owner's review (U-6). **Roadmap:** L10 in [`DIRECTION.md`](../DIRECTION.md). What exists is in
 [`SYSTEMS.md`](../SYSTEMS.md). **Built so far** (branch `session/mesh`, not merged): L10.1, the node in the launcher's host
-(`tools/qor-launcher/src-tauri/src/mesh/`) and the Mesh page.
+(`tools/qor-launcher/core/src/mesh/`) and the Mesh page.
 
 The owner's brief, 17 October 2026: an in-launcher torrenting network in which any person signed in with a QOR ID is
 paid CGT for seeding files and data for others, "a sort of cloud file storage mesh", with being paid for seeding a main
