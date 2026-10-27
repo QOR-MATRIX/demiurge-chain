@@ -1,4 +1,32 @@
-# cargo audit configuration for tools/qor-launcher/core, the Android launcher's lockfile (ADR-104, ADR-115).
+# cargo audit configuration for tools/qor-launcher/core, the Android launcher's lockfile and the one QOR OS builds
+# (ADR-104, ADR-115, ADR-120).
+#
+# RUSTSEC-2026-0344 (ruzstd 0.8.3, a decompression bomb: a tiny input can
+# exhaust memory) is fixed only on ruzstd's 0.9 line, and no published smoldot
+# uses that line, so no update removes it.
+#
+# JUSTIFICATION: the same as the Windows launcher's (ADR-089). ruzstd is in this
+# Cargo.lock only through smoldot, smoldot-light and subxt-lightclient, subxt's
+# optional light client, which the core does not enable: the chain client talks
+# to a node over WebSocket (ADR-040). It arrived here when the chain client moved
+# into the core (DIRECTION L13.2). `cargo tree --locked -i ruzstd --target all
+# -e all --all-features` prints nothing (verified 2026-10-26), with every
+# feature on, as the Windows launcher and QOR OS build it.
+#
+# MUST BE REVISITED if ruzstd ever enters the compiled graph. CI enforces this
+# for this lockfile as for the launcher's, with every feature on, so this ignore
+# cannot silently cover a dependency that is actually built. Delete it when a
+# lockfile update removes ruzstd 0.8, which CI also reports.
+#
+# The owner approved this ignore for the Windows launcher's lockfile on
+# 2026-10-15 (ADR-089, option A); it is extended to this one, on the same
+# condition, by the change that moved the chain client, and logged in
+# docs/GATES.toml [[change_log]] for the owner's review with it.
+#
+# RUSTSEC-2026-0383 (webpki-root-certs), which the launcher's file also ignores,
+# needs no entry here: the advisory database lists 0.26.11, the version this
+# lockfile holds through Social's TLS verifier, as unaffected (checked
+# 2026-10-26), so `cargo audit` does not report it.
 #
 # RUSTSEC-2026-0387 (crypto-bigint, timing variability in operations meant to be
 # constant-time) is fixed in 0.7.6, published 2026-10-23, and has no fix on the
@@ -24,4 +52,4 @@
 # [[change_log]]. Every other advisory still fails the audit.
 
 [advisories]
-ignore = ["RUSTSEC-2026-0387"]
+ignore = ["RUSTSEC-2026-0344", "RUSTSEC-2026-0387"]

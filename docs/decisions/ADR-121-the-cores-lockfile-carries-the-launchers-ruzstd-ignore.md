@@ -70,7 +70,9 @@ None yet. On acceptance of option A:
 1. `tools/qor-launcher/core/.cargo/audit.toml` ignores RUSTSEC-2026-0344 beside RUSTSEC-2026-0387, saying why, when it
    was verified and on what condition.
 2. CI's step "Condition of the ruzstd ignore" checks the launcher's and the core's lockfiles, the core's with every
-   feature on, and fails in each of the ways option A names.
+   feature on, and fails in each of the ways option A names. It was seen to fail both ways for the core before it was
+   committed (26 October 2026): with `ruzstd` renamed out of the core's lockfile, and with subxt's `light-client`
+   feature turned on in the core, which put `ruzstd` in its compiled graph through `smoldot`.
 3. `docs/GATES.toml` logs it, and the core audit's entry in `[ci].quality_gates` says so. Every other advisory still
    fails the core's audit.
 

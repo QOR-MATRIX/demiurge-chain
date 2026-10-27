@@ -673,27 +673,34 @@ jobs:
       # tools/qor-launcher/src-tauri/.cargo/audit.toml ignores RUSTSEC-2026-0344
       # (ruzstd) on one condition, as the rsa ignore above does (ADR-089): ruzstd
       # is in Cargo.lock, through subxt's light client, but not in the compiled
-      # graph. This step enforces it, and says when the ignore can go.
-      - name: "Condition of the ruzstd ignore: ruzstd stays out of the launcher's compiled graph"
+      # graph. Since the chain client moved into the core (DIRECTION L13.2), the
+      # core's lockfile carries it too and its audit.toml ignores it on the same
+      # condition, checked there with every feature on, as the Windows launcher
+      # and QOR OS build it. This step enforces both, and says when they can go.
+      - name: "Condition of the ruzstd ignore: ruzstd stays out of the launcher's and the core's compiled graphs"
         if: always()
-        working-directory: ./tools/qor-launcher/src-tauri
         run: |
           set -o pipefail
-          if ! grep -q '^name = "ruzstd"$' Cargo.lock; then
-            echo "::error::ruzstd has left Cargo.lock. Remove the RUSTSEC-2026-0344 ignore from tools/qor-launcher/src-tauri/.cargo/audit.toml (ADR-089)."
-            exit 1
-          fi
-          if ! graph=$(cargo tree --locked -i ruzstd --target all -e all 2>tree.err); then
-            cat tree.err
-            echo "::error::cargo tree could not check for ruzstd, so the RUSTSEC-2026-0344 ignore in tools/qor-launcher/src-tauri/.cargo/audit.toml is unproven (ADR-089)."
-            exit 1
-          fi
-          if [ -n "$graph" ]; then
-            echo "$graph"
-            echo "::error::ruzstd has entered the compiled graph. The RUSTSEC-2026-0344 ignore in tools/qor-launcher/src-tauri/.cargo/audit.toml no longer holds and must be revisited (ADR-089)."
-            exit 1
-          fi
-          echo "ruzstd is not in the compiled graph; the ignore still holds."
+          for dir in tools/qor-launcher/src-tauri tools/qor-launcher/core; do
+            features=""
+            if [ "$dir" = tools/qor-launcher/core ]; then features="--all-features"; fi
+            if ! grep -q '^name = "ruzstd"$' "$dir/Cargo.lock"; then
+              echo "::error::ruzstd has left $dir/Cargo.lock. Remove the RUSTSEC-2026-0344 ignore from $dir/.cargo/audit.toml (ADR-089)."
+              exit 1
+            fi
+            if ! graph=$(cd "$dir" && cargo tree --locked -i ruzstd --target all -e all $features 2>tree.err); then
+              cat "$dir/tree.err"
+              echo "::error::cargo tree could not check for ruzstd, so the RUSTSEC-2026-0344 ignore in $dir/.cargo/audit.toml is unproven (ADR-089)."
+              exit 1
+            fi
+            rm -f "$dir/tree.err"
+            if [ -n "$graph" ]; then
+              echo "$graph"
+              echo "::error::ruzstd has entered the compiled graph in $dir. The RUSTSEC-2026-0344 ignore in $dir/.cargo/audit.toml no longer holds and must be revisited (ADR-089)."
+              exit 1
+            fi
+          done
+          echo "ruzstd is not in the launcher's or the core's compiled graph; the ignores still hold."
 
       # The same file ignores RUSTSEC-2026-0383 (webpki-root-certs) in 0.26.11 alone, on two conditions (ADR-107):
       # 0.26 holds no certificates of its own, only the 1.x crate's, which must be the fixed 1.0.10 or later; and it
@@ -739,10 +746,10 @@ jobs:
         working-directory: ./tools/qor-launcher/src-tauri
         run: cargo audit
 
-      # The core shared with the Android launcher (ADR-104) has a Cargo.lock of its own, and it is what the Android
-      # build resolves. Since the wallet moved into it (DIRECTION L13.2) it carries sp-core's tree, so it is audited
-      # like the host's. No advisory is ignored here.
-      - name: "Audit launcher core dependencies (the Android launcher's lockfile; ignores only RUSTSEC-2026-0387; see .cargo/audit.toml)"
+      # The core shared with the Android launcher and QOR OS (ADR-104, ADR-120) has a Cargo.lock of its own, and it is
+      # what the Android build and QOR OS resolve. Since the wallet and then the chain client moved into it (DIRECTION
+      # L13.2) it carries sp-core's and subxt's trees, so it is audited like the host's.
+      - name: "Audit launcher core dependencies (the Android launcher's and QOR OS's lockfile; ignores only RUSTSEC-2026-0344 and RUSTSEC-2026-0387; see .cargo/audit.toml)"
         if: always()
         working-directory: ./tools/qor-launcher/core
         run: cargo audit
