@@ -1,15 +1,15 @@
 # ADR-122: The active crates take the repository's licence, Apache-2.0
 
-**Status:** **Proposed**, 27 October 2026, for the owner to accept, amend or reject. The six manifests keep `MIT`
-until the owner decides. The owner's delegation of 26 October 2026 ("Go with your best and most recommended decisions
-for questions moving forward") does not decide this record: ADR-120, accepted the same day under those words, kept the
-question for the owner, and on 27 October 2026 the owner answered "proceed with" to a list, written by the assistant,
-that said it was still the owner's to decide. Changing the licence a crate declares is the copyright holder's act. It
-decides **no economic value**, and would loosen no evidence: no gate, CI step or audit reads a crate's licence.
+**Status:** **Accepted**, 27 October 2026, by the owner, with option A. Proposed the same day. The owner merged
+#108, which carried this record as proposed, and then answered the assistant's report, which recommended option A
+and asked the owner to accept this record or not: "#108 is merged. I authorize your best judgement and approve your
+decisions." The merge alone would not have decided it (HANDOFF section 4 item 148); that answer does. Changing the
+licence a crate declares is the copyright holder's act, and this rests on the owner being that holder (Open, below).
+It decides **no economic value**, and loosens no evidence: no gate, CI step or audit reads a crate's licence.
 
 **Relates to:** [ADR-120](ADR-120-qor-os-carries-the-device-side-products.md), whose Consequences leave this question
-to the owner and whose decision 5 has Apache-2.0 travel with the carried files; this record would answer the question
-and does not edit ADR-120. [ADR-104](ADR-104-the-launcher-on-android-on-qt.md) makes the core the only code that holds
+to the owner and whose decision 5 has Apache-2.0 travel with the carried files; this record answers the question and
+does not edit ADR-120. [ADR-104](ADR-104-the-launcher-on-android-on-qt.md) makes the core the only code that holds
 a key, shared by the Windows and Android launchers. [ADR-091](ADR-091-social.md) puts Social in active scope.
 
 ## Context
@@ -93,7 +93,7 @@ confirm them, as they can the open question below.
 
 ## Decision
 
-None yet. On acceptance of option A:
+Option A, accepted by the owner on 27 October 2026:
 
 1. From the commit that accepts it, the six active crates whose manifests say MIT declare `license = "Apache-2.0"`,
    matching `LICENSE`: `qor-launcher-core`, `qor-launcher`, `qor-host-proof`, `qontrol-git`, `qor-auth` and `social`.
@@ -104,8 +104,6 @@ None yet. On acceptance of option A:
    redistributor must carry.
 5. README.md's Licence section says so; `docs/blueprints/qontrol.md`, which says libgit2 ships "in a tree whose crates
    are MIT", says Apache-2.0; and both indexes add to ADR-120's status that its licence question is answered here.
-
-If the owner chooses B, C or D instead, this record is amended to it before it is accepted.
 
 ## Open, not decided here
 

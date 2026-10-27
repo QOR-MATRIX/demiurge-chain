@@ -119,10 +119,10 @@ says how to report one, and records the security track and the advisories being 
 ## Licence
 
 **Apache-2.0** ([`LICENSE`](LICENSE)), set by the owner on 21 September 2026; the copyright line reads "Demiurge".
-Six active crates still declare `MIT` in their manifests: the launcher's core, the launcher, its product host's
-checks, Qontrol's helper, QOR ID and Social. Whether they take Apache-2.0 is
-[ADR-122](docs/decisions/ADR-122-the-active-crates-take-the-repositorys-licence.md), proposed for the owner. Several
-**frozen** packages also declare `MIT` or `ISC` in their own manifests (`cli/`, `packages/*`, `client/`,
-`apps/guru/sophia-demo`, and the dead `aeons/` pallets); they predate the realignment, are left as published, and
-reconciling them is open. QQ is built with Qt under the owner's commercial licence; anyone else building
-`products/qq/` needs their own Qt licence ([ADR-083](docs/decisions/ADR-083-qq-on-qt.md)).
+The active crates declare Apache-2.0 too: six that said `MIT` (the launcher's core, the launcher, its product host's
+checks, Qontrol's helper, QOR ID and Social) take it from 27 October 2026
+([ADR-122](docs/decisions/ADR-122-the-active-crates-take-the-repositorys-licence.md)), and releases before then keep
+what they declared. Several **frozen** packages still declare `MIT` or `ISC` in their own manifests (`cli/`,
+`sdk/`, `packages/*`, `apps/guru/sophia-demo`, and the dead `aeons/` pallets); they predate the realignment, are
+left as published, and reconciling them is open. QQ is built with Qt under the owner's commercial licence; anyone else
+building `products/qq/` needs their own Qt licence ([ADR-083](docs/decisions/ADR-083-qq-on-qt.md)).

@@ -5,7 +5,7 @@ description  = "QOR Launcher — the sovereign gateway to the Demiurge ecosystem
 authors      = ["Laustrup Group"]
 edition      = "2021"
 rust-version = "1.91"
-license      = "MIT"
+license      = "Apache-2.0"
 
 [lib]
 name       = "qor_launcher_lib"
