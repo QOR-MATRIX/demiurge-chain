@@ -44,6 +44,11 @@ Active: `chain/`, `services/qor-auth/`, `services/social/` (ADR-091, since 15 Oc
 `sdk/`, `packages/` and `client/` is frozen (D-011, amended by ADR-011): do not extend it or treat it as
 working unless the owner brings it back into scope. `aeons/`, `archons/` and `syzygies/` are dead.
 
+QQ, QOR Media and ARQADE's Qt app are also carried, as `git subtree`s, in **QOR OS**, the owner's operating system in
+the private repository `QOR-MATRIX/qor-os`, and QOR OS builds `tools/qor-launcher/core` at a pinned commit (ADR-120,
+since 26 October 2026). This repository stays their upstream and the core's only source: work on them here follows
+these rules unchanged, and a fix that is not specific to QOR OS lands here first.
+
 `chain/` is the Substrate L1 (ADR-013, located and named by ADR-032), started on 17 September 2026 once
 the owner confirmed ADR-018 to ADR-032. **It is the only chain in this repository.**
 
