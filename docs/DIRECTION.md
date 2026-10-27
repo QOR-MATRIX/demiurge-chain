@@ -930,19 +930,28 @@ the Rust core, app ID `app.qorsync.dev`, Android 9 and later, delivered as a sig
      as 1,250 Sparks.
 
    **Not yet:** on a phone.
-2. [ ] The core moved out of the Tauri crate, module by module with its tests: Sparks, errors, the vault, profiles, QOR
+2. [x] The core moved out of the Tauri crate, module by module with its tests: Sparks, errors, the vault, profiles, QOR
    ID's client, the chain client, Social's client, the Library's index and the Mesh. The Windows launcher keeps every
    test green throughout.
 
-   **Moved so far:**
+   **Done, 26 October 2026, on `session/core-host-modules` (#107, open for the owner's review; HANDOFF §4 item 161):**
    - Sparks and errors (18 October 2026, #50).
    - The vault, profiles and the confirmation they ask through (19 October 2026, merged in #56 at `c4972b0`):
-     - Their 52 tests moved with them. The core has 73 tests and the Windows launcher 270, and both suites pass.
-     - The arm64 APK still builds, with sp-core, schnorrkel and secp256k1's C library compiled for Android.
+     - Their 52 tests moved with them. The core had 73 tests and the Windows launcher 270, and both suites passed.
      - On Android the core has no keychain, because `keyring` would keep a wallet's key in memory there. L13.3 gives
        the vault Android's Keystore instead.
-
-   **Next:** QOR ID's client, then the chain client.
+   - The rest (#107): QOR ID's client, Social's socket, the chain client with the object model, `qor://pay` and
+     `qor://agent`, listings and trading partners, the Library's index, the Mesh and, beyond this list, Qontrol.
+     - 181 tests moved with them.
+     - Each is behind a feature of the core, none on by default. `desktop` is all of them, which the Windows launcher
+       and QOR OS (ADR-120) build. The Android shell builds the default features, so the phone links what it did
+       before.
+     - Counted as written, the core has 256 tests and the Windows launcher 113, 369 in all, as before. On the owner's
+       PC the core passes 245 with 11 ignored, and the launcher 106 with 6 ignored.
+     - The arm64 APK still builds.
+     - Signing under the Mesh grant is now the core's alone.
+     - Whether the core's audit may ignore the advisory subxt brings with it, as the launcher's does, is ADR-121,
+       proposed for the owner.
 3. [ ] Keys on Android: the wallet's key sealed with its profile's PIN and wrapped by Android Keystore. The Gate, the
    profiles and the Vault with Sparks in Qt, and a check that the shell cannot read a key.
 4. [ ] QOR ID's sign-in and Social.
@@ -2086,6 +2095,10 @@ here sets an economic value; payouts are U-16.
 The other product tracks (§7) are planned, not active scope. Qontrol's Projects surface, its `qontrol-git`
 helper, QFX layer one and Market's first slice are part of `tools/qor-launcher/`. A product gets a directory under `products/`
 only by ADR-050's decision 10, once its defining record is accepted.
+
+QQ, QOR Media and ARQADE's Qt app are also carried, as `git subtree`s, in **QOR OS**, the owner's operating system in
+the private `QOR-MATRIX/qor-os`, which builds `tools/qor-launcher/core` at a pinned commit (ADR-120, 26 October 2026).
+This repository stays their upstream and the core's only source, and nothing in this roadmap moves there.
 
 `framework/`, the custom Rust devnet `chain/` replaced, was retired at M3.5 on 20 September 2026 and
 deleted. It is not active, not a reference, and not to be restored; CI fails if the directory returns.
