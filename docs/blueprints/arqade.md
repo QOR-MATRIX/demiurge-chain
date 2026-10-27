@@ -167,7 +167,7 @@ approval, and delegated authority is only ever what the chain enforces (M5.2), n
 - Transaction states stay distinct: awaiting approval, signed, submitted, included, finalised success, failed,
   rejected, expired, unresolved. Inclusion is not success; check the dispatch outcome and events at finality. A
   timed-out submission is reconciled by hash and nonce, never blindly resent. The launcher's
-  `src-tauri/src/chain/mod.rs` shows the pattern.
+  `core/src/chain/mod.rs` shows the pattern.
 - Where a database action depends on settlement, a durable outbox and a reconciler give at-most-once credit.
 - No administrator, faucet, treasury or player key in ARQADE. Operator signing, if ever needed, is a separate,
   least-privilege service with spending limits, approved first.

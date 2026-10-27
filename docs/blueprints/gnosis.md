@@ -131,7 +131,7 @@ merges.
 GNOSIS's**: ADR-047, accepted on 22 September 2026, makes it BLAKE3-256 as a 32-byte root with the algorithm tagged in
 a SCALE enum. The tag is why `media.lock` writes `blake3-256:` instead of assuming: a Qontrol commit id is a git object
 id, never BLAKE3. **The fingerprint is decided and built**: the launcher computes ADR-047's manifest
-(`tools/qor-launcher/src-tauri/src/content/`) when it mints a commit. The store those references point at is the Mesh
+(`tools/qor-launcher/core/src/content/`) when it mints a commit. The store those references point at is the Mesh
 (M8.1), which is **not built**; a temporary content store on the minting machine stands in for it (G-2, G-5).
 
 **R4 — Canonical serialisation, enforced by the writer.** Fixed key order, fixed decimal formatting with no float
@@ -278,7 +278,7 @@ gitoxide's status **and**, where git is installed, `git status --porcelain` both
 failure rather than trusting it. And ignore agreement, both directions: a file untracked in gitoxide's status is
 skipped by the sidecar's add, and a file the sidecar stages is not reported untracked — both honouring the
 repository's config and `.gitattributes` as git would. **Both exist for Qontrol's own scaffolds**
-(`tools/qor-launcher/src-tauri/src/qontrol/tests.rs`, proven to fail first in `5a44207`). GNOSIS needs the same two
+(`tools/qor-launcher/core/src/qontrol/tests.rs`, proven to fail first in `5a44207`). GNOSIS needs the same two
 run against its own project tree, because its `local/` rules are the ones that must agree, and that fixture is not
 written.
 

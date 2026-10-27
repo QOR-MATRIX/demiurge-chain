@@ -42,7 +42,6 @@
 //! It is not a second abstraction for the interface to consume. One port, one
 //! set of types, and the gitoxide/libgit2 seam is invisible above it.
 
-pub mod commands;
 mod diff;
 pub mod guard;
 pub mod publish;
@@ -148,7 +147,7 @@ pub struct Project {
 
 /// Open the repository at `path`; a folder that is not one is refused. QQ checks a project with this before it
 /// writes a scene into it.
-pub(crate) fn open(path: &Path) -> Result<gix::Repository, QontrolError> {
+pub fn open(path: &Path) -> Result<gix::Repository, QontrolError> {
     gix::open(path)
         .map_err(|e| QontrolError::NotARepository(format!("{path:?} is not a repository: {e}")))
 }

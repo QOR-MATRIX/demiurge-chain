@@ -129,7 +129,7 @@ there is no cookie to share and no `SameSite` problem to solve: a frontend whose
 below can call `id.qorsync.dev` with a bearer token, cross-origin.
 
 **The launcher is not affected at all.** It keeps both tokens in the **OS keychain**, never on disk and
-never in the webview (`tools/qor-launcher/src-tauri/src/identity/mod.rs`, module documentation). It is a native client, not
+never in the webview (`tools/qor-launcher/core/src/identity/mod.rs`, module documentation). It is a native client, not
 a browser, so the same-origin policy does not apply to it. Nothing in this section changes the launcher.
 
 ### What was wrong when this was written, and is fixed

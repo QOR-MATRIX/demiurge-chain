@@ -894,7 +894,7 @@ pub async fn get_challenge(
 /// same key signs chain transactions, and without the tag a hostile or
 /// compromised endpoint could ask for a signature over bytes that mean
 /// something else. The launcher uses the identical tag
-/// (`tools/qor-launcher/src-tauri/src/identity/mod.rs` builds the message the
+/// (`tools/qor-launcher/core/src/identity/mod.rs` builds the message the
 /// vault signs). Agent authorisations carry tags of their own (ADR-112).
 ///
 /// **What the tag does not do yet.** ADR-024 asks for the chain's genesis hash

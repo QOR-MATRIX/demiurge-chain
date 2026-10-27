@@ -186,9 +186,10 @@ impl IdentityClient {
         self.session.read().clone()
     }
 
-    /// Test support: hold a session in memory, as signing in would, without QOR ID or the keychain.
-    #[cfg(test)]
-    pub(crate) fn set_session(&self, session: Option<Session>) {
+    /// Test support: hold a session in memory, as signing in would, without QOR ID or the keychain. The Windows
+    /// launcher's tests use it too, through the `testing` feature.
+    #[cfg(any(test, feature = "testing"))]
+    pub fn set_session(&self, session: Option<Session>) {
         *self.session.write() = session;
     }
 

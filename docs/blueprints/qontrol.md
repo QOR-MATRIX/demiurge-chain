@@ -145,7 +145,7 @@ which consults `.gitignore`, `.gitattributes`, `core.autocrlf` and case sensitiv
 is the difference between a clean tree and one that lies. Every scaffold's `.gitattributes` opens with
 `* text=auto eol=lf`.
 
-**Three tests, written to fail first** (`tools/qor-launcher/src-tauri/src/qontrol/tests.rs`):
+**Three tests, written to fail first** (`tools/qor-launcher/core/src/qontrol/tests.rs`):
 
 1. `after_a_commit_the_working_tree_is_clean` — gitoxide's status reports nothing outstanding.
 2. `git_itself_agrees_the_tree_is_clean` — where `git` is installed, `git status --porcelain` prints
@@ -254,7 +254,7 @@ a session file structurally. It could not mint anything either, until 22 Septemb
 Phase 5's first half, built with M4.1 and described there. **The line-by-line diff arrived on 23 September
 2026, and P1.1 is ticked.** Choosing a change shows what changed inside it: the index's blob against the
 working-tree file converted to what git would store under the repository's own `core.autocrlf` and
-`.gitattributes` (`src-tauri/src/qontrol/diff.rs`), so a line ending the repository converts is never shown
+`.gitattributes` (`core/src/qontrol/diff.rs`), so a line ending the repository converts is never shown
 as a change, and `-diff` makes a file binary. No diff driver's program is ever run. Structural diffs of
 session files are still Phase 4 (P1.4).
 
@@ -262,7 +262,7 @@ session files are still Phase 4 (P1.4).
 switched to); switch and discard (libgit2's safe checkout in the helper, which refuses rather than
 overwrites, and refuses to "discard" a new file because that would delete it); per-file commit, matched by
 exact name because libgit2's pathspec treats `take[1].wav` as a glob; a guard before staging
-(`src-tauri/src/qontrol/guard.rs`) that holds back a file over 50 MiB or one named or shaped like a
+(`core/src/qontrol/guard.rs`) that holds back a file over 50 MiB or one named or shaped like a
 credential until the person accepts it by name, and runs again at commit; and the helper bundled as a
 sidecar with libgit2's licence (`scripts/build-helper.mjs`, `src-tauri/tauri.bundle.conf.json`), which
 settles risk 5's notice. **Not built from Phase 1:** commit signing with the vault key, which the roadmap's
@@ -302,7 +302,7 @@ Mint panel that shows the commit HEAD points at, by its full hash, and mints it.
   repository's object store (`qontrol/publish.rs`). A project with uncommitted changes is refused — the
   asset would not be what is on the creator's screen — and so is one with no commit, a submodule, or a
   file name that is not UTF-8. It is pinned by hash, never by branch (ADR-047 decisions 8 and 9).
-- **It builds the manifest ADR-047 decides** (`src-tauri/src/content/`). One entry per file, each with its
+- **It builds the manifest ADR-047 decides** (`core/src/content/`). One entry per file, each with its
   own BLAKE3-256 fingerprint and length, sorted by path byte-for-byte whatever order the files were read
   in; a media type from a fixed table of IANA-registered types, and `application/octet-stream` for anything
   else; the role `Licence` for a licence file at the top of the project and `Component` for every other

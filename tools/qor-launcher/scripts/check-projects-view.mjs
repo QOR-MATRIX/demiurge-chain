@@ -1,6 +1,6 @@
 // Does the Projects surface show exactly what the repository contains? (Qontrol)
 //
-// The host's own tests already prove that `src-tauri/src/qontrol/` reads a real
+// The core's own tests already prove that `core/src/qontrol/` reads a real
 // repository correctly, and that a commit through the gitoxide/libgit2 split
 // leaves a tree that both gitoxide and `git status --porcelain` call clean. They
 // say nothing about what reaches the screen. This check covers the other half:

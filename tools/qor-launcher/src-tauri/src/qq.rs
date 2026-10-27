@@ -570,4 +570,95 @@ mod tests {
             .next()
             .is_none());
     }
+
+    /// A game project as Qontrol scaffolds one, with an identity gitoxide will commit under.
+    fn game_project() -> tempfile::TempDir {
+        let dir = tempfile::tempdir().expect("a folder");
+        qontrol::scaffold(dir.path(), qontrol::Scaffold::Game).expect("scaffold");
+        let config = dir.path().join(".git").join("config");
+        let existing = std::fs::read_to_string(&config).unwrap_or_default();
+        std::fs::write(
+            config,
+            format!(
+                "{existing}
+[user]
+	name = Qontrol Test
+	email = test@invalid
+"
+            ),
+        )
+        .expect("write config");
+        dir
+    }
+
+    /// Is the qontrol-git helper there? Committing needs it. As in Qontrol's own tests in the core, a missing helper is a
+    /// skip said out loud, and under `qontrol-no-skips` (CI) a failure.
+    fn qontrol_helper_present(test: &str) -> bool {
+        if qontrol::sidecar::available() {
+            return true;
+        }
+        let why = "the qontrol-git helper is not built (`cargo build --manifest-path ../qontrol-git/Cargo.toml`)";
+        if cfg!(feature = "qontrol-no-skips") {
+            panic!("{test}: {why}, and this run does not allow skips");
+        }
+        eprintln!("skipped {test}: {why}");
+        false
+    }
+
+    // Moved from Qontrol's tests when Qontrol moved into the core (DIRECTION L13.2): it saves through this module, which
+    // stays in the launcher.
+    /// QQ's promise for P3.1 (ADR-082): a scene saved into a game project commits like any other file, and changing one
+    /// value in the editor is one changed line in the diff Projects shows, not a rewritten file.
+    #[test]
+    fn a_qq_scene_commits_and_one_changed_value_is_one_changed_line() {
+        let dir = game_project();
+        if !qontrol_helper_present("a_qq_scene_commits_and_one_changed_value_is_one_changed_line") {
+            return;
+        }
+        // Written as QQ's editor writes it: one component per line (src/qq/runtime/scene.ts).
+        let scene = |glow: &str| {
+            format!(
+                "{{\n  \"qq\": 1,\n  \"name\": \"level\",\n  \"size\": {{ \"w\": 960, \"h\": 540 }},\n  \"background\": \"#07080c\",\n  \"entities\": [\n    {{\n      \"id\": \"e1\",\n      \"name\": \"Core\",\n      \"transform\": {{ \"x\": 0, \"y\": 0, \"rotation\": 0, \"scale\": 1 }},\n      \"shape\": {{ \"kind\": \"circle\", \"w\": 84, \"h\": 84, \"colour\": \"#ff6a00\", \"glow\": {glow} }}\n    }}\n  ]\n}}\n"
+            )
+        };
+
+        save(dir.path(), "level", &scene("0.7")).expect("saved");
+        qontrol::commit(dir.path(), "First light").expect("commit");
+        assert!(
+            qontrol::read(dir.path()).expect("read").changes.is_empty(),
+            "committed clean"
+        );
+
+        save(dir.path(), "level", &scene("0.25")).expect("saved again");
+        let changed = qontrol::read(dir.path()).expect("read");
+        assert_eq!(
+            changed
+                .changes
+                .iter()
+                .map(|c| (c.path.as_str(), c.state.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("scenes/level.qq.json", "modified")]
+        );
+
+        let diffs = qontrol::diff(dir.path(), Some("scenes/level.qq.json")).expect("diff");
+        let qontrol::DiffBody::Text { lines, .. } = &diffs[0].body else {
+            panic!("a scene is text, not binary: {:?}", diffs[0].body);
+        };
+        let removed: Vec<&str> = lines
+            .iter()
+            .filter(|l| l.kind == "remove")
+            .map(|l| l.text.as_str())
+            .collect();
+        let added: Vec<&str> = lines
+            .iter()
+            .filter(|l| l.kind == "add")
+            .map(|l| l.text.as_str())
+            .collect();
+        assert_eq!(removed.len(), 1, "one line out: {removed:?}");
+        assert_eq!(added.len(), 1, "one line in: {added:?}");
+        assert!(
+            removed[0].ends_with("\"glow\": 0.7 }") && added[0].ends_with("\"glow\": 0.25 }"),
+            "{removed:?} -> {added:?}"
+        );
+    }
 }

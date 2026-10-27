@@ -37,7 +37,7 @@ Run them from `products/arqade`: `npm test`.
 | Surface | Waits on |
 | --- | --- |
 | Player sign-in | **Built in QOR ID** (ADR-073: OAuth 2.1 with PKCE) and used by ARQADE (`../lib/qor-session.ts`). Not built: an SDK wrapper, and registration for third-party games (today an app is registered only by the owner, in QOR ID's `QOR_OAUTH_CLIENTS` setting) |
-| Signing a player's payment | **`qor://pay` exists for ARQADE's own key** (ADR-076, ADR-077): the player's QOR Launcher checks the request and pays it after its own dialog. Another game waits on being added to the launcher's known apps (`KNOWN_APPS` in `tools/qor-launcher/src-tauri/src/pay.rs`, ARQADE's only today), which needs a new launcher build |
+| Signing a player's payment | **`qor://pay` exists for ARQADE's own key** (ADR-076, ADR-077): the player's QOR Launcher checks the request and pays it after its own dialog. Another game waits on being added to the launcher's known apps (`KNOWN_APPS` in `tools/qor-launcher/core/src/pay.rs`, ARQADE's only today), which needs a new launcher build |
 | ARQ Wallets: `vault ignite`, `payouts.award`, rounds, claims | Sending and watching the calls (the chain client, M5.1); the CLI's `vault ignite`. Rounds are live on the devnet at `spec_version` 8 |
 | Trophies | An issuer account minting and transferring today; account-bound ones wait on G-16 |
 | Cards, sets, packs | G-15 (editions) and G-14 (randomness) |

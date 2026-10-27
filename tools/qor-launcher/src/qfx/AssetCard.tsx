@@ -37,7 +37,7 @@
  * number. A held card carries its menu, Make permanent and Withdraw. A found
  * card carries who holds it and Buy — or, where it cannot be bought, the host's
  * reason in words. The card never works out whether a purchase is possible: the
- * host does, from the chain (`src-tauri/src/chain/sales.rs`).
+ * host does, from the chain (`core/src/chain/sales.rs`).
  *
  * A third way to draw it: **listed**, on the Market (L7.2). The card carries
  * who holds it, what it was remixed from, and the host's standing for it —

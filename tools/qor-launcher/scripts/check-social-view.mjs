@@ -1,6 +1,6 @@
 // Does the Social surface draw what Social says, and ask Social exactly what the person did? (ADR-091, ADR-092, L8.5)
 //
-// The host's tests prove the socket (src-tauri/src/social.rs: hello with the token, events, answers, refusals with
+// The core's tests prove the socket (core/src/social.rs: hello with the token, events, answers, refusals with
 // their codes, reconnecting); Social's own tests prove its rules (services/social). This check covers what reaches
 // the screen: it serves the built frontend in a real rendering engine with a stand-in host that answers
 // `social_request` from a FIXTURE and delivers `social://` events, then drives the surface as a person would.

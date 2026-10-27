@@ -6,7 +6,7 @@
 // is ARQADE's". It learns a request was paid by finding the remark's event and the transfer in one extrinsic of a
 // finalised block (`findPayment`).
 //
-// The request's fields and order are the launcher's (`tools/qor-launcher/src-tauri/src/pay.rs`, `Signed`): it refuses
+// The request's fields and order are the launcher's (`tools/qor-launcher/core/src/pay.rs`, `Signed`): it refuses
 // any other field. Devnet only, at most 100,000 CGT, valid for at most fifteen minutes (ADR-076 decision 6).
 
 import { DEVNET } from './chain';

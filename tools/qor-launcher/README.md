@@ -70,23 +70,35 @@ tools/qor-launcher
 │   │                        the interface, under the chrome's scrim
 │   ├── state/store.ts       One Zustand store
 │   └── views/               Nexus, Vault, Chain, Inventory, Market, Release gates, Projects, Settings, Horizon
-├── src-tauri/               Rust host (everything security-relevant)
+├── core/                    The core (ADR-104): everything that holds a key or talks to a service, shared
+│   │                        with the Android shell and QOR OS (ADR-120); each module DIRECTION L13.2
+│   │                        moved here is behind a feature, and the Windows launcher builds `desktop`
 │   ├── src/cgt.rs           Denomination: parsing, formatting, precision
+│   ├── src/vault/           BIP-39, Sr25519 (sp-core), Argon2id, XChaCha20-Poly1305
+│   ├── src/profiles.rs      A profile for each QOR ID on this PC (ADR-099)
+│   ├── src/identity/        QOR ID auth + OS keychain token storage
+│   ├── src/social.rs        Social's socket, signed in through QOR ID (ADR-091)
 │   ├── src/chain/           subxt client for the Substrate chain in chain/ (L3.1, ADR-040),
 │   │                        including DRC-369 mint, make-permanent and enumeration (M4.1),
 │   │                        selling and buying settled on chain (chain/sales.rs, L4.6),
 │   │                        and the Market's read of every listing (chain/market.rs, L7.2)
 │   ├── src/content/         The object model (ADR-047): manifest, BLAKE3 root, 41-byte
 │   │                        reference, and the temporary content store
-│   ├── src/gates.rs         Release-gate progress from docs/GATES.toml (L2.2)
-│   ├── src/identity/        QOR ID auth + OS keychain token storage
 │   ├── src/pay.rs           qor://pay links, checked before any dialog (ADR-076, ADR-077);
 │   │                        paid by src/chain/pay.rs
 │   ├── src/agents.rs        qor://agent links, checked before any dialog, and the statement
 │   │                        the vault signs to authorise an agent (ADR-112)
+│   ├── src/library/         The Library's index (ADR-094): SQLite with FTS5, folders scanned and watched
+│   ├── src/mesh/            The Mesh's node on iroh, and its paid work under its grant (ADR-095 to ADR-097)
 │   ├── src/qontrol/         Qontrol's port: gitoxide for every read, the helper for staging,
 │   │                        switch and discard, and the guard before staging
-│   └── src/vault/           BIP-39, Sr25519 (sp-core), Argon2id, XChaCha20-Poly1305
+│   └── src/bridge.rs        The C bridge the Qt shell calls (include/qor_core.h, ADR-104)
+├── src-tauri/               The Windows launcher's Rust host: the Tauri commands over the core, the window,
+│   │                        and the products it starts
+│   ├── src/lib.rs           The commands the interface calls (src/lib/ipc.ts is their list)
+│   ├── src/gates.rs         Release-gate progress from docs/GATES.toml (L2.2)
+│   └── src/host/            The product host (ADR-046, ADR-088)
+├── shell/                   The Qt shell: the Android launcher (ADR-104)
 └── qontrol-git/             The libgit2 helper: stage, write-tree, switch and discard, in its own process
 ```
 
@@ -323,12 +335,12 @@ connection from a process the launcher did not start, which is never answered.
 ### Payments asked by websites: `qor://pay` (ADR-076, ADR-077)
 
 A website can ask the launcher to pay, never make it pay. The `qor` scheme is registered by `tauri-plugin-deep-link`;
-a link clicked while the launcher runs reaches it through `tauri-plugin-single-instance`. Added in 0.1.7. `src-tauri/src/pay.rs` checks a link
+a link clicked while the launcher runs reaches it through `tauri-plugin-single-instance`. Added in 0.1.7. `core/src/pay.rs` checks a link
 before anything is shown: signed with the Ed25519 key of an app in `KNOWN_APPS` (ARQADE's only, today), Demiurge Devnet
 by genesis, a whole number of embers up to 100,000 CGT, a valid account, a short label, unexpired and valid for at most
 fifteen minutes, and not already paid (`paid-requests.json` in the app data directory). Only then does the host dialog
 show who asks, the amount, the recipient, that there is no fee, and the balance after; approving is that dialog, not
-Windows Hello (ADR-077). `src-tauri/src/chain/pay.rs` checks the
+Windows Hello (ADR-077). `core/src/chain/pay.rs` checks the
 connected chain's genesis again and pays the transfer and a `remark_with_event` naming the request in one `batch_all`,
 from the signed-in profile's account, the only one open (ADR-099). Any other link, or an unknown app, is refused with a message, and nothing is signed.
 
@@ -343,7 +355,7 @@ qor://agent?r=<hex of {"account_id", "challenge", "signature", "name", "capabili
                       "spending_limit" (optional, whole CGT), "model" (optional)}>
 ```
 
-`src-tauri/src/agents.rs` checks it before anything is shown: the agent's signature verifies; the challenge has QOR ID's
+`core/src/agents.rs` checks it before anything is shown: the agent's signature verifies; the challenge has QOR ID's
 shape and is at most ten minutes old; every capability is one QOR ID knows, named once; the autonomy is one of four; a
 bounded agent names a limit and none is negative; the name makes a QOR ID (`agent_` and 3 to 14 letters, digits, spaces
 or underscores); the model is one short line. The host then requires a signed-in profile whose QOR ID has proved a key,
@@ -396,7 +408,7 @@ lists it, the other still locked.
 ### Social (ADR-091, roadmap L8.5)
 
 The Social surface is the first client of Social (`services/social/`). **The host holds the one socket and the token**
-(`src-tauri/src/social.rs`): the QOR ID access token goes from the keychain into the socket's first frame and nowhere
+(`core/src/social.rs`): the QOR ID access token goes from the keychain into the socket's first frame and nowhere
 else; the webview asks through `social_request` and hears `social://status`, `social://welcome` and `social://event`.
 The socket is jsonrpsee's WebSocket transport, which subxt already brings for the chain, so Social adds no library to the
 process that holds the vault. It reconnects by itself (1, 2, 4 … 30 s), swaps an expired token without a pause, refreshes
@@ -433,7 +445,7 @@ node scripts/check-translate-engine.mjs <folder>                        # after 
 
 ### The Library and QOR Media (ADR-094, roadmap L9)
 
-Everything a person has in one SteamOS-like view. The host's `src-tauri/src/library/` keeps an index of the folders the
+Everything a person has in one SteamOS-like view. The core's `core/src/library/` keeps an index of the folders the
 person chose (Videos, Music, Pictures and Documents are offered), in SQLite with full-text search in the launcher's data
 folder: each file's kind, size and dates, a picture's size and camera, music tags, a text document's first words, and a
 thumbnail for pictures. Folders are scanned at start and watched while the launcher runs. Nothing in it leaves the PC.
@@ -457,7 +469,7 @@ cargo test --lib media::tests::qor_media -- --ignored                   # in src
 
 ### The Mesh (ADR-095, roadmap L10)
 
-A peer-to-peer node in the host (`src-tauri/src/mesh/`), on iroh, holding files by their BLAKE3 root (ADR-047's
+A peer-to-peer node in the core (`core/src/mesh/`), on iroh, holding files by their BLAKE3 root (ADR-047's
 fingerprint) and streaming them to other launchers verified against it in 16 KiB groups. **Seeding is off until the
 person turns it on**, with the two limits they give on the Mesh page: disk for the Mesh's store
 (`<data>/mesh/store`) and upload in bytes a second, kept by a token bucket on every 16 KiB served. On, it takes in the
@@ -580,7 +592,7 @@ chain/target/release/demiurge-node --dev --tmp
 
 The Chain surface's **Local node** preset is `ws://127.0.0.1:9944`; its
 **Devnet** preset, and the launcher's default (`DEFAULT_RPC` in
-`src-tauri/src/chain/mod.rs`), is Demiurge Devnet at `wss://rpc.qorsync.dev`.
+`core/src/chain/mod.rs`), is Demiurge Devnet at `wss://rpc.qorsync.dev`.
 The chain surface shows the name the node reports, so you can see which chain
 answered.
 
@@ -655,7 +667,7 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   by the host's check before signing. It needs a node at `spec_version` 6 or later. The five live tests passed
   against one on 2026-10-02 (377 s), the sale among them.
 - **What a sale pays is the chain's arithmetic, not the launcher's** (2026-10-02). The launcher carries no
-  copy of the pallet's `split` and no `sp-arithmetic`. `src-tauri/src/chain/sales.rs` asks the chain through
+  copy of the pallet's `split` and no `sp-arithmetic`. `core/src/chain/sales.rs` asks the chain through
   the runtime API `Drc369RoyaltiesApi::sale_preview`, called dynamically from the node's metadata at the same
   finalised block as its other reads, and the Sell form, the Buy dialog and both approval dialogs show that
   answer: every part, who receives it, and whether the sale could settle. For a buyer the chain runs the
@@ -691,7 +703,7 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   `<ins>` and `<del>` rather than by colour alone, a binary file by its sizes, and a late answer for a file no
   longer chosen is dropped; and Mint appears only on a clean tree, shows the commit it would pin by its full
   hash, and sends the host a path and an account and nothing else. The diff itself is the host's
-  (`src-tauri/src/qontrol/diff.rs`): the working-tree side is converted to what git would store under the
+  (`core/src/qontrol/diff.rs`): the working-tree side is converted to what git would store under the
   repository's `core.autocrlf` and `.gitattributes` before it is compared, and no diff driver's program is
   ever run.
 - The Inventory shows what the chain holds and nothing else: `node scripts/check-inventory-view.mjs` passes
@@ -705,7 +717,7 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   three more in the card.
 - **The trade window has two sides and a lane**: what leaves this account, where it goes, and a mark that
   travels once per change, not in a loop. "Recently traded with"
-  is this machine's own memory of trades the chain finalised (`src-tauri/src/partners.rs`), written nowhere
+  is this machine's own memory of trades the chain finalised (`core/src/partners.rs`), written nowhere
   else and sent to nobody; choosing one fills the destination.
 - **A trade is driven end to end in the browser**, inside the same check: the menu opened by the keyboard and
   by the pointer's secondary button, its three items named (Trade, Sell, Copy reference — the label used to
@@ -736,7 +748,7 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   because the Inventory already reads again whenever the store replaces the active account, which a click
   causes. That check is true and proves nothing.
 - **The Market lists what is for sale on chain** (L7.2's first slice, 2026-10-02), on the rail and as a Nexus
-  tile. `src/views/Market.tsx` draws `drc369_market` (`src-tauri/src/chain/market.rs`): every listing the
+  tile. `src/views/Market.tsx` draws `drc369_market` (`core/src/chain/market.rs`): every listing the
   chain holds, walked from `Drc369Royalties::Listings` through the connected node at its latest finalised
   block, bounded at 500, with details read only for the 24 on screen. **There is no indexer** (ADR-028), so
   it has no search, no history and no "newest"; the information icon beside its title says so, and the page
@@ -773,7 +785,7 @@ cd src-tauri && cargo test --lib chain::live -- --ignored --nocapture
   browses to it" now hold them to naming the Market and saying it has no search, which is what is true; the
   Inventory check's count is unchanged at 238.
 - **The description is a second screen, and publishes nothing**: a title, a kind and that kind's questions,
-  taken from the host's table (`src-tauri/src/listings.rs`) rather than a second copy in the view, saved on
+  taken from the core's table (`core/src/listings.rs`) rather than a second copy in the view, saved on
   this machine only, and it says so before anything is typed. The chain holds a listing's price and nothing
   else, so the Market shows a price and no description, and until an indexer exists (M5.4) there is nowhere
   public for a description to go.

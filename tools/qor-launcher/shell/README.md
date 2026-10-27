@@ -6,17 +6,23 @@ The Android launcher is a Qt 6 application, this folder. It sits over the launch
 [`../core`](../core/), which holds the keys and talks to the chain on every platform. The Windows launcher uses the same
 core through Tauri.
 
-## Where it stands (L13.1, and L13.2 begun)
+## Where it stands (L13.1, and L13.2 done)
 
-- **The core** (`tools/qor-launcher/core`, crate `qor-launcher-core`) is being moved out of the Tauri crate one module at
-  a time, with its tests. It holds Sparks and amounts (`cgt.rs`), the error type, and since 19 October 2026 the wallet
-  (`vault/`), the confirmation it asks through (`confirm.rs`) and the profiles (`profiles.rs`, ADR-099). The Windows
-  launcher re-exports each at its old path, and every test is green.
+- **The core** (`tools/qor-launcher/core`, crate `qor-launcher-core`) holds everything of the Windows launcher's Rust
+  host that holds a key or talks to a service, moved out of the Tauri crate one module at a time with its tests
+  (DIRECTION L13.2): Sparks and amounts (`cgt.rs`), the error type, the wallet (`vault/`), the confirmation it asks
+  through (`confirm.rs`) and the profiles (`profiles.rs`, ADR-099), and since 26 October 2026 QOR ID's client, Social's
+  socket, the chain client with the object model, `qor://pay` and `qor://agent`, listings and trading partners, the
+  Library's index, the Mesh and Qontrol. The Windows launcher re-exports each at its old path, and every test is green.
+  - The modules moved last are each behind a feature (`identity`, `social`, `content`, `chain`, `library`, `mesh`,
+    `qontrol`; `desktop` is all of them, which the Windows launcher and QOR OS build, ADR-120). None is on by default,
+    and this shell builds the core with its default features, so the phone links what it did before. L13.3 to L13.7
+    turn on what the phone needs as each is built.
   - On Android the core has no keychain: `keyring` has no Android store and would keep a wallet's key in memory. The
     shell will give the vault a store wrapped by Android's Keystore (L13.3). Until then nothing on the phone makes a
     wallet.
-  - The test stand-ins (an in-memory keychain, a scripted confirmation) are behind the core's `testing` feature, which
-    only the Windows launcher's tests turn on.
+  - The test stand-ins (an in-memory keychain, a scripted confirmation, the test process's logger) are behind the core's
+    `testing` feature, which only test builds turn on.
 - **The bridge** (`core/src/bridge.rs`, `core/include/qor_core.h`) is the shell's one way in.
   - The shell sends a JSON request, `{"command", "args"}`, and gets a JSON answer: `{"ok": …}`, or
     `{"error": {"kind", "message"}}` as the Windows interface already reads it.
@@ -48,7 +54,7 @@ for Android, MSVC 2022, Ninja and Rust.
 pwsh tools/qor-launcher/shell/build.ps1              # desktop build, then its Qt Test suite (tst_core)
 pwsh tools/qor-launcher/shell/build.ps1 -Run         # desktop build, then open it
 pwsh tools/qor-launcher/shell/build.ps1 -Android     # the phone's APK (arm64-v8a), debug-signed for testing
-cargo test --manifest-path tools/qor-launcher/core/Cargo.toml   # the core's own tests (CI runs them)
+cargo test --manifest-path tools/qor-launcher/core/Cargo.toml --all-features   # the core's own tests, every module (CI runs them)
 ```
 
 - **The core is built by Corrosion** (pinned v0.6.1, fetched at configure), for whatever the build targets: the host on

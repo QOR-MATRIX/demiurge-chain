@@ -839,23 +839,26 @@ mod tests {
 ///
 /// ```text
 /// chain/target/release/demiurge-node --dev --tmp
-/// cargo test -p qor-launcher --lib chain::live -- --ignored --nocapture
+/// cargo test --manifest-path tools/qor-launcher/core/Cargo.toml --features desktop --lib chain::live -- --ignored --nocapture
 /// ```
 ///
 /// Point it elsewhere with `QOR_LAUNCHER_TEST_RPC`.
-#[cfg(test)]
-pub(crate) mod live {
+#[cfg(any(test, feature = "testing"))]
+pub mod live {
     use super::*;
+    #[cfg(test)]
     use crate::testing::Scripted;
     use sp_core::{crypto::Pair as _, sr25519};
     use subxt::config::DefaultExtrinsicParamsBuilder;
 
     /// Enough to clear the existential deposit of 100 CGT (ADR-036) twice
     /// over, on both sides of the transfer under test.
+    #[cfg(test)]
     const FUNDING: u128 = 1_000 * crate::cgt::EMBERS_PER_CGT;
+    #[cfg(test)]
     const SENDING: u128 = 200 * crate::cgt::EMBERS_PER_CGT;
 
-    pub(crate) fn endpoint() -> String {
+    pub fn endpoint() -> String {
         std::env::var("QOR_LAUNCHER_TEST_RPC").unwrap_or_else(|_| LOCAL_RPC.to_string())
     }
 
@@ -867,7 +870,7 @@ pub(crate) mod live {
     /// Put CGT into `account` from the development chain's Alice, which is the
     /// only source of it that exists: the chain has no issuance (OPEN-1) and
     /// the launcher must never grow a path that creates any.
-    pub(crate) async fn fund_from_alice(endpoint: &str, account: [u8; 32], amount: u128) {
+    pub async fn fund_from_alice(endpoint: &str, account: [u8; 32], amount: u128) {
         let _one_at_a_time = ALICE.lock().await;
         let alice = sr25519::Pair::from_string("//Alice", None).expect("the dev key");
         let alice_account = AccountId32(alice.public().0);

@@ -20,8 +20,8 @@ test('the link ARQADE signs is the one the launcher pins and accepts',async()=>{
   const req=P.newRequest(ALICE,5n*10n**18n,'Tip for Flux Four',NOW-300,'0123456789abcdef0123456789abcdef');
   req.exp=NOW+300;
   const link=await P.payLink(req,await P.signingKey(PKCS8));
-  const pinned=fs.readFileSync('../../tools/qor-launcher/src-tauri/src/pay.rs','utf8').match(/const ARQADE_LINK: &str = "([^"]+)"/)[1];
-  assert.equal(link,pinned,'tools/qor-launcher/src-tauri/src/pay.rs pins this exact link');
+  const pinned=fs.readFileSync('../../tools/qor-launcher/core/src/pay.rs','utf8').match(/const ARQADE_LINK: &str = "([^"]+)"/)[1];
+  assert.equal(link,pinned,'tools/qor-launcher/core/src/pay.rs pins this exact link');
   // The signature verifies over exactly the request's bytes, with the matching public key.
   const params=new URLSearchParams(link.slice('qor://pay?'.length));
   const bytes=Buffer.from(params.get('r'),'hex');

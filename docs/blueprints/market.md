@@ -12,7 +12,7 @@ variants, of which `library` renders a blueprint page (`views/Horizon.tsx`) and 
 **Since 1 October 2026:** the launcher calls the settled sale the chain gained on 29 September
 (`Drc369Royalties::list`, `unlist` and `buy`, ADR-061). In Inventory, Sell publishes a price on chain, and an asset
 looked up by its number can be bought; both show what the sale pays before anything is signed
-(`tools/qor-launcher/src-tauri/src/chain/sales.rs`). So step 5 of "How a purchase settles" below exists. Steps 1 and
+(`tools/qor-launcher/core/src/chain/sales.rs`). So step 5 of "How a purchase settles" below exists. Steps 1 and
 7, the indexer, do not. One mismatch is recorded here rather than resolved: the pallet refuses a price of zero
 (`ZeroPrice`), and decision 9 at the end of this document allows zero-price listings.
 

@@ -7,7 +7,7 @@
  * a node can give it: it walks the chain's own listing storage
  * (`Drc369Royalties::Listings`) through the node the launcher is connected to,
  * at that node's latest finalised block, and reads every asset's details at
- * the same block (`src-tauri/src/chain/market.rs`). So this is the connected
+ * the same block (`core/src/chain/market.rs`). So this is the connected
  * node's view of the chain. It has **no search, no history and no "newest"**:
  * a listing on chain is a seller and a price, and carries no time. The screen
  * says so behind its information icon, and names the block and the node.

@@ -18,7 +18,6 @@ use serde::Serialize;
 
 use crate::error::{QorError, QorResult};
 
-pub mod commands;
 pub mod watch;
 
 #[cfg(test)]
@@ -675,4 +674,39 @@ impl Library {
 pub fn display_path(path: &Path) -> String {
     let s = path.to_string_lossy();
     s.strip_prefix(r"\\?\").unwrap_or(&s).to_string()
+}
+
+/// The asset a published file becomes: its name, at most the chain's limit and cut on a character, and a manifest
+/// naming the file alone under that name, dated when the file last changed, from no commit.
+pub fn publication(
+    file_name: &str,
+    modified: i64,
+    file: crate::content::ContentRef,
+) -> Result<(String, crate::content::Manifest), crate::error::QorError> {
+    let limit = crate::chain::assets::NAME_LIMIT;
+    let mut name = file_name.trim().to_string();
+    if name.len() > limit {
+        let mut end = limit;
+        while !name.is_char_boundary(end) {
+            end -= 1;
+        }
+        name.truncate(end);
+    }
+    // A manifest path is one plain part: never a separator, a dot part or nothing (ADR-047).
+    let entry = match name.replace(
+        |c: char| c == char::from(0x2f) || c == char::from(0x5c) || c == char::from(0),
+        "_",
+    ) {
+        n if n.is_empty() || n == "." || n == ".." => "file".to_string(),
+        n => n,
+    };
+    if name.is_empty() {
+        name = entry.clone();
+    }
+    let manifest = crate::content::Manifest::new(
+        vec![(entry, file)],
+        u64::try_from(modified).unwrap_or(0),
+        None,
+    )?;
+    Ok((name, manifest))
 }

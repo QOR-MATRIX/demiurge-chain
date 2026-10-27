@@ -403,15 +403,19 @@ jobs:
           cargo clippy --all-targets --locked -- -D warnings
           cargo test --locked
 
-      # The core shared with the Android launcher (ADR-104), moved out of the host a module at a time with its tests.
-      # A path dependency's tests do not run with the host's, so it gets its own step. Its bridge to the Qt shell is
-      # its only unsafe code, and the only module allowed it.
+      # The core shared with the Android launcher and QOR OS (ADR-104, ADR-120), moved out of the host a module at a
+      # time with its tests (DIRECTION L13.2). A path dependency's tests do not run with the host's, so it gets its own
+      # step. Its bridge to the Qt shell is its only unsafe code, and the only module allowed it. The modules moved by
+      # L13.2 are behind features the Android shell leaves off, so it is linted as the phone builds it (default
+      # features) and as the Windows launcher builds it, and tested with every feature on: the moved tests run only
+      # there, and qontrol-no-skips makes a Qontrol test whose helper (built above) or git is missing fail.
       - name: Core (tools/qor-launcher/core)
         working-directory: ./tools/qor-launcher/core
         run: |
           cargo fmt --all -- --check
           cargo clippy --all-targets --locked -- -D warnings
-          cargo test --locked
+          cargo clippy --all-targets --all-features --locked -- -D warnings
+          cargo test --locked --all-features
 
       - name: Format
         working-directory: ./tools/qor-launcher/src-tauri
@@ -591,6 +595,9 @@ jobs:
           set -o pipefail
           fail=0
           for dir in services/qor-auth tools/qor-launcher/src-tauri tools/qor-launcher/core; do
+            # The core's graph as the Windows launcher and QOR OS build it, every feature on (DIRECTION L13.2).
+            features=""
+            if [ "$dir" = tools/qor-launcher/core ]; then features="--all-features"; fi
             versions=$(awk '/^name = "crypto-bigint"$/{getline; gsub(/version = |"/, ""); print}' "$dir/Cargo.lock")
             if ! grep -qx '0\.5\.[0-9]*' <<<"$versions"; then
               echo "::error::crypto-bigint 0.5 has left $dir/Cargo.lock. Remove the RUSTSEC-2026-0387 ignore from $dir/.cargo/audit.toml (ADR-115)."
@@ -607,7 +614,7 @@ jobs:
             for link in "crypto-bigint@0.5:elliptic-curve" "elliptic-curve@0.13:ecdsa k256" "ecdsa@0.16:k256" "k256@0.13:sp-core"; do
               crate=${link%%:*}
               expected=${link#*:}
-              if ! users=$(cd "$dir" && cargo tree --locked -i "$crate" --target all -e normal,build,dev --depth 1 --prefix none 2>tree.err \
+              if ! users=$(cd "$dir" && cargo tree --locked -i "$crate" --target all -e normal,build,dev --depth 1 --prefix none $features 2>tree.err \
                            | sed 1d | awk '{print $1}' | sort -u | tr '\n' ' ' | sed 's/ $//'); then
                 cat "$dir/tree.err"
                 echo "::error::cargo tree could not check what depends on $crate in $dir, so the RUSTSEC-2026-0387 ignore is unproven (ADR-115)."

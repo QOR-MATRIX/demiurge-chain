@@ -704,14 +704,14 @@ Vault, QOR ID sign-in, CGT send and receive, chain view, settings, five themes, 
 
    **Since 2026-10-01 the launcher calls the settled sale.** Sell publishes a price on chain (`list`), Withdraw
    removes it (`unlist`), and an asset looked up by its number can be bought (`buy`); each shows what the sale
-   pays before the host dialog, and a declined prompt moves nothing (`src-tauri/src/chain/sales.rs`, live test
+   pays before the host dialog, and a declined prompt moves nothing (`core/src/chain/sales.rs`, live test
    `a_sale_pays_every_part_and_hands_the_asset_over`). **Unticked:** nobody can find a listing without being
    given the asset's number (no indexer, M5.4), royalty terms cannot be set from the launcher, and no person has
    run it against the native dialogs.
 
    **The first half was built on 2026-09-23, and it was the half nobody else can see.** It is now Sell's
    second screen: a form that drafts a listing's description on this machine
-   (`src-tauri/src/listings.rs`, `src/views/SellDialog.tsx`): a title, a kind, the questions that kind asks, a
+   (`core/src/listings.rs`, `src/views/SellDialog.tsx`): a title, a kind, the questions that kind asks, a
    price and a description. The draft is a file in the launcher's data directory, is sent nowhere and is
    visible to nobody else, and the form says so in the product — a banner before anything is typed, and a line
    after saving that says it went no further. **It was built so the shape of a listing is decided by looking
@@ -873,7 +873,7 @@ L10.2, because finding who holds a root reads the escrow's assignments on chain.
 
 1. [ ] The network, and one's own published work seeded: an iroh node in the launcher's host, seeding opt-in with disk
    and upload limits, the temporary content store's roots served and fetched verified. No CGT moves. Built 2026-10-17 and
-   merged with #40 (`580aa9e`) the same day: `src-tauri/src/mesh/` and the Mesh page, between two launchers on one PC; not yet
+   merged with #40 (`580aa9e`) the same day: `core/src/mesh/` and the Mesh page, between two launchers on one PC; not yet
    between two PCs over the internet.
 2. [ ] Seeding others' published work: finding who holds a root, fetching and verifying it, holding it within the
    person's limits, and the Mesh page showing what is seeded and served. **Built 2026-10-17 and merged with #40 (`580aa9e`) the
@@ -979,7 +979,7 @@ Version control for creative work. [`blueprints/qontrol.md`](blueprints/qontrol.
 
    **Done on 2026-09-23, when the diffs arrived.** The rest was built on 2026-09-21 (`5a44207`) and left
    unticked because the diffs were not. Choosing a change shows what changed inside it, line by line with
-   the file's own line numbers, read by gitoxide in `src-tauri/src/qontrol/diff.rs`: the index's blob
+   the file's own line numbers, read by gitoxide in `core/src/qontrol/diff.rs`: the index's blob
    against the working-tree file **converted to what git would store** under the repository's own
    `core.autocrlf` and `.gitattributes`, which is what `git diff` compares. So CRLF on disk under autocrlf is
    no change, a `text` attribute normalises on its own, `-diff` or a NUL byte makes a file binary (shown with
@@ -1903,7 +1903,7 @@ here sets an economic value; payouts are U-16.
    dialog approves it (not Windows Hello), no fee is shown because none is charged, the devnet is checked by genesis.
 
    **Built 5 October 2026**, with tips to a game's creator as its first use (the owner's choice; ADR-071's
-   tips). Launcher: `src-tauri/src/pay.rs` and `src-tauri/src/chain/pay.rs`, the `qor` scheme; 8 tests, among them ARQADE's own link pinned.
+   tips). Launcher: `core/src/pay.rs` and `core/src/chain/pay.rs`, the `qor` scheme; 8 tests, among them ARQADE's own link pinned.
    ARQADE: the signed request, the scan of finalised blocks, the Tip panel, migration `0002`; 6 tests. A real `batch_all`
    on a local dev chain was found, and a forgery, a wrong amount and a wrong recipient were not.
 
