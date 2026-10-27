@@ -1,10 +1,11 @@
 # ADR-121: The core's lockfile carries the launcher's ruzstd ignore
 
-**Status:** **Proposed**, 26 October 2026, for the owner. Its option A loosens the launcher core's dependency audit,
-and loosening evidence is the owner's separate call (`docs/GATES.toml`; AGENTS.md section 8). The change that moved
-the chain client into the core (DIRECTION L13.2) carries option A in a commit of its own, so its CI can run. **That
-change must not merge until the owner accepts this record or chooses another option.** It decides **no economic
-value**.
+**Status:** **Accepted**, 27 October 2026, by the owner, who merged #107 with this record's option A in it (commit
+`d080ded`, merged at `e99c7ce`; CI passed on `main`, run 40529629572) and then answered "proceed with" to a list,
+written by the assistant, that included marking this record accepted. The merge alone would not have decided it
+(HANDOFF §4 item 148); that answer does. Proposed 26 October 2026. Its option A loosens the launcher core's dependency
+audit, and loosening evidence is the owner's separate call (`docs/GATES.toml`; AGENTS.md section 8). It decides **no
+economic value**.
 
 **Relates to:** [ADR-089](ADR-089-an-advisory-in-a-crate-the-launcher-never-builds.md), which this extends, and whose
 shape [ADR-107](ADR-107-a-wrapper-crate-that-holds-no-certificates.md) and
@@ -65,7 +66,7 @@ proves the crate is not built. B undoes a decision the owner made, and C and D h
 
 ## Decision
 
-None yet. On acceptance of option A:
+**Option A**, accepted by the owner on 27 October 2026 (see Status).
 
 1. `tools/qor-launcher/core/.cargo/audit.toml` ignores RUSTSEC-2026-0344 beside RUSTSEC-2026-0387, saying why, when it
    was verified and on what condition.
@@ -76,8 +77,12 @@ None yet. On acceptance of option A:
 3. `docs/GATES.toml` logs it, and the core audit's entry in `[ci].quality_gates` says so. Every other advisory still
    fails the core's audit.
 
-The pull request that moves the chain client already holds these three in a commit of their own. If the owner chooses
-another option, that commit comes out and the change is reworked to it.
+The three came in a commit of their own, `d080ded`, on the pull request that moved the chain client (#107). The owner
+merged it at `e99c7ce` on 27 October 2026, and CI passed on `main` (run 40529629572), the security job's "Condition of
+the ruzstd ignore" and the core's audit among it. The ignore reached `main` with the owner's own merge of #107, before
+this approval was given; GATES asks for a loosening's approval before the change, and here the merge came first.
+`docs/GATES.toml`'s change log keeps its 26 October entry as written, with its "not yet", and a retroactive approval
+entry of 27 October follows it.
 
 ## Consequences
 

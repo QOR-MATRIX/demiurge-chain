@@ -93,8 +93,8 @@ tokio = { version = "1", features = ["full"], optional = true }
 # Not the light client (`unstable-light-client`): its `smoldot` brings `ruzstd` 0.8, under RUSTSEC-2026-0344 (a
 # decompression bomb) with no release on the fixed 0.9 line. It is in Cargo.lock without being built, and
 # .cargo/audit.toml ignores that advisory only on that condition (ADR-089, extended to this lockfile by ADR-121, which
-# the owner decides). Enabling the light client builds it, and CI's "Condition of the ruzstd ignore" step then fails:
-# the ignore must be revisited first.
+# the owner accepted on 27 October 2026). Enabling the light client builds it, and CI's "Condition of the ruzstd
+# ignore" step then fails: the ignore must be revisited first.
 subxt        = { version = "0.51", optional = true }
 scale-decode = { version = "0.16", features = ["derive"], optional = true }
 # The version subxt 0.51 itself uses, for deriving `EncodeAsType` on the DRC-369 call arguments (M4.1), which are then

@@ -19,9 +19,10 @@
 # lockfile update removes ruzstd 0.8, which CI also reports.
 #
 # The owner approved this ignore for the Windows launcher's lockfile on
-# 2026-10-15 (ADR-089, option A); it is extended to this one, on the same
-# condition, by the change that moved the chain client, and logged in
-# docs/GATES.toml [[change_log]] for the owner's review with it.
+# 2026-10-15 (ADR-089, option A). Its extension to this one, on the same
+# condition, came with the change that moved the chain client (#107), and was
+# approved by the owner on 2026-10-27 (ADR-121, option A) and logged in
+# docs/GATES.toml [[change_log]].
 #
 # RUSTSEC-2026-0383 (webpki-root-certs), which the launcher's file also ignores,
 # needs no entry here: the advisory database lists 0.26.11, the version this
