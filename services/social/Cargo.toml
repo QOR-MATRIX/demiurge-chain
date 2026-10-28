@@ -2,7 +2,7 @@
 name = "social"
 version = "0.1.0"
 edition = "2024"
-license = "MIT"
+license = "Apache-2.0"
 description = "Social: rooms, direct messages, presence and profiles per QOR ID (ADR-091)"
 repository = "https://github.com/QOR-MATRIX/demiurge-chain"
 publish = false

@@ -3,7 +3,7 @@ name         = "qontrol-git"
 version      = "0.1.0"
 edition      = "2021"
 rust-version = "1.88"
-license      = "MIT"
+license      = "Apache-2.0"
 description  = "Qontrol's staging helper. Runs as a separate process so libgit2 never links into the launcher host that holds the vault."
 
 [[bin]]

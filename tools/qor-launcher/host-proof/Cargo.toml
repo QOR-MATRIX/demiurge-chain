@@ -3,7 +3,7 @@ name         = "qor-host-proof"
 version      = "0.1.0"
 edition      = "2021"
 rust-version = "1.88"
-license      = "MIT"
+license      = "Apache-2.0"
 description  = "The operating-system checks the launcher's product host needs (ADR-046 decisions 2 and 5): a pipe only this user can open, who is on its other end, when a process started, and a job that ends a product with the launcher."
 
 # Its own crate because the launcher forbids unsafe code (`src-tauri/Cargo.toml`, `unsafe_code = "forbid"`, which

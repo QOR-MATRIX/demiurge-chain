@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 27 October 2026. One page, rewritten every session.
+For Andrew, 27 October 2026 (evening). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -17,19 +17,19 @@ service*; **ARQADE** — *the gaming website*.
 
 ## This session
 
-1. **You merged #107**; **CI** — *GitHub's automatic builds and tests* — passed on `main`.
-   The launcher's **core** — *the code that holds keys* — now does all signing and service
-   calls, so **QOR OS** — *your own operating system* — can build it from `main`.
-2. **ADR-121 is accepted.** This **ADR** — *a numbered decision record* — ignores one
-   **advisory** — *a published library flaw* — in code nothing builds, as CI proves every
-   run. Your "proceed with" came after the merge, so it is logged as a retroactive approval.
-3. **ADR-122 is proposed, not decided:** item 2 below.
-4. **Found, not fixed:** the **gates dashboard** — *the launcher's release checks page* —
-   reads a bold "**Accepted**" as not accepted, so ten product gates under-count their
-   decisions (not Alpha or Beta). Changing the dashboard is a **loosening** — *weakening a
-   release check* — so yours to decide; un-bolding those 21 records changes no rule.
+1. **You merged #108**, so ADR-121 is accepted on `main`. An **ADR** is *a numbered
+   decision record*; this one lets the launcher's **core** — *the code that holds keys* —
+   ignore one **advisory** — *a published library flaw* — in code nothing builds.
+2. **ADR-122 is accepted** at your "approve your decisions". The six active **crates** —
+   *packages of Rust code* — now say **Apache-2.0** — *permissive, with a patent grant* —,
+   like the repository. Releases already out keep **MIT** — *a short permissive licence*.
+3. **The gates dashboard** — *the launcher's release checks page* — **now counts every
+   decision.** It read a bold "**Accepted**" as not accepted. I took the bold off those
+   status cells in the decisions index and left the checks' rules alone, so nothing was
+   weakened. Every product gate now reads all its decisions met. A test stops the bold
+   coming back.
 
-Items 2 to 4 are on the **branch** — *changes not yet in `main`* — `session/after-107`.
+Items 2 and 3 are on the **branch** — *changes not yet in `main`* — `session/after-108`.
 
 ## The release gates (as HANDOFF measured them, 22 October)
 
@@ -40,32 +40,28 @@ below.
 
 ## What only you can do
 
-1. **Merge `session/after-107`** once its **pull request** — *a request to merge it* — is
-   open. Merging it changes no licence.
-2. **Decide ADR-122.** Six active **crates** — *packages of Rust code* — say **MIT** — *a
-   short permissive licence* — while the repository says **Apache-2.0** — *permissive, with
-   a patent grant*. I recommend Apache-2.0 for all six, old releases keeping MIT. Accept,
-   keep MIT, or offer both.
-3. **Who owns the copyright?** The tree names "Demiurge", "Laustrup Group", "Astra Matrix,
+1. **Merge `session/after-108`** once its **pull request** — *a request to merge it* — is
+   open. Merging it gives the six crates Apache-2.0.
+2. **Who owns the copyright?** The tree names "Demiurge", "Laustrup Group", "Astra Matrix,
    Inc & Laustrup Group" and, in QOR ID, a person. Settle which entity, with a lawyer.
-4. **Play an arena** — *a two-player ARQADE game* — with a friend or a second QOR ID
+3. **Play an arena** — *a two-player ARQADE game* — with a friend or a second QOR ID
    (HANDOFF §4 item 157).
-5. **Back up the update key** — *what signs launcher updates* — now: from any folder, run
+4. **Back up the update key** — *what signs launcher updates* — now: from any folder, run
    `pwsh -File "X:\REPOZ\qq-interface\tools\qor-launcher\scripts\updater-key.ps1" -Backup`
    and keep the key file and its password offline, together.
-6. **For rewards in ARQADE:** decide **ADR-116** — *confirming runs before paying* — and
+5. **For rewards in ARQADE:** decide **ADR-116** — *confirming runs before paying* — and
    the reward pool's numbers (largest payout, budget per period, most per player).
-7. **Let a test agent** — *a program acting for you* — **ask you:** in
+6. **Let a test agent** — *a program acting for you* — **ask you:** in
    `X:\REPOZ\qq-interface\tools\qor-launcher\src-tauri` run `cargo run --example agent_link`
    and press *Allow agent* (ticks L5.1).
-8. **With a lawyer:** Terms of Service, a privacy policy, and the opinion on rewards, prizes
+7. **With a lawyer:** Terms of Service, a privacy policy, and the opinion on rewards, prizes
    and **KYC** — *identity checks* — before anything carries value.
-9. **The economic numbers** — *issuance, genesis split, decay, fees* — (OPEN-1 to OPEN-4,
+8. **The economic numbers** — *issuance, genesis split, decay, fees* — (OPEN-1 to OPEN-4,
    U-4, U-11). Most of the Beta gate waits on them.
-10. **Code-signing certificates**, an **external security review**, and **names** for the
-    **indexer** — *the chain's search service* —, the **SDK** — *the developers' toolkit* —
-    and the **MCP server** — *how AI tools reach Demiurge*.
-11. **Smaller items still open:** HANDOFF §4.0, "The owner's carried items".
+9. **Code-signing certificates**, an **external security review**, and **names** for the
+   **indexer** — *the chain's search service* —, the **SDK** — *the developers' toolkit* —
+   and the **MCP server** — *how AI tools reach Demiurge*.
+10. **Smaller items still open:** HANDOFF §4.0, "The owner's carried items".
 
 **Next in engineering:** at your word, renting in the launcher, or keys on Android (L13.3).
 

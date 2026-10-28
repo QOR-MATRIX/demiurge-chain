@@ -400,8 +400,8 @@ nothing about the repository is lost if Qontrol is uninstalled.
    not make the parser safe. The sidecar holds no keys and opens no network, and its advisories still
    need tracking — there is deliberately no `.cargo/audit.toml` in this tree.
 5. **What the C dependency costs.** A C toolchain becomes a build requirement wherever the sidecar is
-   built, CI included, where it builds and passes. And libgit2 is GPLv2
-   with a linking exception, in a tree whose crates are MIT: the exception permits shipping it, but
+   built, CI included, where it builds and passes. And libgit2 is GPLv2 with a linking exception,
+   in a tree whose crates are Apache-2.0: the exception permits shipping it, but
    the installer's third-party notices must carry libgit2's terms explicitly. Owner-visible.
 6. **The sidecar goes missing.** A partial install, an antivirus quarantine, an unsigned binary on
    macOS, and commits stop. It resolves from `QONTROL_GIT_BIN`, then beside the launcher executable,
