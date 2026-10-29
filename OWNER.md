@@ -22,10 +22,10 @@ website*.
    numbered decision record*. Read from outside after the merge: the new title, share
    image and AI summary are live. **IndexNow** — *how Bing and others hear of changes* —
    accepted the notice.
-2. **Entire in full**, as you said. **Entire** — *a new Git host, launched 26 October* —
-   keeps its **GitHub app** — *a program GitHub lets in* — on every QOR-MATRIX repository.
-   GitHub stays the source of truth (ADR-124). Recording AI sessions there is still
-   undecided, because this repository is public.
+2. **Entire is not used** (ADR-125), on my recommendation, which you asked for. **Entire**
+   — *a new Git host, launched 26 October* — duplicated GitHub, would have published AI
+   transcripts in this public repository, and its check marked every pull request. GitHub
+   alone, as before.
 3. **A new advisory** — *a published library flaw* — in the Qontrol helper was fixed by an
    update in #110. `chain/` holds the same library in a check that only reports.
 
@@ -35,9 +35,12 @@ its **pull request** — *a request to merge it*.
 ## What only you can do
 
 1. **Merge the records' pull request.** It changes no code.
-2. **Who owns the copyright?** The tree still names several holders. Settle it with a
+2. **Remove Entire's GitHub app** — *a program GitHub lets in* — with one click:
+   `github.com/organizations/QOR-MATRIX/settings/installations/176288713`, Uninstall.
+   GitHub lets only you do that.
+3. **Who owns the copyright?** The tree still names several holders. Settle it with a
    lawyer.
-3. **The rest carried from before** is HANDOFF §4.0, "The owner's carried items": the
+4. **The rest carried from before** is HANDOFF §4.0, "The owner's carried items": the
    economic numbers, the legal work, code signing, an outside security review, and the
    names still to choose.
 
@@ -47,5 +50,4 @@ moving `chain/`'s library past the advisory.
 ## Cost per month
 
 As recorded: the homepage and ARQADE use Vercel's **Hobby plan** — *a non-commercial tier*
-(HANDOFF §4.0); Railway's cost is not yet measured (SYSTEMS); Entire has published no
-prices.
+(HANDOFF §4.0); Railway's cost is not yet measured (SYSTEMS).
