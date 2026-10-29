@@ -1,6 +1,6 @@
 # ADR-124: GitHub stays the source of truth; Entire mirrors it
 
-**Status:** **Accepted**, 29 October 2026, by the owner. The owner suggested moving the projects to Entire, the Git forge
+**Status:** **Superseded by [ADR-125](ADR-125-entire-is-not-used.md)** the same day: Entire is not used. **Accepted**, 29 October 2026, by the owner. The owner suggested moving the projects to Entire, the Git forge
 launched by GitHub's former chief executive, "if at all possible". Asked to choose between mirroring with GitHub as the
 source of truth, migrating fully, or waiting, the owner chose to mirror. It decides **no economic value**, and loosens
 no evidence: CI, its gates and the release process are unchanged.
