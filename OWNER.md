@@ -24,23 +24,21 @@ website*.
    accepted the notice.
 2. **Entire is not used** (ADR-125), on my recommendation, which you asked for. **Entire**
    — *a new Git host, launched 26 October* — duplicated GitHub, would have published AI
-   transcripts in this public repository, and its check marked every pull request. GitHub
-   alone, as before.
+   transcripts in this public repository, and its check marked every pull request. You
+   removed its **GitHub app** — *a program GitHub lets in* —; GitHub alone, as before. You
+   merged #111 before ADR-125's commit reached it, so ADR-125 comes in this pull request.
 3. **A new advisory** — *a published library flaw* — in the Qontrol helper was fixed by an
    update in #110. `chain/` holds the same library in a check that only reports.
 
-These records are on the **branch** — *changes not yet in `main`* — `session/after-110`, in
-its **pull request** — *a request to merge it*.
+ADR-125 and these records are on the **branch** — *changes not yet in `main`* —
+`session/after-111`, in its **pull request** — *a request to merge it*.
 
 ## What only you can do
 
 1. **Merge the records' pull request.** It changes no code.
-2. **Remove Entire's GitHub app** — *a program GitHub lets in* — with one click:
-   `github.com/organizations/QOR-MATRIX/settings/installations/176288713`, Uninstall.
-   GitHub lets only you do that.
-3. **Who owns the copyright?** The tree still names several holders. Settle it with a
+2. **Who owns the copyright?** The tree still names several holders. Settle it with a
    lawyer.
-4. **The rest carried from before** is HANDOFF §4.0, "The owner's carried items": the
+3. **The rest carried from before** is HANDOFF §4.0, "The owner's carried items": the
    economic numbers, the legal work, code signing, an outside security review, and the
    names still to choose.
 
