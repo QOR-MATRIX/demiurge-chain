@@ -14,6 +14,11 @@ with its `entire-migrate` plug-in. Its command-line tool records AI agents' sess
 Git refs that follow the remote they are pushed to, with secrets redacted. What it says on 29 October 2026 does not
 cover private repositories, organisation permissions or pricing.
 
+Entire's GitHub app (`entire`) has been installed on the QOR-MATRIX organisation since 28 October 2026, for all its
+repositories, with read and write access to their contents and pull requests. It posts a check on pull requests,
+"Entire Gates", which on #110 waited for an approval on Entire (its "Trail #1"). `main` requires no check, so it holds
+no merge.
+
 This repository relies on GitHub for more than its code:
 
 - CI is GitHub Actions on the public repository (ADR-063), and every pull request and release gate runs there;
@@ -25,8 +30,8 @@ This repository relies on GitHub for more than its code:
 
 1. **GitHub stays the source of truth** for the code, pull requests, CI, releases, the launcher's update channel and
    the homepage's deploys.
-2. **Entire mirrors this repository from GitHub**, once the owner has made an Entire account for the QOR-MATRIX
-   organisation and set the mirror up. Nothing is pushed to Entire directly, and nothing here depends on the mirror.
+2. **Entire mirrors this repository from GitHub**, through that app. Nothing is pushed to Entire directly, nothing here
+   depends on the mirror, and its "Entire Gates" check is advice, not a condition of merging.
 3. **A move to Entire is a later record**, made when Entire documents what this repository relies on (the list above),
    with a plan for each.
 
@@ -39,4 +44,4 @@ This repository relies on GitHub for more than its code:
 ## Consequences
 
 - Nothing changes for anyone working here, or for CI.
-- The mirror is the owner's to set up: it needs the owner's sign-in to Entire.
+- Which repositories Entire's app may reach is the owner's to set, in the organisation's GitHub settings.

@@ -5117,13 +5117,23 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        headless Edge at 1440 and 390 pixels wide (at 390 Edge lays out wider and crops, as it does the page before this
        change).
      - **ADR-124.** GitHub stays the source of truth for the code, pull requests, CI, releases, the launcher's update
-       channel and the homepage's deploys; Entire mirrors this repository once the owner sets it up. Recording agents'
+       channel and the homepage's deploys; Entire mirrors this repository through its GitHub app, installed on the
+       organisation on 28 October 2026 for all its repositories, whose "Entire Gates" check appeared on #110 (Trail #1,
+       waiting for an approval on Entire; `main` requires no check, so it holds no merge). Recording agents'
        sessions with Entire's tool is left undecided: this repository is public (AGENTS.md section 9).
      - **Live, read from outside on 29 October 2026:** the homepage, QOR ID's `/ready`, Social's `/health` and ARQADE
        answered 200; the devnet answered `specVersion` 11 with two peers, its head at block 372,240; `www.qorsync.dev`,
        `demiurge.cloud`, `www.demiurge.cloud`, `demiurge.guru` and `www.demiurge.guru` answered 308 to the homepage.
-     - **After the merge:** Vercel publishes `site/`; then `node site/scripts/indexnow.mjs` tells Bing and others. The
-       owner makes the Entire account for QOR-MATRIX and sets up the mirror.
+     - **A new advisory, fixed by an update.** CI's security job failed on #110 at "Audit Qontrol helper dependencies
+       (libgit2)": RUSTSEC-2026-0418 (published 28 October 2026), `libz-sys` 1.1.29's build script leaking environment
+       variables into the build directory, fixed in 1.1.31. `cargo update -p libz-sys` in
+       `tools/qor-launcher/qontrol-git` moved it to 1.1.31 and nothing else; there `cargo audit` is clean, and clippy
+       with warnings as errors and `cargo test --locked` (16 passed) pass on the owner's PC. `chain/Cargo.lock` holds
+       `libz-sys` 1.1.29 too; the chain's audit only reports (`continue-on-error`), and moving its lockfile waits for a
+       chain session that runs `cargo test --workspace` with the wasm built (AGENTS.md section 8). SECURITY.md's list
+       of the chain's advisories does not name it yet.
+     - **After the merge:** Vercel publishes `site/`; then `node site/scripts/indexnow.mjs` tells Bing and others. Which
+       repositories Entire's app may reach is the owner's to set, in the organisation's GitHub settings.
 
 ## 5. Traps, so nobody re-learns them
 
