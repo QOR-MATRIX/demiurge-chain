@@ -22,15 +22,16 @@ website*.
    numbered decision record*. Read from outside after the merge: the new title, share
    image and AI summary are live. **IndexNow** — *how Bing and others hear of changes* —
    accepted the notice.
-2. **Entire in full**, as you said. **Entire** — *a new Git host, launched 26 October* —
-   keeps its **GitHub app** — *a program GitHub lets in* — on every QOR-MATRIX repository.
-   GitHub stays the source of truth (ADR-124). Recording AI sessions there is still
-   undecided, because this repository is public.
+2. **Entire is not used** (ADR-125), on my recommendation, which you asked for. **Entire**
+   — *a new Git host, launched 26 October* — duplicated GitHub, would have published AI
+   transcripts in this public repository, and its check marked every pull request. You
+   removed its **GitHub app** — *a program GitHub lets in* —; GitHub alone, as before. You
+   merged #111 before ADR-125's commit reached it, so ADR-125 comes in this pull request.
 3. **A new advisory** — *a published library flaw* — in the Qontrol helper was fixed by an
    update in #110. `chain/` holds the same library in a check that only reports.
 
-These records are on the **branch** — *changes not yet in `main`* — `session/after-110`, in
-its **pull request** — *a request to merge it*.
+ADR-125 and these records are on the **branch** — *changes not yet in `main`* —
+`session/after-111`, in its **pull request** — *a request to merge it*.
 
 ## What only you can do
 
@@ -47,5 +48,4 @@ moving `chain/`'s library past the advisory.
 ## Cost per month
 
 As recorded: the homepage and ARQADE use Vercel's **Hobby plan** — *a non-commercial tier*
-(HANDOFF §4.0); Railway's cost is not yet measured (SYSTEMS); Entire has published no
-prices.
+(HANDOFF §4.0); Railway's cost is not yet measured (SYSTEMS).
