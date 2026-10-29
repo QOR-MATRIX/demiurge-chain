@@ -1,10 +1,11 @@
 /*
   qorsync.dev: the living background and the page's responses to the pointer.
 
-  The aether is drawn on one canvas behind the page: a hexagonal lattice (the "flower of life" grid) that lights up
-  around the pointer, an astrolabe of rings, ticks, and an inscribed triangle and square turning slowly, and embers rising. It is
-  decoration only: every word on the page is HTML. With reduced motion asked for, one still frame is drawn and nothing
-  moves; while the tab is hidden, nothing is drawn.
+  The aether is drawn on one canvas behind the page (ADR-123): an aurora of ember and gilt ribbons across the top, QOR OS
+  Lumen's signature; a hexagonal lattice (the "flower of life" grid) that lights up around the pointer; the lens, QOR
+  OS's mark at the scale of the sky, its rings and ticks turning slowly and the Q's tail burning on its ring; and embers
+  rising. It is decoration only: every word on the page is HTML. With reduced motion asked for, one still frame is drawn
+  and nothing moves; while the tab is hidden, nothing is drawn.
 */
 (() => {
   'use strict';
@@ -79,8 +80,19 @@
   if (!ctx) return;
 
   const EMBER = [255, 106, 0];
+  const EMBER_DIM = [180, 74, 0];
   const GILT = [201, 164, 92];
   const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+  // The aurora is drawn at an eighth of the size and scaled up, which softens its ribbons for almost nothing.
+  const AURORA_SCALE = 8;
+  const aurora = document.createElement('canvas');
+  const actx = aurora.getContext('2d');
+  const RIBBONS = [
+    { c: EMBER, a: 0.11, y: 0.17, amp: 0.07, f: 1.3, s: 0.05, p: 0.0, thick: 0.13 },
+    { c: GILT, a: 0.08, y: 0.27, amp: 0.06, f: 0.9, s: -0.035, p: 2.1, thick: 0.11 },
+    { c: EMBER_DIM, a: 0.09, y: 0.09, amp: 0.05, f: 1.8, s: 0.03, p: 4.2, thick: 0.08 },
+  ];
 
   let w = 0;
   let h = 0;
@@ -144,6 +156,46 @@
 
     const count = Math.round(Math.min(90, (w * h) / 18000));
     embers = Array.from({ length: count }, () => ember(true));
+
+    aurora.width = Math.max(1, Math.ceil(w / AURORA_SCALE));
+    aurora.height = Math.max(1, Math.ceil((h * 0.6) / AURORA_SCALE));
+  }
+
+  /* The aurora: slow ribbons whose edges sway on two waves each, drawn small and laid over the top of the page, fading
+     as the page scrolls past the first screen. */
+  function sky(t, scroll) {
+    const fade = Math.max(0, 1 - scroll / (h * 1.2));
+    if (fade <= 0) return;
+    const aw = aurora.width;
+    const ah = aurora.height;
+    const H = ah / 0.6; // the viewport's height at the aurora's scale
+    actx.clearRect(0, 0, aw, ah);
+    for (const r of RIBBONS) {
+      const base = H * r.y;
+      const amp = H * r.amp;
+      const thick = H * r.thick;
+      const edge = (u, side) =>
+        base +
+        Math.sin(u * Math.PI * 2 * r.f + t * r.s * 6 + r.p) * amp +
+        Math.sin(u * 7.3 - t * r.s * 4 + r.p * 1.7) * amp * 0.35 +
+        side * thick * (0.5 + 0.18 * Math.sin(u * 5.1 + t * r.s * 3 + r.p));
+      actx.beginPath();
+      for (let i = 0; i <= 48; i++) actx.lineTo((i / 48) * aw, edge(i / 48, -1));
+      for (let i = 48; i >= 0; i--) actx.lineTo((i / 48) * aw, edge(i / 48, 1));
+      actx.closePath();
+      const g = actx.createLinearGradient(0, base - amp - thick, 0, base + amp + thick);
+      g.addColorStop(0, rgba(r.c, 0));
+      g.addColorStop(0.5, rgba(r.c, r.a));
+      g.addColorStop(1, rgba(r.c, 0));
+      actx.fillStyle = g;
+      actx.fill();
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = fade;
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(aurora, 0, -scroll * 0.2, w, h * 0.6);
+    ctx.restore();
   }
 
   function ember(anywhere) {
@@ -158,8 +210,9 @@
     };
   }
 
-  /* The astrolabe: rings at different speeds, a ring of ticks, twelve stations, and a hexagram. */
-  function astrolabe(t, scroll) {
+  /* The lens: QOR OS's mark at the scale of the sky. Rings at different speeds, a ring of ticks, twelve stations, the
+     broad ring of the Q, and its tail burning on that ring, swaying about where the mark puts it. */
+  function lens(t, scroll) {
     const big = w > 760;
     const cx = big ? w * 0.74 : w * 0.5;
     const cy = (big ? h * 0.42 : h * 0.3) - scroll * 0.12;
@@ -198,43 +251,51 @@
     ctx.stroke();
     ctx.restore();
 
-    // Twelve stations on the second ring, turning the other way, one of them burning.
+    // Twelve stations on the second ring, turning the other way.
     ctx.save();
     ctx.rotate(t * rings[1].spin);
+    ctx.fillStyle = rgba(GILT, 0.32 * lift);
     for (let i = 0; i < 12; i++) {
       const a = (i / 12) * Math.PI * 2;
-      const x = Math.cos(a) * rings[1].r;
-      const y = Math.sin(a) * rings[1].r;
-      ctx.fillStyle = i === 0 ? rgba(EMBER, 0.9) : rgba(GILT, 0.32 * lift);
       ctx.beginPath();
-      ctx.arc(x, y, i === 0 ? 3 : 1.8, 0, Math.PI * 2);
+      ctx.arc(Math.cos(a) * rings[1].r, Math.sin(a) * rings[1].r, 1.8, 0, Math.PI * 2);
       ctx.fill();
-      if (i === 0) {
-        const g = ctx.createRadialGradient(x, y, 0, x, y, 26);
-        g.addColorStop(0, rgba(EMBER, 0.35));
-        g.addColorStop(1, rgba(EMBER, 0));
-        ctx.fillStyle = g;
-        ctx.fillRect(x - 26, y - 26, 52, 52);
-      }
     }
     ctx.restore();
 
-    // A triangle and a square inscribed in the third ring, turning against each other: the circle squared.
-    ctx.strokeStyle = rgba(GILT, 0.12 * lift);
-    for (const [sides, spin] of [[3, rings[2].spin], [4, -rings[2].spin * 0.6]]) {
-      ctx.save();
-      ctx.rotate(t * spin);
+    // The broad ring of the Q on the third ring, with hairline edges, as the mark engraves it.
+    const q = rings[2].r;
+    const band = Math.max(6, R * 0.07);
+    ctx.lineWidth = band;
+    ctx.strokeStyle = rgba(GILT, 0.05 * lift);
+    ctx.beginPath();
+    ctx.arc(0, 0, q, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = rgba(GILT, 0.14 * lift);
+    for (const edge of [q - band / 2, q + band / 2]) {
       ctx.beginPath();
-      for (let k = 0; k <= sides; k++) {
-        const a = -Math.PI / 2 + (k / sides) * Math.PI * 2;
-        const x = Math.cos(a) * rings[2].r;
-        const y = Math.sin(a) * rings[2].r;
-        if (k === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
+      ctx.arc(0, 0, edge, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.restore();
     }
+
+    // Its tail, an ember just outside the ring at the lower right, swaying a little either side of where the mark
+    // puts it, and breathing.
+    const a = Math.PI / 4 + Math.sin(t * 0.25) * 0.3;
+    const d = q + band * 0.9;
+    const x = Math.cos(a) * d;
+    const y = Math.sin(a) * d;
+    const core = Math.max(4, R * 0.03) * (1 + Math.sin(t * 1.3) * 0.08);
+    const glow = core * 7;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, glow);
+    g.addColorStop(0, rgba(EMBER, 0.4));
+    g.addColorStop(1, rgba(EMBER, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(x - glow, y - glow, glow * 2, glow * 2);
+    ctx.fillStyle = rgba(EMBER, 0.9);
+    ctx.beginPath();
+    ctx.arc(x, y, core, 0, Math.PI * 2);
+    ctx.fill();
 
     // Arcs on the inner ring, like the rete of an astrolabe.
     ctx.save();
@@ -265,6 +326,7 @@
     pointer.y += (pointer.ty - pointer.y) * 0.12 * dt;
 
     ctx.clearRect(0, 0, w, h);
+    sky(t, window.scrollY);
     ctx.drawImage(lattice, 0, 0, w, h);
 
     if (pointer.seen) {
@@ -302,7 +364,7 @@
       ctx.fillRect(pointer.x - REACH * 1.6, pointer.y - REACH * 1.6, REACH * 3.2, REACH * 3.2);
     }
 
-    astrolabe(t, window.scrollY);
+    lens(t, window.scrollY);
 
     // Embers rise, flicker, and lean toward the pointer.
     for (let i = 0; i < embers.length; i++) {
