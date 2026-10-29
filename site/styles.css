@@ -1,7 +1,8 @@
 /*
-  Demiurge — qorsync.dev
-  Ancient-futuristic: obsidian and gilt, carved Roman capitals over a living astrolabe. One accent, the launcher's ember;
-  gilt is the structural counter (engraving, rules, numerals). A single dark look, set explicitly, as the launcher is.
+  QOR OS — qorsync.dev (ADR-123)
+  Ancient-futuristic: obsidian and gilt, carved Roman capitals over a living lens and an aurora. One accent, the
+  launcher's ember; gilt is the structural counter (engraving, rules, numerals) and the metal of QOR OS's mark. A single
+  dark look, set explicitly, as the launcher is.
 
   The showcase register of Demiurge's one look (ADR-108): every colour, face, radius and easing below comes from
   tokens.css, generated from docs/design/tokens.json, which every surface shares. The names here are the page's own.
@@ -93,9 +94,14 @@ header, main, footer { position: relative; z-index: 2; }
 }
 .mark { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; color: var(--parchment); }
 .mark span { font: 600 15px/1 var(--display); letter-spacing: 0.32em; text-transform: uppercase; }
-.sigil { width: 34px; height: 34px; fill: none; stroke: var(--gilt); stroke-width: 1.6; transition: transform 1.2s var(--ease); }
-.sigil-core { fill: var(--ember); stroke: none; filter: drop-shadow(0 0 6px var(--ember)); }
-.mark:hover .sigil { transform: rotate(60deg); }
+/* QOR OS's mark (Lumen's QorMark): a gilt tile, the ring of the Q engraved in obsidian, its tail an ember. */
+.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.qmark { width: 34px; height: 34px; overflow: visible; transition: transform 1.2s var(--ease); }
+.qmark-tile { fill: url(#qmark-gilt); stroke: rgba(255, 244, 214, 0.35); stroke-width: 1; }
+.qmark-ring { fill: none; stroke: var(--obsidian); stroke-width: 6; }
+.qmark-tail { fill: var(--ember); filter: drop-shadow(0 0 4px var(--ember)); transition: filter 0.6s var(--ease); }
+.mark:hover .qmark { transform: rotate(-8deg) scale(1.04); }
+.mark:hover .qmark-tail { filter: drop-shadow(0 0 9px var(--ember-bright)); }
 .links { display: flex; gap: 26px; list-style: none; margin: 0 auto 0 0; padding: 0; }
 .links a {
   position: relative; text-decoration: none; color: var(--ink-muted);
@@ -251,6 +257,7 @@ p { max-width: 68ch; }
   font: 600 12px/1 var(--ui); letter-spacing: 0.2em; text-transform: uppercase; border-radius: 999px;
 }
 .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
+.glyph + .pill { margin-left: 18px; vertical-align: 22px; }
 .pill-live { color: var(--ember-bright); border: 1px solid rgba(255, 145, 66, 0.4); background: rgba(255, 106, 0, 0.07); }
 .pill-work { color: var(--gilt-bright); border: 1px solid var(--line-strong); background: rgba(201, 164, 92, 0.06); }
 .aside { margin: 34px 0 0; color: var(--ink-muted); }

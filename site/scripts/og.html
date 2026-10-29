@@ -7,48 +7,73 @@
 <style>
   html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #06070a; }
   .card {
-    position: relative; width: 1200px; height: 630px; box-sizing: border-box; padding: 92px 90px;
+    position: relative; width: 1200px; height: 630px; box-sizing: border-box; padding: 78px 90px;
     background:
-      radial-gradient(700px 500px at 82% 20%, rgba(255, 106, 0, 0.18), transparent 65%),
+      radial-gradient(700px 500px at 82% 20%, rgba(255, 106, 0, 0.16), transparent 65%),
       radial-gradient(600px 500px at 0% 100%, rgba(201, 164, 92, 0.10), transparent 60%),
       #06070a;
-    color: #f3ede1;
+    color: #f3ede1; overflow: hidden;
   }
+  /* The aurora: soft ribbons of ember and gilt across the top, as the page draws them. */
+  .aurora { position: absolute; left: -10%; right: -10%; height: 150px; border-radius: 50%; filter: blur(34px); }
+  .aurora.a { top: 40px; background: linear-gradient(90deg, transparent, rgba(255, 106, 0, 0.30) 30%, rgba(255, 106, 0, 0.12) 70%, transparent); transform: rotate(-4deg); }
+  .aurora.b { top: 120px; background: linear-gradient(90deg, transparent 10%, rgba(201, 164, 92, 0.20) 45%, rgba(201, 164, 92, 0.08) 85%, transparent); transform: rotate(3deg); }
   .frame { position: absolute; inset: 22px; border: 1px solid rgba(201, 164, 92, 0.32); }
   .frame::before, .frame::after { content: ""; position: absolute; width: 26px; height: 26px; border: 2px solid #c9a45c; }
   .frame::before { left: -2px; top: -2px; border-right: 0; border-bottom: 0; }
   .frame::after { right: -2px; bottom: -2px; border-left: 0; border-top: 0; }
-  svg.astro { position: absolute; right: -90px; top: -40px; width: 700px; height: 700px; }
+  svg.lens { position: absolute; right: -90px; top: -40px; width: 700px; height: 700px; }
+  .head { position: relative; display: flex; align-items: center; gap: 22px; }
+  .head svg { width: 64px; height: 64px; }
   .eyebrow { font: 600 22px/1 "Barlow Semi Condensed", sans-serif; letter-spacing: 0.34em; text-transform: uppercase; color: #c9a45c; }
   h1 {
-    margin: 26px 0 26px -4px; font: 700 132px/0.95 "Cinzel", serif; letter-spacing: 0.06em; text-transform: uppercase;
+    position: relative; margin: 34px 0 24px -4px; font: 700 150px/0.95 "Cinzel", serif; letter-spacing: 0.06em; text-transform: uppercase;
     background: linear-gradient(100deg, #8a6c3a 0%, #ead39a 22%, #fff4d6 32%, #c9a45c 48%, #ead39a 72%, #b8904d 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
     filter: drop-shadow(0 0 30px rgba(201, 164, 92, 0.35));
   }
-  p { margin: 0; max-width: 640px; font: 500 38px/1.25 "Barlow Semi Condensed", sans-serif; }
-  .url { position: absolute; left: 90px; bottom: 74px; font: 500 26px/1 "IBM Plex Mono", monospace; color: #ff9142; }
+  p { position: relative; margin: 0; max-width: 620px; font: 500 38px/1.25 "Barlow Semi Condensed", sans-serif; }
+  .url { position: absolute; left: 90px; bottom: 70px; font: 500 26px/1 "IBM Plex Mono", monospace; color: #ff9142; }
   .url::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 16px; border-radius: 50%; background: #ff6a00; box-shadow: 0 0 18px #ff6a00; vertical-align: 2px; }
 </style>
 </head>
 <body>
   <div class="card">
-    <svg class="astro" viewBox="-350 -350 700 700" fill="none">
+    <div class="aurora a"></div>
+    <div class="aurora b"></div>
+    <svg class="lens" viewBox="-350 -350 700 700" fill="none">
+      <defs>
+        <radialGradient id="tail"><stop offset="0" stop-color="rgba(255,106,0,0.55)"/><stop offset="1" stop-color="rgba(255,106,0,0)"/></radialGradient>
+      </defs>
       <g stroke="rgba(201,164,92,0.30)" stroke-width="1.2">
-        <circle r="300"/><circle r="258"/><circle r="186"/><circle r="102"/>
-        <path d="M0 -186 L161 93 L-161 93 Z"/><path d="M186 0 L0 186 L-186 0 L0 -186 Z" transform="rotate(20)"/>
+        <circle r="300"/><circle r="258"/><circle r="102"/>
       </g>
       <g stroke="rgba(201,164,92,0.5)" stroke-width="1.2" id="ticks"></g>
+      <circle r="186" stroke="rgba(201,164,92,0.10)" stroke-width="24"/>
+      <circle r="174" stroke="rgba(201,164,92,0.35)" stroke-width="1.2"/>
+      <circle r="198" stroke="rgba(201,164,92,0.35)" stroke-width="1.2"/>
       <g stroke="rgba(255,106,0,0.55)" stroke-width="2.4">
         <path d="M102 0 A102 102 0 0 1 78 66"/><path d="M-51 88 A102 102 0 0 1 -101 14"/><path d="M-51 -88 A102 102 0 0 1 27 -98"/>
       </g>
-      <circle cx="258" cy="0" r="5" fill="#ff6a00"/>
-      <circle r="8" fill="#ff6a00"/>
+      <circle cx="147" cy="147" r="70" fill="url(#tail)"/>
+      <circle cx="147" cy="147" r="11" fill="#ff6a00"/>
     </svg>
     <div class="frame"></div>
-    <div class="eyebrow">Substrate L1 · Polkadot SDK</div>
-    <h1>Demiurge</h1>
-    <p>The chain that pays creators when their work is used.</p>
+    <div class="head">
+      <svg viewBox="0 0 64 64">
+        <defs>
+          <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ead39a"/><stop offset="0.48" stop-color="#c9a45c"/><stop offset="1" stop-color="#7a6236"/>
+          </linearGradient>
+        </defs>
+        <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#tile)" stroke="#fff4d6" stroke-opacity="0.35"/>
+        <circle cx="32" cy="32" r="12" fill="none" stroke="#06070a" stroke-width="6"/>
+        <circle cx="44" cy="44" r="4.8" fill="#ff6a00"/>
+      </svg>
+      <div class="eyebrow">An operating system · in development</div>
+    </div>
+    <h1>QOR OS</h1>
+    <p>Play, make and publish on one machine.</p>
     <div class="url">qorsync.dev</div>
   </div>
   <script>

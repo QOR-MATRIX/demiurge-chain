@@ -8,7 +8,7 @@ quality, ancient futuristic style with animations and effects mouse-over hover a
 look and feel." The design and the names below are the assistant's, under that instruction. It decides **no economic
 value**. **Decision 5, the look, is amended by [ADR-108](ADR-108-one-look-obsidian-and-gilt-in-two-registers.md)**
 (21 October 2026): obsidian and gilt become every surface's look, from one source, and the page's faces are served
-from its own folder rather than a font service. **Brings into scope:** `site/` (AGENTS.md §4).
+from its own folder rather than a font service. **Decisions 3, 4, 5 and 7 are amended by [ADR-123](ADR-123-the-homepage-leads-with-qor-os.md)** (29 October 2026): the page leads with QOR OS, under QOR OS's mark. **Brings into scope:** `site/` (AGENTS.md §4).
 
 ## Context
 

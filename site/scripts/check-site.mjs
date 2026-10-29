@@ -1,4 +1,5 @@
-// Holds qorsync.dev to what search engines and AI crawlers read (ADR-100), and to the project's language rule (ADR-008).
+// Holds qorsync.dev to what search engines and AI crawlers read (ADR-100), to what it may say about QOR OS (ADR-123), and
+// to the project's language rule (ADR-008).
 //
 //   node site/scripts/check-site.mjs
 //
@@ -25,7 +26,7 @@ const meta = (key) => attr(new RegExp(`<meta (?:name|property)="${key}" content=
 
 // --- the head ---------------------------------------------------------------------------------------------------
 const title = attr(/<title>([^<]*)<\/title>/);
-check('a title of 30 to 60 characters, naming Demiurge', title.length >= 30 && title.length <= 60 && title.includes('Demiurge'), `${title.length}: ${title}`);
+check('a title of 30 to 60 characters, naming QOR OS (ADR-123)', title.length >= 30 && title.length <= 60 && title.includes('QOR OS'), `${title.length}: ${title}`);
 const description = meta('description');
 check('a description of 70 to 160 characters', description.length >= 70 && description.length <= 160, `${description.length}`);
 check('a canonical address at the home domain', attr(/<link rel="canonical" href="([^"]*)"/) === `${ORIGIN}/`);
@@ -60,6 +61,8 @@ check('the structured data names the organisation, site, source, launcher and AR
 const org = graph.find((n) => n['@type'] === 'Organization') ?? {};
 check('the organisation points at the current repository', (org.sameAs ?? []).includes(REPO_URL));
 check('the source is the current repository', graph.find((n) => n['@type'] === 'SoftwareSourceCode')?.codeRepository === REPO_URL);
+const qorOs = graph.find((n) => n['@type'] === 'SoftwareApplication' && n.name === 'QOR OS');
+check('QOR OS is described, with nothing to download (ADR-123)', qorOs && !('downloadUrl' in qorOs) && !('offers' in qorOs));
 
 // --- crawler files -----------------------------------------------------------------------------------------------
 check('robots.txt allows crawling and names the sitemap', /Allow: \//.test(read('robots.txt')) && read('robots.txt').includes(`Sitemap: ${ORIGIN}/sitemap.xml`));
@@ -80,6 +83,7 @@ check('every repository document the page links exists', gone.length === 0, gone
 const words = html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]+>/g, ' ') + read('llms.txt') + read('404.html');
 const banned = /\b(APY|yield|passive income|ROI|investment|returns?)\b/i.exec(words);
 check('no word of income, yield or returns (ADR-008)', !banned, banned?.[0] ?? '');
+check('the page says QOR OS has no image or download yet (ADR-123)', /no image or download yet/.test(words.replace(/\s+/g, ' ')));
 
 const failed = results.filter((r) => !r).length;
 console.log(`RESULT: ${results.length - failed} passed, ${failed} failed`);
