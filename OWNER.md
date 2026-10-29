@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 29 October 2026. One page, rewritten every session.
+For Andrew, 29 October 2026 (afternoon). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -10,45 +10,39 @@ private repository* — is built on it. Code: `github.com/QOR-MATRIX/demiurge-ch
 
 ## Live today (checked this session, from outside)
 
-**qorsync.dev**, offering **Launcher 0.1.17**, with its five other **domains** — *web
-addresses you own* — redirecting to it; **Devnet** — *the test chain on servers* — on code
-version 11 with two **peers** — *other nodes it talks to*; **QOR ID** — *the one
-sign-in*; **Social** — *the chat service*; **ARQADE** — *the gaming website*.
+**qorsync.dev**, now leading with QOR OS and offering **Launcher 0.1.17**, with its five
+other **domains** — *web addresses you own* — redirecting to it; **Devnet** — *the test
+chain on servers* — on code version 11 with two **peers** — *other nodes it talks to*;
+**QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** — *the gaming
+website*.
 
 ## This session
 
-1. **You merged #109** on 28 October, so ADR-122 and the counted gates are on `main`.
-   An **ADR** is *a numbered decision record*. **CI** — *the automatic test runs* —
-   passed on it.
-2. **The homepage leads with QOR OS** (ADR-123), as you chose. It says what QOR OS is,
-   where it stands and that it has no download yet, then what is live and the network
-   beneath. QOR OS's **mark** — *a gilt tile holding a Q* — replaces the old sigil, and
-   the moving background gains an aurora. The page may say only what ADR-123 lists about
-   QOR OS, and its **check script** — *tests CI runs on it* — holds it to that: 28 of 28
-   pass.
-3. **Entire mirrors; GitHub stays the source** (ADR-124), as you chose. **Entire** — *a
-   new Git host, launched 26 October* — copies it through its **GitHub app** — *a
-   program GitHub lets in* —, installed on the organisation on 28 October. CI, releases,
-   the launcher's updates and the homepage stay on GitHub. Recording AI sessions there is
-   left undecided, because this repository is public.
+1. **You merged #110**, so the homepage leads with QOR OS (ADR-123). An **ADR** is *a
+   numbered decision record*. Read from outside after the merge: the new title, share
+   image and AI summary are live. **IndexNow** — *how Bing and others hear of changes* —
+   accepted the notice.
+2. **Entire in full**, as you said. **Entire** — *a new Git host, launched 26 October* —
+   keeps its **GitHub app** — *a program GitHub lets in* — on every QOR-MATRIX repository.
+   GitHub stays the source of truth (ADR-124). Recording AI sessions there is still
+   undecided, because this repository is public.
+3. **A new advisory** — *a published library flaw* — in the Qontrol helper was fixed by an
+   update in #110. `chain/` holds the same library in a check that only reports.
 
-Items 2 and 3 are on the **branch** — *changes not yet in `main`* —
-`session/qor-os-homepage`, in its **pull request** — *a request to merge it*.
+These records are on the **branch** — *changes not yet in `main`* — `session/after-110`, in
+its **pull request** — *a request to merge it*.
 
 ## What only you can do
 
-1. **Merge that pull request** to publish the homepage. Then search engines are told of
-   the change (IndexNow).
-2. **Choose what Entire's app may reach.** It was installed for every repository in
-   QOR-MATRIX, private ones included; its "Entire Gates" check on pull requests is
-   advice, and merging does not wait for it.
-3. **Who owns the copyright?** The tree still names several holders. Settle it with a
+1. **Merge the records' pull request.** It changes no code.
+2. **Who owns the copyright?** The tree still names several holders. Settle it with a
    lawyer.
-4. **The rest carried from before** is HANDOFF §4.0, "The owner's carried items":
-   the economic numbers, the legal work, code signing, an outside security review, and
-   the names still to choose.
+3. **The rest carried from before** is HANDOFF §4.0, "The owner's carried items": the
+   economic numbers, the legal work, code signing, an outside security review, and the
+   names still to choose.
 
-**Next in engineering:** at your word, renting in the launcher, or keys on Android (L13.3).
+**Next in engineering:** at your word, renting in the launcher, keys on Android (L13.3), or
+moving `chain/`'s library past the advisory.
 
 ## Cost per month
 
