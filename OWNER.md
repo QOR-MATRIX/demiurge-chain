@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 29 October 2026 (evening). One page, rewritten every session.
+For Andrew, 30 October 2026. One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -10,39 +10,38 @@ private repository* — is built on it. Code: `github.com/QOR-MATRIX/demiurge-ch
 
 ## Live today (checked this session, from outside)
 
-**qorsync.dev**, leading with QOR OS and offering **Launcher 0.1.17**; **Devnet** — *the
+**qorsync.dev**, still the 29 October page until this branch merges; **Devnet** — *the
 test chain on servers* — on code version 11 with two **peers** — *other nodes it talks
 to*; **QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** — *the
 gaming website*.
 
 ## This session
 
-1. **You merged #112**, so ADR-125, Entire not used, is on `main`. An **ADR** is *a
-   numbered decision record*. **CI** — *the automatic checks* — passed on the merge.
-2. **QQ, QOR Media and ARQADE's app and games now move to QOR OS** (ADR-126), as you
-   chose. Nothing in them had changed here since QOR OS took them on 26 October. Their
-   copies here are **frozen** — *kept, but not worked on* — and the launcher keeps
-   shipping them. Only a fix you release changes them.
-3. **ARQADE's rules stay shared.** Each game's rules are one small file that ARQADE's
-   server here checks runs by, so those five files stay the same in both places, and
-   change in both at once.
-4. **The gates are unchanged.** A **gate** is *a release's checklist*. QQ's gate stays
-   unmet here, because three of its items now move to QOR OS's plan.
+1. **You merged #113**, so ADR-126 is on `main`. An **ADR** is *a numbered decision
+   record*. **CI** — *the automatic checks* — passed on it.
+2. **The homepage, redone** (ADR-127), as you asked: everything current about QOR OS, a
+   Download section, a menu and large tap targets on phones, and a new background: QOR
+   OS's mark as a lens that bends a nebula of light and answers your finger.
+3. **QOR Mobile 0.1.0**, your name for the launcher on Android, now on the phone too. Its
+   **APK** — *the phone's install file* — is built, signed with a new **test key** —
+   *the project's signature for testers* — and ran on the Android emulator. It shows the
+   first screen only: no wallet yet. It has not run on a real phone.
 
-ADR-126 and these records are on the **branch** — *changes not yet in `main`* —
-`session/after-112`, in its **pull request** — *a request to merge it*.
+The site's changes are on the **branch** — *changes not yet in `main`* —
+`session/site-qor-os-current`, in its **pull request** — *a request to merge it*.
 
 ## What only you can do
 
-1. **Merge the records' pull request.** It changes no code.
-2. **Who owns the copyright?** The tree still names several holders. Settle it with a
-   lawyer.
-3. **The rest carried from before** is HANDOFF §4.0, "The owner's carried items": the
-   economic numbers, the legal work, code signing, an outside security review, and the
-   names still to choose.
+1. **Publish QOR Mobile's release first**, then merge the pull request: the page links
+   the APK, and my attempt to publish it was refused by my permission system. The pull
+   request gives the one command.
+2. **Back up the test key**, `%USERPROFILE%\.qor-launcher\android\`, off this PC. Lose
+   it, and testers must uninstall before the next release.
+3. **Try QOR Mobile on your phone**, and tell me whether it starts.
+4. **The rest carried from before** is HANDOFF §4.0: the economic numbers, the legal
+   work, code signing, an outside security review, and the names still to choose.
 
-**Next in engineering:** at your word, renting in the launcher, keys on Android (L13.3), or
-moving `chain/`'s library past the advisory.
+**Next in engineering:** keys on Android (L13.3), so QOR Mobile can hold a wallet.
 
 ## Cost per month
 

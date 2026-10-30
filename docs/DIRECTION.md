@@ -933,7 +933,8 @@ the Rust core, app ID `app.qorsync.dev`, Android 9 and later, delivered as a sig
    - The x86_64 build ran on an Android 16 emulator: the core answered through the bridge, and read "1.25 CGT" exactly
      as 1,250 Sparks.
 
-   **Not yet:** on a phone.
+   **Not yet:** on a phone. On 30 October 2026 the arm64 APK itself, signed for testers (L13.8), ran on the Android 16
+   emulator through that image's ARM translation, and the core read "1.25 CGT" as 1,250 Sparks; that is not a phone.
 2. [x] The core moved out of the Tauri crate, module by module with its tests: Sparks, errors, the vault, profiles, QOR
    ID's client, the chain client, Social's client, the Library's index and the Mesh. The Windows launcher keeps every
    test green throughout.
@@ -965,6 +966,16 @@ the Rust core, app ID `app.qorsync.dev`, Android 9 and later, delivered as a sig
 7. [ ] The Mesh: off until turned on, Wi-Fi only unless the person chooses otherwise.
 8. [ ] A signed APK on a GitHub Release, `android-v<version>`, with a download page. The test key is kept off the
    repository; the Google Play key is the owner's.
+
+   **Begun ahead of its turn, 30 October 2026, at the owner's word (ADR-127):** the owner asked for "the APK download
+   for the QOR Mobile app", QOR Mobile being the owner's name for this launcher.
+   - The test key exists, off the repository, and `shell/build.ps1 -TestKey` signs with it.
+   - `qor-mobile-0.1.0-arm64-v8a.apk`, the first screen only, is built and checked (SYSTEMS has its hash and
+     certificate).
+   - The homepage's Download section offers it.
+
+   **Left:** publishing it as `android-v0.1.0`, which the owner does (the assistant's attempt was refused for want of a
+   permission), and then this item is ticked. Each later step of L13 ships through it.
 
 ### The product tracks
 

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>QOR OS — the OS for players, game makers and creators</title>
-  <meta name="description" content="QOR OS is an operating system for players, game makers and creators, built on Demiurge's network: QOR ID, DRC-369 and CGT. In development; test value only.">
+  <meta name="description" content="QOR OS is an operating system for players, game makers and creators, on Demiurge's network. Get QOR Mobile for Android and the QOR Launcher for Windows.">
   <link rel="canonical" href="https://qorsync.dev/">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <meta name="theme-color" content="#06070a">
@@ -13,7 +13,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="QOR OS">
   <meta property="og:title" content="QOR OS — play, make and publish on one machine">
-  <meta property="og:description" content="An operating system for players, game makers and creators, in development, on Demiurge's network: QOR ID, DRC-369 and CGT.">
+  <meta property="og:description" content="An operating system for players, game makers and creators, in development, on Demiurge's network. QOR Mobile for Android and the QOR Launcher for Windows run today.">
   <meta property="og:url" content="https://qorsync.dev/">
   <meta property="og:image" content="https://qorsync.dev/og.png">
   <meta property="og:image:width" content="1200">
@@ -66,7 +66,7 @@
         "@type": "SoftwareApplication",
         "@id": "https://qorsync.dev/#qor-os",
         "name": "QOR OS",
-        "description": "An operating system for players, game makers and creators: the Prism shell, which is also the compositor, the Lumen design language, and QQ, ARQADE and QOR Media built in. In development, with no image or download yet.",
+        "description": "An operating system for players, game makers and creators: the Prism shell, which is also the compositor, the Lumen design language, and QQ, ARQADE and QOR Media running inside it. In development, with no image or download yet.",
         "applicationCategory": "OperatingSystem",
         "creativeWorkStatus": "In development",
         "publisher": { "@id": "https://qorsync.dev/#organization" }
@@ -75,9 +75,9 @@
         "@type": "SoftwareSourceCode",
         "@id": "https://qorsync.dev/#source",
         "name": "demiurge-chain",
-        "description": "Demiurge's network: the chain (a Substrate layer 1), QOR ID, the QOR Launcher and ARQADE, in one repository.",
+        "description": "Demiurge's network: the chain (a Substrate layer 1), QOR ID, the QOR Launcher for Windows and Android, and ARQADE, in one repository.",
         "codeRepository": "https://github.com/QOR-MATRIX/demiurge-chain",
-        "programmingLanguage": ["Rust", "TypeScript"],
+        "programmingLanguage": ["Rust", "TypeScript", "C++"],
         "license": "https://www.apache.org/licenses/LICENSE-2.0",
         "author": { "@id": "https://qorsync.dev/#organization" }
       },
@@ -89,7 +89,22 @@
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Windows 10, Windows 11",
         "softwareVersion": "0.1.17",
-        "downloadUrl": "https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.17",
+        "downloadUrl": "https://github.com/QOR-MATRIX/demiurge-chain/releases/download/launcher-v0.1.17/QOR-Launcher_0.1.17_x64-setup.exe",
+        "fileSize": "84.7 MiB",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "publisher": { "@id": "https://qorsync.dev/#organization" }
+      },
+      {
+        "@type": "MobileApplication",
+        "@id": "https://qorsync.dev/#qor-mobile",
+        "name": "QOR Mobile",
+        "alternateName": "QOR Launcher for Android",
+        "description": "The QOR Launcher on Android, in preview: its first build runs the Rust core that will hold the wallet's keys on the phone.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Android 9 and later",
+        "softwareVersion": "0.1.0",
+        "downloadUrl": "https://github.com/QOR-MATRIX/demiurge-chain/releases/download/android-v0.1.0/qor-mobile-0.1.0-arm64-v8a.apk",
+        "fileSize": "56.8 MiB",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "publisher": { "@id": "https://qorsync.dev/#organization" }
       },
@@ -131,14 +146,28 @@
         </svg>
         <span>QOR OS</span>
       </a>
-      <ul class="links">
+      <ul class="links" id="menu">
         <li><a href="#system">System</a></li>
+        <li><a href="#prism">Prism</a></li>
         <li><a href="#progress">Progress</a></li>
+        <li><a href="#download">Download</a></li>
         <li><a href="#live">Live</a></li>
         <li><a href="#network">Network</a></li>
-        <li><a href="#source">Source</a></li>
+        <li><a href="#questions">Questions</a></li>
+        <li class="menu-extra"><a href="#source">Source</a></li>
+        <li class="menu-cta">
+          <a class="btn btn-ember" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/download/android-v0.1.0/qor-mobile-0.1.0-arm64-v8a.apk">
+            QOR Mobile for Android <span class="btn-note">0.1.0 · preview APK · 56.8 MiB</span>
+          </a>
+          <a class="btn btn-gilt" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/download/launcher-v0.1.17/QOR-Launcher_0.1.17_x64-setup.exe">
+            QOR Launcher for Windows <span class="btn-note">0.1.17 · tester build · 84.7 MiB</span>
+          </a>
+        </li>
       </ul>
-      <a class="btn btn-ember btn-sm" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.17">Get the launcher</a>
+      <a class="btn btn-ember btn-sm bar-cta" href="#download">Download</a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="menu" aria-label="Open the menu">
+        <span aria-hidden="true"></span>
+      </button>
     </nav>
   </header>
 
@@ -150,16 +179,20 @@
       <p class="sub rise">An operating system for players, game makers and creators: one account, one library, and the
         tools to build games, apps, themes and media, driven by a controller as well as a keyboard. Built on
         Demiurge's network: <strong>QOR ID</strong>, <strong>DRC-369</strong> and <strong>CGT</strong>.</p>
-      <div class="actions rise">
-        <a class="btn btn-ember" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.17">
+      <div class="actions hero-actions rise">
+        <a class="btn btn-ember" data-platform="android" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/download/android-v0.1.0/qor-mobile-0.1.0-arm64-v8a.apk">
+          Download QOR Mobile
+          <span class="btn-note">Android · 0.1.0 · preview APK</span>
+        </a>
+        <a class="btn btn-ember" data-platform="windows" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/download/launcher-v0.1.17/QOR-Launcher_0.1.17_x64-setup.exe">
           Download the QOR Launcher
           <span class="btn-note">Windows · 0.1.17 · tester build</span>
         </a>
-        <a class="btn btn-gilt" href="#system">How QOR OS is built</a>
+        <a class="btn btn-gilt" href="#system">Explore QOR OS</a>
       </div>
       <p class="status rise"><span class="pulse" aria-hidden="true"></span> QOR OS has no image or download yet. What runs
-        today is Demiurge's network and the QOR Launcher for Windows, on test value only: nothing here holds real
-        value.</p>
+        today is Demiurge's network, the QOR Launcher for Windows and QOR Mobile for Android, on test value only:
+        nothing here holds real value.</p>
     </section>
 
     <section id="system" class="block" aria-labelledby="system-title">
@@ -168,13 +201,13 @@
         <h2 id="system-title">One system, from compositor to arcade</h2>
         <p class="block-lede">Every part is built to work with the others, and every app shares one look.</p>
       </header>
-      <div class="grid three">
+      <div class="grid four">
         <article class="card reveal" data-tilt>
           <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 5 L27 25 L5 25 Z"/><path d="M1 17 L11.5 16"/><path d="M20.5 15 L31 10 M21.2 16.6 L31 16.5 M21.8 18.2 L31 23"/></svg></span>
           <p class="pill pill-live">Built</p>
           <h3>Prism</h3>
           <p>The shell is the compositor: windows and games are live parts of one scene, so any of them can be animated,
-            tiled or set in 3D space.</p>
+            tiled or set in 3D space. QQ, ARQADE and QOR Media now run inside it.</p>
         </article>
         <article class="card reveal" data-tilt>
           <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="6"/><circle cx="16" cy="16" r="1.6" class="fill"/><path d="M16 2 V6 M16 26 V30 M2 16 H6 M26 16 H30 M6.1 6.1 L8.9 8.9 M23.1 23.1 L25.9 25.9 M25.9 6.1 L23.1 8.9 M6.1 25.9 L8.9 23.1"/></svg></span>
@@ -192,16 +225,23 @@
         </article>
         <article class="card reveal" data-tilt>
           <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M9 11 H23 C27 11 29 15 29 19 C29 23 26 25 24 23 L21 20 H11 L8 23 C6 25 3 23 3 19 C3 15 5 11 9 11 Z"/><path d="M9 15 V19 M7 17 H11"/><circle cx="22" cy="16" r="1.2" class="fill"/><circle cx="24.5" cy="18.5" r="1.2" class="fill"/></svg></span>
-          <p class="pill pill-work">In progress</p>
+          <p class="pill pill-work">Inside Prism</p>
           <h3>ARQADE and QOR Media</h3>
-          <p>The arcade, and a player, viewer and editor for everything you own, built in and moving inside Prism, driven
-            by a controller.</p>
+          <p>The arcade, and a player, viewer and editor for video, music, pictures and documents, built in and running
+            inside Prism.</p>
+        </article>
+        <article class="card reveal" data-tilt>
+          <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32"><rect x="3" y="10" width="26" height="14" rx="7"/><path d="M10 14 V20 M7 17 H13"/><circle cx="21" cy="15.5" r="1.4" class="fill"/><circle cx="24" cy="18.5" r="1.4" class="fill"/></svg></span>
+          <p class="pill pill-live">Built</p>
+          <h3>Controllers</h3>
+          <p>QOR OS's own controller service: the common console pads, over USB and Bluetooth, in one layout. It drives
+            the whole shell, and every QQ game.</p>
         </article>
         <article class="card reveal" data-tilt>
           <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M6 10 H26 L24 28 H8 Z"/><path d="M11 10 V8 A5 5 0 0 1 21 8 V10"/><path d="M12 19 L15 22 L20.5 15.5"/></svg></span>
           <p class="pill pill-live">First stage built</p>
           <h3>The Store</h3>
-          <p>Games, apps and themes as signed packages, installed and updated by the system.</p>
+          <p>Games, apps, themes and widgets as signed packages, installed and updated by the system.</p>
         </article>
         <article class="card reveal" data-tilt>
           <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 3 L27 7 V15 C27 22 22 27 16 29 C10 27 5 22 5 15 V7 Z"/><circle cx="16" cy="14" r="3"/><path d="M16 17 V22"/></svg></span>
@@ -210,52 +250,206 @@
           <p>Keys live in a service of their own, outside the shell and every app. Its approvals are drawn by the
             compositor, so no app can fake them.</p>
         </article>
+        <article class="card reveal" data-tilt>
+          <span class="glyph" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12"/><circle cx="16" cy="16" r="5"/><circle cx="22.5" cy="22.5" r="2" class="fill"/></svg></span>
+          <p class="pill pill-live">Built</p>
+          <h3>The QOR core</h3>
+          <p>The network's own code for keys, profiles, amounts and the chain, built into QOR OS from Demiurge's open
+            repository rather than written twice.</p>
+        </article>
       </div>
-      <p class="aside reveal">QOR OS 1.0 moves no money: free items and test CGT on the devnet only. There is no image or
-        download yet, and its code is private while it is built.</p>
+      <p class="swipe-hint" aria-hidden="true">Swipe for more</p>
+      <p class="aside reveal">QOR OS 1.0 moves no money: free items and test CGT on the devnet only. There is no image to
+        install yet, and its code is private while it is built.</p>
     </section>
 
-    <section id="progress" class="block" aria-labelledby="progress-title">
+    <section id="prism" class="block" aria-labelledby="prism-title">
       <header class="block-head reveal">
-        <p class="eyebrow">II · Where it stands</p>
-        <h2 id="progress-title">Shown working, stage by stage</h2>
-        <p class="block-lede">Each stage ends when it is shown working, not on a date.</p>
+        <p class="eyebrow">II · Inside Prism</p>
+        <h2 id="prism-title">A shell that moves like one thing</h2>
+        <p class="block-lede">Prism draws the desktop and every window in one scene, on springs rather than timers, and
+          draws nothing while nothing changes. This is what it does today.</p>
       </header>
-      <ul class="ledger">
-        <li class="row reveal">
-          <span class="row-name">Built</span>
-          <span class="row-what">Prism, Lumen and the shell, running nested on Linux with real applications, a controller
-            and sound; the Store's first stage; QQ, ARQADE and QOR Media built and tested on Linux.</span>
-          <span class="row-where">Phase 0 · done</span>
+      <ul class="features">
+        <li class="feature reveal">
+          <h3>Beam</h3>
+          <p>One search for apps, actions, settings and files, ranked as you type, with a calculator in it.</p>
         </li>
-        <li class="row reveal">
-          <span class="row-name">Now</span>
-          <span class="row-what">One stack: QQ, ARQADE and QOR Media running inside Prism, driven by a controller.</span>
-          <span class="row-where">Phase 1</span>
+        <li class="feature reveal">
+          <h3>The Rail</h3>
+          <p>Glass across the top: the window in front, what is playing in a live capsule, and the state of the machine.</p>
         </li>
-        <li class="row reveal">
-          <span class="row-name">Next</span>
-          <span class="row-what">Identity and keys: one sign-in, chat, and publishing from QQ Studio to the devnet.</span>
-          <span class="row-where">Phase 2</span>
+        <li class="feature reveal">
+          <h3>The Shelf</h3>
+          <p>The apps along the bottom, swelling under the pointer, with a mark for each one running.</p>
         </li>
-        <li class="row reveal">
-          <span class="row-name">Then</span>
-          <span class="row-what">It boots on its own, and plays the PC games people already own.</span>
-          <span class="row-where">Phase 3</span>
+        <li class="feature reveal">
+          <h3>Control Center</h3>
+          <p>Wi-Fi, Bluetooth, Focus, light or dark, Night Light, brightness, volume, what is playing and the accent.</p>
         </li>
-        <li class="row reveal">
-          <span class="row-name">After</span>
-          <span class="row-what">The ecosystem: outside developers ship QQ games to QOR OS with public tools.</span>
-          <span class="row-where">Phase 4</span>
+        <li class="feature reveal">
+          <h3>Windows</h3>
+          <p>Prism's own apps and other Linux apps built for Wayland, in the same frame: each opens at its own size, snaps
+            to halves and flies to the Shelf.</p>
+        </li>
+        <li class="feature reveal">
+          <h3>Spaces and Overview</h3>
+          <p>Three Spaces side by side, and every window of one at a glance, live, to pick or carry to another.</p>
+        </li>
+        <li class="feature reveal">
+          <h3>The controller interface</h3>
+          <p>A cursor, a focus to move, an on-screen keyboard and the right glyphs for the pad in your hands. A game in
+            front has the pad to itself.</p>
+        </li>
+        <li class="feature reveal">
+          <h3>Themes and widgets</h3>
+          <p>An accent, a tint for every surface and a living wallpaper, with widgets on glass over it, from the Store.</p>
+        </li>
+        <li class="feature reveal">
+          <h3>Several displays</h3>
+          <p>A window carried from one screen to the next, with Spaces and Overview across them all.</p>
+        </li>
+        <li class="feature reveal">
+          <h3>Gestures</h3>
+          <p>Three fingers on a touchpad or a touchscreen switch Spaces and open Overview, following the fingers.</p>
+        </li>
+        <li class="feature reveal">
+          <h3>Notifications</h3>
+          <p>Banners that wait while you read them, kept quiet in Focus, with the latest on the lock screen.</p>
+        </li>
+        <li class="feature reveal">
+          <h3>Its own apps</h3>
+          <p>Files, Music, Notes, Terminal, Monitor, Settings and the Store, in Lumen from end to end.</p>
         </li>
       </ul>
     </section>
 
+    <section id="progress" class="block" aria-labelledby="progress-title">
+      <header class="block-head reveal">
+        <p class="eyebrow">III · Where it stands</p>
+        <h2 id="progress-title">Shown working, stage by stage</h2>
+        <p class="block-lede">Each stage ends when it is shown working, not on a date.</p>
+      </header>
+      <ol class="phases">
+        <li class="phase phase-done reveal">
+          <p class="phase-tag">Phase 0 · done</p>
+          <h3>Foundations</h3>
+          <p>Prism, Lumen and the shell, running nested on Linux with real applications, a controller and sound; the
+            Store's first stage; QQ, ARQADE and QOR Media built and tested on Linux.</p>
+        </li>
+        <li class="phase phase-now reveal">
+          <p class="phase-tag">Phase 1 · now</p>
+          <h3>One stack</h3>
+          <p>QQ, ARQADE and QOR Media running inside Prism, driven by a controller.</p>
+          <ul class="checks">
+            <li class="done">QQ, ARQADE and QOR Media are developed inside QOR OS</li>
+            <li class="done">Prism starts all three, lays out their windows and names them</li>
+            <li class="done">Every window opens at the size its app asks for</li>
+            <li class="done">QQ plays with QOR OS's controllers, and a game in front has the pad</li>
+            <li>ARQADE and QOR Media moved through with a controller's focus</li>
+            <li>Lumen's look on every app</li>
+            <li>A Home and a Library made for the controller</li>
+          </ul>
+          <p class="phase-exit">Its goal: Orb Run, a QQ game, playing inside Prism on Linux with a controller.</p>
+        </li>
+        <li class="phase reveal">
+          <p class="phase-tag">Phase 2 · next</p>
+          <h3>Identity and keys</h3>
+          <p>One sign-in, chat, and publishing from QQ Studio to the devnet, with the vault built.</p>
+        </li>
+        <li class="phase reveal">
+          <p class="phase-tag">Phase 3</p>
+          <h3>Boots and plays</h3>
+          <p>It boots on its own, and plays the PC games people already own.</p>
+        </li>
+        <li class="phase reveal">
+          <p class="phase-tag">Phase 4</p>
+          <h3>The ecosystem</h3>
+          <p>Outside developers ship QQ games to QOR OS with public tools.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section id="download" class="block" aria-labelledby="download-title">
+      <header class="block-head reveal">
+        <p class="eyebrow">IV · Download</p>
+        <h2 id="download-title">Take it with you</h2>
+        <p class="block-lede">Two apps run on Demiurge's network today, on test value. Each is a tester build: free,
+          signed by the project, with its SHA-256 beneath it to check what you downloaded.</p>
+      </header>
+      <div class="downloads">
+        <article class="dl reveal" data-platform="android">
+          <p class="dl-for">For this device</p>
+          <header class="dl-head">
+            <h3>QOR Mobile</h3>
+            <p class="dl-sub">The QOR Launcher for Android · 0.1.0 · preview</p>
+          </header>
+          <p>Its first build: the Rust core that will hold your keys, running on your phone and answering in the one look,
+            with amounts read exactly in CGT and Sparks. The wallet, QOR ID, Social, ARQADE, the Library and the Mesh come
+            next. Until the phone's own keystore holds its key, it makes no wallet.</p>
+          <dl class="dl-facts">
+            <div><dt>Needs</dt><dd>Android 9 or later, a 64-bit ARM phone</dd></div>
+            <div><dt>Size</dt><dd>56.8 MiB</dd></div>
+            <div><dt>Signed</dt><dd>with the project's test key</dd></div>
+          </dl>
+          <p class="dl-hash"><span>SHA-256</span><code>072f764eee6ff1798dbec2daa1b2b1a7a889de1a0e949e56ce450245d10bc39b</code></p>
+          <ol class="dl-steps">
+            <li>Download the APK on your phone.</li>
+            <li>Open it. Android asks, once, to allow installs from your browser.</li>
+            <li>Open QOR Mobile.</li>
+          </ol>
+          <div class="actions">
+            <a class="btn btn-ember" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/download/android-v0.1.0/qor-mobile-0.1.0-arm64-v8a.apk">
+              Download the APK <span class="btn-note">qor-mobile-0.1.0-arm64-v8a.apk</span>
+            </a>
+            <a class="btn btn-gilt" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/android-v0.1.0">Release notes</a>
+          </div>
+        </article>
+        <article class="dl reveal" data-platform="windows">
+          <p class="dl-for">For this device</p>
+          <header class="dl-head">
+            <h3>QOR Launcher</h3>
+            <p class="dl-sub">For Windows 10 and 11 · 0.1.17 · tester build</p>
+          </header>
+          <p>The Demiurge desktop: a CGT wallet whose keys never reach the interface, QOR ID, Social, the Library with QOR
+            Media, ARQADE's 3D arcade and the Mesh. It updates itself, installing only what the project's own key has
+            signed.</p>
+          <dl class="dl-facts">
+            <div><dt>Needs</dt><dd>Windows 10 or 11, 64-bit</dd></div>
+            <div><dt>Size</dt><dd>84.7 MiB</dd></div>
+            <div><dt>Updates</dt><dd>itself, from a signed channel</dd></div>
+          </dl>
+          <p class="dl-hash"><span>SHA-256</span><code>6e1081ce0883f5a82dd262af08924cee858d017671bcb840ef6507ab7dbe4c44</code></p>
+          <ol class="dl-steps">
+            <li>Download the installer and run it.</li>
+            <li>Open the QOR Launcher and set a PIN for your profile.</li>
+            <li>It makes your wallet and signs you in to QOR ID.</li>
+          </ol>
+          <div class="actions">
+            <a class="btn btn-ember" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/download/launcher-v0.1.17/QOR-Launcher_0.1.17_x64-setup.exe">
+              Download the installer <span class="btn-note">QOR-Launcher_0.1.17_x64-setup.exe</span>
+            </a>
+            <a class="btn btn-gilt" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.17">Release notes</a>
+          </div>
+        </article>
+      </div>
+      <div class="dl-more">
+        <a class="dl-link reveal" href="https://qor-arqade-tau.vercel.app">
+          <strong>ARQADE in the browser</strong>
+          <span>Play with a QOR ID, nothing to install</span>
+        </a>
+        <div class="dl-link dl-link-quiet reveal">
+          <strong>QOR OS</strong>
+          <span>No image to install yet: it boots on its own in Phase 3</span>
+        </div>
+      </div>
+    </section>
+
     <section id="live" class="block" aria-labelledby="live-title">
       <header class="block-head reveal">
-        <p class="eyebrow">III · Running now</p>
+        <p class="eyebrow">V · Running now</p>
         <h2 id="live-title">Live today, on test value</h2>
-        <p class="block-lede">What you can use before QOR OS ships: Demiurge's network and the QOR Launcher for Windows.
+        <p class="block-lede">What you can use before QOR OS ships: Demiurge's network, the QOR Launcher and QOR Mobile.
           Test CGT has no value, and the test network can be reset.</p>
       </header>
       <ul class="ledger">
@@ -287,14 +481,20 @@
           <span class="row-name">QOR Launcher</span>
           <span class="row-what">The desktop for Windows: a wallet whose keys never reach the interface, the Library with
             QOR Media, Social, the Mesh, and ARQADE's 3D arcade inside it.</span>
-          <a class="row-where" href="https://github.com/QOR-MATRIX/demiurge-chain/releases/tag/launcher-v0.1.17">0.1.17 for Windows</a>
+          <a class="row-where" href="#download">0.1.17 for Windows</a>
+        </li>
+        <li class="row reveal">
+          <span class="row-name">QOR Mobile</span>
+          <span class="row-what">The launcher on Android, in preview: the core that will hold your keys, running on your
+            phone.</span>
+          <a class="row-where" href="#download">0.1.0 for Android</a>
         </li>
       </ul>
     </section>
 
     <section id="network" class="block" aria-labelledby="network-title">
       <header class="block-head reveal">
-        <p class="eyebrow">IV · Beneath it</p>
+        <p class="eyebrow">VI · Beneath it</p>
         <h2 id="network-title">Demiurge, the network beneath</h2>
         <p class="block-lede">A Substrate layer 1 on the Polkadot SDK that pays creators when their work is used, licensed
           or remixed. QOR OS talks to it as services, and every product shares its four primitives, so nothing invents
@@ -326,6 +526,7 @@
             that can be minted as an asset.</p>
         </article>
       </div>
+      <p class="swipe-hint" aria-hidden="true">Swipe for more</p>
       <p class="aside reveal">Also on the network: <strong>the Mesh</strong>, launchers that hold and serve each other's
         published work. Planned: <strong>GNOSIS</strong> for music production, <strong>Stream</strong> for music
         distribution and licensing over the Mesh, and a fuller <strong>Market</strong>. The network's roadmap is
@@ -334,7 +535,7 @@
 
     <section id="principles" class="block" aria-labelledby="principles-title">
       <header class="block-head reveal">
-        <p class="eyebrow">V · The law</p>
+        <p class="eyebrow">VII · The law</p>
         <h2 id="principles-title">Principles</h2>
       </header>
       <div class="tablets">
@@ -361,26 +562,39 @@
 
     <section id="questions" class="block" aria-labelledby="questions-title">
       <header class="block-head reveal">
-        <p class="eyebrow">VI · Asked often</p>
+        <p class="eyebrow">VIII · Asked often</p>
         <h2 id="questions-title">Questions</h2>
       </header>
       <div class="faq">
         <details class="reveal">
           <summary>What is QOR OS?</summary>
           <p>An operating system for players, game makers and creators, being built on Linux: the Prism shell, which is
-            also the compositor; the Lumen design language; and QQ, ARQADE and QOR Media built in. It uses Demiurge's
-            network as services: QOR ID to sign in, DRC-369 for what you own, and CGT.</p>
+            also the compositor; the Lumen design language; and QQ, ARQADE and QOR Media running inside it. It uses
+            Demiurge's network as services: QOR ID to sign in, DRC-369 for what you own, and CGT.</p>
         </details>
         <details class="reveal">
           <summary>Can I install QOR OS?</summary>
-          <p>Not yet: there is no image or download while it is built. QOR OS 1.0 moves no money, with free items and test
-            CGT on the devnet only.</p>
+          <p>Not yet: there is no image to install while it is built, and it boots on its own only in Phase 3. QOR OS 1.0
+            moves no money, with free items and test CGT on the devnet only.</p>
         </details>
         <details class="reveal">
           <summary>What can I use today?</summary>
           <p>Demiurge's network, on test value. Install the QOR Launcher for Windows, and it makes your wallet and signs
-            you in to QOR ID; ARQADE also plays in a browser. Test CGT has no value, and for now it is sent to testers by
-            hand: there is no faucet page yet.</p>
+            you in to QOR ID; ARQADE also plays in a browser; and QOR Mobile previews the launcher on Android. Test CGT
+            has no value, and for now it is sent to testers by hand: there is no faucet page yet.</p>
+        </details>
+        <details class="reveal">
+          <summary>What does QOR Mobile do yet?</summary>
+          <p>It is the first build of the QOR Launcher for Android: the same Rust core as the Windows launcher, running on
+            the phone and answering through its own screen. The wallet arrives once the phone's keystore holds its key;
+            QOR ID, Social, ARQADE, the Library and the Mesh follow. Installing a newer build over it keeps your phone's
+            copy current, since every build is signed with the same key.</p>
+        </details>
+        <details class="reveal">
+          <summary>Which controllers work?</summary>
+          <p>The common console pads, wired or over Bluetooth, and any pad Linux knows as one, each shown with its own
+            button glyphs. The whole shell can be driven with one, and QQ's games read it too: whichever game is in front
+            has it.</p>
         </details>
         <details class="reveal">
           <summary>What is Demiurge?</summary>
@@ -397,18 +611,19 @@
         </details>
         <details class="reveal">
           <summary>Where is the code?</summary>
-          <p>The network's code is at <a href="https://github.com/QOR-MATRIX/demiurge-chain">github.com/QOR-MATRIX/demiurge-chain</a>,
-            under Apache-2.0. It is the only current repository: earlier copies of the project describe a design it no
-            longer follows. QOR OS's code is private while it is built.</p>
+          <p>The network's code, the launchers' included, is at
+            <a href="https://github.com/QOR-MATRIX/demiurge-chain">github.com/QOR-MATRIX/demiurge-chain</a>, under
+            Apache-2.0. It is the only current repository: earlier copies of the project describe a design it no longer
+            follows. QOR OS's code is private while it is built.</p>
         </details>
       </div>
     </section>
 
     <section id="source" class="block source" aria-labelledby="source-title">
       <div class="source-inner reveal">
-        <p class="eyebrow">VII · Open source</p>
+        <p class="eyebrow">IX · Open source</p>
         <h2 id="source-title">Read the network's code</h2>
-        <p class="block-lede">The chain, QOR ID, the launcher and ARQADE live in one public repository, with every pull
+        <p class="block-lede">The chain, QOR ID, the launchers and ARQADE live in one public repository, with every pull
           request tested on GitHub Actions and every release gate measured rather than asserted.</p>
         <div class="actions">
           <a class="btn btn-gilt" href="https://github.com/QOR-MATRIX/demiurge-chain">github.com/QOR-MATRIX/demiurge-chain</a>
@@ -435,7 +650,7 @@
         <span>QOR OS</span>
       </a>
       <p>Pre-release and unaudited. Test value only. The network's code is Apache-2.0.</p>
-      <p class="foot-links"><a href="https://github.com/QOR-MATRIX/demiurge-chain">GitHub</a> ·
+      <p class="foot-links"><a href="#download">Download</a> · <a href="https://github.com/QOR-MATRIX/demiurge-chain">GitHub</a> ·
         <a href="https://id.qorsync.dev">QOR ID</a> · <a href="https://qor-arqade-tau.vercel.app">ARQADE</a> ·
         <a href="/llms.txt">llms.txt</a></p>
     </div>

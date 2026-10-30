@@ -1,5 +1,5 @@
-// Holds qorsync.dev to what search engines and AI crawlers read (ADR-100), to what it may say about QOR OS (ADR-123), and
-// to the project's language rule (ADR-008).
+// Holds qorsync.dev to what search engines and AI crawlers read (ADR-100), to what it may say about QOR OS (ADR-123,
+// restated by ADR-127), to its downloads (ADR-127), and to the project's language rule (ADR-008).
 //
 //   node site/scripts/check-site.mjs
 //
@@ -63,6 +63,15 @@ check('the organisation points at the current repository', (org.sameAs ?? []).in
 check('the source is the current repository', graph.find((n) => n['@type'] === 'SoftwareSourceCode')?.codeRepository === REPO_URL);
 const qorOs = graph.find((n) => n['@type'] === 'SoftwareApplication' && n.name === 'QOR OS');
 check('QOR OS is described, with nothing to download (ADR-123)', qorOs && !('downloadUrl' in qorOs) && !('offers' in qorOs));
+const RELEASE = `${REPO_URL}/releases/download/`;
+const mobile = graph.find((n) => n['@type'] === 'MobileApplication' && n.name === 'QOR Mobile');
+check('QOR Mobile is described, with its APK as its download (ADR-127)',
+  mobile && mobile.downloadUrl === `${RELEASE}android-v${mobile.softwareVersion}/qor-mobile-${mobile.softwareVersion}-arm64-v8a.apk`,
+  mobile?.downloadUrl ?? 'missing');
+const launcher = graph.find((n) => n['@type'] === 'SoftwareApplication' && n.name === 'QOR Launcher');
+check('the launcher is described, with its installer as its download (ADR-127)',
+  launcher && launcher.downloadUrl === `${RELEASE}launcher-v${launcher.softwareVersion}/QOR-Launcher_${launcher.softwareVersion}_x64-setup.exe`,
+  launcher?.downloadUrl ?? 'missing');
 
 // --- crawler files -----------------------------------------------------------------------------------------------
 check('robots.txt allows crawling and names the sitemap', /Allow: \//.test(read('robots.txt')) && read('robots.txt').includes(`Sitemap: ${ORIGIN}/sitemap.xml`));
@@ -84,6 +93,25 @@ const words = html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]+>/g,
 const banned = /\b(APY|yield|passive income|ROI|investment|returns?)\b/i.exec(words);
 check('no word of income, yield or returns (ADR-008)', !banned, banned?.[0] ?? '');
 check('the page says QOR OS has no image or download yet (ADR-123)', /no image or download yet/.test(words.replace(/\s+/g, ' ')));
+
+// --- the downloads (ADR-127) -------------------------------------------------------------------------------------
+// Every file the page offers is a release's own, under the tag of the version its name carries, and the structured data
+// names the same versions.
+const files = [...new Set([...html.matchAll(/href="(https:\/\/github\.com\/QOR-MATRIX\/demiurge-chain\/releases\/download\/[^"]+)"/g)].map((m) => m[1]))];
+const mismatched = files.filter((url) => {
+  const [tag, file] = url.slice(RELEASE.length).split('/');
+  const version = (tag.match(/-v(\d+\.\d+\.\d+)$/) ?? [])[1];
+  return !version || !file.includes(version);
+});
+check('every download is a release file under the tag of its version', files.length >= 2 && mismatched.length === 0,
+  mismatched.join(' ') || `${files.length} files`);
+const offered = new Set(files.map((url) => url.slice(RELEASE.length).split('/')[0]));
+const described = [mobile, launcher].filter(Boolean).map((n) => n.downloadUrl.slice(RELEASE.length).split('/')[0]);
+check('the structured data and the links offer the same releases', described.length === 2 && described.every((t) => offered.has(t)),
+  [...offered].join(' '));
+const hashes = [...html.matchAll(/class="dl-hash"><span>SHA-256<\/span><code>([0-9a-f]+)<\/code>/g)].map((m) => m[1]);
+check("each download's SHA-256 is on the page", hashes.length === offered.size && hashes.every((h) => h.length === 64),
+  `${hashes.length} hashes for ${offered.size} releases`);
 
 const failed = results.filter((r) => !r).length;
 console.log(`RESULT: ${results.length - failed} passed, ${failed} failed`);

@@ -112,5 +112,5 @@ reader of this repository can check the page against them.
   page shows, since the check ties the page to the release's tag.
 - **The test key is a single point of loss**: if it is lost, testers uninstall QOR Mobile before the next release can
   install. The owner backs it up off the PC.
-- L13.8 is done for this first build; each later step of L13 ships through it.
+- Once `android-v0.1.0` is published, L13.8 is done for this first build; each later step of L13 ships through it.
 - When QOR OS's facts change, the page changes only through a later record that restates decision 3.
