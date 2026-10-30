@@ -1,5 +1,9 @@
 # ARQADE in the launcher (Qt)
 
+> **Frozen here since 29 October 2026.** ARQADE's Qt app is developed in QOR OS, the owner's operating system, by
+> [ADR-126](../../../docs/decisions/ADR-126-the-device-side-products-are-developed-in-qor-os.md). This copy is the one
+> the QOR Launcher for Windows ships, and it changes only by a fix the owner releases.
+
 ARQADE's app: the QOR Launcher's arcade, in Qt 6, C++20, Qt Quick and Qt Quick 3D. It is docked inside the launcher
 over its ARQADE screen, under the launcher's product host, as QOR Media is docked over the Library.
 [ADR-102](../../../docs/decisions/ADR-102-arqade-in-the-launcher-on-qt.md) decided it, and roadmap item P7.19 in

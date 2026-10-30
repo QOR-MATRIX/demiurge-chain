@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 29 October 2026 (afternoon). One page, rewritten every session.
+For Andrew, 29 October 2026 (evening). One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -10,28 +10,27 @@ private repository* — is built on it. Code: `github.com/QOR-MATRIX/demiurge-ch
 
 ## Live today (checked this session, from outside)
 
-**qorsync.dev**, now leading with QOR OS and offering **Launcher 0.1.17**, with its five
-other **domains** — *web addresses you own* — redirecting to it; **Devnet** — *the test
-chain on servers* — on code version 11 with two **peers** — *other nodes it talks to*;
-**QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** — *the gaming
-website*.
+**qorsync.dev**, leading with QOR OS and offering **Launcher 0.1.17**; **Devnet** — *the
+test chain on servers* — on code version 11 with two **peers** — *other nodes it talks
+to*; **QOR ID** — *the one sign-in*; **Social** — *the chat service*; **ARQADE** — *the
+gaming website*.
 
 ## This session
 
-1. **You merged #110**, so the homepage leads with QOR OS (ADR-123). An **ADR** is *a
-   numbered decision record*. Read from outside after the merge: the new title, share
-   image and AI summary are live. **IndexNow** — *how Bing and others hear of changes* —
-   accepted the notice.
-2. **Entire is not used** (ADR-125), on my recommendation, which you asked for. **Entire**
-   — *a new Git host, launched 26 October* — duplicated GitHub, would have published AI
-   transcripts in this public repository, and its check marked every pull request. You
-   removed its **GitHub app** — *a program GitHub lets in* —; GitHub alone, as before. You
-   merged #111 before ADR-125's commit reached it, so ADR-125 comes in this pull request.
-3. **A new advisory** — *a published library flaw* — in the Qontrol helper was fixed by an
-   update in #110. `chain/` holds the same library in a check that only reports.
+1. **You merged #112**, so ADR-125, Entire not used, is on `main`. An **ADR** is *a
+   numbered decision record*. **CI** — *the automatic checks* — passed on the merge.
+2. **QQ, QOR Media and ARQADE's app and games now move to QOR OS** (ADR-126), as you
+   chose. Nothing in them had changed here since QOR OS took them on 26 October. Their
+   copies here are **frozen** — *kept, but not worked on* — and the launcher keeps
+   shipping them. Only a fix you release changes them.
+3. **ARQADE's rules stay shared.** Each game's rules are one small file that ARQADE's
+   server here checks runs by, so those five files stay the same in both places, and
+   change in both at once.
+4. **The gates are unchanged.** A **gate** is *a release's checklist*. QQ's gate stays
+   unmet here, because three of its items now move to QOR OS's plan.
 
-ADR-125 and these records are on the **branch** — *changes not yet in `main`* —
-`session/after-111`, in its **pull request** — *a request to merge it*.
+ADR-126 and these records are on the **branch** — *changes not yet in `main`* —
+`session/after-112`, in its **pull request** — *a request to merge it*.
 
 ## What only you can do
 

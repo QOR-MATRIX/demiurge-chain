@@ -834,6 +834,9 @@ Everything a person has in one SteamOS-like view inside the launcher, searched i
 Qt 6 player, viewer and editor docked inside it. Design: [`blueprints/library.md`](blueprints/library.md). L9.1 to L9.5
 are release 1.
 
+**QOR Media is developed in QOR OS since 29 October 2026 (ADR-126).** `tools/qor-media/` here is frozen at `db98ac0`,
+the copy the launcher ships. L9.1 to L9.5 stay here for the owner's first look; L9.7 and L9.8 are on QOR OS's roadmap.
+
 1. [ ] The index: folders chosen (Videos, Music, Pictures and Documents offered), scanned and watched, with metadata and
    full-text search, on this PC only. Merged as #37 (`95e554e`) on 17 October 2026, 12:59 UTC; the owner's first look is to come.
 2. [ ] The Library view: a hero, shelves, folders and search, with keyboard and controller navigation. The controller
@@ -861,7 +864,8 @@ are release 1.
    certified signatures, which ADR-114 leaves undecided; it stays unticked until the owner's first look, as L9.1 to L9.4 do.
 6. [ ] Owned games and work in the Library (L7.1; depends on entitlements, M8).
 7. [ ] Release 2: Office documents viewed and edited through LibreOffice's engine, its own record first.
-8. [ ] Pictures beyond Qt's plugins: HEIC, AVIF, JPEG XL and camera RAW.
+   **Moved to QOR OS's roadmap (ADR-126, 29 October 2026).**
+8. [ ] Pictures beyond Qt's plugins: HEIC, AVIF, JPEG XL and camera RAW. **Moved to QOR OS's roadmap (ADR-126, 29 October 2026).**
 
 #### L10: The Mesh (ADR-095; carries M8.1 and L7.4)
 
@@ -1324,6 +1328,10 @@ The TypeScript/WebGL2 slice built under ADR-082 on 8 October 2026 (`tools/qor-la
 particles, an editor surface, scenes saved through Qontrol; `check-qq-view.mjs`, 41 checks) stays as the launcher's
 preview until the Qt Player plays in the launcher and in ARQADE (ADR-083 decision 6). It does not meet P3.1 below.
 
+**Developed in QOR OS since 29 October 2026 (ADR-126).** `products/qq/` here is frozen at `db98ac0`, the copy the
+Windows launcher ships. P3.4 can still be ticked here, by publishing from QQ Studio started by the launcher. P3.3's
+proof, P3.5 and QQ's side of P3.6 are on QOR OS's roadmap, and stay unticked here.
+
 1. [x] **QQ Studio exists.** A Qt 6 application, built with CMake on Windows: a 3D viewport (Qt Quick 3D, physically
    based materials, image-based lighting, a directional light with shadows, tonemapping and bloom); a glTF 2.0 model
    loaded at runtime; a scene tree, an inspector and transform gizmos; scenes saved as canonical QML in a Qontrol
@@ -1374,6 +1382,8 @@ preview until the Qt Player plays in the launcher and in ARQADE (ADR-083 decisio
    MCP Python SDK, and the real endpoint reached over TLS. **Not yet: the proof**, a scene built from a written
    description with no human edit, recorded with its frames, made by whoever runs it with their own provider key and
    billed to that key: under ADR-086 the project pays for no generation, and the owner is not asked to fund it.
+
+   **Moved to QOR OS's roadmap (ADR-126, 29 October 2026):** the proof is made there, where QQ is developed.
 4. [ ] **Publishing a game.** A Publish action commits the scene through Qontrol and mints that commit as a Cartridge
    (a DRC-369 asset), signed by the launcher's vault behind the host dialog, asked over the local channel the
    launcher opens for the Studio it started; the Studio never holds a key. Depends on P3.2, M4.1 and L1.4's native
@@ -1394,10 +1404,14 @@ preview until the Qt Player plays in the launcher and in ARQADE (ADR-083 decisio
    (ADR-083 decision 6). Depends on P3.4 and P7 (ARQADE running). Under ADR-087 strangers' games play only here, in a
    sandboxed frame, from a site of their own (a separate `*.vercel.app` project, a registered domain before launch),
    asking ARQADE for anything through a narrow message interface.
+
+   **Moved to QOR OS's roadmap (ADR-126, 29 October 2026):** the WebAssembly QQ Player is made there; the website's part is made here when it is.
 6. [ ] **Collectibles, generation and the Mesh.** DRC-369 items as in-game collectibles; generative assets (models,
    textures, sound) from a description through the agent; games delivered over the Mesh; in-game purchases settled in
    CGT; access gating on paid collectibles. Depends on M4.2, M5.2, M5.3, M6.4 and M8. Generation is paid by the creator
    who uses it, on their own provider account (ADR-086); nothing is generated on an account of the project's.
+
+   **QQ's side moved to QOR OS's roadmap (ADR-126, 29 October 2026);** the chain's work it depends on stays in M4 to M8.
 
 **Real games, in 3D and in 2D (ADR-105, 19 October 2026).** One runtime: 2D is the same world through an orthographic
 camera. The agent's tools learn each new kind in the same change. Each item is proven by a sample game in
@@ -1865,6 +1879,12 @@ DRC-369 asset, CGT the only currency, and a developer SDK. Its starting point wa
 since 5 October 2026 it is hosted on Vercel from `products/arqade/` (ADR-074). [`blueprints/arqade.md`](blueprints/arqade.md); its decisions are ADR-069, accepted on 4 October 2026. No item
 here sets an economic value; payouts are U-16.
 
+**ARQADE's Qt app and games are developed in QOR OS since 29 October 2026 (ADR-126).** `products/arqade/qt/` and
+`products/arqade/games/` here are frozen at `db98ac0`, the copies the launcher ships, except the five rule modules
+(each game's `logic/rules.mjs`, the arenas' `logic/arena.mjs`). Those are kept identical in both repositories and
+change here, with the fixtures they change, in step with QOR OS. The website, its server, its tests and P7.22 stay
+here.
+
 1. [x] Baseline: the arcade's source in `products/arqade/` with its tests in CI, an integration inventory of every
    control, and the false claims removed (CRGT, DMRG, USD prices for Energy, the deleted chain's
    `chain_getBlockNumber`). Depends on ADR-069 accepted (ADR-050 decision 10).
@@ -2097,9 +2117,15 @@ The other product tracks (§7) are planned, not active scope. Qontrol's Projects
 helper, QFX layer one and Market's first slice are part of `tools/qor-launcher/`. A product gets a directory under `products/`
 only by ADR-050's decision 10, once its defining record is accepted.
 
-QQ, QOR Media and ARQADE's Qt app are also carried, as `git subtree`s, in **QOR OS**, the owner's operating system in
-the private `QOR-MATRIX/qor-os`, which builds `tools/qor-launcher/core` at a pinned commit (ADR-120, 26 October 2026).
-This repository stays their upstream and the core's only source, and nothing in this roadmap moves there.
+**QQ, QOR Media and ARQADE's Qt app and games are developed in QOR OS**, the owner's operating system in the private
+`QOR-MATRIX/qor-os`, since 29 October 2026 (ADR-126). Their copies here are frozen at `db98ac0`, which the Windows
+launcher keeps shipping: `products/qq/`, `tools/qor-media/`, `products/arqade/qt/` and `products/arqade/games/`.
+
+- **Shared with QOR OS:** ARQADE's five rule modules, which change in both repositories at once, and its fixtures.
+- **Moved to QOR OS's roadmap:** P3.3's proof, P3.5, QQ's side of P3.6, L9.7 and L9.8, each marked below. They stay
+  unticked here.
+- **Still here:** QOR OS builds `tools/qor-launcher/core` at a pinned commit (ADR-120), and this repository stays the
+  core's only source.
 
 `framework/`, the custom Rust devnet `chain/` replaced, was retired at M3.5 on 20 September 2026 and
 deleted. It is not active, not a reference, and not to be restored; CI fails if the directory returns.

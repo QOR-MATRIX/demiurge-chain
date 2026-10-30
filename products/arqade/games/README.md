@@ -1,5 +1,11 @@
 # ARQADE's games, rebuilt in QQ
 
+> **Frozen here since 29 October 2026.** ARQADE's games are developed in QOR OS, the owner's operating system, by
+> [ADR-126](../../../docs/decisions/ADR-126-the-device-side-products-are-developed-in-qor-os.md). This copy is the one
+> the QOR Launcher for Windows ships, and it changes only by a fix the owner releases, except the rules (each game's
+> `logic/rules.mjs`, the arenas' `logic/arena.mjs`). Those stay the same in both repositories, and change here, with the
+> fixtures they change, in step with QOR OS.
+
 ARQADE's four solo games and its two arenas are rebuilt as QQ games (ADR-102 decision 2; DIRECTION P7.20 and P7.24).
 They are played in ARQADE's Qt app ([`../qt/`](../qt/README.md)) by QQ's runtime ([`products/qq/`](../../qq/README.md)).
 Each game here is a QQ package, laid out as QQ Studio keeps a project, so it also opens in QQ Studio and plays in the QQ
