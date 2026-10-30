@@ -44,10 +44,17 @@ Active: `chain/`, `services/qor-auth/`, `services/social/` (ADR-091, since 15 Oc
 `sdk/`, `packages/` and `client/` is frozen (D-011, amended by ADR-011): do not extend it or treat it as
 working unless the owner brings it back into scope. `aeons/`, `archons/` and `syzygies/` are dead.
 
-QQ, QOR Media and ARQADE's Qt app are also carried, as `git subtree`s, in **QOR OS**, the owner's operating system in
-the private repository `QOR-MATRIX/qor-os`, and QOR OS builds `tools/qor-launcher/core` at a pinned commit (ADR-120,
-since 26 October 2026). This repository stays their upstream and the core's only source: work on them here follows
-these rules unchanged, and a fix that is not specific to QOR OS lands here first.
+**QQ, QOR Media and ARQADE's Qt app and games are developed in QOR OS**, the owner's operating system in the private
+repository `QOR-MATRIX/qor-os`, since 29 October 2026 (ADR-126, superseding ADR-120 decision 2). Their copies here,
+`products/qq/`, `tools/qor-media/`, `products/arqade/qt/` and `products/arqade/games/`, are frozen. The Windows launcher
+keeps shipping them, and only a fix the owner releases changes them. Two things stay shared with QOR OS:
+
+- ARQADE's five rule modules (each game's `logic/rules.mjs`, the arenas' `logic/arena.mjs`) are kept identical in both
+  repositories, and change in both at once with the fixtures they change.
+- `products/arqade/tests/fixtures/` stays this repository's.
+
+QOR OS builds `tools/qor-launcher/core` at a pinned commit (ADR-120), and this repository stays the core's only source.
+The rest of `products/arqade/` (the website, its server's code, tests and SDK) stays active here.
 
 `chain/` is the Substrate L1 (ADR-013, located and named by ADR-032), started on 17 September 2026 once
 the owner confirmed ADR-018 to ADR-032. **It is the only chain in this repository.**

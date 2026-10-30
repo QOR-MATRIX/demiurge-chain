@@ -1,5 +1,9 @@
 # QOR Media
 
+> **Frozen here since 29 October 2026.** QOR Media is developed in QOR OS, the owner's operating system, by
+> [ADR-126](../../docs/decisions/ADR-126-the-device-side-products-are-developed-in-qor-os.md). This copy is the one the
+> QOR Launcher for Windows ships, and it changes only by a fix the owner releases.
+
 The Library's player, viewer, editor and reader ([ADR-094](../../docs/decisions/ADR-094-the-library-and-qor-media.md),
 [`docs/blueprints/library.md`](../../docs/blueprints/library.md), L9.3 to L9.5). A Qt 6 program in C++20 and QML that the
 QOR Launcher starts when a person opens a file in the Library. Its window becomes a child of the launcher's and sits

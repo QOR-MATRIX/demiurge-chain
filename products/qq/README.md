@@ -1,5 +1,9 @@
 # QQ, the QOR Engine
 
+> **Frozen here since 29 October 2026.** QQ is developed in QOR OS, the owner's operating system, by
+> [ADR-126](../../docs/decisions/ADR-126-the-device-side-products-are-developed-in-qor-os.md). This copy is the one the
+> QOR Launcher for Windows ships, and it changes only by a fix the owner releases.
+
 An engine for virtual worlds and experiences, built on **Qt 6** under the owner's commercial licence
 ([ADR-083](../../docs/decisions/ADR-083-qq-on-qt.md)). The blueprint is [`docs/blueprints/qq.md`](../../docs/blueprints/qq.md);
 the roadmap items are DIRECTION P3.1 to P3.16.

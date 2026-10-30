@@ -3,7 +3,9 @@
 **Status:** **Accepted**, 26 October 2026, by the owner, who asked for QOR OS to be formed from QTOS and this
 repository's device-side work and for the plan recorded here to be carried out ("Together this QTOS and my other
 project, will form 'QOR OS'"; then, of the plan, "Go with your best and most recommended decisions"). It decides **no
-economic value**, and changes nothing in the network or in this repository's scope.
+economic value**, and changes nothing in the network or in this repository's scope. **Decision 2 is superseded by
+[ADR-126](ADR-126-the-device-side-products-are-developed-in-qor-os.md)** (29 October 2026) for QQ, QOR Media and
+ARQADE's Qt app and games, which are developed in QOR OS from then, their copies here frozen.
 
 **Relates to:** [ADR-069](ADR-069-arqade-the-gaming-platform.md) (ARQADE in scope),
 [ADR-083](ADR-083-qq-on-qt.md) (QQ on Qt 6), [ADR-094](ADR-094-the-library-and-qor-media.md) (the Library and QOR
