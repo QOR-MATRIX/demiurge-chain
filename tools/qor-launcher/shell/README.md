@@ -2,7 +2,9 @@
 
 [ADR-104](../../../docs/decisions/ADR-104-the-launcher-on-android-on-qt.md) decided it, and DIRECTION's **L13** tracks it.
 
-The Android launcher is a Qt 6 application, this folder. It sits over the launcher's Rust core,
+The Android launcher is a Qt 6 application, this folder: **QOR Mobile** on the phone, the owner's name for it
+([ADR-127](../../../docs/decisions/ADR-127-the-homepage-offers-qor-mobile-and-restates-qor-os.md)), with
+the permanent ID `app.qorsync.dev`. It sits over the launcher's Rust core,
 [`../core`](../core/), which holds the keys and talks to the chain on every platform. The Windows launcher uses the same
 core through Tauri.
 
@@ -54,6 +56,7 @@ for Android, MSVC 2022, Ninja and Rust.
 pwsh tools/qor-launcher/shell/build.ps1              # desktop build, then its Qt Test suite (tst_core)
 pwsh tools/qor-launcher/shell/build.ps1 -Run         # desktop build, then open it
 pwsh tools/qor-launcher/shell/build.ps1 -Android     # the phone's APK (arm64-v8a), debug-signed for testing
+pwsh tools/qor-launcher/shell/build.ps1 -Android -TestKey $HOME\.qor-launcher\android\qor-test.p12   # a release for testers
 cargo test --manifest-path tools/qor-launcher/core/Cargo.toml --all-features   # the core's own tests, every module (CI runs them)
 ```
 
@@ -61,8 +64,12 @@ cargo test --manifest-path tools/qor-launcher/core/Cargo.toml --all-features   #
   the desktop, `aarch64-linux-android` with the NDK's compilers for the phone.
 - **The Android build runs inside MSVC's environment**, because Rust's build scripts and macros are built for the PC
   first.
-- **The APK is signed with Android's debug key**, for testing only. A signed release is L13.8, with a test key kept off
-  the repository.
+- **The APK is signed with Android's debug key** for testing, and **with the project's test key** for a release to
+  testers (L13.8): `-TestKey` names a PKCS12 file kept off the repository, whose password sits beside it in
+  `<file>.dpapi`, sealed by Windows DPAPI to the account that made it. The APK is then `qor-mobile-<version>-<abi>.apk`.
+  Every release is signed with the same key, so a newer one installs over the last. The test key's certificate is
+  `CN=QOR-MATRIX test key, O=QOR-MATRIX`, SHA-256 `bf3b9fea964990d0f6ea34f0f178555c5138542f3295c70a09fd454add7e8b7d`.
+  Losing the key means testers uninstall before the next release; the Google Play key, later, is the owner's.
 - **The shell's Qt Test suites run on the owner's PC.** CI has no licensed Qt; it reads the shell's QML with
   `docs/design/check-qml.mjs`.
 

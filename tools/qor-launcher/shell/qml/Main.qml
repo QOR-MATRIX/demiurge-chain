@@ -12,7 +12,7 @@ ApplicationWindow {
     height: 892
     visible: true
     color: Theme.void_
-    title: "QOR Launcher"
+    title: "QOR Mobile"
 
     readonly property var units: Core.call("token_info").ok ?? ({})
     property var reading: ({})
@@ -68,7 +68,7 @@ ApplicationWindow {
             // The wordmark: Cinzel in gilt, the one place the tool register sets it (ADR-108 decision 2).
             Text {
                 objectName: "wordmark"
-                text: "QOR Launcher"
+                text: "QOR Mobile"
                 font.family: Theme.display
                 font.pixelSize: Theme.sizeFigure
                 font.weight: Font.DemiBold

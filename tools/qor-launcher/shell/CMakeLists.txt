@@ -75,7 +75,8 @@ if(ANDROID)
     set_target_properties(qor-launcher PROPERTIES
         # The app's permanent ID, the owner's choice (ADR-104 decision 1).
         QT_ANDROID_PACKAGE_NAME "app.qorsync.dev"
-        QT_ANDROID_APP_NAME "QOR Launcher"
+        # What the phone calls it: QOR Mobile, the owner's name for the launcher on Android (ADR-127).
+        QT_ANDROID_APP_NAME "QOR Mobile"
         QT_ANDROID_VERSION_NAME "${PROJECT_VERSION}"
         QT_ANDROID_VERSION_CODE 1
         QT_ANDROID_MIN_SDK_VERSION 28
