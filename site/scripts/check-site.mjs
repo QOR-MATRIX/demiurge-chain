@@ -1,5 +1,5 @@
 // Holds qorsync.dev to what search engines and AI crawlers read (ADR-100), to what it may say about QOR OS (ADR-123,
-// restated by ADR-127), to its downloads (ADR-127), and to the project's language rule (ADR-008).
+// restated by ADR-127 and ADR-128), to its downloads (ADR-127), and to the project's language rule (ADR-008).
 //
 //   node site/scripts/check-site.mjs
 //

@@ -5241,6 +5241,19 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
      - **Since then in QOR OS** (`8df6dbf`, CI green): ARQADE and QOR Media answer the controller. The homepage still
        lists that among Phase 1's work left; it changes only through a record that restates ADR-127 decision 3.
      - **Records.** DIRECTION's L13.8 ticked; SYSTEMS's Homepage and Android rows; OWNER.
+170. **30 October 2026: #115 merged by the owner, at `305896c`; ADR-128: the homepage restates QOR OS after its apps
+     answer the controller and wear Lumen.** On `session/qor-os-phase-1`, branched from `305896c`, for the owner to
+     merge.
+     - **The owner's direction.** "Proceed." to the assistant's recommendation to restate the page together with QOR
+       OS's next Phase 1 step, once it was done.
+     - **What QOR OS did** (its `main` at `7f7f544`): ARQADE and QOR Media answer the controller (`8df6dbf`), and QQ,
+       ARQADE and QOR Media wear Lumen's colours in QOR OS, the person's accent with them (`7f7f544`, its QOR-0016).
+       Outside QOR OS they keep Demiurge's one look, so this repository's launcher and its frozen copies are unchanged.
+     - **ADR-128** supersedes ADR-127 decision 3, restated whole: Phase 1's checklist now shows six done and one left,
+       Lumen is worn by every app, and a game in front, or ARQADE, has the pad to itself.
+     - **The page:** `site/index.html` (the Lumen and Controllers cards, the controller interface, Phase 1's checklist)
+       and `llms.txt`, which now points to ADR-128. `check-site.mjs` passes its 33 checks.
+     - **Records.** ADR-128, indexed; SYSTEMS's QOR OS and Homepage rows; the site's README; OWNER.
 
 ## 5. Traps, so nobody re-learns them
 

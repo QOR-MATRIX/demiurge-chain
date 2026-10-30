@@ -7,15 +7,15 @@ The network's only current source is https://github.com/QOR-MATRIX/demiurge-chai
 ## QOR OS
 
 - [Homepage](https://qorsync.dev/): what QOR OS is, what its shell does, where it stands, the downloads, what is live today, and the network beneath it.
-- [What the homepage may say about QOR OS](https://github.com/QOR-MATRIX/demiurge-chain/blob/main/docs/decisions/ADR-127-the-homepage-offers-qor-mobile-and-restates-qor-os.md): the record the page is held to.
+- [What the homepage may say about QOR OS](https://github.com/QOR-MATRIX/demiurge-chain/blob/main/docs/decisions/ADR-128-the-homepage-restates-qor-os-phase-1.md): the record the page is held to.
 - Prism: the shell, which is also the compositor, so windows and games are live parts of one scene; it draws nothing while nothing changes. QQ, ARQADE and QOR Media run inside it.
-- Lumen: the design language every app shares.
+- Lumen: the design language every app wears, QQ, ARQADE and QOR Media included, in the accent the person chooses.
 - QQ, the QOR Engine: QQ Studio builds lit 3D and pixel-perfect 2D games; the QQ Player plays them.
 - ARQADE, the arcade, and QOR Media, a player, viewer and editor for video, music, pictures and documents.
-- Its own controller service: the common console pads over USB and Bluetooth, in one layout, driving the whole shell and QQ's games; a game in front has the pad to itself.
+- Its own controller service: the common console pads over USB and Bluetooth, in one layout, driving the whole shell and its apps, and QQ's games; a game in front, or ARQADE, has the pad to itself.
 - The Store, of signed packages (games, apps, themes and widgets); the QOR core, the network's code for keys, profiles, amounts and the chain, built in from this repository; and a vault that keeps keys outside the shell and every app (designed, not yet built).
 - Inside Prism: Beam, one search with a calculator; the Rail; the Shelf; Control Center; windows that open at their own size; three Spaces and Overview; the controller interface with an on-screen keyboard; themes and widgets; several displays; three-finger gestures; notifications; and its own apps (Files, Music, Notes, Terminal, Monitor, Settings, the Store).
-- Where it stands: Phase 0 is done. In Phase 1, now, QQ, ARQADE and QOR Media are developed inside QOR OS, Prism starts and lays out all three, every window opens at its own size, and QQ plays with QOR OS's controllers; left are controller focus in ARQADE and QOR Media, Lumen's look on every app, and a Home and a Library made for the controller. Its goal is Orb Run, a QQ game, playing inside Prism on Linux with a controller. Then: one sign-in, chat and publishing from QQ Studio to the devnet; booting on its own and playing the PC games people already own; outside developers shipping QQ games with public tools.
+- Where it stands: Phase 0 is done. In Phase 1, now, QQ, ARQADE and QOR Media are developed inside QOR OS, Prism starts and lays out all three, every window opens at its own size, QQ plays with QOR OS's controllers, ARQADE and QOR Media are moved through with a controller's focus, and every app wears Lumen's look; left is a Home and a Library made for the controller. Its goal is Orb Run, a QQ game, playing inside Prism on Linux with a controller. Then: one sign-in, chat and publishing from QQ Studio to the devnet; booting on its own and playing the PC games people already own; outside developers shipping QQ games with public tools.
 - QOR OS 1.0 moves no money: free items and test CGT on the devnet only.
 
 ## Downloads
