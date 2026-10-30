@@ -21,9 +21,10 @@ Railway address; **ARQADE** — *the gaming website*.
    downloads is live, and QOR Mobile 0.1.0 is published as a **pre-release** — *a test
    version, marked so on GitHub*.
 2. **The homepage restated** (**ADR-128** — *a numbered decision record*): QOR OS's apps
-   now answer a controller and wear its own look, Lumen, so the page's Phase 1 list shows
-   six done and one left. It is on the **branch** — *changes not yet in `main`* —
-   `session/qor-os-phase-1`, in its **pull request** — *a request to merge it*.
+   now answer a controller and wear its own look, Lumen, and Home and the Library are
+   built, so the page's Phase 1 list shows all seven done. It is on the **branch** —
+   *changes not yet in `main`* — `session/qor-os-phase-1`, in its **pull request** — *a
+   request to merge it*.
 
 ## What only you can do
 

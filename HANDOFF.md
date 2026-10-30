@@ -5246,12 +5246,14 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
      merge.
      - **The owner's direction.** "Proceed." to the assistant's recommendation to restate the page together with QOR
        OS's next Phase 1 step, once it was done.
-     - **What QOR OS did** (its `main` at `7f7f544`): ARQADE and QOR Media answer the controller (`8df6dbf`), and QQ,
-       ARQADE and QOR Media wear Lumen's colours in QOR OS, the person's accent with them (`7f7f544`, its QOR-0016).
+     - **What QOR OS did** (its `main` at `f7b8c31`): ARQADE and QOR Media answer the controller (`8df6dbf`); QQ,
+       ARQADE and QOR Media wear Lumen's colours in QOR OS, the person's accent with them (`7f7f544`, its QOR-0016);
+       and Home and the Library are built (`f7b8c31`).
        Outside QOR OS they keep Demiurge's one look, so this repository's launcher and its frozen copies are unchanged.
-     - **ADR-128** supersedes ADR-127 decision 3, restated whole: Phase 1's checklist now shows six done and one left,
-       Lumen is worn by every app, and a game in front, or ARQADE, has the pad to itself.
-     - **The page:** `site/index.html` (the Lumen and Controllers cards, the controller interface, Phase 1's checklist)
+     - **ADR-128** supersedes ADR-127 decision 3, restated whole: Phase 1's checklist now shows all seven done and its
+       goal ahead, Lumen is worn by every app, Home and the Library are inside Prism, and a game in front, or ARQADE,
+       has the pad to itself.
+     - **The page:** `site/index.html` (the Lumen and Controllers cards, "Home and the controller", Phase 1's checklist)
        and `llms.txt`, which now points to ADR-128. `check-site.mjs` passes its 33 checks.
      - **Records.** ADR-128, indexed; SYSTEMS's QOR OS and Homepage rows; the site's README; OWNER.
 
