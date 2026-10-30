@@ -53,6 +53,6 @@ Every claim must still be one a current document makes (ADR-100 decision 4).
 
 ## When QOR OS's facts change
 
-QOR OS's code is in a private repository, so the page may say about it only what ADR-127 decision 3 lists. A change to
+QOR OS's code is in a private repository, so the page may say about it only what ADR-128 decision 1 lists. A change to
 those facts (a new stage reached, a download) is a later record that restates them; then the page, `llms.txt`, the
 structured data and `scripts/og.html` follow it.
