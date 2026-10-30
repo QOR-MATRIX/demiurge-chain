@@ -964,7 +964,7 @@ the Rust core, app ID `app.qorsync.dev`, Android 9 and later, delivered as a sig
 5. [ ] ARQADE: its Qt module in the same process, signed in through the core. Depends on P7.19.
 6. [ ] The Library: the phone's own photos, music and videos through MediaStore, each opened in the phone's app.
 7. [ ] The Mesh: off until turned on, Wi-Fi only unless the person chooses otherwise.
-8. [ ] A signed APK on a GitHub Release, `android-v<version>`, with a download page. The test key is kept off the
+8. [x] A signed APK on a GitHub Release, `android-v<version>`, with a download page. The test key is kept off the
    repository; the Google Play key is the owner's.
 
    **Begun ahead of its turn, 30 October 2026, at the owner's word (ADR-127):** the owner asked for "the APK download
@@ -974,8 +974,9 @@ the Rust core, app ID `app.qorsync.dev`, Android 9 and later, delivered as a sig
      certificate).
    - The homepage's Download section offers it.
 
-   **Left:** publishing it as `android-v0.1.0`, which the owner does (the assistant's attempt was refused for want of a
-   permission), and then this item is ticked. Each later step of L13 ships through it.
+   **Published 30 October 2026** (item 169): the owner merged ADR-127's branch (#114) and asked for everything to be
+   published, and the assistant published `android-v0.1.0`, a pre-release on `0615d23`, whose one asset GitHub records
+   with the size and SHA-256 the homepage gives. Each later step of L13 ships through it.
 
 ### The product tracks
 

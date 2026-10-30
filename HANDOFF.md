@@ -5224,6 +5224,23 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
        devnet is at `specVersion` 11 with two peers.
      - **Records.** ADR-127, indexed; DIRECTION's L13.1 and L13.8; the shell's and the site's READMEs; SYSTEMS's
        Homepage, QOR OS and Android rows; OWNER.
+169. **30 October 2026: #114 merged by the owner, at `501e43c`; QOR Mobile 0.1.0 published; L13.8 done.** On
+     `session/after-114`, branched from `501e43c`.
+     - **The merge.** The owner merged #114 at 15:29 UTC, so ADR-127 is on `main`, and Vercel's `demiurge-site`
+       deployed its page (its status on the merge is green). "Pleroma CI" ran on the merge's push (run 41081141150).
+     - **The release.** The owner then asked to "commit and push and publish all", and the assistant published
+       `android-v0.1.0` at 15:31 UTC: a pre-release on `0615d23`, "QOR Mobile 0.1.0 for Android (preview)", with the
+       notes item 168 prepared. Its one asset, `qor-mobile-0.1.0-arm64-v8a.apk`, is 59,514,583 bytes with SHA-256
+       `072f764e…d10bc39b` as GitHub records them, the size and hash the homepage gives. For the two minutes between the
+       merge and the release, the page's link to it answered 404. `gh release create --target` takes a full commit SHA;
+       a short one is refused with 422.
+     - **Checked from outside, the same day.** qorsync.dev serves ADR-127's page with QOR Mobile and its hash; both
+       download links answer 200; IndexNow answered 200 for the homepage and `llms.txt`. QOR ID's `/ready` and Social's
+       `/ready` at its Railway domain answer 200 (`social.qorsync.dev` still answers 525, as item 86 found); the devnet
+       is at `specVersion` 11 with two peers.
+     - **Since then in QOR OS** (`8df6dbf`, CI green): ARQADE and QOR Media answer the controller. The homepage still
+       lists that among Phase 1's work left; it changes only through a record that restates ADR-127 decision 3.
+     - **Records.** DIRECTION's L13.8 ticked; SYSTEMS's Homepage and Android rows; OWNER.
 
 ## 5. Traps, so nobody re-learns them
 
