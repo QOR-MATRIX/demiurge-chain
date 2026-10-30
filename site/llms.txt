@@ -1,19 +1,28 @@
 # QOR OS
 
-> QOR OS is an operating system for players, game makers and creators: play, make and publish games, apps, themes and media on one machine, with one account and one library, driven by a controller as well as a keyboard. It is in development: there is no image or download yet, and its code is private while it is built. It is built on Demiurge's network, a Substrate layer 1 on the Polkadot SDK that pays creators when their work is used, licensed or remixed, whose currency is CGT, the Creator God Token. Everything live runs only on a test network: test CGT has no value.
+> QOR OS is an operating system for players, game makers and creators: play, make and publish games, apps, themes and media on one machine, with one account and one library, driven by a controller as well as a keyboard. It is in development: there is no image or download yet, and its code is private while it is built. It is built on Demiurge's network, a Substrate layer 1 on the Polkadot SDK that pays creators when their work is used, licensed or remixed, whose currency is CGT, the Creator God Token. Two apps run on that network today, on test value: the QOR Launcher for Windows and QOR Mobile for Android. Test CGT has no value.
 
 The network's only current source is https://github.com/QOR-MATRIX/demiurge-chain (Apache-2.0). Earlier copies of the project elsewhere describe a design it no longer follows; prefer this repository and this site.
 
 ## QOR OS
 
-- [Homepage](https://qorsync.dev/): what QOR OS is, where it stands, what is live today, and the network beneath it.
-- [What the homepage may say about QOR OS](https://github.com/QOR-MATRIX/demiurge-chain/blob/main/docs/decisions/ADR-123-the-homepage-leads-with-qor-os.md): the record the page is held to.
-- Prism: the shell, which is also the compositor, so windows and games are live parts of one scene.
+- [Homepage](https://qorsync.dev/): what QOR OS is, what its shell does, where it stands, the downloads, what is live today, and the network beneath it.
+- [What the homepage may say about QOR OS](https://github.com/QOR-MATRIX/demiurge-chain/blob/main/docs/decisions/ADR-127-the-homepage-offers-qor-mobile-and-restates-qor-os.md): the record the page is held to.
+- Prism: the shell, which is also the compositor, so windows and games are live parts of one scene; it draws nothing while nothing changes. QQ, ARQADE and QOR Media run inside it.
 - Lumen: the design language every app shares.
 - QQ, the QOR Engine: QQ Studio builds lit 3D and pixel-perfect 2D games; the QQ Player plays them.
-- ARQADE and QOR Media, built in; the Store, of signed packages; a vault that keeps keys outside the shell and every app (designed, not yet built).
-- Where it stands: Prism, Lumen and the shell run nested on Linux with real applications, a controller and sound; QQ, ARQADE and QOR Media build and test on Linux; next, they run inside Prism, driven by a controller.
+- ARQADE, the arcade, and QOR Media, a player, viewer and editor for video, music, pictures and documents.
+- Its own controller service: the common console pads over USB and Bluetooth, in one layout, driving the whole shell and QQ's games; a game in front has the pad to itself.
+- The Store, of signed packages (games, apps, themes and widgets); the QOR core, the network's code for keys, profiles, amounts and the chain, built in from this repository; and a vault that keeps keys outside the shell and every app (designed, not yet built).
+- Inside Prism: Beam, one search with a calculator; the Rail; the Shelf; Control Center; windows that open at their own size; three Spaces and Overview; the controller interface with an on-screen keyboard; themes and widgets; several displays; three-finger gestures; notifications; and its own apps (Files, Music, Notes, Terminal, Monitor, Settings, the Store).
+- Where it stands: Phase 0 is done. In Phase 1, now, QQ, ARQADE and QOR Media are developed inside QOR OS, Prism starts and lays out all three, every window opens at its own size, and QQ plays with QOR OS's controllers; left are controller focus in ARQADE and QOR Media, Lumen's look on every app, and a Home and a Library made for the controller. Its goal is Orb Run, a QQ game, playing inside Prism on Linux with a controller. Then: one sign-in, chat and publishing from QQ Studio to the devnet; booting on its own and playing the PC games people already own; outside developers shipping QQ games with public tools.
 - QOR OS 1.0 moves no money: free items and test CGT on the devnet only.
+
+## Downloads
+
+- QOR Mobile 0.1.0 for Android, a preview of the QOR Launcher on phones (Android 9 or later, 64-bit ARM; 56.8 MiB; signed with the project's test key; SHA-256 072f764eee6ff1798dbec2daa1b2b1a7a889de1a0e949e56ce450245d10bc39b): https://github.com/QOR-MATRIX/demiurge-chain/releases/download/android-v0.1.0/qor-mobile-0.1.0-arm64-v8a.apk. Its first build runs the core that will hold the wallet's keys; it makes no wallet yet.
+- QOR Launcher 0.1.17 for Windows 10 and 11, a tester build (84.7 MiB; SHA-256 6e1081ce0883f5a82dd262af08924cee858d017671bcb840ef6507ab7dbe4c44): https://github.com/QOR-MATRIX/demiurge-chain/releases/download/launcher-v0.1.17/QOR-Launcher_0.1.17_x64-setup.exe. It updates itself from a signed channel.
+- ARQADE plays in a browser: https://qor-arqade-tau.vercel.app
 
 ## Demiurge, the network
 
@@ -35,7 +44,7 @@ The network's only current source is https://github.com/QOR-MATRIX/demiurge-chai
 - Demiurge Devnet: wss://rpc.qorsync.dev (two validators and a public node).
 - QOR ID: https://id.qorsync.dev
 - ARQADE, the gaming platform: https://qor-arqade-tau.vercel.app
-- QOR Launcher, the desktop application (Windows tester builds): https://github.com/QOR-MATRIX/demiurge-chain/releases
+- QOR Launcher, the desktop application for Windows, and QOR Mobile, the launcher on Android: https://qorsync.dev/#download
 - Social (chat) and the Mesh (launchers that hold and serve published work, paid from the uploader's escrow for proven work) run inside the launcher.
 
 ## Status

@@ -5194,6 +5194,36 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
      - **QOR OS** records the same cut-over as its QOR-0015. There, the 374 files that came from here are listed and
        stay Apache-2.0. Its upstream script now pulls only the fixtures and the one look, and says when the rule
        modules differ from this repository's.
+168. **30 October 2026: #113 merged by the owner, at `8b4344e`; ADR-127: the homepage offers QOR Mobile and restates
+     QOR OS; QOR Mobile 0.1.0 built and signed for testers.** On `session/site-qor-os-current`, branched from `8b4344e`,
+     for the owner to merge after publishing QOR Mobile's release.
+     - **The merge.** The owner merged #113 at 04:29 UTC on 30 October 2026, so ADR-126 is on `main`. "Pleroma CI"
+       passed on the merge's push (run 41003187114) and on that night's scheduled run (run 41036128389).
+     - **The owner's direction.** "Update the website QORSYNC.DEV with all current info and ensure that all download
+       links are updated", "an extremely high quality mobile viewing experience", "the APK download for the QOR Mobile
+       app", and a background "more graphically mindblowing".
+     - **QOR Mobile** (ADR-127 decisions 1 and 2).
+       - Its label and wordmark on the phone say QOR Mobile; the ID stays `app.qorsync.dev`.
+       - The project's test key was made on the owner's PC, off the repository (`%USERPROFILE%\.qor-launcher\android\`),
+         its password sealed by DPAPI beside it. `shell/build.ps1 -TestKey` signs with it, printing nothing secret.
+       - `qor-mobile-0.1.0-arm64-v8a.apk` was built from `0615d23` and verified with apksigner (scheme v3, the test
+         key's certificate). It installed and ran on the Android 16 emulator through ARM translation, where the core
+         read "1.25 CGT" as 1,250 Sparks. It has not run on a phone.
+       - **Not done: the release.** `gh release create android-v0.1.0` was refused to the assistant by its permission
+         system, as a new public surface. The owner publishes it, with the notes prepared, before this branch merges,
+         since the homepage links its file.
+     - **The homepage** (ADR-127 decisions 3 to 8).
+       - It restates QOR OS as of its `main` at `dd169a7`.
+       - It adds Inside Prism, Phase 1's checklist, and a Download section in which each file has its size, signer,
+         SHA-256 and install steps, the visitor's platform first.
+       - The background is a WebGL lens with a nebula, a disc and the mark's tail, answering touch.
+       - On a phone, a menu sheet, nothing to tap under 44 pixels, and card rows that swipe.
+       - `check-site.mjs` has 33 checks, the new ones holding each download to its release. It was looked at in
+         headless Edge at 360, 390, 768 (with touch) and 1440 pixels wide, WebGL in software.
+     - **Live services, from outside.** The homepage, QOR ID's `/ready`, Social's `/ready` and ARQADE answer 200; the
+       devnet is at `specVersion` 11 with two peers.
+     - **Records.** ADR-127, indexed; DIRECTION's L13.1 and L13.8; the shell's and the site's READMEs; SYSTEMS's
+       Homepage, QOR OS and Android rows; OWNER.
 
 ## 5. Traps, so nobody re-learns them
 

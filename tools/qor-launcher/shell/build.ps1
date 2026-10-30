@@ -8,6 +8,11 @@
         pwsh tools/qor-launcher/shell/build.ps1 -Run         # desktop build, then open it
         pwsh tools/qor-launcher/shell/build.ps1 -Android     # the phone's APK, arm64-v8a, debug-signed for testing
         pwsh tools/qor-launcher/shell/build.ps1 -Android -Abi x86_64   # for the emulator on this PC
+        pwsh tools/qor-launcher/shell/build.ps1 -Android -TestKey ~/.qor-launcher/android/qor-test.p12   # for testers
+
+    -TestKey signs a release for testers with the project's test key (DIRECTION L13.8), kept off the repository: a
+    PKCS12 file whose password sits beside it in `<file>.dpapi`, sealed by Windows DPAPI to the account that made it, so
+    only that account on that PC can sign. Nothing prints the password. The APK is qor-mobile-<version>-<abi>.apk.
 
     It needs the owner's Qt 6.12 (with Qt for Android for -Android), MSVC 2022, Ninja, Rust, and, for -Android, what
     android-toolchain.ps1 installs. Even the Android build runs inside MSVC's environment: Rust's build scripts and
@@ -21,6 +26,7 @@ param(
     [switch] $Android,
     [ValidateSet('arm64-v8a', 'x86_64')] [string] $Abi = 'arm64-v8a',
     [switch] $Run,
+    [string] $TestKey,
     [string] $Sdk = $(if ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } else { Join-Path $env:LOCALAPPDATA 'Android\Sdk' }),
     [string] $Ndk = '27.2.12479018',
     [string] $Jdk = $(if ($env:JAVA_HOME) { $env:JAVA_HOME } else { Join-Path $env:LOCALAPPDATA 'Programs\jdk-21' })
@@ -73,13 +79,29 @@ if ($Android) {
         & (Join-Path $Jdk 'bin\keytool.exe') -genkeypair -keystore $debugKey -storepass android -alias androiddebugkey `
             -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Android Debug,O=Android,C=US' | Out-Null
     }
-    $signed = Join-Path $Build "qor-launcher-$Abi-debug.apk"
-    & (Join-Path $buildTools 'apksigner.bat') sign --ks $debugKey --ks-pass pass:android --key-pass pass:android --out $signed $apk
+    $apksigner = Join-Path $buildTools 'apksigner.bat'
+    if ($TestKey) {
+        if (-not (Test-Path "$TestKey.dpapi")) { throw "No sealed password beside the test key: $TestKey.dpapi" }
+        $version = (Select-String -Path (Join-Path $source 'CMakeLists.txt') -Pattern 'project\(\S+ VERSION (\S+)').Matches[0].Groups[1].Value
+        $signed = Join-Path $Build "qor-mobile-$version-$Abi.apk"
+        $sealed = Get-Content "$TestKey.dpapi" -Raw | ConvertTo-SecureString
+        $env:QOR_ANDROID_KS_PASS = [System.Net.NetworkCredential]::new('', $sealed).Password
+        try {
+            & $apksigner sign --ks $TestKey --ks-key-alias qor-test --ks-pass env:QOR_ANDROID_KS_PASS --out $signed $apk
+        } finally {
+            Remove-Item Env:QOR_ANDROID_KS_PASS
+        }
+        $what = 'signed with the test key, for testers'
+    } else {
+        $signed = Join-Path $Build "qor-launcher-$Abi-debug.apk"
+        & $apksigner sign --ks $debugKey --ks-pass pass:android --key-pass pass:android --out $signed $apk
+        $what = 'debug-signed for testing'
+    }
     if ($LASTEXITCODE -ne 0) { throw 'apksigner could not sign the APK.' }
-    & (Join-Path $buildTools 'apksigner.bat') verify $signed
+    & $apksigner verify $signed
     if ($LASTEXITCODE -ne 0) { throw 'The signed APK does not verify.' }
     $size = (Get-Item $signed).Length
-    Write-Host "APK, debug-signed for testing: $signed ($([math]::Round($size / 1MB, 1)) MiB)"
+    Write-Host "APK, $what`: $signed ($([math]::Round($size / 1MB, 1)) MiB)"
     exit 0
 }
 
