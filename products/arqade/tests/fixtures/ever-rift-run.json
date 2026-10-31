@@ -1,0 +1,3852 @@
+{
+    "clicks": [
+        [
+            17,
+            [
+                "Play"
+            ]
+        ],
+        [
+            128,
+            [
+                "Up"
+            ]
+        ]
+    ],
+    "edges": [
+        [
+            52,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            71,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            80,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            90,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            100,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            109,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            114,
+            [
+                [
+                    "pressed",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            128,
+            [
+                [
+                    "released",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            133,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            154,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            159,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            168,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            173,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            183,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            192,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            268,
+            [
+                [
+                    "released",
+                    "down"
+                ],
+                [
+                    "pressed",
+                    "attack"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            313,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            318,
+            [
+                [
+                    "released",
+                    "attack"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            329,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            335,
+            [
+                [
+                    "pressed",
+                    "attack"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            363,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            369,
+            [
+                [
+                    "released",
+                    "attack"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            381,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            386,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            501,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            506,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            516,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            521,
+            [
+                [
+                    "pressed",
+                    "attack"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            547,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            552,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            558,
+            [
+                [
+                    "released",
+                    "attack"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            568,
+            [
+                [
+                    "released",
+                    "down"
+                ],
+                [
+                    "released",
+                    "left"
+                ],
+                [
+                    "pressed",
+                    "attack"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            583,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            588,
+            [
+                [
+                    "released",
+                    "attack"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            599,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            604,
+            [
+                [
+                    "pressed",
+                    "attack"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            613,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            618,
+            [
+                [
+                    "released",
+                    "attack"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            628,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            633,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            642,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            647,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            662,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            667,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            798,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            807,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            909,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            915,
+            [
+                [
+                    "pressed",
+                    "attack"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            955,
+            [
+                [
+                    "pressed",
+                    "whirl"
+                ]
+            ]
+        ],
+        [
+            961,
+            [
+                [
+                    "released",
+                    "whirl"
+                ]
+            ]
+        ],
+        [
+            975,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            980,
+            [
+                [
+                    "released",
+                    "attack"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            997,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1002,
+            [
+                [
+                    "pressed",
+                    "attack"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            1013,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1018,
+            [
+                [
+                    "released",
+                    "attack"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            1028,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1033,
+            [
+                [
+                    "pressed",
+                    "attack"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            1043,
+            [
+                [
+                    "pressed",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            1048,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            1053,
+            [
+                [
+                    "released",
+                    "attack"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            1063,
+            [
+                [
+                    "released",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            1068,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            1073,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1078,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            1087,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            1313,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1320,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            1335,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            1342,
+            [
+                [
+                    "pressed",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            1372,
+            [
+                [
+                    "released",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            1380,
+            [
+                [
+                    "pressed",
+                    "attack"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            1391,
+            [
+                [
+                    "pressed",
+                    "whirl"
+                ]
+            ]
+        ],
+        [
+            1398,
+            [
+                [
+                    "released",
+                    "whirl"
+                ]
+            ]
+        ],
+        [
+            1406,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1414,
+            [
+                [
+                    "released",
+                    "attack"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            1430,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1438,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            1454,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            1462,
+            [
+                [
+                    "pressed",
+                    "attack"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            1489,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            1497,
+            [
+                [
+                    "released",
+                    "attack"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            1513,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            1521,
+            [
+                [
+                    "pressed",
+                    "attack"
+                ],
+                [
+                    "pressed",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            1541,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            1549,
+            [
+                [
+                    "released",
+                    "attack"
+                ],
+                [
+                    "released",
+                    "jump"
+                ]
+            ]
+        ],
+        [
+            1565,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            1573,
+            [
+                [
+                    "pressed",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            1605,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            1621,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            1629,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1645,
+            [
+                [
+                    "released",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            1661,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1669,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            1717,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1733,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            1765,
+            [
+                [
+                    "pressed",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            1781,
+            [
+                [
+                    "released",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            1821,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1856,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1864,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            1871,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1878,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            1885,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            1900,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            1907,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1914,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            1930,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1937,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            1959,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            1967,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            1973,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            1988,
+            [
+                [
+                    "pressed",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            2002,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            2021,
+            [
+                [
+                    "released",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            2028,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            2041,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            2048,
+            [
+                [
+                    "pressed",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            2055,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            2068,
+            [
+                [
+                    "released",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            2074,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            2082,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            2094,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            2107,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            2114,
+            [
+                [
+                    "pressed",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            2128,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            2135,
+            [
+                [
+                    "released",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            2141,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            2156,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            2163,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            2178,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            2185,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            2205,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            2212,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            2226,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            2233,
+            [
+                [
+                    "pressed",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            2279,
+            [
+                [
+                    "released",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            2286,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            2300,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            2307,
+            [
+                [
+                    "pressed",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            2314,
+            [
+                [
+                    "pressed",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            2327,
+            [
+                [
+                    "released",
+                    "up"
+                ]
+            ]
+        ],
+        [
+            2334,
+            [
+                [
+                    "released",
+                    "left"
+                ]
+            ]
+        ],
+        [
+            2342,
+            [
+                [
+                    "pressed",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            2355,
+            [
+                [
+                    "pressed",
+                    "right"
+                ]
+            ]
+        ],
+        [
+            2368,
+            [
+                [
+                    "released",
+                    "down"
+                ]
+            ]
+        ],
+        [
+            2447,
+            [
+                [
+                    "released",
+                    "right"
+                ]
+            ]
+        ]
+    ],
+    "hands": [
+        [
+            0,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            52,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            71,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            80,
+            {
+                "held": [
+                    "left"
+                ],
+                "look": [
+                    -1,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            90,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            100,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            109,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            114,
+            {
+                "held": [
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            128,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            133,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            154,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            159,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            168,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            173,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            183,
+            {
+                "held": [
+                    "down",
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0.7071067690849304,
+                    -0.7071067690849304
+                ]
+            }
+        ],
+        [
+            192,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            268,
+            {
+                "held": [
+                    "attack",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            313,
+            {
+                "held": [
+                    "attack",
+                    "down",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            318,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            329,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            335,
+            {
+                "held": [
+                    "attack",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            363,
+            {
+                "held": [
+                    "attack",
+                    "jump",
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            369,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            381,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            386,
+            {
+                "held": [
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -1,
+                    0
+                ]
+            }
+        ],
+        [
+            501,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            506,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            516,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            521,
+            {
+                "held": [
+                    "attack",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            547,
+            {
+                "held": [
+                    "attack",
+                    "down",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            552,
+            {
+                "held": [
+                    "attack",
+                    "down",
+                    "jump",
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -0.7071067690849304,
+                    -0.7071067690849304
+                ]
+            }
+        ],
+        [
+            558,
+            {
+                "held": [
+                    "down",
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -0.7071067690849304,
+                    -0.7071067690849304
+                ]
+            }
+        ],
+        [
+            568,
+            {
+                "held": [
+                    "attack",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            583,
+            {
+                "held": [
+                    "attack",
+                    "jump",
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -1,
+                    0
+                ]
+            }
+        ],
+        [
+            588,
+            {
+                "held": [
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -1,
+                    0
+                ]
+            }
+        ],
+        [
+            599,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            604,
+            {
+                "held": [
+                    "attack",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            613,
+            {
+                "held": [
+                    "attack",
+                    "down",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            618,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            628,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            633,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            642,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            647,
+            {
+                "held": [
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -1,
+                    0
+                ]
+            }
+        ],
+        [
+            662,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            667,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            798,
+            {
+                "held": [
+                    "down",
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0.7071067690849304,
+                    -0.7071067690849304
+                ]
+            }
+        ],
+        [
+            807,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            909,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            915,
+            {
+                "held": [
+                    "attack",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            955,
+            {
+                "held": [
+                    "attack",
+                    "jump",
+                    "whirl"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            961,
+            {
+                "held": [
+                    "attack",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            975,
+            {
+                "held": [
+                    "attack",
+                    "jump",
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            980,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            997,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1002,
+            {
+                "held": [
+                    "attack",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1013,
+            {
+                "held": [
+                    "attack",
+                    "jump",
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            1018,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            1028,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1033,
+            {
+                "held": [
+                    "attack",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1043,
+            {
+                "held": [
+                    "attack",
+                    "jump",
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    1
+                ]
+            }
+        ],
+        [
+            1048,
+            {
+                "held": [
+                    "attack",
+                    "jump",
+                    "left",
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -0.7071067690849304,
+                    0.7071067690849304
+                ]
+            }
+        ],
+        [
+            1053,
+            {
+                "held": [
+                    "left",
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -0.7071067690849304,
+                    0.7071067690849304
+                ]
+            }
+        ],
+        [
+            1063,
+            {
+                "held": [
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -1,
+                    0
+                ]
+            }
+        ],
+        [
+            1068,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1073,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            1078,
+            {
+                "held": [
+                    "down",
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0.7071067690849304,
+                    -0.7071067690849304
+                ]
+            }
+        ],
+        [
+            1087,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            1313,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1320,
+            {
+                "held": [
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -1,
+                    0
+                ]
+            }
+        ],
+        [
+            1335,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1342,
+            {
+                "held": [
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    1
+                ]
+            }
+        ],
+        [
+            1372,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1380,
+            {
+                "held": [
+                    "attack",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1391,
+            {
+                "held": [
+                    "attack",
+                    "jump",
+                    "whirl"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1398,
+            {
+                "held": [
+                    "attack",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1406,
+            {
+                "held": [
+                    "attack",
+                    "jump",
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            1414,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            1430,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1438,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            1454,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1462,
+            {
+                "held": [
+                    "attack",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1489,
+            {
+                "held": [
+                    "attack",
+                    "down",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            1497,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            1513,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1521,
+            {
+                "held": [
+                    "attack",
+                    "jump"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1541,
+            {
+                "held": [
+                    "attack",
+                    "jump",
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -1,
+                    0
+                ]
+            }
+        ],
+        [
+            1549,
+            {
+                "held": [
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -1,
+                    0
+                ]
+            }
+        ],
+        [
+            1565,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1573,
+            {
+                "held": [
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    1
+                ]
+            }
+        ],
+        [
+            1605,
+            {
+                "held": [
+                    "left",
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -0.7071067690849304,
+                    0.7071067690849304
+                ]
+            }
+        ],
+        [
+            1621,
+            {
+                "held": [
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    1
+                ]
+            }
+        ],
+        [
+            1629,
+            {
+                "held": [
+                    "right",
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0.7071067690849304,
+                    0.7071067690849304
+                ]
+            }
+        ],
+        [
+            1645,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            1661,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1669,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            1717,
+            {
+                "held": [
+                    "down",
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0.7071067690849304,
+                    -0.7071067690849304
+                ]
+            }
+        ],
+        [
+            1733,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            1765,
+            {
+                "held": [
+                    "right",
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0.7071067690849304,
+                    0.7071067690849304
+                ]
+            }
+        ],
+        [
+            1781,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            1821,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1856,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            1864,
+            {
+                "held": [
+                    "down",
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0.7071067690849304,
+                    -0.7071067690849304
+                ]
+            }
+        ],
+        [
+            1871,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            1878,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1885,
+            {
+                "held": [
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -1,
+                    0
+                ]
+            }
+        ],
+        [
+            1900,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1907,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            1914,
+            {
+                "held": [
+                    "down",
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0.7071067690849304,
+                    -0.7071067690849304
+                ]
+            }
+        ],
+        [
+            1930,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            1937,
+            {
+                "held": [
+                    "down",
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -0.7071067690849304,
+                    -0.7071067690849304
+                ]
+            }
+        ],
+        [
+            1959,
+            {
+                "held": [
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -1,
+                    0
+                ]
+            }
+        ],
+        [
+            1967,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            1973,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            1988,
+            {
+                "held": [
+                    "right",
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0.7071067690849304,
+                    0.7071067690849304
+                ]
+            }
+        ],
+        [
+            2002,
+            {
+                "held": [
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    1
+                ]
+            }
+        ],
+        [
+            2021,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            2028,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            2041,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            2048,
+            {
+                "held": [
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    1
+                ]
+            }
+        ],
+        [
+            2055,
+            {
+                "held": [
+                    "left",
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -0.7071067690849304,
+                    0.7071067690849304
+                ]
+            }
+        ],
+        [
+            2068,
+            {
+                "held": [
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -1,
+                    0
+                ]
+            }
+        ],
+        [
+            2074,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            2082,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            2094,
+            {
+                "held": [
+                    "down",
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0.7071067690849304,
+                    -0.7071067690849304
+                ]
+            }
+        ],
+        [
+            2107,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            2114,
+            {
+                "held": [
+                    "right",
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0.7071067690849304,
+                    0.7071067690849304
+                ]
+            }
+        ],
+        [
+            2128,
+            {
+                "held": [
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    1
+                ]
+            }
+        ],
+        [
+            2135,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            2141,
+            {
+                "held": [
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -1,
+                    0
+                ]
+            }
+        ],
+        [
+            2156,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            2163,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            2178,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            2185,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            2205,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            2212,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            2226,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            2233,
+            {
+                "held": [
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    1
+                ]
+            }
+        ],
+        [
+            2279,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            2286,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            2300,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            2307,
+            {
+                "held": [
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    1
+                ]
+            }
+        ],
+        [
+            2314,
+            {
+                "held": [
+                    "left",
+                    "up"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -0.7071067690849304,
+                    0.7071067690849304
+                ]
+            }
+        ],
+        [
+            2327,
+            {
+                "held": [
+                    "left"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    -1,
+                    0
+                ]
+            }
+        ],
+        [
+            2334,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ],
+        [
+            2342,
+            {
+                "held": [
+                    "down"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    -1
+                ]
+            }
+        ],
+        [
+            2355,
+            {
+                "held": [
+                    "down",
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0.7071067690849304,
+                    -0.7071067690849304
+                ]
+            }
+        ],
+        [
+            2368,
+            {
+                "held": [
+                    "right"
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    1,
+                    0
+                ]
+            }
+        ],
+        [
+            2447,
+            {
+                "held": [
+                ],
+                "look": [
+                    0,
+                    0
+                ],
+                "move": [
+                    0,
+                    0
+                ]
+            }
+        ]
+    ],
+    "outcome": {
+        "Ever Rift": {
+            "cleared": false,
+            "floor": 2,
+            "gold": 77,
+            "health": 0,
+            "kills": 19,
+            "level": 2,
+            "over": true,
+            "score": 722,
+            "seconds": 40
+        }
+    },
+    "qqRun": 1,
+    "scene": "ever-rift",
+    "seed": 1827649617,
+    "store": {
+    },
+    "ticks": 2487,
+    "told": [
+    ]
+}

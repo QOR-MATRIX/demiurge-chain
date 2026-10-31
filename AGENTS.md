@@ -49,8 +49,8 @@ repository `QOR-MATRIX/qor-os`, since 29 October 2026 (ADR-126, superseding ADR-
 `products/qq/`, `tools/qor-media/`, `products/arqade/qt/` and `products/arqade/games/`, are frozen. The Windows launcher
 keeps shipping them, and only a fix the owner releases changes them. Two things stay shared with QOR OS:
 
-- ARQADE's five rule modules (each game's `logic/rules.mjs`, the arenas' `logic/arena.mjs`) are kept identical in both
-  repositories, and change in both at once with the fixtures they change.
+- ARQADE's seven rule modules (each game's `logic/rules.mjs`, the arenas' `logic/arena.mjs`; ADR-129) are kept identical in
+  both repositories, and change in both at once with the fixtures they change.
 - `products/arqade/tests/fixtures/` stays this repository's.
 
 QOR OS builds `tools/qor-launcher/core` at a pinned commit (ADR-120), and this repository stays the core's only source.

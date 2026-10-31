@@ -1,6 +1,6 @@
 # Where Demiurge stands
 
-For Andrew, 30 October 2026. One page, rewritten every session.
+For Andrew, 31 October 2026. One page, rewritten every session.
 
 ## What Demiurge is
 
@@ -17,18 +17,17 @@ Railway address; **ARQADE** — *the gaming website*.
 
 ## This session
 
-1. **You merged #114 and #115**: the homepage that leads with QOR OS and offers both
-   downloads is live, and QOR Mobile 0.1.0 is published as a **pre-release** — *a test
-   version, marked so on GitHub*.
-2. **The homepage restated** (**ADR-128** — *a numbered decision record*): QOR OS's apps
-   now answer a controller and wear its own look, Lumen, and Home and the Library are
-   built, so the page's Phase 1 list shows all seven done. It is on the **branch** —
-   *changes not yet in `main`* — `session/qor-os-phase-1`, in its **pull request** — *a
-   request to merge it*.
+1. **You merged #116**: the restated homepage (**ADR-128** — *a numbered decision record*)
+   is live, read from outside.
+2. **Two of QOR OS's new games are named**, by you: Ever Rift and Darkveil. Their rules,
+   tests and recorded runs come here (**ADR-129**), so ARQADE's server can one day confirm
+   their runs. The games stay in QOR OS, and nothing on the website or in the launcher
+   changes. It is on the **branch** — *changes not yet in `main`* —
+   `session/ever-rift-and-darkveil`, in its **pull request** — *a request to merge it*.
 
 ## What only you can do
 
-1. **Merge the homepage's pull request**; it goes live as it merges.
+1. **Merge the games' pull request.** It changes nothing anyone sees.
 2. **Back up the test key**, `%USERPROFILE%\.qor-launcher\android\`, off this PC. Lose
    it, and testers must uninstall before the next release.
 3. **Try QOR Mobile on your phone**: it has run only on the emulator.
