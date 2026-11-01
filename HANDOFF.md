@@ -5256,6 +5256,14 @@ Nothing above waits on another track finishing. L1, L2 and L6 run in parallel wi
      - **The page:** `site/index.html` (the Lumen and Controllers cards, "Home and the controller", Phase 1's checklist)
        and `llms.txt`, which now points to ADR-128. `check-site.mjs` passes its 33 checks.
      - **Records.** ADR-128, indexed; SYSTEMS's QOR OS and Homepage rows; the site's README; OWNER.
+171. **31 October 2026: #116 merged by the owner, at `a35509b`, and read live; ADR-129: Ever Rift's and Darkveil's rules join
+     ARQADE's shared rules.** On `session/ever-rift-and-darkveil`, branched from `a35509b`, for the owner to merge.
+     - **The owner's direction.** "Lets name Gloamreach to "Darkveil" and Rift Delve to "Ever Rift"", the working titles of
+       QOR OS's first two new games. Its QOR-0017 sends a named game's rules here.
+     - **What came:** each game's `logic/rules.mjs`, its Node test, Darkveil's pilot and each fixture, the same bytes as in
+       QOR OS. The games themselves stay there, and neither the website nor the launcher changes.
+     - **Checked:** both new test files on this branch, and ARQADE's whole `npm test` in CI.
+     - **Records.** ADR-129, amending ADR-126 decision 3, indexed; AGENTS.md's and SYSTEMS's count of the shared modules; OWNER.
 
 ## 5. Traps, so nobody re-learns them
 
