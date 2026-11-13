@@ -25,11 +25,11 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::{
+    Router,
     extract::{Request, State},
     http::HeaderValue,
-    middleware::{from_fn, from_fn_with_state, Next},
+    middleware::{Next, from_fn, from_fn_with_state},
     routing::{get, post},
-    Router,
 };
 use sqlx::postgres::PgPoolOptions;
 use tower_http::{
@@ -470,7 +470,7 @@ async fn shutdown_signal() {
 mod cors_tests {
     use super::*;
     use axum::body::Body;
-    use axum::http::{header, Request, StatusCode};
+    use axum::http::{Request, StatusCode, header};
     use tower::ServiceExt;
 
     /// A router carrying only the real CORS layer, so the policy is tested and

@@ -34,5 +34,7 @@ capabilities. QOR OS owns native product development; this repository owns the c
 network and Launcher. No key, payment, runtime or consensus behavior changed.
 
 Source-policy, Launcher-link and homepage validation are recorded in the handoff.
+Draft PR #118 runs hosted checks; dependency-audit failures keep it unmerged.
+GitHub reports successful Vercel preview checks, not a production promotion.
 Full native builds, service acceptance and a replacement release are separate gates.
 See `docs/DIRECTION.md` for the plan and `docs/SYSTEMS.md` for verified source routes.

@@ -9,6 +9,14 @@ mark redaction. The core pin, credential identifiers and released artifacts were
 not changed. The Developers tile points to QOR OS; frozen web destinations are
 disabled. Legacy deployment scripts refuse before host side effects.
 
+Draft [PR #118](https://github.com/QOR-MATRIX/demiurge-chain/pull/118) carries
+the source change. The first hosted run reports existing dependency-audit
+failures in QOR ID, Social, the Launcher host and core. A formatting mismatch
+in the changed QOR ID test file was corrected using its Rust 2024 edition.
+The independent public-domain check runs even if an audit step fails; no audit
+condition was relaxed. GitHub reports successful automatic Vercel preview
+checks for the homepage and ARQADE. No production promotion was performed.
+
 `scripts/check-public-domains.py` and `scripts/test_public_domains.py` check
 source policy; `tools/qor-launcher/scripts/check-domain-links.mjs` checks the
 actual registry and content security policy. Validation results are recorded
