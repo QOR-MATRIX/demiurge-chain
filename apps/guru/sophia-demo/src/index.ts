@@ -1,5 +1,5 @@
-// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 #!/usr/bin/env tsx
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 
 import 'dotenv/config'
 import * as readlineSync from 'readline-sync'

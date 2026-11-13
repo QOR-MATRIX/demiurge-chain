@@ -64,7 +64,7 @@ export function BlogPanel() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-white">Blog</h3>
         <a 
-          href="https://qorsync.dev/blog" 
+          href="https://qorsync.dev/blog"
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-neon-cyan hover:underline"
@@ -80,7 +80,7 @@ export function BlogPanel() {
           <div className="text-center py-6 text-gray-500">
             <p>No blog posts yet.</p>
             <a 
-              href="https://qorsync.dev/blog" 
+              href="https://qorsync.dev/blog"
               target="_blank" 
               rel="noopener noreferrer"
               className="text-neon-cyan hover:underline text-sm mt-2 inline-block"

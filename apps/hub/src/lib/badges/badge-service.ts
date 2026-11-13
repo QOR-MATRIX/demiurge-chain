@@ -82,11 +82,11 @@ async function buildBadgeMetadata(
     name: `${badge.name} Badge`,
     description: badge.description,
     image: badge.imageUrl.startsWith('/') 
-      ? `https://qorsync.dev${badge.imageUrl}` 
+      ? `https://qorsync.dev${badge.imageUrl}`
       : badge.imageUrl,
     animation_url: badge.animatedUrl 
       ? (badge.animatedUrl.startsWith('/') 
-          ? `https://qorsync.dev${badge.animatedUrl}` 
+          ? `https://qorsync.dev${badge.animatedUrl}`
           : badge.animatedUrl)
       : undefined,
     external_url: `https://qorsync.dev/badge/${badgeType.toLowerCase()}`,

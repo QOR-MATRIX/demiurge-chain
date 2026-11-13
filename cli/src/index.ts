@@ -1,5 +1,5 @@
-// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 #!/usr/bin/env node
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 
 /**
  * Demiurge CLI - Official command-line interface
