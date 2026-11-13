@@ -16,6 +16,11 @@ in the changed QOR ID test file was corrected using its Rust 2024 edition.
 The independent public-domain check runs even if an audit step fails; no audit
 condition was relaxed. GitHub reports successful automatic Vercel preview
 checks for the homepage and ARQADE. No production promotion was performed.
+The follow-up hosted run at `6e16699` passes the public-domain check and the
+chain, QOR ID, Social, ARQADE and coverage jobs; dependency audits still fail.
+GitHub private vulnerability reporting was enabled and verified by readback.
+The frozen DRC-369 client's loopback socket retains the `ws://` scheme; this
+does not restore that client's compatibility or deployment status.
 
 `scripts/check-public-domains.py` and `scripts/test_public_domains.py` check
 source policy; `tools/qor-launcher/scripts/check-domain-links.mjs` checks the

@@ -669,6 +669,14 @@ credentials, so a cookie face cannot use a wildcard even if someone wanted to.
 
 ## Reporting a vulnerability
 
+Use this repository's [private vulnerability reporting form](https://github.com/QOR-MATRIX/demiurge-chain/security/advisories/new).
+GitHub's reporting setting was enabled and read back on 13 November 2026. The
+report remains private to the reporter and repository security maintainers.
+Include the affected revision, component, reproduction steps and expected impact;
+do not include a real credential or recovery phrase. This replaces reliance on
+a retired-domain contact address. Historical contact guidance below is not the
+current intake route.
+
 Do not open a public issue. Contact the maintainer, [@ALaustrup](https://github.com/ALaustrup), directly,
 with reproduction steps. Allow reasonable time for a fix before disclosure.
 

@@ -58,7 +58,7 @@ export interface Drc369ClientConfig {
 const DEFAULT_CONFIG: Required<Drc369ClientConfig> = {
   baseUrl: 'http://127.0.0.1:3000/api/v1/drc369',
   token: '',
-  wsUrl: 'http://127.0.0.1:3000/ws/drc369',
+  wsUrl: 'ws://127.0.0.1:3000/ws/drc369',
   timeout: 30000,
   autoReconnect: true,
   headers: {},

@@ -1,5 +1,7 @@
 # A public multi-validator devnet: the plan for `alpha.devnet-live`
 
+> Domain maintenance, 13 November 2026: retired address literals are redacted under ADR-130. Historical deployments keep their original dates; this is not current service verification.
+
 **Status:** Written 1 October 2026; **decided 3 October 2026 by the owner, who chose every recommended answer in §9
 ([ADR-068](../decisions/ADR-068-the-devnet-on-railway.md)), and carried out the same day.** For §7's question the
 owner chose a sudo account with the existential deposit and a separate faucet account holding marked test CGT.
@@ -159,7 +161,7 @@ owner picks (§9).
   private network. No peer-to-peer port faces the internet. A public bootnode is needed only when outside
   nodes join, which is the public testnet (Beta), not Alpha.
 - **The launcher's default is `wss://rpc.qorsync.dev` since 3 October 2026**
-  (`tools/qor-launcher/src-tauri/src/chain/mod.rs`); it was `wss://rpc.qorsync.dev`, which served nothing.
+  (`tools/qor-launcher/src-tauri/src/chain/mod.rs`); it was `retired-public-host`, which served nothing.
 
 ---
 
