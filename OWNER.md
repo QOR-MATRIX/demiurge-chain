@@ -12,8 +12,9 @@ Formatting, lints, frontend, design and accessibility checks pass.
 Workflow action code and audit/coverage tool versions have reviewed pins.
 Checkouts discard credentials. The live Actions allowlist permits nine used
 repositories; default tokens are read-only and cannot approve pull requests.
-Weekly dependency proposals need review. The separate two-validator recovery
-check and newest-compiler report are running.
+Weekly dependency proposals need review. The two-validator recovery check is
+running. Rust 1.100's optional report fails on 66 generated-code lint errors;
+required checks pass on pinned Rust 1.98.1.
 
 Core and Launcher audits report zero vulnerability findings; 13 core and 23
 host maintenance warnings remain. QOR ID and Social still fail on an SQLite

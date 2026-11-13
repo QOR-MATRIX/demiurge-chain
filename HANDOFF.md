@@ -27,7 +27,10 @@ source pins reach main. The setting does not make the unresolved audits pass.
 
 The existing CI workflow was also dispatched at `97dcb13` as run `43522526902`
 to exercise its conditional two-validator agreement/finality/restart check and
-newest-stable compiler report. These are still running, not acceptance evidence.
+newest-stable compiler report. The two-validator job is still running.
+The Rust 1.100.0 report fails on 66 `clone_on_copy` errors in generated DRC-369
+code, the macro issue tracked by ADR-072. Required Rust 1.98.1 checks remain
+passing; no lint suppression or compiler/SDK pin change was made.
 The validator job builds and runs an isolated local test network on a hosted
 runner; no public network upgrade or image workflow was requested.
 

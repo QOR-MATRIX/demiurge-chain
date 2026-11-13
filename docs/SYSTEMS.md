@@ -67,8 +67,10 @@ downloads without fallback installation. Dependabot proposes weekly Actions
 updates. Hosted run `43519214320` passes the build/test, design/accessibility and
 coverage jobs; the service audits still fail. Publication remains manual; no
 workflow was dispatched to build or publish an image. The separate CI dispatch
-`43522526902` exercises the conditional two-validator recovery test and
-newest-stable report; both remain in progress.
+`43522526902` exercises the conditional two-validator recovery test, still
+running. Its Rust 1.100.0 report fails on 66 generated DRC-369 `clone_on_copy`
+diagnostics, retaining ADR-072's compiler-upgrade blocker. Required Rust 1.98.1
+checks pass; no lint was suppressed.
 The live Actions allowlist now permits only the nine action repositories used by
 the two workflows. Default tokens stay read-only without pull-request approval.
 `.github/actions-policy.json` records the verified setting. Global SHA enforcement
