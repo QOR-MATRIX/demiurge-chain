@@ -2,42 +2,38 @@
 
 ## Current session: 13 November 2026
 
-Domain maintenance is on `session/qorsync-domains`, based on `74a1014`. ADR-130
-records QORSYNC.DEV and service subdomains as the approved public addresses.
-Tracked retired-host literals are removed; historical records below explicitly
-mark redaction. The core pin, credential identifiers and released artifacts were
-not changed. The Developers tile points to QOR OS; frozen web destinations are
-disabled. Legacy deployment scripts refuse before host side effects.
+Work remains on `session/qorsync-domains` in draft [PR #118](https://github.com/QOR-MATRIX/demiurge-chain/pull/118).
+Domain changes at `243a55d` passed the chain, QOR ID, Social, ARQADE and coverage
+jobs. Launcher tests failed four real-spawn cases because their helper path
+assumed Cargo's old directory layout. The helper now reads Cargo's executable
+artifact message; an additional regression covers custom target paths and
+irrelevant/no-executable messages. Full hosted tests must validate the repair.
 
-Draft [PR #118](https://github.com/QOR-MATRIX/demiurge-chain/pull/118) carries
-the source change. The first hosted run reports existing dependency-audit
-failures in QOR ID, Social, the Launcher host and core. A formatting mismatch
-in the changed QOR ID test file was corrected using its Rust 2024 edition.
-The independent public-domain check runs even if an audit step fails; no audit
-condition was relaxed. GitHub reports successful automatic Vercel preview
-checks for the homepage and ARQADE. No production promotion was performed.
-The follow-up hosted run at `6e16699` passes the public-domain check and the
-chain, QOR ID, Social, ARQADE and coverage jobs; dependency audits still fail.
-GitHub private vulnerability reporting was enabled and verified by readback.
-The frozen DRC-369 client's loopback socket retains the `ws://` scheme; this
-does not restore that client's compatibility or deployment status.
+The core and Launcher host now lock rusqlite 0.41.1, libsqlite3-sys 0.39.1,
+quinn-proto 0.11.19 and quinn-udp 0.5.16. Local cargo-audit reports zero
+vulnerability advisories; 13 core/23 host warnings remain. QOR ID's QUIC locks
+are patched. QOR ID and Social each still fail on SQLite RUSTSEC-2026-0459.
+A trial of stable SQLx 0.9.0 rejected libsqlite3-sys 0.39.1 (its upper bound is
+below 0.38.0); the trial was removed. Resolve that upstream constraint without
+adding an ignore or claiming an unused lock dependency proves runtime exposure.
 
-`scripts/check-public-domains.py` and `scripts/test_public_domains.py` check
-source policy; `tools/qor-launcher/scripts/check-domain-links.mjs` checks the
-actual registry and content security policy. Validation results are recorded
-with the source change. Native/service/release acceptance remains separate.
+The chain locks compatible QUIC patches, libz-sys 1.1.31 and Wasmtime 36.0.20.
+Its report improves from 53 to 44 vulnerability findings, with 36 warnings.
+The SDK pin, consensus and runtime source are unchanged. Full workspace tests
+must build WebAssembly; a lock/audit result is not runtime acceptance. No audit
+exception or gate was weakened. QOR OS still uses its existing core pin.
 
-Vercel returned verified apex/`www` assignments and Cloudflare nameservers, but
-the assigned project endpoints returned 404 through the connected account.
-No live DNS, hosting, mail, account or credential configuration changed.
-Social/ARQADE provider-host migration and installed-client upgrade work remain
-open. The current source entry points are in `docs/SYSTEMS.md` and provider
-verification limits in `docs/architecture/HOSTING.md`.
+ADR-130 keeps QORSYNC.DEV and its approved service subdomains canonical. Source
+checks, disabled retired deployment scripts, accurate Developers/frozen tiles
+and stable credential identifiers remain in place. GitHub private vulnerability
+reporting is enabled. Vercel confirms domain assignments but the connected account
+cannot access the assigned project; Social/ARQADE host migration remains open.
+No deployment, release, image, credential or production configuration changed.
+Automatic Vercel preview checks are separate from production acceptance.
 
-The next security task in `docs/DIRECTION.md` is remediation of the four
-dependency advisories and 13 warnings found by QOR OS's hosted audit; the
-affected versions remain in this source's lock file. Do not add audit exceptions
-or silently move QOR OS's pin to another untested revision.
+Continue with hosted checks, service SQLite remediation and maintenance warnings
+before richer bridge capabilities or a QOR OS pin move. QOR OS keeps local
+resolver/audit receipts under `build/development-2026-11-13/session-05/`.
 
 ## Historical handoff records
 

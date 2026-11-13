@@ -1,7 +1,7 @@
 # Every system this repository names
 
-Rewritten 13 November 2026 against source `74a1014` and the domain-maintenance
-branch. This inventory identifies implementation and ownership; it does not
+Rewritten 13 November 2026 against source `243a55d` and the dependency/test repairs
+on `session/qorsync-domains`. This inventory identifies implementation and ownership; it does not
 restate old CI counts or label historical deployments as currently live.
 [DIRECTION.md](DIRECTION.md) remains the only roadmap and
 [DECISIONS.md](DECISIONS.md) the decision index.
@@ -15,7 +15,7 @@ claim an implementation. The earlier live checks remain dated in HANDOFF.
 
 | System | Verified source and boundary |
 | --- | --- |
-| Chain | `chain/`, its runtime and pallets are the active Substrate implementation. No consensus/runtime change or fresh runtime acceptance occurred in this domain work. |
+| Chain | `chain/`, its runtime and pallets are the active Substrate implementation. Compatible QUIC, zlib and Wasmtime dependency patches await full workspace tests; the SDK pin and consensus/runtime source are unchanged. |
 | DRC-369 | `chain/pallets/drc369/`, `chain/pallets/drc369-royalties/` and the core's `chain/assets.rs` exist. Asset/schema/paid-mechanism acceptance stays in the roadmap and economic decisions. |
 | QOR ID | `services/qor-auth/` and core `identity/mod.rs`; the core default is `https://id.qorsync.dev/api/v1`. Host-root HTTP responses do not validate authentication. |
 | Social | `services/social/` and core `social.rs`; the existing provider-host default still needs a verified QORSYNC.DEV service-domain migration. |
@@ -58,13 +58,17 @@ These are source locations, not claims of a new installed build.
 
 The existing hosted workflow is `.github/workflows/ci.yml`. The new public-domain
 check and its tests run there; the Launcher also checks its actual registry and
-content security policy. No new framework or dependency was introduced.
+content security policy. Launcher spawn tests use Cargo's artifact messages, so
+separate build directories no longer break executable discovery. No new framework
+was introduced; existing dependencies were patched.
 
-The 13 November QOR OS audit found four vulnerability advisories and 13 warnings
-in versions still present at `74a1014`: libsqlite3-sys 0.38.2, quinn-proto 0.11.18
-and quinn-udp 0.5.15. Review feature/target reachability and fix/test dependencies
-before further bridge work. No advisory was ignored. An inventory finding alone
-does not demonstrate exploitation.
+Local 13 November audits of the repaired locks report zero vulnerability advisories
+for the core and Launcher host, with 13 and 23 warnings respectively. Each service
+still reports one SQLite advisory; stable SQLx cannot resolve the patched version.
+The chain's compatible patches reduce its report from 53 to 44 vulnerability
+findings, with 36 warnings. No exception was added. Hosted build/test acceptance,
+warning remediation and a separately validated QOR OS pin move remain open.
+An inventory finding alone does not demonstrate exploitation.
 
 [HOSTING.md](architecture/HOSTING.md) records the current verification boundary:
 Vercel returned apex/`www` domain assignments, public DNS uses Cloudflare, but

@@ -1,42 +1,34 @@
 # Where the network and Launcher stand
 
-For Andrew, 13 November 2026. Source work is on `session/qorsync-domains`, based
-on upstream `74a1014`; it is not a release or deployed update.
+For Andrew, 13 November 2026. Repairs are on `session/qorsync-domains` in draft
+PR #118. They are not merged, released or deployed.
 
-## Domain and developer access
+The Launcher test failure is traced to an assumed Cargo build-folder layout.
+Its stand-in product now uses the executable path Cargo reports. The four real
+spawn checks remain required, alongside a new path-discovery regression.
 
-QORSYNC.DEV is the only public domain, with service subdomains retained on your
-instruction. ADR-130, the numbered decision, replaces the old split. Retired host
-literals were removed from current tracked text, and historical redactions are
-labelled. Stable application and credential-store identifiers remain unchanged.
+The core and Launcher dependencies are patched for the four blocking advisory
+findings. Local audits, dependency vulnerability checks, now report zero such
+findings, while 13 core and 23 host maintenance warnings remain. QOR ID's network
+libraries are patched. QOR ID and Social each still report one SQLite advisory;
+the current stable SQLx library cannot accept the fixed SQLite version. No
+exception was added. Hosted compilation and tests still need to accept the work.
 
-Launcher Developers now points to QOR OS's guide, with repository access required.
-Six frozen web tiles no longer offer dead destinations. Old clients remain
-unsupported; their obsolete network examples use loopback, this machine only.
-Old deployment helpers refuse before changing a host. No new framework was added.
+Compatible chain patches remove nine advisory findings, leaving 44 and 36
+warnings. Wasmtime, the WebAssembly runtime, stays on its supported 36.0 line.
+The Polkadot SDK pin and consensus source are unchanged. Complete chain tests
+with WebAssembly built remain required. QOR OS's core pin has not moved.
 
-Vercel returned verified domain assignments for the homepage and its `www`
-redirect. DNS, the domain routing records, uses Cloudflare. The connected Vercel
-account cannot open the assigned project, so this is not a live-site acceptance.
-Social and ARQADE still need their service hosts migrated and tested; installed
-settings, mail and released clients need separate verification. None was changed.
+QORSYNC.DEV remains the only public domain, with your approved service subdomains.
+Launcher Developers links to QOR OS; six frozen web tiles are unavailable.
+Retired deployment helpers refuse before changing a host. Stable credential
+identifiers are preserved, and GitHub's private vulnerability reporting is on.
 
-## Security and next work
+Vercel confirms domain assignments, but the connected account cannot access the
+assigned project. Social and ARQADE still need verified custom hosts. Source
+updates do not migrate installed clients, mail or live services. No image,
+package, release or production deployment was published.
 
-QOR OS's core dependency audit found four vulnerability advisories and 13 warnings
-in versions still locked here. The affected libraries are libsqlite3-sys,
-quinn-proto and quinn-udp. The UDP issue excludes Linux and Windows; other
-reachability still needs review. No advisory was ignored and no exploit is claimed.
-
-The core bridge, the shell's command interface, still has only four version/amount
-commands. Remediate dependencies before extending Launcher/DRC-369 asset and agent
-capabilities. QOR OS owns native product development; this repository owns the core,
-network and Launcher. No key, payment, runtime or consensus behavior changed.
-
-Source-policy, Launcher-link and homepage validation are recorded in the handoff.
-Draft PR #118 runs hosted checks; dependency-audit failures keep it unmerged.
-Its public-domain check passes in hosted CI. GitHub's private vulnerability
-reporting is enabled and verified; SECURITY.md links the reporting form.
-GitHub reports successful Vercel preview checks, not a production promotion.
-Full native builds, service acceptance and a replacement release are separate gates.
-See `docs/DIRECTION.md` for the plan and `docs/SYSTEMS.md` for verified source routes.
+The next work is service dependency remediation, hosted acceptance and remaining
+warnings before expanding the bridge, the shell-to-core command interface.
+`docs/DIRECTION.md` is the plan; `docs/SYSTEMS.md` maps current implementations.

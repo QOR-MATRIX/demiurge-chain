@@ -248,6 +248,20 @@ D-008). Verified live with three validators. Its behaviour becomes the acceptanc
   (RUSTSEC-2026-0538). Review target/feature reachability, update and test upstream,
   then rerun the audit before a QOR OS pin change. Thirteen additional warnings
   were reported; no exception was added. The UDP advisory excludes Linux and Windows.
+  **Repair in progress, 13 November:** the core and host now lock rusqlite 0.41.1,
+  libsqlite3-sys 0.39.1, quinn-proto 0.11.19 and quinn-udp 0.5.16. Local audits
+  report zero vulnerability advisories, with 13 core/23 host warnings retained.
+  QOR ID's QUIC dependencies are patched too. QOR ID and Social each still report
+  RUSTSEC-2026-0459 in SQLx's optional SQLite dependency; stable SQLx 0.9.0 also
+  rejects libsqlite3-sys 0.39.1, so an incompatible upgrade was not retained.
+  No ignore was added. Hosted build/test acceptance and the existing warnings
+  remain open before any QOR OS pin change.
+  The chain locks the compatible QUIC patches, libz-sys 1.1.31 and Wasmtime
+  36.0.20; its report falls from 53 to 44 vulnerability findings, with 36
+  warnings. The SDK pin and runtime source are unchanged. Full workspace tests
+  with WebAssembly built are required; unresolved SDK dependencies remain tracked.
+  Launcher spawn tests now consume Cargo's reported executable path instead of
+  assuming a build-directory layout. The four real-spawn cases remain required.
 - [ ] Complete ADR-130's service-domain migration: verify hosting access, prepare
   Social/ARQADE custom hosts, validate service protocols, then coordinate client
   defaults, installed settings and released binaries. Source cleanup alone does not
