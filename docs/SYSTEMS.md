@@ -1,6 +1,6 @@
 # Every system this repository names
 
-Rewritten 13 November 2026 against source `042941c` and the dependency/test repairs
+Rewritten 13 November 2026 against source `3043551` and the further dependency repairs
 on `session/qorsync-domains`. This inventory identifies implementation and ownership; it does not
 restate old CI counts or label historical deployments as currently live.
 [DIRECTION.md](DIRECTION.md) remains the only roadmap and
@@ -15,7 +15,7 @@ claim an implementation. The earlier live checks remain dated in HANDOFF.
 
 | System | Verified source and boundary |
 | --- | --- |
-| Chain | `chain/`, its runtime and pallets are the active Substrate implementation. Compatible QUIC, zlib and Wasmtime patches pass all 213 hosted workspace tests with WebAssembly built at `042941c`; the SDK pin and consensus/runtime source are unchanged. |
+| Chain | `chain/`, its runtime and pallets are the active Substrate implementation. The earlier QUIC, zlib and Wasmtime repair passes all 213 hosted workspace tests with WebAssembly built at `042941c`. Further certificate/compression patches lower the audit to 38 findings and 26 warnings; their hosted tests are pending. The SDK pin and consensus/runtime source are unchanged. |
 | DRC-369 | `chain/pallets/drc369/`, `chain/pallets/drc369-royalties/` and the core's `chain/assets.rs` exist. Asset/schema/paid-mechanism acceptance stays in the roadmap and economic decisions. |
 | QOR ID | `services/qor-auth/` and core `identity/mod.rs`; the core default is `https://id.qorsync.dev/api/v1`. Host-root HTTP responses do not validate authentication. |
 | Social | `services/social/` and core `social.rs`; the existing provider-host default still needs a verified QORSYNC.DEV service-domain migration. |

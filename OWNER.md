@@ -1,7 +1,8 @@
 # Where the network and Launcher stand
 
-For Andrew, 13 November 2026. Repairs are pushed at `042941c` on
-`session/qorsync-domains` in draft PR #118. The service audits keep it unmerged.
+For Andrew, 13 November 2026. Draft PR #118 on `session/qorsync-domains`
+contains the validated Launcher repair and a further chain dependency update.
+The service audits keep it unmerged; the QOR OS core pin has not moved.
 
 The Launcher test helper now uses Cargo, the Rust build tool, to locate its
 executable. All four previously failing spawn tests and the new regression pass.
@@ -15,11 +16,13 @@ on an SQLite database dependency. Stable SQLx, the services' database library,
 cannot accept the fixed version; disabling default features also leaves the
 affected optional driver in its lock. No exception was added.
 
-Compatible chain patches remove nine advisory findings, leaving 44 and 36
-warnings. Wasmtime, which runs portable code, stays on its 36.0 line. The SDK pin
-and consensus source are unchanged. All 213 hosted chain tests pass with
-WebAssembly, portable runtime code, built. QOR ID, Social, ARQADE and coverage
-jobs also pass. QOR OS's core pin has not moved.
+Further compatible chain patches update certificate validation, trusted roots
+and compression. Its audit now reports 38 vulnerability findings and 26 warnings,
+down from 44 and 36. The SDK, the chain's framework, pins the affected logging
+dependency exactly; that update was refused and the pin is preserved. Wasmtime,
+which runs portable code, stays on its 36.0 line. Consensus source is unchanged.
+The previous repair at `042941c` passes all 213 hosted chain tests with WebAssembly,
+portable runtime code, built. The new lock still needs its hosted test result.
 
 QORSYNC.DEV remains the only public domain, with your approved service subdomains.
 Launcher Developers links to QOR OS; six frozen web tiles are unavailable.

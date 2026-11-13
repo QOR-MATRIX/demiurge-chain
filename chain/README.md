@@ -6,6 +6,17 @@ the custom Rust devnet that lived in `framework/`, which was retired and deleted
 
 ## State
 
+**Dependency maintenance, 13 November 2026.** The source branch additionally
+patches certificate validation, bundled roots and compression: rustls-webpki
+0.103.17, webpki-root-certs 1.0.12, zstd 0.13.5, zstd-safe 7.4.1 and zstd-sys
+2.1.3+zstd.1.5.7. Cargo audit reports 38 vulnerability findings and 26 warnings,
+down from 44/36. Hosted compilation and tests for this further lock update are
+pending; the earlier repair at `042941c` passed all 213 workspace tests with the
+WebAssembly runtime built. The SDK still requires tracing-subscriber exactly
+0.3.19 through sc-tracing 47.0.0. No SDK pin, runtime/consensus source or audit
+exception changed. This is source maintenance, not a devnet upgrade. See the
+[security track](../docs/DIRECTION.md#71-security-track-started-2026-09-14-ahead-of-m2).
+
 **Today (26 October 2026):** `spec_version` 11 in the tree, with DRC-369 assets (royalties, remix provenance, nesting,
 progress records, M4.2's state and XP, ADR-113, and since this version rental, M4.3's first third, ADR-119) over
 `pallet-nfts`, `pallet-utility`'s atomic batch, the ARQ Wallet and the Mesh's hosting escrow. **213 workspace tests**
@@ -23,7 +34,7 @@ depend on this runtime, and the first end-to-end use of its finality.
 
 | Piece | State |
 | --- | --- |
-| `runtime/` (`demiurge-runtime`) | System, timestamp, Aura (ADR-019), GRANDPA (ADR-018), balances, session and the validator set (ADR-020), `pallet-nfts` as the asset ledger (ADR-025), `pallet-drc369`, `pallet-utility` for the atomic batch a trade needs (ADR-053), `pallet-drc369-royalties` (ADR-061), `pallet-arq-wallet` (ADR-070), `pallet-mesh` (ADR-095, ADR-096), and `pallet-sudo` behind a feature (ADR-037). `spec_version` 10 since 23 October 2026, on the devnet since the owner's upgrade the same day, `transaction_version` 2 |
+| `runtime/` (`demiurge-runtime`) | System, timestamp, Aura (ADR-019), GRANDPA (ADR-018), balances, session and the validator set (ADR-020), `pallet-nfts` as the asset ledger (ADR-025), `pallet-drc369`, `pallet-utility` for the atomic batch a trade needs (ADR-053), `pallet-drc369-royalties` (ADR-061), `pallet-arq-wallet` (ADR-070), `pallet-mesh` (ADR-095, ADR-096), and `pallet-sudo` behind a feature (ADR-037). `spec_version` 11 since 26 October 2026; the dated devnet receipt is recorded above, `transaction_version` 2 |
 | `node/` (`demiurge-node`) | Runs. Aura authoring, GRANDPA voting, standard RPC, `dev` and `local` chain specifications, the SDK's `key` subcommand, and the hosted devnet's specification: `devnet_chain_spec`, and the built-in `--chain demiurge_devnet` (`devnet_built_in`), see "The devnet image" |
 | `pallets/validator-set` (`pallet-validator-set`) | **Mounted.** A governance-chosen set acting as `pallet-session`'s session manager (ADR-020). Its own tests cover every governance path and the three guards against a halted chain. The chain's validators come from it, verified by reading `Session::Validators` from a running node |
 | `pallets/drc369` (`pallet-drc369`) | **Mounted** (2026-09-22, M4.1). The content reference (ADR-047's 41 bytes), the pinned commit, revision and the one-way switch to permanent, one singles collection per creator, owner enumeration and the `Drc369Api` runtime API. Every config value's source is in `runtime/src/assets.rs` and ADR-052; the deposits are placeholders (U-14) and the weights are placeholders owed to M7.2. Since 2026-09-29 it also records remix provenance at mint — `derived_from` and `remix_depth`, bounded at 16 (ADR-061). **Since 2026-10-01 it nests** (M4.2's nesting, M4.5's requirement R-2): `nest` and `unnest`, only by the owner of both assets, a cycle refused by a walk of at most eight steps, at most eight levels and sixty-four assets held (ADR-047 decision 13 row 7), and it is `pallet-nfts`'s `Locker`, so a nested asset and the asset holding it cannot be transferred, sold or burned until it is taken out. No deposit of its own. **Since 2026-10-23 it keeps progress records** (M4.2's state and XP, ADR-113, `spec_version` 10): one record per asset per game, a level, XP and at most 32 stats; a collection is static until its owner binds a home game; the holder of the game's Cartridge names up to 16 writers, who only add, and alone corrects; nothing changes while the asset is listed for sale (the runtime answers from `Drc369Royalties::Listings`), and no record moves an asset or CGT. `Drc369Api` version 2 answers `progress_of` and `home_game`. No deposit. Physics is not started |
