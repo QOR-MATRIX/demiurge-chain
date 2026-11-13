@@ -254,14 +254,18 @@ D-008). Verified live with three validators. Its behaviour becomes the acceptanc
   QOR ID's QUIC dependencies are patched too. QOR ID and Social each still report
   RUSTSEC-2026-0459 in SQLx's optional SQLite dependency; stable SQLx 0.9.0 also
   rejects libsqlite3-sys 0.39.1, so an incompatible upgrade was not retained.
-  No ignore was added. Hosted build/test acceptance and the existing warnings
-  remain open before any QOR OS pin change.
+  An isolated resolution with default SQLx features disabled still retains
+  SQLite and MySQL in the lock; feature trimming alone does not clear the audit.
+  No ignore was added. Hosted build/test jobs pass at `042941c`: 245 core tests
+  pass with 10 ignored and 109 host tests with five ignored. Service audits,
+  maintenance warnings and QOR OS integration remain open before a pin change.
   The chain locks the compatible QUIC patches, libz-sys 1.1.31 and Wasmtime
   36.0.20; its report falls from 53 to 44 vulnerability findings, with 36
-  warnings. The SDK pin and runtime source are unchanged. Full workspace tests
-  with WebAssembly built are required; unresolved SDK dependencies remain tracked.
+  warnings. The SDK pin and runtime source are unchanged. All 213 workspace tests
+  pass with WebAssembly built at `042941c`; unresolved SDK dependencies remain tracked.
   Launcher spawn tests now consume Cargo's reported executable path instead of
-  assuming a build-directory layout. The four real-spawn cases remain required.
+  assuming a build-directory layout. All four formerly failing real-spawn cases
+  and the new artifact-discovery regression pass in that hosted run.
 - [ ] Complete ADR-130's service-domain migration: verify hosting access, prepare
   Social/ARQADE custom hosts, validate service protocols, then coordinate client
   defaults, installed settings and released binaries. Source cleanup alone does not

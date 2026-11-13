@@ -7,7 +7,9 @@ Domain changes at `243a55d` passed the chain, QOR ID, Social, ARQADE and coverag
 jobs. Launcher tests failed four real-spawn cases because their helper path
 assumed Cargo's old directory layout. The helper now reads Cargo's executable
 artifact message; an additional regression covers custom target paths and
-irrelevant/no-executable messages. Full hosted tests must validate the repair.
+irrelevant/no-executable messages. At `042941c`, the hosted Launcher job passes, including all four repaired spawn
+cases and the new artifact-discovery regression (109 host tests pass, five ignored).
+The core passes 245 tests with 10 ignored; format and clippy checks pass too.
 
 The core and Launcher host now lock rusqlite 0.41.1, libsqlite3-sys 0.39.1,
 quinn-proto 0.11.19 and quinn-udp 0.5.16. Local cargo-audit reports zero
@@ -19,8 +21,9 @@ adding an ignore or claiming an unused lock dependency proves runtime exposure.
 
 The chain locks compatible QUIC patches, libz-sys 1.1.31 and Wasmtime 36.0.20.
 Its report improves from 53 to 44 vulnerability findings, with 36 warnings.
-The SDK pin, consensus and runtime source are unchanged. Full workspace tests
-must build WebAssembly; a lock/audit result is not runtime acceptance. No audit
+The SDK pin, consensus and runtime source are unchanged. All 213 hosted workspace
+tests pass with WebAssembly built at `042941c`. This is not deployment or hardware
+acceptance. No audit
 exception or gate was weakened. QOR OS still uses its existing core pin.
 
 ADR-130 keeps QORSYNC.DEV and its approved service subdomains canonical. Source
@@ -31,7 +34,12 @@ cannot access the assigned project; Social/ARQADE host migration remains open.
 No deployment, release, image, credential or production configuration changed.
 Automatic Vercel preview checks are separate from production acceptance.
 
-Continue with hosted checks, service SQLite remediation and maintenance warnings
+An isolated SQLx resolution with default features disabled and explicit PostgreSQL,
+macros and migration features still locks the affected SQLite dependency. No
+feature-only workaround was retained. QOR ID, Social, ARQADE and coverage jobs
+also pass at `042941c`; the two service audits keep the overall run red.
+
+Continue with service SQLite remediation and maintenance warnings
 before richer bridge capabilities or a QOR OS pin move. QOR OS keeps local
 resolver/audit receipts under `build/development-2026-11-13/session-05/`.
 

@@ -1,5 +1,11 @@
 # QOR Launcher
 
+**Source maintenance, 13 November 2026:** PR #118 updates canonical domains,
+developer links and dependencies and repairs Cargo artifact discovery in tests.
+The released 0.1.17 installer has not been replaced or requalified by this work.
+Current source validation and remaining service/audit gates are recorded in
+[`HANDOFF.md`](../../HANDOFF.md) and [`DIRECTION.md`](../../docs/DIRECTION.md).
+
 The sovereign gateway to the Demiurge ecosystem. One desktop application through
 which every chain and engine system is reached: QOR ID, the CGT Vault, the game
 library, community, peer-to-peer distribution and the node itself.
