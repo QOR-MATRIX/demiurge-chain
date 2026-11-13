@@ -5,8 +5,12 @@
 The next compatible chain lock update selects rustls-webpki 0.103.17,
 webpki-root-certs 1.0.12, zstd 0.13.5, zstd-safe 7.4.1 and zstd-sys
 2.1.3+zstd.1.5.7. Local cargo-audit now reports 38 vulnerability findings and
-26 warnings, from 44/36. Compilation and workspace tests for this further update
-are pending. The attempted tracing-subscriber update was rejected because
+26 warnings, from 44/36. Hosted CI at `3d71009` passes all 213 chain workspace
+tests with WebAssembly built, 245 core tests (10 ignored) and 109 Launcher host
+tests (five ignored). Formatting, lints, frontend checks, QOR ID, Social, ARQADE
+and coverage jobs pass. The workflow still fails the two service dependency
+audits; the conditional newest-Rust and multi-validator jobs did not run.
+The attempted tracing-subscriber update was rejected because
 `sc-tracing 47.0.0` requires exactly 0.3.19; no SDK pin, source override, audit
 ignore or runtime source was changed. Stable SQLx remains 0.9.0, so its existing
 SQLite constraint still blocks the two service audits. New receipts are in

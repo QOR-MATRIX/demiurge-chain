@@ -10,9 +10,8 @@ the custom Rust devnet that lived in `framework/`, which was retired and deleted
 patches certificate validation, bundled roots and compression: rustls-webpki
 0.103.17, webpki-root-certs 1.0.12, zstd 0.13.5, zstd-safe 7.4.1 and zstd-sys
 2.1.3+zstd.1.5.7. Cargo audit reports 38 vulnerability findings and 26 warnings,
-down from 44/36. Hosted compilation and tests for this further lock update are
-pending; the earlier repair at `042941c` passed all 213 workspace tests with the
-WebAssembly runtime built. The SDK still requires tracing-subscriber exactly
+down from 44/36. Hosted compilation, lints and all 213 workspace tests pass at
+`3d71009`, with the WebAssembly runtime built. The SDK still requires tracing-subscriber exactly
 0.3.19 through sc-tracing 47.0.0. No SDK pin, runtime/consensus source or audit
 exception changed. This is source maintenance, not a devnet upgrade. See the
 [security track](../docs/DIRECTION.md#71-security-track-started-2026-09-14-ahead-of-m2).

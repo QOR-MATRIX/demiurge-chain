@@ -1,6 +1,6 @@
 # Every system this repository names
 
-Rewritten 13 November 2026 against source `3043551` and the further dependency repairs
+Rewritten 13 November 2026 against source and hosted checks at `3d71009`
 on `session/qorsync-domains`. This inventory identifies implementation and ownership; it does not
 restate old CI counts or label historical deployments as currently live.
 [DIRECTION.md](DIRECTION.md) remains the only roadmap and
@@ -15,7 +15,7 @@ claim an implementation. The earlier live checks remain dated in HANDOFF.
 
 | System | Verified source and boundary |
 | --- | --- |
-| Chain | `chain/`, its runtime and pallets are the active Substrate implementation. The earlier QUIC, zlib and Wasmtime repair passes all 213 hosted workspace tests with WebAssembly built at `042941c`. Further certificate/compression patches lower the audit to 38 findings and 26 warnings; their hosted tests are pending. The SDK pin and consensus/runtime source are unchanged. |
+| Chain | `chain/`, its runtime and pallets are the active Substrate implementation. The compatible QUIC, zlib, Wasmtime and certificate/compression patches pass all 213 hosted workspace tests with WebAssembly built at `3d71009`. The audit retains 38 findings and 26 warnings. The SDK pin and consensus/runtime source are unchanged. |
 | DRC-369 | `chain/pallets/drc369/`, `chain/pallets/drc369-royalties/` and the core's `chain/assets.rs` exist. Asset/schema/paid-mechanism acceptance stays in the roadmap and economic decisions. |
 | QOR ID | `services/qor-auth/` and core `identity/mod.rs`; the core default is `https://id.qorsync.dev/api/v1`. Host-root HTTP responses do not validate authentication. |
 | Social | `services/social/` and core `social.rs`; the existing provider-host default still needs a verified QORSYNC.DEV service-domain migration. |
@@ -65,9 +65,9 @@ was introduced; existing dependencies were patched.
 Local 13 November audits of the repaired locks report zero vulnerability advisories
 for the core and Launcher host, with 13 and 23 warnings respectively. Each service
 still reports one SQLite advisory; stable SQLx cannot resolve the patched version.
-The chain's compatible patches reduce its report from 53 to 44 vulnerability
-findings, with 36 warnings. No exception was added. Hosted core/host compilation
-and lints pass at `042941c`, with 245 core tests passing (10 ignored) and 109 host
+The chain's compatible patches reduce its report from 53 to 38 vulnerability
+findings, with 26 warnings. No exception was added. Hosted core/host compilation
+and lints pass at `3d71009`, with 245 core tests passing (10 ignored) and 109 host
 tests passing (five ignored). All four repaired spawn tests and the new regression
 pass. Service audits, warning remediation and a separately validated QOR OS pin
 move remain open; this is not live-service or release acceptance.

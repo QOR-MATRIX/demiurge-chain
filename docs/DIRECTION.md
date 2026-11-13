@@ -265,8 +265,9 @@ D-008). Verified live with three validators. Its behaviour becomes the acceptanc
   pass with WebAssembly built at `042941c`; unresolved SDK dependencies remain tracked.
   A further compatible update selects rustls-webpki 0.103.17, webpki-root-certs
   1.0.12, zstd 0.13.5, zstd-safe 7.4.1 and zstd-sys 2.1.3+zstd.1.5.7. Its local
-  audit reports 38 findings and 26 warnings; hosted compilation/tests for that
-  lock are pending. `sc-tracing 47.0.0` requires tracing-subscriber exactly
+  audit reports 38 findings and 26 warnings. Hosted CI at `3d71009` passes all
+  213 chain tests with WebAssembly built, 245 core tests (10 ignored) and 109
+  host tests (five ignored); both service dependency audits still fail. `sc-tracing 47.0.0` requires tracing-subscriber exactly
   0.3.19, so the attempted logging update was refused without changing the SDK.
   Launcher spawn tests now consume Cargo's reported executable path instead of
   assuming a build-directory layout. All four formerly failing real-spawn cases
