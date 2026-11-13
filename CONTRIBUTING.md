@@ -41,5 +41,11 @@ and the action's own documentation. GitHub's workflow lockfile feature requires
 Enterprise Cloud; this organisation currently uses GitHub Free, so the workflow
 files carry the pins directly.
 
+The live repository allowlist is restricted to the nine action repositories in
+[the checked policy](.github/actions-policy.json); adding an action repository
+also needs that reviewed setting updated. Default tokens are read-only and
+cannot approve pull requests. Repository-wide SHA enforcement is deferred until
+these source pins reach `main`, whose existing workflows still use tags.
+
 The devnet image workflow remains manual and publishing still needs the owner's
 explicit instruction. A workflow-source check is not a published or validated image.

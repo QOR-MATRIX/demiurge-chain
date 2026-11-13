@@ -65,9 +65,8 @@ including from git history (D-012).
 | [`.cursorrules`](../.cursorrules) | Project law: naming, CGT, supply, economics, language, documentation |
 | [`AGENTS.md`](../AGENTS.md) | Rules for AI assistants working in this repository |
 | [`MISSING_ASSETS.md`](../MISSING_ASSETS.md) | Binary assets absent from the repository |
-| [`CONTRIBUTING.md`](../CONTRIBUTING.md) | How to make a change |
-| [`SECURITY.md`](../SECURITY.md) | Reporting vulnerabilities; security status |
 | [`CONTRIBUTING.md`](../CONTRIBUTING.md) | Contribution steps, amount units and pinned workflow dependency maintenance |
+| [`SECURITY.md`](../SECURITY.md) | Reporting vulnerabilities; security status |
 
 ## Rules
 

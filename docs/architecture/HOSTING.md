@@ -2,7 +2,7 @@
 
 Updated 13 November 2026 for [ADR-130](../decisions/ADR-130-qorsync-is-the-public-domain.md).
 QORSYNC.DEV is the only public first-party domain; service subdomains remain approved.
-This guide describes source ownership and verified configuration, not a service uptime claim.
+This guide records source ownership and dated read-only checks, not an uptime guarantee.
 
 ## 1. Inventory: what will need hosting, and when
 
@@ -17,10 +17,10 @@ Qt product development follows ADR-126. Frozen `apps/`, `sdk/`, `packages/`,
 
 | Purpose | Source address | Verification boundary |
 | --- | --- | --- |
-| Homepage | `https://qorsync.dev` | Vercel returned a verified project-domain assignment on 13 November; the project could not be opened through the connected account |
+| Homepage | `https://qorsync.dev` | HTTP 200 at 22:33 UTC on 13 November; Vercel confirms its domain assignment, but project management access is unresolved |
 | Homepage alias | `https://www.qorsync.dev` | Vercel returned a verified redirect to the apex |
-| QOR ID | `https://id.qorsync.dev/api/v1` | Core's `DEFAULT_AUTH`; an HTTP response at the host root does not prove API health |
-| Chain RPC | `wss://rpc.qorsync.dev` | Core's `DEFAULT_RPC`; a WebSocket service requires a protocol check, not an HTTP root probe |
+| QOR ID | `https://id.qorsync.dev/api/v1` | `/health` and `/ready` returned HTTP 200 at 22:33 UTC; the service reports healthy and its database/cache ready. Authentication flows were not exercised |
+| Chain RPC | `wss://rpc.qorsync.dev` | At 22:34 UTC, read-only WebSocket RPC identifies Demiurge Devnet, runtime 11, and advancing finalized headers over 12 seconds |
 | Social and ARQADE | Approved subdomains under QORSYNC.DEV required | Existing provider-host defaults/links require a coordinated migration; replacement hosts are not yet verified |
 
 Vercel reports Cloudflare nameservers, also confirmed through public DNS. The
@@ -28,6 +28,16 @@ connected Vercel account lists no accessible projects, although the domain API
 retains the apex/`www` assignment. The project detail/domain endpoints return
 404. Do not infer ownership transfer, deletion or a running deployment from that.
 Confirm the correct project access and DNS account before changing routing.
+
+The live homepage's returned HTML contained no retired first-party URL attributes
+among 27 absolute URL attributes, but no exact QOR OS repository link either.
+This does not inspect JavaScript bundles, authenticated screens or released
+clients; the source PR's new repository link is not shown deployed by this check.
+The RPC probe used only `system_chain`, `state_getRuntimeVersion`,
+`chain_getFinalizedHead` and `chain_getHeader`. It submitted no transaction.
+No account was created and no sign-in or email flow was exercised. Receipts are
+in QOR OS `build/development-2026-11-13/session-06/live-*.json`.
+
 
 ## 3. Cross-domain authentication
 

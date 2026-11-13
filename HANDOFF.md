@@ -2,14 +2,34 @@
 
 ## Current session: 13 November 2026
 
+Read-only live checks at 22:33-22:34 UTC confirm HTTP 200 from the homepage,
+QOR ID health and database/cache readiness, and WebSocket RPC runtime 11 with
+advancing finalized headers. The returned homepage HTML has no retired
+first-party URL attributes but lacks the exact QOR OS repository link. These
+checks do not cover authentication, release clients or every rendered screen.
+The Vercel project remains inaccessible through the connected team; no routing,
+credential or deployment change was made. See `docs/architecture/HOSTING.md`.
+
 The workflow follow-up pins every external action in both workflows to a full
 upstream commit, removes persisted checkout credentials, and pins cargo-audit
 0.22.2/cargo-llvm-cov 0.9.1 through the normal install-action v2.90.3 release
 with checksum verification and no fallback. Dependabot proposes weekly Actions
 updates. Job commands, gates and triggers remain unchanged; the publishing
-workflow remains manual and was not run. Hosted checks for these workflow edits
-are pending. The organisation's Free plan does not provide GitHub's Enterprise
+workflow remains manual and was not run. Hosted run `43519214320` at `97dcb13`
+passes the chain, Launcher, QOR ID, Social, ARQADE and coverage jobs; only the
+security job fails on the two service audits. It repeats all 213 chain tests,
+245 core tests (10 ignored) and 109 host tests (five ignored). The organisation's Free plan does not provide GitHub's Enterprise
 workflow lockfiles, so hashes are recorded directly in the workflow source.
+The live repository allowlist now permits only its nine used action repositories;
+read-only default tokens and no pull-request approval are verified. The checked
+policy is `.github/actions-policy.json`; global SHA enforcement waits until the
+source pins reach main. The setting does not make the unresolved audits pass.
+
+The existing CI workflow was also dispatched at `97dcb13` as run `43522526902`
+to exercise its conditional two-validator agreement/finality/restart check and
+newest-stable compiler report. These are still running, not acceptance evidence.
+The validator job builds and runs an isolated local test network on a hosted
+runner; no public network upgrade or image workflow was requested.
 
 The next compatible chain lock update selects rustls-webpki 0.103.17,
 webpki-root-certs 1.0.12, zstd 0.13.5, zstd-safe 7.4.1 and zstd-sys

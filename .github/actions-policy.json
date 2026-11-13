@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "enabled": true,
+    "allowed_actions": "selected",
+    "sha_pinning_required": false
+  },
+  "selected_actions": {
+    "github_owned_allowed": false,
+    "patterns_allowed": [
+      "actions/cache@*",
+      "actions/checkout@*",
+      "actions/setup-node@*",
+      "actions/upload-artifact@*",
+      "docker/build-push-action@*",
+      "docker/login-action@*",
+      "docker/setup-buildx-action@*",
+      "dtolnay/rust-toolchain@*",
+      "taiki-e/install-action@*"
+    ],
+    "verified_allowed": false
+  },
+  "workflow_permissions": {
+    "default_workflow_permissions": "read",
+    "can_approve_pull_request_reviews": false
+  }
+}

@@ -242,13 +242,19 @@ D-008). Verified live with three validators. Its behaviour becomes the acceptanc
 
 ### 7.1 Security track (started 2026-09-14, ahead of M2)
 
-- [ ] Verify the workflow hardening follow-up in hosted CI: both workflows pin
+- [x] Verify the CI workflow hardening at `97dcb13` (run `43519214320`): both workflows pin
   external actions to full upstream commits; checkouts do not persist credentials;
   cargo-audit 0.22.2 and cargo-llvm-cov 0.9.1 use a pinned release installer with
   checksum verification and no fallback. Weekly Actions dependency proposals
   keep updates reviewable. Commands, gates and triggers are unchanged; the manual
-  devnet image workflow has not been run. Source validation is separate from
-  publication and from the unresolved dependency audits below.
+  devnet image workflow has not been run. Chain, Launcher, QOR ID, Social, ARQADE
+  and coverage jobs pass; the service dependency audits below still fail.
+  The live repository allowlist permits only the nine used action repositories;
+  default tokens are read-only and cannot approve pull requests. Global SHA
+  enforcement waits until the pinned source reaches main. The conditional
+  two-validator and newest-stable report jobs are running separately in
+  `43522526902`; no result is claimed yet. Image execution/publication remain
+  separate from this workflow-source and hosted CI validation.
 
 - [ ] Remediate the 13 November pinned-core audit findings before adding bridge capabilities:
   libsqlite3-sys 0.38.2 (RUSTSEC-2026-0459), quinn-proto 0.11.18
@@ -284,6 +290,11 @@ D-008). Verified live with three validators. Its behaviour becomes the acceptanc
   Social/ARQADE custom hosts, validate service protocols, then coordinate client
   defaults, installed settings and released binaries. Source cleanup alone does not
   complete this gate. Legacy deployment helpers remain disabled.
+  At 22:33-22:34 UTC, the homepage and QOR ID health/readiness respond successfully;
+  WebSocket RPC reports runtime 11 and advancing finalized headers. Vercel project
+  access, the undeployed homepage repository link, Social/ARQADE domains and
+  authentication/client migration remain open.
+
 
 These are defects in active code that would matter the moment anything is deployed. They are not
 migration work. Each carries forward as a requirement for the Polkadot SDK chain and QOR ID. Details are

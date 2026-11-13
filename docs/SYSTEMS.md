@@ -1,7 +1,7 @@
 # Every system this repository names
 
-Rewritten 13 November 2026 against source and hosted checks at `3d71009`
-and the workflow hardening follow-up on `session/qorsync-domains`. This inventory identifies implementation and ownership; it does not
+Rewritten 13 November 2026 against source and hosted checks at `97dcb13`
+on `session/qorsync-domains`. This inventory identifies implementation and ownership; it does not
 restate old CI counts or label historical deployments as currently live.
 [DIRECTION.md](DIRECTION.md) remains the only roadmap and
 [DECISIONS.md](DECISIONS.md) the decision index.
@@ -15,9 +15,9 @@ claim an implementation. The earlier live checks remain dated in HANDOFF.
 
 | System | Verified source and boundary |
 | --- | --- |
-| Chain | `chain/`, its runtime and pallets are the active Substrate implementation. The compatible QUIC, zlib, Wasmtime and certificate/compression patches pass all 213 hosted workspace tests with WebAssembly built at `3d71009`. The audit retains 38 findings and 26 warnings. The SDK pin and consensus/runtime source are unchanged. |
+| Chain | `chain/`, its runtime and pallets are the active Substrate implementation. The compatible QUIC, zlib, Wasmtime and certificate/compression patches pass all 213 hosted workspace tests with WebAssembly built at `3d71009`. The audit retains 38 findings and 26 warnings. The SDK pin and consensus/runtime source are unchanged. A 22:34 UTC read-only public RPC probe identifies runtime 11 and advancing finalized headers; it is not deployment acceptance. |
 | DRC-369 | `chain/pallets/drc369/`, `chain/pallets/drc369-royalties/` and the core's `chain/assets.rs` exist. Asset/schema/paid-mechanism acceptance stays in the roadmap and economic decisions. |
-| QOR ID | `services/qor-auth/` and core `identity/mod.rs`; the core default is `https://id.qorsync.dev/api/v1`. Host-root HTTP responses do not validate authentication. |
+| QOR ID | `services/qor-auth/` and core `identity/mod.rs`; the core default is `https://id.qorsync.dev/api/v1`. The 22:33 UTC read-only health/readiness probes pass, including database/cache readiness; authentication was not exercised. |
 | Social | `services/social/` and core `social.rs`; the existing provider-host default still needs a verified QORSYNC.DEV service-domain migration. |
 | Creator-God Token | Core `cgt.rs` and chain runtime types implement integer amounts with 18 decimals. No economic value or payment capability was introduced by this work. QOR OS 1.0 remains free/test-value only. |
 | QOR core | `tools/qor-launcher/core/` is the source used by QOR OS at a pinned commit. `commands.rs` exposes only `core_version`, `token_info`, `parse_amount`, `format_sparks`; richer native modules are not automatically bridge capabilities. |
@@ -52,7 +52,7 @@ These are source locations, not claims of a new installed build.
 | Qontrol | Core `qontrol/` and the Projects surface; the product roadmap remains P1. |
 | QFX, GNOSIS, Stream | The product tracks in DIRECTION define these names and remaining work. This session makes no new implementation/readiness claim for them. |
 | Market and Library | Core and Launcher sources listed above; completion of a product track or paid model is not implied. |
-| Homepage | `site/`; canonical address QORSYNC.DEV. Source links now include QOR OS without changing the network's source ownership. Hosting/project access is unresolved; this source branch is not a deployed update. |
+| Homepage | `site/`; canonical address QORSYNC.DEV. Source links now include QOR OS without changing the network's source ownership. The public homepage returns HTTP 200, but the HTML still lacks the exact QOR OS repository link. Hosting/project management access is unresolved; this source branch is not a deployed update. |
 
 ## Tooling, hosting and outstanding acceptance
 
@@ -64,8 +64,16 @@ was introduced; existing dependencies were patched.
 All external actions now use full upstream commit hashes. Checkouts do not persist
 credentials; the auditor and coverage tools keep explicit versions and verified
 downloads without fallback installation. Dependabot proposes weekly Actions
-updates. The changed workflow still awaits hosted checks. Publication remains
-manual; no workflow was dispatched to build or publish an image.
+updates. Hosted run `43519214320` passes the build/test, design/accessibility and
+coverage jobs; the service audits still fail. Publication remains manual; no
+workflow was dispatched to build or publish an image. The separate CI dispatch
+`43522526902` exercises the conditional two-validator recovery test and
+newest-stable report; both remain in progress.
+The live Actions allowlist now permits only the nine action repositories used by
+the two workflows. Default tokens stay read-only without pull-request approval.
+`.github/actions-policy.json` records the verified setting. Global SHA enforcement
+waits for the source pins to merge, so current main's jobs are not disabled.
+
 
 
 Local 13 November audits of the repaired locks report zero vulnerability advisories
@@ -73,7 +81,7 @@ for the core and Launcher host, with 13 and 23 warnings respectively. Each servi
 still reports one SQLite advisory; stable SQLx cannot resolve the patched version.
 The chain's compatible patches reduce its report from 53 to 38 vulnerability
 findings, with 26 warnings. No exception was added. Hosted core/host compilation
-and lints pass at `3d71009`, with 245 core tests passing (10 ignored) and 109 host
+and lints pass again at `97dcb13`, with 245 core tests passing (10 ignored) and 109 host
 tests passing (five ignored). All four repaired spawn tests and the new regression
 pass. Service audits, warning remediation and a separately validated QOR OS pin
 move remain open; this is not live-service or release acceptance.
@@ -81,7 +89,8 @@ An inventory finding alone does not demonstrate exploitation.
 
 [HOSTING.md](architecture/HOSTING.md) records the current verification boundary:
 Vercel returned apex/`www` domain assignments, public DNS uses Cloudflare, but
-the connected account could not open the assigned project. Social/ARQADE service
+the connected account could not open the assigned project. Public QOR ID health/readiness and the chain's read-only
+WebSocket check pass at 22:33-22:34 UTC. Social/ARQADE service
 hosts, installed settings, mail sending and replacement releases still need a
 coordinated migration. No service or credential configuration was changed.
 
