@@ -242,6 +242,14 @@ D-008). Verified live with three validators. Its behaviour becomes the acceptanc
 
 ### 7.1 Security track (started 2026-09-14, ahead of M2)
 
+- [ ] Verify the workflow hardening follow-up in hosted CI: both workflows pin
+  external actions to full upstream commits; checkouts do not persist credentials;
+  cargo-audit 0.22.2 and cargo-llvm-cov 0.9.1 use a pinned release installer with
+  checksum verification and no fallback. Weekly Actions dependency proposals
+  keep updates reviewable. Commands, gates and triggers are unchanged; the manual
+  devnet image workflow has not been run. Source validation is separate from
+  publication and from the unresolved dependency audits below.
+
 - [ ] Remediate the 13 November pinned-core audit findings before adding bridge capabilities:
   libsqlite3-sys 0.38.2 (RUSTSEC-2026-0459), quinn-proto 0.11.18
   (RUSTSEC-2026-0523 and RUSTSEC-2026-0524), quinn-udp 0.5.15

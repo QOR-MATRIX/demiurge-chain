@@ -9,6 +9,10 @@ executable. All four previously failing spawn tests and the new regression pass.
 Hosted checks pass 109 host tests with five ignored and 245 core tests with 10
 ignored. Formatting, lints and frontend checks pass. Ignored checks remain open.
 
+The workflow follow-up pins action code and tool versions, disables saved
+checkout credentials and adds weekly dependency proposals. Its hosted checks
+are pending; publication stays manual.
+
 Core and Launcher audits report zero vulnerability findings; 13 core and 23 host
 maintenance warnings remain. QOR ID's network dependencies are patched. QOR ID
 and Social each still fail on an SQLite database dependency. Stable SQLx, the

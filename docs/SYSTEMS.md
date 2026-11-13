@@ -1,7 +1,7 @@
 # Every system this repository names
 
 Rewritten 13 November 2026 against source and hosted checks at `3d71009`
-on `session/qorsync-domains`. This inventory identifies implementation and ownership; it does not
+and the workflow hardening follow-up on `session/qorsync-domains`. This inventory identifies implementation and ownership; it does not
 restate old CI counts or label historical deployments as currently live.
 [DIRECTION.md](DIRECTION.md) remains the only roadmap and
 [DECISIONS.md](DECISIONS.md) the decision index.
@@ -61,6 +61,12 @@ check and its tests run there; the Launcher also checks its actual registry and
 content security policy. Launcher spawn tests use Cargo's artifact messages, so
 separate build directories no longer break executable discovery. No new framework
 was introduced; existing dependencies were patched.
+All external actions now use full upstream commit hashes. Checkouts do not persist
+credentials; the auditor and coverage tools keep explicit versions and verified
+downloads without fallback installation. Dependabot proposes weekly Actions
+updates. The changed workflow still awaits hosted checks. Publication remains
+manual; no workflow was dispatched to build or publish an image.
+
 
 Local 13 November audits of the repaired locks report zero vulnerability advisories
 for the core and Launcher host, with 13 and 23 warnings respectively. Each service

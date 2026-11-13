@@ -2,6 +2,15 @@
 
 ## Current session: 13 November 2026
 
+The workflow follow-up pins every external action in both workflows to a full
+upstream commit, removes persisted checkout credentials, and pins cargo-audit
+0.22.2/cargo-llvm-cov 0.9.1 through the normal install-action v2.90.3 release
+with checksum verification and no fallback. Dependabot proposes weekly Actions
+updates. Job commands, gates and triggers remain unchanged; the publishing
+workflow remains manual and was not run. Hosted checks for these workflow edits
+are pending. The organisation's Free plan does not provide GitHub's Enterprise
+workflow lockfiles, so hashes are recorded directly in the workflow source.
+
 The next compatible chain lock update selects rustls-webpki 0.103.17,
 webpki-root-certs 1.0.12, zstd 0.13.5, zstd-safe 7.4.1 and zstd-sys
 2.1.3+zstd.1.5.7. Local cargo-audit now reports 38 vulnerability findings and
