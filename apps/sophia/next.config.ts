@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
@@ -48,7 +49,7 @@ const config: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' localhost:* http://localhost:* wss://localhost:* https://*.demiurge.cloud; img-src 'self' data: https:; font-src 'self' data:;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' localhost:* http://localhost:* wss://localhost:* https://*.qorsync.dev; img-src 'self' data: https:; font-src 'self' data:;",
           },
         ],
       },
@@ -60,7 +61,7 @@ const config: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "**.demiurge.cloud",
+        hostname: "**.qorsync.dev",
       },
       {
         protocol: "http",

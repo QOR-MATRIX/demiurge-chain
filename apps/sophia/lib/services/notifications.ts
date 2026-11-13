@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Notification Service
  * Real-time notifications for transactions, alerts, and events
@@ -265,7 +266,7 @@ class NotificationService {
       icon: type === 'sent' ? '📤' : '📥',
       action: {
         label: 'View',
-        url: `https://explorer.demiurge.cloud/tx/${txHash}`,
+        url: `https://qorsync.dev/tx/${txHash}`,
       },
     });
   }

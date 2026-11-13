@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 'use client';
 
 import React from 'react';
@@ -28,7 +29,7 @@ export function BlogPanel() {
     async function fetchPosts() {
       try {
         // Fetch from blog API when available
-        const response = await fetch('https://demiurge.guru/api/posts?limit=3');
+        const response = await fetch('http://127.0.0.1:3000/api/posts?limit=3');
         if (response.ok) {
           const data = await response.json();
           setPosts(data.posts || []);
@@ -63,7 +64,7 @@ export function BlogPanel() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-white">Blog</h3>
         <a 
-          href="https://demiurge.guru/blog" 
+          href="https://qorsync.dev/blog" 
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-neon-cyan hover:underline"
@@ -79,7 +80,7 @@ export function BlogPanel() {
           <div className="text-center py-6 text-gray-500">
             <p>No blog posts yet.</p>
             <a 
-              href="https://demiurge.guru/blog" 
+              href="https://qorsync.dev/blog" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-neon-cyan hover:underline text-sm mt-2 inline-block"

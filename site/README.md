@@ -26,9 +26,13 @@ desktop's.
 
 ## Publishing
 
-The Vercel project `demiurge-site` in the `astramatrix` team is connected to this repository with `site/` as its root, so a
-merge to `main` publishes it. `qorsync.dev` is the address; `www.qorsync.dev`, `demiurge.cloud`, `www.demiurge.cloud`,
-`demiurge.guru` and `www.demiurge.guru` redirect to it.
+The canonical address is `https://qorsync.dev`. On 13 November Vercel returned
+verified apex and `www` assignments, with `www` redirecting to the apex, and
+Cloudflare nameservers. The connected account could not open the assigned project
+(404), so the old `demiurge-site` automatic-deployment claim is not current evidence.
+Verify the project, source branch, domain bindings and DNS before any publication.
+No retired public domain should be reattached. See ADR-130 and
+[`HOSTING.md`](../docs/architecture/HOSTING.md).
 
 After a change worth re-crawling, tell IndexNow (Bing, Yandex and others):
 

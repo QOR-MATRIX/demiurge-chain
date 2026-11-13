@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Session management for Demiurge CLI
  * 
@@ -41,8 +42,8 @@ export interface PersistentConfig {
 const config = new Conf<PersistentConfig>({
   projectName: 'demiurge-cli',
   defaults: {
-    rpcEndpoint: 'https://rpc.demiurge.cloud',
-    authEndpoint: 'https://auth.demiurge.cloud',
+    rpcEndpoint: 'http://127.0.0.1:9944',
+    authEndpoint: 'http://127.0.0.1:8080',
     defaultWalletPath: null,
     theme: 'dark',
     showAnimations: true,

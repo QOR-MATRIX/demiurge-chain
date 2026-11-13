@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 "use client";
 
 import React, { useState } from "react";
@@ -28,7 +29,7 @@ export const DeveloperHub: React.FC = () => {
       method: "GET",
       path: "/api/v1/account/balance",
       description: "Retrieve the CGT token balance for a QOR ID",
-      example: `fetch('https://api.demiurge.cloud/api/v1/account/balance?qor_id=user@qor', {
+      example: `fetch('http://127.0.0.1:8080/api/v1/account/balance?qor_id=user@qor', {
   headers: { 'Authorization': 'Bearer YOUR_TOKEN' }
 }).then(r => r.json())`,
     },
@@ -37,7 +38,7 @@ export const DeveloperHub: React.FC = () => {
       method: "POST",
       path: "/api/v1/transactions/submit",
       description: "Submit a signed transaction to the blockchain",
-      example: `fetch('https://api.demiurge.cloud/api/v1/transactions/submit', {
+      example: `fetch('http://127.0.0.1:8080/api/v1/transactions/submit', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ transaction: signedTx })
@@ -48,7 +49,7 @@ export const DeveloperHub: React.FC = () => {
       method: "GET",
       path: "/api/v1/nft/query",
       description: "Query NFTs for a given address or collection",
-      example: `fetch('https://api.demiurge.cloud/api/v1/nft/query?address=0x...&collection=DRC-369', {
+      example: `fetch('http://127.0.0.1:8080/api/v1/nft/query?address=0x...&collection=DRC-369', {
   headers: { 'Authorization': 'Bearer YOUR_TOKEN' }
 }).then(r => r.json())`,
     },
@@ -57,7 +58,7 @@ export const DeveloperHub: React.FC = () => {
       method: "POST",
       path: "/api/v1/games/session-key",
       description: "Create a temporary session key for game interactions",
-      example: `fetch('https://api.demiurge.cloud/api/v1/games/session-key', {
+      example: `fetch('http://127.0.0.1:8080/api/v1/games/session-key', {
   method: 'POST',
   headers: { 'Authorization': 'Bearer YOUR_TOKEN' },
   body: JSON.stringify({ game_id: 'ethereal-realms', ttl: 3600 })
@@ -467,7 +468,7 @@ export const DeveloperHub: React.FC = () => {
                 {
                   title: "Documentation",
                   description: "Comprehensive docs and API reference",
-                  link: "https://docs.demiurge.cloud",
+                  link: "https://qorsync.dev",
                 },
                 {
                   title: "Community Discord",
@@ -477,7 +478,7 @@ export const DeveloperHub: React.FC = () => {
                 {
                   title: "Status Page",
                   description: "Real-time network and API status",
-                  link: "https://status.demiurge.cloud",
+                  link: "https://qorsync.dev",
                 },
               ].map((resource, idx) => (
                 <motion.div key={idx} variants={itemVariants}>

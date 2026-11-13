@@ -92,6 +92,11 @@ should be copied forward.
 
 ## 6. Language
 
+Public first-party links use QORSYNC.DEV and approved service subdomains (ADR-130).
+Never reintroduce retired public-host literals, including examples and historical copy.
+Keep real upstream source/licence links and stable application/keychain identifiers;
+source maintenance is not evidence of a live service or permission to publish a release.
+
 Demiurge is infrastructure for creators to earn from use, not a vehicle for appreciation (ADR-008).
 APY, yield, return in the financial sense, ROI, investment, passive income and any statement about
 CGT's price or future value do not appear in copy, comments, identifiers or documentation. Validators

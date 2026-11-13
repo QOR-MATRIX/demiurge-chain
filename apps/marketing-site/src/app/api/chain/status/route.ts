@@ -1,8 +1,9 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'wss://rpc.demiurge.cloud'
+    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'ws://127.0.0.1:9944'
     
     // Try to connect to blockchain RPC
     // For now, we'll use a simple HTTP check
@@ -50,7 +51,7 @@ async function checkRPCReachability(url: string): Promise<boolean> {
   try {
     // Try to make a simple RPC call
     // In production, use Polkadot.js API
-    const response = await fetch('https://rpc.demiurge.cloud', {
+    const response = await fetch('http://127.0.0.1:9944', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -69,7 +70,7 @@ async function checkRPCReachability(url: string): Promise<boolean> {
 
 async function getBlockNumber(url: string): Promise<number | null> {
   try {
-    const response = await fetch('https://rpc.demiurge.cloud', {
+    const response = await fetch('http://127.0.0.1:9944', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

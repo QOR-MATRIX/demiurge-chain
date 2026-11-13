@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -170,7 +171,7 @@ export default function AdminPage() {
     setTransactionsLoading(true);
     try {
       const response = await fetch(
-        (process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud'),
+        (process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:9944'),
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -201,7 +202,7 @@ export default function AdminPage() {
     try {
       const token = qorAuth.getToken();
       const response = await fetch(
-        (process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud'),
+        (process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:9944'),
         {
           method: 'POST',
           headers: { 

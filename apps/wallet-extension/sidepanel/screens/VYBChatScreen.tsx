@@ -1,9 +1,10 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 // VYB Chat Screen for Extension Side Panel
 // Compact chat UI optimized for ~350px side panel width
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-const HUB_URL = 'https://demiurge.cloud';
+const HUB_URL = 'https://qorsync.dev';
 
 interface ChatRoom {
   id: string;

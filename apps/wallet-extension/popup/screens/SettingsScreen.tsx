@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 // Demiurge Wallet Extension - Settings Screen
 import React, { useState } from 'react';
 import { useStore } from '../store';
@@ -199,7 +200,7 @@ export function SettingsScreen() {
               <h3 className="text-white font-medium mb-3">Links</h3>
               <div className="space-y-2">
                 <a
-                  href="https://demiurge.io"
+                  href="https://qorsync.dev"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-between text-gray-300 hover:text-white transition-colors"
@@ -210,7 +211,7 @@ export function SettingsScreen() {
                   </svg>
                 </a>
                 <a
-                  href="https://docs.demiurge.io"
+                  href="https://qorsync.dev"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-between text-gray-300 hover:text-white transition-colors"

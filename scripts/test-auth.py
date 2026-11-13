@@ -25,7 +25,7 @@ result = subprocess.run([
     "curl", "-s", "-X", "POST",
     "-H", "Content-Type: application/json",
     "-d", json.dumps(login_data),
-    "https://demiurge.cloud/api/v1/auth/login"
+    "https://qorsync.dev/api/v1/auth/login"
 ], capture_output=True, text=True)
 print("\nHTTPS auth response:", result.stdout)
 
@@ -44,6 +44,6 @@ result = subprocess.run([
     "curl", "-s", "-X", "POST",
     "-H", "Content-Type: application/json",
     "-d", json.dumps(rpc_data),
-    "https://rpc.demiurge.cloud"
+    "https://rpc.qorsync.dev"
 ], capture_output=True, text=True)
 print("\nHTTPS RPC response:", result.stdout)

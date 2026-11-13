@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Interactive menu system for Demiurge CLI
  */
@@ -213,7 +214,7 @@ async function showIdentityMenu(): Promise<void> {
         label: 'Link to QOR ID',
         action: async () => {
           console.log(chalk.gray('\n  QOR ID linking requires authentication.'));
-          console.log(chalk.gray('  Visit: https://auth.demiurge.cloud\n'));
+          console.log(chalk.gray('  Visit: http://127.0.0.1:8080\n'));
           await waitForKey();
         },
       },
@@ -393,7 +394,7 @@ async function showHelp(): Promise<void> {
     chalk.gray('  q         - Exit'),
     '',
     chalk.white('Documentation:'),
-    chalk.cyan('  https://docs.demiurge.cloud'),
+    chalk.cyan('  https://qorsync.dev'),
   ]);
   await waitForKey();
 }

@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 import Link from 'next/link'
 import { Github, Twitter, Mail } from 'lucide-react'
 
@@ -19,7 +20,7 @@ export function Footer() {
               <a href="https://twitter.com/demiurgechain" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-neon-cyan transition-colors">
                 <Twitter className="w-5 h-5" />
               </a>
-              <a href="mailto:info@demiurge.cloud" className="text-gray-400 hover:text-neon-cyan transition-colors">
+              <a href="https://github.com/QOR-MATRIX/QOR-OS/issues" className="text-gray-400 hover:text-neon-cyan transition-colors">
                 <Mail className="w-5 h-5" />
               </a>
             </div>

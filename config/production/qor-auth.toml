@@ -1,3 +1,4 @@
+# RETIRED TEMPLATE: not current deployment configuration. See docs/architecture/HOSTING.md and ADR-130.
 # qor-auth production configuration.
 #
 # This file holds no secrets. It previously contained the database password and
@@ -26,7 +27,7 @@ url = "redis://localhost:6379"
 [jwt]
 access_expiry_secs = 900
 refresh_expiry_secs = 2592000
-issuer = "qor-auth.demiurge.cloud"
+issuer = "qorsync.dev"
 
 [security]
 max_login_attempts = 5
@@ -38,6 +39,6 @@ password_min_length = 12
 # SMTP_PORT - SMTP port (default: 587)
 # SMTP_USERNAME - SMTP username/email
 # SMTP_PASSWORD - SMTP password or app password
-# SMTP_FROM_EMAIL - Sender email address (default: noreply@demiurge.cloud)
+# SMTP_FROM_EMAIL - Sender email address (default: [retired contact])
 # SMTP_FROM_NAME - Sender name (default: Demiurge-Cloud)
-# BASE_URL - Base URL for verification links (default: https://demiurge.cloud)
+# BASE_URL - Base URL for verification links (default: https://qorsync.dev)

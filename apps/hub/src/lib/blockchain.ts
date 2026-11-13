@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Blockchain Integration Client
  * 
@@ -68,12 +69,12 @@ function getDefaultWsUrl(): string {
   if (process.env.NEXT_PUBLIC_BLOCKCHAIN_WS_URL) {
     return process.env.NEXT_PUBLIC_BLOCKCHAIN_WS_URL;
   }
-  // Use rpc.demiurge.cloud for production, localhost for development
+  // Use qorsync.dev for production, localhost for development
   if (typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost') {
     return 'ws://localhost:9944';
   }
-  // Use secure WebSocket through rpc.demiurge.cloud
-  return 'wss://rpc.demiurge.cloud';
+  // Use secure WebSocket through qorsync.dev
+  return 'ws://127.0.0.1:9944';
 }
 
 const DEFAULT_WS_URL = getDefaultWsUrl();

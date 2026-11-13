@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 #!/usr/bin/env node
 
 /**
@@ -74,7 +75,7 @@ function runCommandMode(argv: string[]): void {
 
   // Global options
   program
-    .option('-r, --rpc <url>', 'RPC endpoint URL', process.env.DEMIURGE_RPC_URL || 'https://rpc.demiurge.cloud')
+    .option('-r, --rpc <url>', 'RPC endpoint URL', process.env.DEMIURGE_RPC_URL || 'http://127.0.0.1:9944')
     .option('-q, --quiet', 'Suppress output')
     .option('-j, --json', 'Output as JSON')
     .option('--no-color', 'Disable colored output')

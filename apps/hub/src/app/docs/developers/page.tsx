@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 'use client';
 
 import Link from 'next/link';
@@ -52,7 +53,7 @@ if (window.demiurge) {
     language: 'typescript',
     code: `import { DemiurgeClient } from '@demiurge/sdk';
 
-const client = new DemiurgeClient('wss://rpc.demiurge.network');
+const client = new DemiurgeClient('ws://127.0.0.1:9944');
 const balance = await client.getBalance(address);
 console.log('Balance:', balance.free);`,
   },
@@ -160,14 +161,14 @@ export default function DevelopersPage() {
             <tbody className="divide-y divide-white/5">
               <tr>
                 <td className="px-4 py-3 text-white">Mainnet</td>
-                <td className="px-4 py-3 font-mono text-[var(--accent-primary)]">wss://rpc.demiurge.network</td>
+                <td className="px-4 py-3 font-mono text-[var(--accent-primary)]">ws://127.0.0.1:9944</td>
                 <td className="px-4 py-3">
                   <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 text-xs">Live</span>
                 </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-white">Testnet</td>
-                <td className="px-4 py-3 font-mono text-[var(--accent-primary)]">wss://testnet.demiurge.network</td>
+                <td className="px-4 py-3 font-mono text-[var(--accent-primary)]">ws://127.0.0.1:9944</td>
                 <td className="px-4 py-3">
                   <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 text-xs">Live</span>
                 </td>

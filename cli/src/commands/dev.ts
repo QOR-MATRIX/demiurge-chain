@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Dev commands - Development and testing utilities
  */
@@ -55,8 +56,8 @@ export function registerDevCommands(program: Command) {
         
         // Create example .env
         const envContent = `# Demiurge Configuration
-DEMIURGE_RPC_URL=https://rpc.demiurge.cloud
-NEXT_PUBLIC_QOR_AUTH_URL=https://demiurge.cloud/api/v1
+DEMIURGE_RPC_URL=http://127.0.0.1:9944
+NEXT_PUBLIC_QOR_AUTH_URL=http://127.0.0.1:3000/api/v1
 `;
         fs.writeFileSync(path.join(projectPath, '.env.example'), envContent);
         
@@ -80,7 +81,7 @@ npm run dev
 
 ## Documentation
 
-- [Demiurge Docs](https://demiurge.cloud/docs)
+- [Demiurge Docs](https://qorsync.dev/docs)
 - [SDK Reference](https://github.com/ALaustrup/demiurge-cloud)
 `;
         fs.writeFileSync(path.join(projectPath, 'README.md'), readmeContent);

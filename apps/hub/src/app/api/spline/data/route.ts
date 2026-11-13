@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Spline Blockchain Data Webhook
  * 
@@ -7,7 +8,7 @@
  * Setup in Spline:
  * 1. Open Variables & Data Panel
  * 2. Click APIs tab → New API
- * 3. Set URL: https://demiurge.cloud/api/spline/data
+ * 3. Set URL: http://127.0.0.1:3000/api/spline/data
  * 4. Method: GET
  * 5. Enable "Trigger on Load" for auto-updates
  * 6. Map response fields to your Spline variables
@@ -18,7 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // RPC endpoint
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud';
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:9944';
 
 interface BlockchainData {
   // Chain State

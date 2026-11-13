@@ -1,5 +1,9 @@
 # ADR-100: The project's homepage at qorsync.dev, written for search engines and AI crawlers
 
+> Editorial note, 13 November 2026: retired host/contact literals are redacted. Historical claims retain their original dates and are not current deployment evidence. ADR-130 establishes QORSYNC.DEV as the only public domain.
+
+**Current scope:** The retired-domain redirect requirement is superseded by [ADR-130](ADR-130-qorsync-is-the-public-domain.md), 13 November 2026. The historical decision below is retained.
+
 **Status:** **Accepted**, 18 October 2026, by the owner. The owner asked for the project to be found and described
 accurately in search ("Currently a forked version of the project is being displayed when searched, id like to make sure
 that information is consistant with this project as closely as possible"), chose `qorsync.dev` as the one official
@@ -13,19 +17,19 @@ from its own folder rather than a font service. **Decisions 3, 4, 5 and 7 are am
 ## Context
 
 Searching for the project found an older copy of it, `AuthorPrime/Demiurge-Blockchain`: the owner's brother's public
-repository, describing a design from before the realignment and linking to `demiurge.cloud`. The owner does not want it
+repository, describing a design from before the realignment and linking to `retired-public-host`. The owner does not want it
 removed; he wants the current project portrayed accurately beside it.
 
-On 18 October 2026 the project had no page of its own for a search engine to find. `qorsync.dev`, `demiurge.cloud` and
-`demiurge.guru`, all the owner's and all pointed at Vercel, answered 404. The repository `QOR-MATRIX/demiurge-chain` had no
+On 18 October 2026 the project had no page of its own for a search engine to find. `qorsync.dev`, `retired-public-host` and
+`retired-public-host`, all the owner's and all pointed at Vercel, answered 404. The repository `QOR-MATRIX/demiurge-chain` had no
 description or topics, and its website field named a Vercel address that answered 404. The owner's other copies
 (`Astra-Matrix/DEMIURGE-PROTOCOL`, `ALaustrup/demiurge-chain-old`, `ALaustrup/qor_qloud_demiurge`) are private and not
 indexed.
 
 ## Decision
 
-1. **`https://qorsync.dev/` is the canonical homepage.** `www.qorsync.dev`, `demiurge.cloud`, `www.demiurge.cloud`,
-   `demiurge.guru` and `www.demiurge.guru` redirect to it permanently, so links to the older copy's homepage arrive at
+1. **`https://qorsync.dev/` is the canonical homepage.** `www.qorsync.dev`, `retired-public-host`, `retired-public-host`,
+   `retired-public-host` and `retired-public-host` redirect to it permanently, so links to the older copy's homepage arrive at
    the current project.
 2. **It is a static page in `site/`**, with no framework and no build: `index.html`, `styles.css`, `main.js` and the
    files crawlers read. It is deployed by a Vercel project in the owner's team (`astramatrix`), connected to this

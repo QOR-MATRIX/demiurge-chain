@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 // Demiurge Wallet Extension - Background Service Worker
 // Handles all wallet operations and dApp communication
 
@@ -56,7 +57,7 @@ const STORAGE_KEYS = {
 // Hub URL resolver
 function getHubUrl(): string {
   return walletState.network === 'mainnet'
-    ? 'https://demiurge.cloud'
+    ? 'https://qorsync.dev'
     : 'http://localhost:3000';
 }
 

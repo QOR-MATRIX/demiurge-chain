@@ -242,6 +242,17 @@ D-008). Verified live with three validators. Its behaviour becomes the acceptanc
 
 ### 7.1 Security track (started 2026-09-14, ahead of M2)
 
+- [ ] Remediate the 13 November pinned-core audit findings before adding bridge capabilities:
+  libsqlite3-sys 0.38.2 (RUSTSEC-2026-0459), quinn-proto 0.11.18
+  (RUSTSEC-2026-0523 and RUSTSEC-2026-0524), quinn-udp 0.5.15
+  (RUSTSEC-2026-0538). Review target/feature reachability, update and test upstream,
+  then rerun the audit before a QOR OS pin change. Thirteen additional warnings
+  were reported; no exception was added. The UDP advisory excludes Linux and Windows.
+- [ ] Complete ADR-130's service-domain migration: verify hosting access, prepare
+  Social/ARQADE custom hosts, validate service protocols, then coordinate client
+  defaults, installed settings and released binaries. Source cleanup alone does not
+  complete this gate. Legacy deployment helpers remain disabled.
+
 These are defects in active code that would matter the moment anything is deployed. They are not
 migration work. Each carries forward as a requirement for the Polkadot SDK chain and QOR ID. Details are
 in [`SECURITY.md`](../SECURITY.md).

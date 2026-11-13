@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * @demiurge/drc369-sdk
  * 
@@ -8,7 +9,7 @@
  * import { Drc369Client } from '@demiurge/drc369-sdk';
  * 
  * const client = new Drc369Client({
- *   baseUrl: 'https://demiurge.cloud/api/v1/drc369',
+ *   baseUrl: 'http://127.0.0.1:3000/api/v1/drc369',
  *   token: 'your-auth-token',
  * });
  * 

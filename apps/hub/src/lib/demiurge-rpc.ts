@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Demiurge Custom Blockchain RPC Client
  * 
@@ -88,7 +89,7 @@ export class DemiurgeRpcClient {
   private rpcUrl: string;
   private requestId = 0;
 
-  constructor(rpcUrl: string = 'https://rpc.demiurge.cloud') {
+  constructor(rpcUrl: string = 'http://127.0.0.1:9944') {
     this.rpcUrl = rpcUrl;
   }
 
@@ -683,11 +684,11 @@ export class DemiurgeRpcClient {
 }
 
 // Export RPC URL configuration
-// Default to rpc.demiurge.cloud for production, fallback to localhost for development
+// Default to qorsync.dev for production, fallback to localhost for development
 export const RPC_URL = process.env.NEXT_PUBLIC_DEMIURGE_RPC_URL || 
   (typeof window !== 'undefined' && window.location?.hostname === 'localhost' 
     ? 'http://localhost:9944' 
-    : 'https://rpc.demiurge.cloud');
+    : 'http://127.0.0.1:9944');
 
 // Export singleton instance
 export const demiurgeRpc = new DemiurgeRpcClient(RPC_URL);

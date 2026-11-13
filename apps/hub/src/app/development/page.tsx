@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 'use client';
 
 import { useState } from 'react';
@@ -38,7 +39,7 @@ const docSections: DocSection[] = [
     title: 'On-Chain Information',
     description: 'The ledger speaks, revealing the truth of all transactions. From the Monad, all emanates...',
     links: [
-      { name: 'RPC Endpoint', href: 'https://rpc.demiurge.cloud', external: true },
+      { name: 'RPC Endpoint', href: 'http://127.0.0.1:9944', external: true },
       { name: 'Chain ID: demiurge-1', href: '#' },
       { name: 'Network Status', href: '/analytics' },
       { name: 'Block Explorer', href: '/explorer' },
@@ -130,7 +131,7 @@ export default function DevelopmentPage() {
             <div>
               <h3 className="text-xl font-bold text-neon-cyan mb-2">Connect to Testnet</h3>
               <code className="block glass-panel p-4 rounded font-mono text-sm">
-                RPC URL: https://rpc.demiurge.cloud
+                RPC URL: http://127.0.0.1:9944
               </code>
             </div>
             <div>

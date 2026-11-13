@@ -1,3 +1,6 @@
+# Retired before any side effects; kept for source context only.
+throw "Retired deployment helper. Use docs/architecture/HOSTING.md and ADR-130; no deployment was performed."
+
 # Deploy Frontend (Hub) to Server
 # Pulls latest code and rebuilds the Hub container
 
@@ -80,7 +83,7 @@ Write-Host "Deployment complete!" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Frontend should be available at:" -ForegroundColor Yellow
 Write-Host "  http://51.210.209.112:3000" -ForegroundColor White
-Write-Host "  https://demiurge.cloud (if Nginx is configured)" -ForegroundColor White
+Write-Host "  https://qorsync.dev (if Nginx is configured)" -ForegroundColor White
 Write-Host ""
 Write-Host "To view logs:" -ForegroundColor Gray
 Write-Host "  ssh $SSH_HOST 'docker logs demiurge-hub -f'" -ForegroundColor DarkGray

@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * NFT Store / Query API Route
  * 
@@ -7,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const RPC_ENDPOINT = process.env.DEMIURGE_RPC_URL || 'https://rpc.demiurge.cloud';
+const RPC_ENDPOINT = process.env.DEMIURGE_RPC_URL || 'http://127.0.0.1:9944';
 
 async function rpcCall(method: string, params: any[]): Promise<any> {
   const response = await fetch(RPC_ENDPOINT, {

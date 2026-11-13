@@ -48,7 +48,7 @@ Do not connect client-local scores or storage to real value. A live implementati
 
 - The chain is `chain/` in `QOR-MATRIX/demiurge-chain`, a Substrate L1; the reader uses only standard Substrate RPC methods.
 - Demiurge Devnet: `wss://rpc.qorsync.dev` (HTTP JSON-RPC on the same host), genesis `0x934e2caa36fba548ee5f51195c2d029097fbba0400e6e805ca8f3e07947a254a` (`chain/DEPLOY-RAILWAY.md`). Its CGT is test CGT.
-- The earlier `chain_getBlockNumber` adapter at `rpc.demiurge.cloud` named a method of the deleted custom chain and an address that never served this one; it is gone.
+- The earlier `chain_getBlockNumber` adapter at `qorsync.dev` named a method of the deleted custom chain and an address that never served this one; it is gone.
 
 ## Verification
 

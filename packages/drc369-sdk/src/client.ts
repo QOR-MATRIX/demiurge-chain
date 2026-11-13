@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * DRC-369 Client
  * 
@@ -55,9 +56,9 @@ export interface Drc369ClientConfig {
 }
 
 const DEFAULT_CONFIG: Required<Drc369ClientConfig> = {
-  baseUrl: 'https://demiurge.cloud/api/v1/drc369',
+  baseUrl: 'http://127.0.0.1:3000/api/v1/drc369',
   token: '',
-  wsUrl: 'wss://demiurge.cloud/ws/drc369',
+  wsUrl: 'http://127.0.0.1:3000/ws/drc369',
   timeout: 30000,
   autoReconnect: true,
   headers: {},

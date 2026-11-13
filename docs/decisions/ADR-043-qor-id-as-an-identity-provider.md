@@ -1,5 +1,7 @@
 # ADR-043: A browser frontend signs in to QOR ID by redirect, not by holding a refresh token
 
+> Editorial note, 13 November 2026: retired host/contact literals are redacted. Historical claims retain their original dates and are not current deployment evidence. ADR-130 establishes QORSYNC.DEV as the only public domain.
+
 **Status:** **Accepted**, 4 October 2026, by the project owner ("I accept ADR-069 and ADR-043 as written"),
 with [ADR-069](ADR-069-arqade-the-gaming-platform.md): ARQADE is the browser frontend decision 6 waited for, so
 items 1 to 3 may now start. Proposed 20 September 2026. **Item 4 was done before acceptance**: QOR ID answers
@@ -13,7 +15,7 @@ The assessment behind it is [`../architecture/HOSTING.md`](../architecture/HOSTI
 ## Context
 
 ADR-011 adds two browser surfaces: a public viewer and a thin remote console. Under ADR-042 they are on
-`demiurge.cloud` and QOR ID is on `qorsync.dev`. The question is how a page on one domain authenticates
+`retired-public-host` and QOR ID is on `qorsync.dev`. The question is how a page on one domain authenticates
 against a service on the other.
 
 **What the code actually does**, read on 20 September 2026:
@@ -22,7 +24,7 @@ against a service on the other.
   body, and authenticates every request from an `Authorization: Bearer …` header
   (`middleware/auth.rs:76`, `handlers/auth.rs:311`, `config.rs:92-93`).
 - **There is no cookie anywhere in the flow.** So the usual cross-domain problem — a cookie that will not
-  cross a registrable domain boundary — does not arise. A page on `demiurge.cloud` can call QOR ID
+  cross a registrable domain boundary — does not arise. A page on `retired-public-host` can call QOR ID
   cross-origin with a bearer token today.
 - **CORS allows every origin**: `CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any)`
   (`main.rs:195-199`).
@@ -83,7 +85,7 @@ every endpoint, including the launcher's.
   RFCs; whether to adopt a crate or write the endpoints is not decided here, and ADR-033 governs the
   choice if a dependency is added.
 - **If this is rejected**, the fallback is a browser frontend holding tokens in `localStorage`, and the
-  consequence should be stated plainly rather than discovered: an XSS on `demiurge.cloud` becomes account
+  consequence should be stated plainly rather than discovered: an XSS on `retired-public-host` becomes account
   takeover on QOR ID.
 
 ## What this record does not decide

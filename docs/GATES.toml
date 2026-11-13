@@ -421,7 +421,7 @@ reason = "An asset is a card now: its face carries identity and its close-up car
 date = "2026-09-22"
 type = "tightening"
 change = "market.questions counts U-15 as well as U-7, so Market cannot be met while the platform's share of a sale and the fiat rail are open. No kind's met condition, evidence rule or threshold changes; a criterion gains a unit."
-reason = "The owner asked on 2026-09-22 for a Sell path and a marketplace on demiurge.cloud settling in USD with a platform share proposed at 15%. A comment in this file already said the platform share had no question id to count; now it does. The share is recorded as the owner's proposal, not as a decided value, because AGENTS.md section 5 forbids writing an undecided economic number anywhere as decided."
+reason = "The owner asked on 2026-09-22 for a Sell path and a marketplace on the retired public host (address redacted under ADR-130) settling in USD with a platform share proposed at 15%. A comment in this file already said the platform share had no question id to count; now it does. The share is recorded as the owner's proposal, not as a decided value, because AGENTS.md section 5 forbids writing an undecided economic number anywhere as decided."
 
 [[change_log]]
 date = "2026-09-22"

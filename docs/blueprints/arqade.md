@@ -32,7 +32,7 @@ against the tree on 4 October 2026.
 | 11 | A release pipeline with its own catalogue | Market is "one listing model for games, tools, …" (P5.3) | Third-party games are Market listings of kind "game"; ARQADE plays the web-playable ones |
 | 12 | Paid play, CGT prizes, "approved budgeted funds" | No treasury (OPEN-2), no issuance (OPEN-1); a prize is not payment for work (ADR-008) | Devnet test values only. Production funding and whether paid entry may win anything is **U-16** |
 | 13 | Optional "Energy" entitlements | ADR-031 keeps fungible game items out; "Energy" was the deleted chain's fee model (D-001); the site shows USD prices for it | Energy is retired. No USD prices, no CRGT, no DMRG |
-| 14 | "Use the official Sites workflow" | The arcade is on OpenAI Sites (Cloudflare Workers, D1); this ecosystem is on Railway and `qorsync.dev` / `demiurge.cloud` | Settled 5 October 2026: Vercel, from this repository (ADR-074). Sites is no longer ARQADE's host |
+| 14 | "Use the official Sites workflow" | The arcade is on OpenAI Sites (Cloudflare Workers, D1); this ecosystem is on Railway and `qorsync.dev` / `qorsync.dev` | Settled 5 October 2026: Vercel, from this repository (ADR-074). Sites is no longer ARQADE's host |
 | 15 | Existential deposit to be "addressed" | Decided: 100 CGT (ADR-036), and a sponsor pays it (ADR-029, mechanics U-4, M4.4) | Payouts below what an account needs accrue until payable; ARQADE subsidises no account outside ADR-029's mechanism |
 
 ---
@@ -69,7 +69,7 @@ Verified on 4 October 2026: four solo games (Void Runner, Synapse, Orbital in `a
 server. Solo scores, Energy (20 a session, a free refill to 1000) and 0 to 3 tokens a game are in `localStorage`
 (`app/page.tsx:15-21`). The alias is `Explorer-` plus eight hex characters of a hash of the host's user id. `qor_id`
 is read and displayed and never written. Polling, not WebSockets. The creator is a template and the terminal runs in
-the browser. `app/api/chain/route.ts` calls the deleted chain's `chain_getBlockNumber` at `https://rpc.demiurge.cloud`.
+the browser. `app/api/chain/route.ts` calls the deleted chain's `chain_getBlockNumber` at `https://rpc.qorsync.dev`.
 The store shows USD prices for Energy and names CRGT and DMRG.
 
 **Since 19 October 2026 (P7.23, ADR-102) the site has no Energy:** no Energy store, no entry cost, no token drawn

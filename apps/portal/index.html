@@ -7,8 +7,8 @@
 
 <!-- Deploy-time configuration. Point these at the real services; the page
      reads them at runtime so this file needs no build step. -->
-<meta name="qor-auth-endpoint" content="https://auth.demiurge.cloud">
-<meta name="qor-rpc-endpoint" content="https://rpc.demiurge.cloud">
+<meta name="qor-auth-endpoint" content="http://127.0.0.1:8080">
+<meta name="qor-rpc-endpoint" content="http://127.0.0.1:9944">
 
 <style>
   :root { color-scheme: dark; }
@@ -641,10 +641,10 @@
   <footer class="foot">
     <div class="endpoint-line">
       <span>identity service</span>
-      <a href="#" id="endpointLabel">auth.demiurge.cloud</a>
+      <a href="#" id="endpointLabel">qorsync.dev</a>
       <span id="demoFlagSlot"></span>
     </div>
-    <div><a href="https://github.com/ALaustrup/demiurge-cloud">source</a> &nbsp;&middot;&nbsp; <a href="https://demiurge.cloud">demiurge.cloud</a></div>
+    <div><a href="https://github.com/ALaustrup/demiurge-cloud">source</a> &nbsp;&middot;&nbsp; <a href="https://qorsync.dev">qorsync.dev</a></div>
   </footer>
 </div>
 
@@ -667,8 +667,8 @@
   }
 
   var CFG = Object.assign({
-    authEndpoint: meta("qor-auth-endpoint", "https://auth.demiurge.cloud"),
-    rpcEndpoint:  meta("qor-rpc-endpoint",  "https://rpc.demiurge.cloud"),
+    authEndpoint: meta("qor-auth-endpoint", "http://127.0.0.1:8080"),
+    rpcEndpoint:  meta("qor-rpc-endpoint",  "http://127.0.0.1:9944"),
     demo: false
   }, window.QOR_CONFIG || {});
 

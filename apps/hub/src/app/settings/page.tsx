@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -304,7 +305,7 @@ export default function SettingsPage() {
                     <span className="text-4xl">📧</span>
                     <div>
                       <h3 className="font-semibold text-white">Your Email Address</h3>
-                      <p className="text-neon-cyan font-mono">{user?.qor_id}@demiurge.cloud</p>
+                      <p className="text-neon-cyan font-mono">{user?.qor_id}@qorsync.dev</p>
                     </div>
                   </div>
                   

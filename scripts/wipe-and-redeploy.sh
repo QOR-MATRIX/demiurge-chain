@@ -1,4 +1,8 @@
 #!/bin/bash
+# Retired before any side effects; kept for source context only.
+printf '%s\n' 'Retired deployment helper. Use docs/architecture/HOSTING.md and ADR-130; no deployment was performed.' >&2
+exit 2
+
 set -e
 
 echo "╔════════════════════════════════════════════════════════╗"
@@ -126,12 +130,12 @@ done
 
 echo ""
 echo -e "${BLUE}[9/9] Setting up SSL certificates...${NC}"
-if [ ! -f /etc/letsencrypt/live/rpc.demiurge.cloud/fullchain.pem ]; then
-    echo "Obtaining SSL certificate for rpc.demiurge.cloud..."
+if [ ! -f /etc/letsencrypt/live/qorsync.dev/fullchain.pem ]; then
+    echo "Obtaining SSL certificate for qorsync.dev..."
     docker stop demiurge-nginx 2>/dev/null || true
     certbot certonly --standalone \
-        -d rpc.demiurge.cloud \
-        --email admin@demiurge.cloud \
+        -d qorsync.dev \
+        --email [retired contact] \
         --agree-tos \
         --non-interactive || {
         echo -e "${YELLOW}⚠${NC}  SSL certificate setup failed (may need DNS check)"
@@ -140,12 +144,12 @@ if [ ! -f /etc/letsencrypt/live/rpc.demiurge.cloud/fullchain.pem ]; then
 fi
 
 # Copy certificates if they exist
-if [ -f /etc/letsencrypt/live/rpc.demiurge.cloud/fullchain.pem ]; then
-    mkdir -p "$DOCKER_DIR/ssl/rpc.demiurge.cloud"
-    cp /etc/letsencrypt/live/rpc.demiurge.cloud/fullchain.pem "$DOCKER_DIR/ssl/rpc.demiurge.cloud/"
-    cp /etc/letsencrypt/live/rpc.demiurge.cloud/privkey.pem "$DOCKER_DIR/ssl/rpc.demiurge.cloud/"
-    chmod 644 "$DOCKER_DIR/ssl/rpc.demiurge.cloud"/*.pem
-    chmod 600 "$DOCKER_DIR/ssl/rpc.demiurge.cloud/privkey.pem"
+if [ -f /etc/letsencrypt/live/qorsync.dev/fullchain.pem ]; then
+    mkdir -p "$DOCKER_DIR/ssl/qorsync.dev"
+    cp /etc/letsencrypt/live/qorsync.dev/fullchain.pem "$DOCKER_DIR/ssl/qorsync.dev/"
+    cp /etc/letsencrypt/live/qorsync.dev/privkey.pem "$DOCKER_DIR/ssl/qorsync.dev/"
+    chmod 644 "$DOCKER_DIR/ssl/qorsync.dev"/*.pem
+    chmod 600 "$DOCKER_DIR/ssl/qorsync.dev/privkey.pem"
     echo -e "${GREEN}✓${NC} SSL certificates copied"
 fi
 
@@ -165,7 +169,7 @@ echo ""
 echo "Next steps:"
 echo "  1. Check service logs: docker compose -f $DOCKER_DIR/docker-compose.production.yml logs -f"
 echo "  2. Test endpoints:"
-echo "     - https://demiurge.cloud"
-echo "     - https://rpc.demiurge.cloud"
-echo "  3. Verify SSL: curl -I https://rpc.demiurge.cloud"
+echo "     - https://qorsync.dev"
+echo "     - https://rpc.qorsync.dev"
+echo "  3. Verify SSL: curl -I https://rpc.qorsync.dev"
 echo ""

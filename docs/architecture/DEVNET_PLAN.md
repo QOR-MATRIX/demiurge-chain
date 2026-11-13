@@ -159,7 +159,7 @@ owner picks (§9).
   private network. No peer-to-peer port faces the internet. A public bootnode is needed only when outside
   nodes join, which is the public testnet (Beta), not Alpha.
 - **The launcher's default is `wss://rpc.qorsync.dev` since 3 October 2026**
-  (`tools/qor-launcher/src-tauri/src/chain/mod.rs`); it was `wss://rpc.demiurge.cloud`, which served nothing.
+  (`tools/qor-launcher/src-tauri/src/chain/mod.rs`); it was `wss://rpc.qorsync.dev`, which served nothing.
 
 ---
 

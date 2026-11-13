@@ -237,7 +237,7 @@ holder can write them, so how many can exist is already bounded by the assets, w
 ### U-15: the platform's share of a sale, and whether it may be taken in fiat
 
 On 22 September 2026 the owner asked for a Sell path that posts an asset to a marketplace every on-chain user can
-see, and for a marketplace on demiurge.cloud that settles in USD "with a small fixed 15% fee per asset
+see, and for a marketplace on qorsync.dev that settles in USD "with a small fixed 15% fee per asset
 transaction". The share and the rail are both open, and they are different questions.
 
 **The share.** Fifteen percent is the owner's proposal, recorded here as a proposal and written nowhere as a

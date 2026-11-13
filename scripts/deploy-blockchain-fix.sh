@@ -1,4 +1,8 @@
 #!/bin/bash
+# Retired before any side effects; kept for source context only.
+printf '%s\n' 'Retired deployment helper. Use docs/architecture/HOSTING.md and ADR-130; no deployment was performed.' >&2
+exit 2
+
 # Deploy Blockchain Connection Fix
 # Run this script on the server: sudo bash deploy-blockchain-fix.sh
 
@@ -77,7 +81,7 @@ echo ""
 echo "✅ Deployment complete!"
 echo ""
 echo "🧪 Testing:"
-echo "   1. Visit https://demiurge.cloud"
+echo "   1. Visit https://qorsync.dev"
 echo "   2. Check browser console for [Blockchain] logs"
 echo "   3. Verify blockchain status banner disappears"
 echo ""

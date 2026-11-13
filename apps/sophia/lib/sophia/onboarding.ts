@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Sophia Onboarding & Getting Started Flows
  *
@@ -68,7 +69,7 @@ const USER_STEPS: Omit<OnboardingStep, 'stepNumber' | 'totalSteps' | 'path'>[] =
       'Visit the Block Explorer to see real-time chain activity.',
       'Try asking me "What is the latest block?" or "How many validators are active?"',
     ],
-    codeExample: '// Using the Demiurge SDK\nimport { DemiurgeSDK } from \'@demiurge/sdk\';\n\nconst sdk = new DemiurgeSDK({ rpcUrl: \'https://rpc.demiurge.cloud\' });\nconst balance = await sdk.getBalance(\'0xYourAddress\');\nconsole.log(`Balance: ${balance.free} CGT`);',
+    codeExample: '// Using the Demiurge SDK\nimport { DemiurgeSDK } from \'@demiurge/sdk\';\n\nconst sdk = new DemiurgeSDK({ rpcUrl: \'http://127.0.0.1:9944\' });\nconst balance = await sdk.getBalance(\'0xYourAddress\');\nconsole.log(`Balance: ${balance.free} CGT`);',
     codeLanguage: 'typescript',
     tips: [
       'The Block Explorer shows real-time data via WebSockets.',
@@ -138,7 +139,7 @@ const DEVELOPER_STEPS: Omit<OnboardingStep, 'stepNumber' | 'totalSteps' | 'path'
       'Create a new project or add the SDK to an existing one.',
       'Configure the RPC endpoint for testnet or mainnet.',
     ],
-    codeExample: '# Install the SDK\nnpm install @demiurge/sdk\n\n# Or with yarn\nyarn add @demiurge/sdk\n\n# Create a basic client\ncat > index.ts << \'EOF\'\nimport { DemiurgeSDK } from \'@demiurge/sdk\';\n\nconst sdk = new DemiurgeSDK({\n  rpcUrl: \'https://testnet-rpc.demiurge.cloud\',\n  wsUrl: \'wss://testnet-rpc.demiurge.cloud\',\n});\n\n// Get latest block\nconst block = await sdk.getLatestBlock();\nconsole.log(\'Latest block:\', block.number);\nEOF',
+    codeExample: '# Install the SDK\nnpm install @demiurge/sdk\n\n# Or with yarn\nyarn add @demiurge/sdk\n\n# Create a basic client\ncat > index.ts << \'EOF\'\nimport { DemiurgeSDK } from \'@demiurge/sdk\';\n\nconst sdk = new DemiurgeSDK({\n  rpcUrl: \'http://127.0.0.1:9944\',\n  wsUrl: \'ws://127.0.0.1:9944\',\n});\n\n// Get latest block\nconst block = await sdk.getLatestBlock();\nconsole.log(\'Latest block:\', block.number);\nEOF',
     codeLanguage: 'bash',
     tips: [
       'Use the testnet (Kenoma) for development — it\'s free and resets periodically.',
@@ -150,11 +151,11 @@ const DEVELOPER_STEPS: Omit<OnboardingStep, 'stepNumber' | 'totalSteps' | 'path'
     title: 'Connect to the Testnet (Kenoma)',
     description: 'The testnet — called Kenoma (the Void) — is your sandbox for experimentation.',
     instructions: [
-      'The testnet RPC is available at https://testnet-rpc.demiurge.cloud',
+      'The testnet RPC is available at http://127.0.0.1:9944',
       'Use the faucet to get test CGT tokens.',
       'Run your first query to verify the connection.',
     ],
-    codeExample: 'import { DemiurgeSDK } from \'@demiurge/sdk\';\n\nconst sdk = new DemiurgeSDK({\n  rpcUrl: \'https://testnet-rpc.demiurge.cloud\',\n});\n\n// Verify connection\nconst health = await sdk.getHealth();\nconsole.log(\'Connected:\', health.peers, \'peers\');\n\n// Get test tokens from faucet\nconst faucet = await sdk.faucet.drip(\'0xYourTestAddress\');\nconsole.log(\'Faucet TX:\', faucet.hash);',
+    codeExample: 'import { DemiurgeSDK } from \'@demiurge/sdk\';\n\nconst sdk = new DemiurgeSDK({\n  rpcUrl: \'http://127.0.0.1:9944\',\n});\n\n// Verify connection\nconst health = await sdk.getHealth();\nconsole.log(\'Connected:\', health.peers, \'peers\');\n\n// Get test tokens from faucet\nconst faucet = await sdk.faucet.drip(\'0xYourTestAddress\');\nconsole.log(\'Faucet TX:\', faucet.hash);',
     codeLanguage: 'typescript',
     tips: [
       'Kenoma resets periodically — don\'t store important data on testnet.',
@@ -170,7 +171,7 @@ const DEVELOPER_STEPS: Omit<OnboardingStep, 'stepNumber' | 'totalSteps' | 'path'
       'DRC-369 NFTs support physics properties, XP, leveling, and nesting.',
       'The NFT will be visible in the Explorer immediately after block confirmation.',
     ],
-    codeExample: 'import { DemiurgeSDK } from \'@demiurge/sdk\';\n\nconst sdk = new DemiurgeSDK({\n  rpcUrl: \'https://testnet-rpc.demiurge.cloud\',\n  privateKey: process.env.PRIVATE_KEY,\n});\n\nconst nft = await sdk.drc369.mint({\n  name: \'My First NFT\',\n  description: \'A test NFT on Kenoma\',\n  metadata: {\n    image: \'ipfs://QmTest...\',\n    attributes: { rarity: \'common\' },\n  },\n  physics: {\n    mass: 1.0,\n    velocity: { x: 0, y: 0 },\n  },\n});\n\nconsole.log(\'Minted NFT:\', nft.tokenId);',
+    codeExample: 'import { DemiurgeSDK } from \'@demiurge/sdk\';\n\nconst sdk = new DemiurgeSDK({\n  rpcUrl: \'http://127.0.0.1:9944\',\n  privateKey: process.env.PRIVATE_KEY,\n});\n\nconst nft = await sdk.drc369.mint({\n  name: \'My First NFT\',\n  description: \'A test NFT on Kenoma\',\n  metadata: {\n    image: \'ipfs://QmTest...\',\n    attributes: { rarity: \'common\' },\n  },\n  physics: {\n    mass: 1.0,\n    velocity: { x: 0, y: 0 },\n  },\n});\n\nconsole.log(\'Minted NFT:\', nft.tokenId);',
     codeLanguage: 'typescript',
     tips: [
       'Metadata is stored on-chain for small payloads; use IPFS for large media.',
@@ -186,7 +187,7 @@ const DEVELOPER_STEPS: Omit<OnboardingStep, 'stepNumber' | 'totalSteps' | 'path'
       'Each agent gets its own wallet with configurable spending limits.',
       'Agents can read chain data, execute transactions, and communicate with other agents.',
     ],
-    codeExample: 'import { AgentFoundry } from \'@demiurge/agent-foundry\';\n\nconst foundry = new AgentFoundry({\n  rpcUrl: \'https://testnet-rpc.demiurge.cloud\',\n  privateKey: process.env.DEPLOYER_KEY,\n});\n\nconst agent = await foundry.deploy({\n  name: \'my-analytics-bot\',\n  description: \'Analyzes on-chain data and reports trends\',\n  model: \'grok\',\n  capabilities: [\'read\', \'analyze\'],\n  autonomy: \'bounded\',\n  spendingLimit: { daily: 50, perTx: 10 },\n});\n\nconsole.log(\'Agent DID:\', agent.did);\nconsole.log(\'Agent wallet:\', agent.walletAddress);',
+    codeExample: 'import { AgentFoundry } from \'@demiurge/agent-foundry\';\n\nconst foundry = new AgentFoundry({\n  rpcUrl: \'http://127.0.0.1:9944\',\n  privateKey: process.env.DEPLOYER_KEY,\n});\n\nconst agent = await foundry.deploy({\n  name: \'my-analytics-bot\',\n  description: \'Analyzes on-chain data and reports trends\',\n  model: \'grok\',\n  capabilities: [\'read\', \'analyze\'],\n  autonomy: \'bounded\',\n  spendingLimit: { daily: 50, perTx: 10 },\n});\n\nconsole.log(\'Agent DID:\', agent.did);\nconsole.log(\'Agent wallet:\', agent.walletAddress);',
     codeLanguage: 'typescript',
     tips: [
       'Start with "bounded" autonomy — the agent can act but within limits.',
@@ -224,7 +225,7 @@ const VALIDATOR_STEPS: Omit<OnboardingStep, 'stepNumber' | 'totalSteps' | 'path'
       'Generate your validator keys using the built-in key management.',
       'Configure the node with your network settings.',
     ],
-    codeExample: '# Install from release\nwget https://releases.demiurge.cloud/latest/demiurge-node\nchmod +x demiurge-node\n\n# Generate validator keys\n./demiurge-node keys generate --output validator-keys.json\n\n# Start the node\n./demiurge-node \\\n  --name "MyValidator" \\\n  --validator \\\n  --rpc-port 9944 \\\n  --p2p-port 30333 \\\n  --data-dir /data/demiurge \\\n  --bootnodes /ip4/51.210.209.112/tcp/30333/p2p/...',
+    codeExample: '# Install from release\nwget http://127.0.0.1:3000/latest/demiurge-node\nchmod +x demiurge-node\n\n# Generate validator keys\n./demiurge-node keys generate --output validator-keys.json\n\n# Start the node\n./demiurge-node \\\n  --name "MyValidator" \\\n  --validator \\\n  --rpc-port 9944 \\\n  --p2p-port 30333 \\\n  --data-dir /data/demiurge \\\n  --bootnodes /ip4/51.210.209.112/tcp/30333/p2p/...',
     codeLanguage: 'bash',
     tips: [
       'Use a systemd service for automatic restart on failure.',

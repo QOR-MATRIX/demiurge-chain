@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 // Demiurge Wallet Extension - Shared Types
 
 // Account types
@@ -40,17 +41,17 @@ export const NETWORKS: Record<string, NetworkConfig> = {
   mainnet: {
     id: 'mainnet',
     name: 'Demiurge Mainnet',
-    rpcUrl: 'https://rpc.demiurge.cloud',
+    rpcUrl: 'http://127.0.0.1:9944',
     chainId: 'demiurge-mainnet',
-    explorerUrl: 'https://explorer.demiurge.cloud',
+    explorerUrl: 'https://qorsync.dev',
     isTestnet: false,
   },
   testnet: {
     id: 'testnet',
     name: 'Demiurge Testnet',
-    rpcUrl: 'https://testnet-rpc.demiurge.cloud',
+    rpcUrl: 'http://127.0.0.1:9944',
     chainId: 'demiurge-testnet',
-    explorerUrl: 'https://testnet-explorer.demiurge.cloud',
+    explorerUrl: 'https://qorsync.dev',
     isTestnet: true,
   },
   local: {

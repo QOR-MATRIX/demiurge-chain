@@ -2390,7 +2390,7 @@ mod tests {
         let refused = confirm_endpoint_changes(
             &declining,
             &[EndpointChange::chain(
-                "https://rpc.demiurge.cloud".into(),
+                "https://rpc.qorsync.dev".into(),
                 "https://attacker.example",
             )],
         )
@@ -2402,7 +2402,7 @@ mod tests {
             let asked = declining.asked.lock();
             assert_eq!(asked.len(), 1);
             assert!(
-                asked[0].body.contains("https://rpc.demiurge.cloud")
+                asked[0].body.contains("https://rpc.qorsync.dev")
                     && asked[0].body.contains("https://attacker.example"),
                 "the prompt names both the current and the requested endpoint"
             );
@@ -2412,7 +2412,7 @@ mod tests {
         confirm_endpoint_changes(
             &approving,
             &[EndpointChange::identity(
-                "https://demiurge.cloud/api/v1".into(),
+                "https://id.qorsync.dev/api/v1".into(),
                 "http://127.0.0.1:8080/api/v1",
             )],
         )

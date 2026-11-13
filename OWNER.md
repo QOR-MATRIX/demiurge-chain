@@ -1,42 +1,38 @@
-# Where Demiurge stands
+# Where the network and Launcher stand
 
-For Andrew, 31 October 2026. One page, rewritten every session.
+For Andrew, 13 November 2026. Source work is on `session/qorsync-domains`, based
+on upstream `74a1014`; it is not a release or deployed update.
 
-## What Demiurge is
+## Domain and developer access
 
-A blockchain that pays makers when their work is used, and a desktop launcher to use it.
-The currency, **CGT**, is for spending, not holding. **QOR OS** — *your operating system,
-private repository* — is built on it. Code: `github.com/QOR-MATRIX/demiurge-chain`.
+QORSYNC.DEV is the only public domain, with service subdomains retained on your
+instruction. ADR-130, the numbered decision, replaces the old split. Retired host
+literals were removed from current tracked text, and historical redactions are
+labelled. Stable application and credential-store identifiers remain unchanged.
 
-## Live today (checked this session, from outside)
+Launcher Developers now points to QOR OS's guide, with repository access required.
+Six frozen web tiles no longer offer dead destinations. Old clients remain
+unsupported; their obsolete network examples use loopback, this machine only.
+Old deployment helpers refuse before changing a host. No new framework was added.
 
-**qorsync.dev**, with **QOR Mobile 0.1.0** and the **QOR Launcher 0.1.17** to download;
-**Devnet** — *the test chain on servers* — on code version 11 with two **peers** — *other
-nodes it talks to*; **QOR ID** — *the one sign-in*; **Social** — *the chat service*, at its
-Railway address; **ARQADE** — *the gaming website*.
+Vercel returned verified domain assignments for the homepage and its `www`
+redirect. DNS, the domain routing records, uses Cloudflare. The connected Vercel
+account cannot open the assigned project, so this is not a live-site acceptance.
+Social and ARQADE still need their service hosts migrated and tested; installed
+settings, mail and released clients need separate verification. None was changed.
 
-## This session
+## Security and next work
 
-1. **You merged #116**: the restated homepage (**ADR-128** — *a numbered decision record*)
-   is live, read from outside.
-2. **Two of QOR OS's new games are named**, by you: Ever Rift and Darkveil. Their rules,
-   tests and recorded runs come here (**ADR-129**), so ARQADE's server can one day confirm
-   their runs. The games stay in QOR OS, and nothing on the website or in the launcher
-   changes. It is on the **branch** — *changes not yet in `main`* —
-   `session/ever-rift-and-darkveil`, in its **pull request** — *a request to merge it*.
+QOR OS's core dependency audit found four vulnerability advisories and 13 warnings
+in versions still locked here. The affected libraries are libsqlite3-sys,
+quinn-proto and quinn-udp. The UDP issue excludes Linux and Windows; other
+reachability still needs review. No advisory was ignored and no exploit is claimed.
 
-## What only you can do
+The core bridge, the shell's command interface, still has only four version/amount
+commands. Remediate dependencies before extending Launcher/DRC-369 asset and agent
+capabilities. QOR OS owns native product development; this repository owns the core,
+network and Launcher. No key, payment, runtime or consensus behavior changed.
 
-1. **Merge the games' pull request.** It changes nothing anyone sees.
-2. **Back up the test key**, `%USERPROFILE%\.qor-launcher\android\`, off this PC. Lose
-   it, and testers must uninstall before the next release.
-3. **Try QOR Mobile on your phone**: it has run only on the emulator.
-4. **The rest carried from before** is HANDOFF §4.0: the economic numbers, the legal
-   work, code signing, an outside security review, and the names still to choose.
-
-**Next in engineering:** keys on Android (L13.3), so QOR Mobile can hold a wallet.
-
-## Cost per month
-
-As recorded: the homepage and ARQADE use Vercel's **Hobby plan** — *a non-commercial tier*
-(HANDOFF §4.0); Railway's cost is not yet measured (SYSTEMS).
+Source-policy, Launcher-link and homepage validation are recorded in the handoff.
+Full native builds, service acceptance and a replacement release are separate gates.
+See `docs/DIRECTION.md` for the plan and `docs/SYSTEMS.md` for verified source routes.

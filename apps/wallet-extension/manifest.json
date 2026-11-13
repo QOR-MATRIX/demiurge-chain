@@ -47,8 +47,8 @@
   ],
   "host_permissions": [
     "http://localhost:*/*",
-    "https://*.demiurge.cloud/*",
-    "https://*.demiurge.io/*"
+    "http://127.0.0.1/*",
+    "http://localhost/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"

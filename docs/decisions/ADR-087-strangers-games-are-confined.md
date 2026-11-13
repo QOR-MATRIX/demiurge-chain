@@ -1,5 +1,7 @@
 # ADR-087: A stranger's QQ game plays in the browser, from a site of its own, on a locked-down Player
 
+> Editorial note, 13 November 2026: retired host/contact literals are redacted. Historical claims retain their original dates and are not current deployment evidence. ADR-130 establishes QORSYNC.DEV as the only public domain.
+
 **Status:** **Accepted**, 10 October 2026, by the project owner, who agreed to the recommendation in
 [`../architecture/QQ_LOGIC_SANDBOX.md`](../architecture/QQ_LOGIC_SANDBOX.md) and to the advice given on its four
 questions: "Yes I agree with recommended next steps."
@@ -25,7 +27,7 @@ ARQADE delivery (P3.5) put strangers' games in front of players, so how a game i
 3. **The native Player plays the person's own projects**, and a game they open from a folder of their own. Native play
    of other people's games waits for an operating-system sandbox, decided on its own when players ask for it or the
    browser's limits matter.
-4. **Games are served from a site of their own**, never a subdomain of `qorsync.dev`, `demiurge.cloud` or ARQADE's
+4. **Games are served from a site of their own**, never a subdomain of `qorsync.dev`, `retired-public-host` or ARQADE's
    address, which would share cookies with them. To start, a separate Vercel project on its own `*.vercel.app` address
    (a separate site to the browser), sending the cross-origin-isolation headers the Player needs (ADR-084); its file-size
    limits are confirmed when it is set up (the Player is a 43.8 MB file). **Before commercial launch, a registered domain

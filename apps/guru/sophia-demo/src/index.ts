@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 #!/usr/bin/env tsx
 
 import 'dotenv/config'
@@ -39,10 +40,10 @@ async function main() {
 
   const sophia = new Sophia({
     openaiApiKey: process.env.OPENAI_API_KEY!,
-    qorAuthUrl: process.env.QOR_AUTH_URL || 'https://auth.demiurge.cloud/api/v1',
-    rpcUrl: process.env.RPC_URL || 'wss://rpc.demiurge.cloud',
-    rpcHttpUrl: process.env.RPC_HTTP_URL || 'https://rpc.demiurge.cloud',
-    bugReportEmail: process.env.BUG_REPORT_EMAIL || 'alaustrup@demiurge.cloud',
+    qorAuthUrl: process.env.QOR_AUTH_URL || 'http://127.0.0.1:8080/api/v1',
+    rpcUrl: process.env.RPC_URL || 'ws://127.0.0.1:9944',
+    rpcHttpUrl: process.env.RPC_HTTP_URL || 'http://127.0.0.1:9944',
+    bugReportEmail: process.env.BUG_REPORT_EMAIL || '',
   })
 
   console.log('\n✅ Sophia initialized and ready!\n')

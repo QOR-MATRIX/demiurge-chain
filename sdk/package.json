@@ -34,14 +34,14 @@
     "web3",
     "sdk"
   ],
-  "author": "Demiurge-Cloud <dev@demiurge.cloud>",
+  "author": "Demiurge-Cloud",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/ALaustrup/demiurge-cloud.git",
     "directory": "sdk"
   },
-  "homepage": "https://demiurge.cloud",
+  "homepage": "https://qorsync.dev",
   "bugs": {
     "url": "https://github.com/ALaustrup/demiurge-cloud/issues"
   },

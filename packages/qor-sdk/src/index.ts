@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 import axios, { AxiosInstance } from 'axios';
 
 // Export leveling system
@@ -14,8 +15,8 @@ function getDefaultApiUrl(): string {
   // Check if we're in browser environment
   if (typeof globalThis !== 'undefined' && 'window' in globalThis) {
     const win = (globalThis as any).window;
-    if (win?.location?.hostname === 'demiurge.cloud') {
-      return 'https://demiurge.cloud/api/v1';
+    if (win?.location?.hostname === 'qorsync.dev') {
+      return 'http://127.0.0.1:3000/api/v1';
     }
   }
   return 'http://localhost:8080/api/v1';

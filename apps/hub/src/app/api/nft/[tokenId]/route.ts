@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * NFT Query by Token ID
  * 
@@ -6,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const RPC_ENDPOINT = process.env.DEMIURGE_RPC_URL || 'https://rpc.demiurge.cloud';
+const RPC_ENDPOINT = process.env.DEMIURGE_RPC_URL || 'http://127.0.0.1:9944';
 
 export async function GET(
   request: NextRequest,

@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 // Copyright Demiurge-Cloud. All Rights Reserved.
 
 #pragma once
@@ -20,7 +21,7 @@ class IWebSocket;
  * 
  * Usage:
  *   UDemiurgeClient* Client = GetGameInstance()->GetSubsystem<UDemiurgeClient>();
- *   Client->Connect("https://rpc.demiurge.cloud");
+ *   Client->Connect("http://127.0.0.1:9944");
  */
 UCLASS(BlueprintType)
 class DEMIURGESDK_API UDemiurgeClient : public UGameInstanceSubsystem
@@ -42,7 +43,7 @@ public:
 
 	/**
 	 * Connect to a Demiurge RPC endpoint
-	 * @param RpcUrl The RPC endpoint URL (e.g., "https://rpc.demiurge.cloud")
+	 * @param RpcUrl The RPC endpoint URL (e.g., "http://127.0.0.1:9944")
 	 * @param WsUrl Optional WebSocket URL for real-time updates
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Demiurge|Connection")

@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 import OpenAI from 'openai'
 import * as readlineSync from 'readline-sync'
 
@@ -255,12 +256,12 @@ Reputation Multipliers:
 # NETWORK & INFRASTRUCTURE
 
 ## RPC Endpoints
-- Production: https://rpc.demiurge.cloud
-- WebSocket: wss://rpc.demiurge.cloud
+- Production: http://127.0.0.1:9944
+- WebSocket: ws://127.0.0.1:9944
 - Local: http://localhost:9944
 
 ## QOR Auth Service
-- Production: https://auth.demiurge.cloud/api/v1
+- Production: http://127.0.0.1:8080/api/v1
 - Framework: Rust 2024 + Axum
 - Database: PostgreSQL 18
 - Cache: Redis 7.4+

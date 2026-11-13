@@ -1,4 +1,8 @@
 #!/bin/bash
+# Retired before any side effects; kept for source context only.
+printf '%s\n' 'Retired deployment helper. Use docs/architecture/HOSTING.md and ADR-130; no deployment was performed.' >&2
+exit 2
+
 # =============================================================================
 # Demiurge-Cloud - Production Deployment Script
 # =============================================================================
@@ -183,9 +187,9 @@ health_check() {
     
     echo ""
     log_info "Checking endpoints..."
-    echo "Hub: $(curl -s -o /dev/null -w '%{http_code}' https://demiurge.cloud)"
-    echo "Auth: $(curl -s -o /dev/null -w '%{http_code}' https://demiurge.cloud/health)"
-    echo "RPC: $(curl -s -o /dev/null -w '%{http_code}' https://rpc.demiurge.cloud)"
+    echo "Hub: $(curl -s -o /dev/null -w '%{http_code}' https://qorsync.dev)"
+    echo "Auth: $(curl -s -o /dev/null -w '%{http_code}' https://qorsync.dev/health)"
+    echo "RPC: $(curl -s -o /dev/null -w '%{http_code}' https://rpc.qorsync.dev)"
     
     log_success "Health check complete"
 }

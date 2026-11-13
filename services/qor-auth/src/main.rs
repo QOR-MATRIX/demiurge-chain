@@ -25,11 +25,11 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::{
-    Router,
     extract::{Request, State},
     http::HeaderValue,
-    middleware::{Next, from_fn, from_fn_with_state},
+    middleware::{from_fn, from_fn_with_state, Next},
     routing::{get, post},
+    Router,
 };
 use sqlx::postgres::PgPoolOptions;
 use tower_http::{
@@ -470,7 +470,7 @@ async fn shutdown_signal() {
 mod cors_tests {
     use super::*;
     use axum::body::Body;
-    use axum::http::{Request, StatusCode, header};
+    use axum::http::{header, Request, StatusCode};
     use tower::ServiceExt;
 
     /// A router carrying only the real CORS layer, so the policy is tested and
@@ -507,19 +507,16 @@ mod cors_tests {
     /// such header at all, so the browser refuses the response.
     #[tokio::test]
     async fn an_origin_that_is_not_configured_is_not_allowed() {
-        let allowed = allow_origin_header(
-            vec!["https://id.demiurge.cloud"],
-            "https://id.demiurge.cloud",
-        )
-        .await;
+        let allowed =
+            allow_origin_header(vec!["https://id.qorsync.dev"], "https://id.qorsync.dev").await;
         assert_eq!(
             allowed.as_deref(),
-            Some("https://id.demiurge.cloud"),
+            Some("https://id.qorsync.dev"),
             "a configured origin must be allowed, or the allowlist is useless"
         );
 
         let refused =
-            allow_origin_header(vec!["https://id.demiurge.cloud"], "https://evil.example").await;
+            allow_origin_header(vec!["https://id.qorsync.dev"], "https://evil.example").await;
         assert_eq!(
             refused, None,
             "an unconfigured origin must get no Access-Control-Allow-Origin header"
@@ -531,11 +528,9 @@ mod cors_tests {
     #[tokio::test]
     async fn the_policy_never_answers_with_a_wildcard() {
         for asking in ["https://evil.example", "http://localhost:1420", "null"] {
-            let header = allow_origin_header(
-                vec!["http://localhost:1420", "https://console.demiurge.cloud"],
-                asking,
-            )
-            .await;
+            let header =
+                allow_origin_header(vec!["http://localhost:1420", "https://qorsync.dev"], asking)
+                    .await;
             assert_ne!(
                 header.as_deref(),
                 Some("*"),
