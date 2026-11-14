@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * IPFS Upload API Route
  * Server-side uploads to protect API keys
@@ -150,7 +151,7 @@ export async function POST(request: NextRequest) {
       await writeFile(filepath, buffer);
 
       // Return local URL (served by static route or nginx)
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://demiurge.cloud';
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://qorsync.dev';
       const localUrl = `${baseUrl}/api/media/${filename}`;
 
       return NextResponse.json({

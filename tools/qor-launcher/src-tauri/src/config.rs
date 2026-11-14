@@ -8,9 +8,10 @@
 //! are unreachable the app is stuck at the Gate with no way to change them,
 //! because Settings lives *behind* sign-in.
 //!
-//! That is exactly what happened. `rpc.demiurge.cloud` and `demiurge.cloud` are
-//! both currently unreachable, so every ordinary launch produced an app that
-//! could not connect and offered no way to say where to connect instead.
+//! Early defaults named now-retired hosts. In September 2026 they were
+//! unreachable, so an ordinary launch could not connect and offered no way
+//! to say where to connect instead. This is historical context, not a probe
+//! of the current QORSYNC.DEV services (ADR-130).
 //!
 //! Settings are therefore written to disk next to the vault, changeable from the
 //! Gate, and loaded before anything tries to reach the network.
@@ -290,7 +291,7 @@ mod tests {
     #[test]
     fn rejects_non_http_urls() {
         assert!(is_http_url("http://127.0.0.1:9944"));
-        assert!(is_http_url("https://rpc.demiurge.cloud"));
+        assert!(is_http_url("https://rpc.qorsync.dev"));
 
         for bad in ["ws://localhost", "file:///etc/passwd", "127.0.0.1:9944", ""] {
             assert!(!is_http_url(bad), "{bad:?} should be rejected");

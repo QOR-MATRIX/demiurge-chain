@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 import { NextRequest, NextResponse } from 'next/server';
 import { createSubscriptionCheckoutSession } from '@/lib/stripe';
 import { SUBSCRIPTION_TIERS, getSubscriptionTierByLevel, getTierByLevel, formatAmount } from '@/lib/donation-tiers';
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
     const effectiveTier = getTierByLevel(subscriptionTier.effectiveTier);
 
     // Create Stripe Subscription Checkout Session
-    const origin = request.headers.get('origin') || 'https://demiurge.cloud';
+    const origin = request.headers.get('origin') || 'https://qorsync.dev';
     const session = await createSubscriptionCheckoutSession({
       userId,
       userEmail,

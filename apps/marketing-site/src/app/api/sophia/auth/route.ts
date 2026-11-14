@@ -1,6 +1,7 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 import { NextRequest, NextResponse } from 'next/server'
 
-const QOR_AUTH_URL = process.env.NEXT_PUBLIC_QOR_AUTH_URL || 'https://auth.demiurge.cloud/api/v1'
+const QOR_AUTH_URL = process.env.NEXT_PUBLIC_QOR_AUTH_URL || 'http://127.0.0.1:8080/api/v1'
 
 export async function POST(request: NextRequest) {
   try {

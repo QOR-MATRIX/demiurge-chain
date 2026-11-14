@@ -1,4 +1,8 @@
 #!/bin/bash
+# Retired before any side effects; kept for source context only.
+printf '%s\n' 'Retired deployment helper. Use docs/architecture/HOSTING.md and ADR-130; no deployment was performed.' >&2
+exit 2
+
 # =============================================================================
 # Demiurge Email Setup Script (Bash)
 # =============================================================================
@@ -35,7 +39,7 @@ if [ -z "$RESEND_API_KEY" ] || [[ ! "$RESEND_API_KEY" == re_* ]]; then
 fi
 
 # Optional: custom from email
-FROM_EMAIL="${2:-noreply@demiurge.cloud}"
+FROM_EMAIL="${2:[retired contact]}"
 FROM_NAME="${3:-Demiurge-Cloud}"
 
 # Create secrets file
@@ -54,7 +58,7 @@ SMTP_USERNAME=resend
 SMTP_PASSWORD=$RESEND_API_KEY
 SMTP_FROM_EMAIL=$FROM_EMAIL
 SMTP_FROM_NAME=$FROM_NAME
-BASE_URL=https://demiurge.cloud
+BASE_URL=https://qorsync.dev
 EOF
 
 chmod 600 "$SECRETS_PATH"

@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -282,7 +283,7 @@ export const MiningSystem: React.FC = () => {
                             +{reward.amount}
                           </p>
                           <a
-                            href={`https://explorer.demiurge.cloud/tx/${reward.txHash}`}
+                            href={`https://qorsync.dev/tx/${reward.txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-primary-400 hover:text-primary-300 truncate max-w-32"

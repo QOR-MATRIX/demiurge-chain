@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -232,7 +233,7 @@ export function OnChainFeedWidget() {
 
         {/* View More */}
         <a
-          href="https://explorer.demiurge.cloud"
+          href="https://qorsync.dev"
           target="_blank"
           rel="noopener noreferrer"
           className="block mt-4 text-center text-xs text-demiurge-violet hover:underline"

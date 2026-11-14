@@ -33,7 +33,7 @@ including from git history (D-012).
 | [`docs/blueprints/library.md`](blueprints/library.md) | The Library and QOR Media: everything a person has in one SteamOS-like view in the launcher, the index of their chosen folders, and a Qt 6 player, viewer and editor docked inside the launcher. ADR-094 (accepted 16 October 2026), L9. L9.1 to L9.4 in `main` since #37 (17 October 2026) |
 | [`docs/blueprints/mesh.md`](blueprints/mesh.md) | The Mesh: a peer-to-peer network inside every launcher on iroh that holds published work and each person's encrypted private backup, seeding opt-in with the person's limits, seeders paid from the uploader's hosting escrow for proven work, and the order of building. ADR-095, ADR-096 and ADR-097 (accepted 17 October 2026), L10. L10.1 to L10.4 built and merged with #40 (17 October 2026), live on the devnet since runtime 9 |
 | [`products/arqade/sdk/README.md`](../products/arqade/sdk/README.md) | The ARQADE SDK: what exists (CGT amounts as integer embers, ARQ Wallet policy checks), what is proposed and what each waits on. Unpublished; names are placeholders |
-| [`site/README.md`](../site/README.md) | The homepage at qorsync.dev (ADR-100), leading with QOR OS (ADR-123): what each file is, how to check it, how it is published, and what changes with a launcher release or with QOR OS's facts |
+| [`site/README.md`](../site/README.md) | Frozen homepage source; contribution, build and hosting move to QOR-MATRIX/QOR-OS (ADR-132) |
 | [`products/arqade/sdk/docs/arq-wallet.md`](../products/arqade/sdk/docs/arq-wallet.md) | For game developers: ARQ Wallets, one keyless payout account per published game, and "ignition", how to unlock one. ADR-070, accepted; built on the chain (`pallet-arq-wallet`) and live on Demiurge Devnet |
 | [`products/arqade/sdk/docs/publishing.md`](../products/arqade/sdk/docs/publishing.md) | For game developers: self-publishing on ARQADE, the four stages and their checks, prices up to 10,000 CGT, in-game items. ADR-071, accepted; the checks are built |
 | [`products/arqade/sdk/docs/backing.md`](../products/arqade/sdk/docs/backing.md) | For game developers: backing in CGT (campaigns, memberships, tips), rewards and never proceeds. ADR-071, accepted; tips are live (ARQADE's own games, devnet test CGT, paid through the launcher); campaigns and memberships are not built |
@@ -44,7 +44,7 @@ including from git history (D-012).
 | [`products/arqade/IMPLEMENTATION.md`](../products/arqade/IMPLEMENTATION.md) | ARQADE's own record of what is built in `products/arqade/` and what is not, kept with the code |
 | [`products/arqade/INTEGRATION_INVENTORY.md`](../products/arqade/INTEGRATION_INVENTORY.md) | Every ARQADE control, statistic, status and terminal command: its source of truth, permission, persistence, failure behaviour and verification (P7.1) |
 | [`docs/REALIGNMENT-2026-09-21.md`](REALIGNMENT-2026-09-21.md) | A dated record of the 21 September 2026 realignment: what was measured, what was found false, the fix list in three buckets, and whether the asset work can start |
-| [`docs/architecture/HOSTING.md`](architecture/HOSTING.md) | Where every component is hosted, the subdomain map for `qorsync.dev` and `demiurge.cloud`, cross-domain authentication, the validator and RPC topology, email, cost and certificates. A plan written 20 September 2026, largely carried out: QOR ID, Postgres, Redis and the devnet on Railway (ADR-063, ADR-068), ARQADE on Vercel (ADR-074) |
+| [`docs/architecture/HOSTING.md`](architecture/HOSTING.md) | QORSYNC.DEV and approved service subdomains (ADR-130); current provider evidence, ownership boundaries and the still-open service/client migration |
 | [`docs/architecture/DEVNET_PLAN.md`](architecture/DEVNET_PLAN.md) | Decided 3 October 2026 (ADR-068): how a two-validator test network reaches a public address, what `chain/node/` lacks to produce a specification without development keys, three hosting options with cited prices, and the nine decisions the owner made. Carried out: the devnet is live at `wss://rpc.qorsync.dev` |
 | [`docs/architecture/RUST_TOOLCHAIN.md`](architecture/RUST_TOOLCHAIN.md) | Why the chain pins Rust 1.98.1: why CI failed on Rust 1.99 (its clippy linted code the SDK's macros generate) and the pin that fixed it. Decided 4 October 2026, option A, ADR-072; kept as the record |
 | [`docs/architecture/SPONSORSHIP.md`](architecture/SPONSORSHIP.md) | How sponsors are designated, what they pay, caps, draining and fee classes (U-4). **A proposal awaiting the owner's decision** |
@@ -65,7 +65,7 @@ including from git history (D-012).
 | [`.cursorrules`](../.cursorrules) | Project law: naming, CGT, supply, economics, language, documentation |
 | [`AGENTS.md`](../AGENTS.md) | Rules for AI assistants working in this repository |
 | [`MISSING_ASSETS.md`](../MISSING_ASSETS.md) | Binary assets absent from the repository |
-| [`CONTRIBUTING.md`](../CONTRIBUTING.md) | How to make a change |
+| [`CONTRIBUTING.md`](../CONTRIBUTING.md) | Contribution steps, amount units and pinned workflow dependency maintenance |
 | [`SECURITY.md`](../SECURITY.md) | Reporting vulnerabilities; security status |
 
 ## Rules

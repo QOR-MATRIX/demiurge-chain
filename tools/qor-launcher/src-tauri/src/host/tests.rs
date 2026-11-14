@@ -453,26 +453,61 @@ fn fake_product() -> PathBuf {
                 .args([
                     "build",
                     "--locked",
+                    "--message-format=json-render-diagnostics",
                     "--example",
                     "host_fake_product",
                     "--manifest-path",
                 ])
                 .arg(&manifest)
-                .status()
+                .output()
                 .expect("cargo, to build the stand-in product");
-            assert!(built.success(), "the stand-in product did not build");
-            let exe = std::env::current_exe().expect("this test");
-            let debug = exe
-                .parent()
-                .and_then(|deps| deps.parent())
-                .expect("the target folder");
-            let path = debug
-                .join("examples")
-                .join(format!("host_fake_product{}", std::env::consts::EXE_SUFFIX));
+            assert!(
+                built.status.success(),
+                "the stand-in product did not build: {}",
+                String::from_utf8_lossy(&built.stderr)
+            );
+            // Cargo's build directory layout is not an API. Its artifact message
+            // also works with separate build directories and explicit targets.
+            let path = fake_product_artifact(&built.stdout)
+                .expect("cargo must report the stand-in product executable");
             assert!(path.is_file(), "{path:?} is missing after building it");
             path
         })
         .clone()
+}
+
+fn fake_product_artifact(messages: &[u8]) -> Option<PathBuf> {
+    messages.split(|byte| *byte == b'\n').find_map(|line| {
+        let artifact: Value = serde_json::from_slice(line).ok()?;
+        if artifact["reason"] != "compiler-artifact"
+            || artifact["target"]["name"] != "host_fake_product"
+            || artifact["target"]["kind"] != json!(["example"])
+        {
+            return None;
+        }
+        artifact["executable"].as_str().map(PathBuf::from)
+    })
+}
+
+#[test]
+fn stand_in_path_comes_from_cargo_not_the_test_directory() {
+    let messages = br#"build-script output
+{"reason":"compiler-artifact","target":{"name":"dependency","kind":["bin"]},"executable":"wrong"}
+{"reason":"compiler-artifact","target":{"name":"host_fake_product","kind":["example"]},"executable":null}
+{"reason":"compiler-message","target":{"name":"host_fake_product","kind":["example"]},"executable":"wrong"}
+{"reason":"compiler-artifact","target":{"name":"host_fake_product","kind":["example"]},"executable":"/custom target/aarch64-unknown-linux-gnu/debug/examples/host_fake_product"}
+{"reason":"build-finished","success":true}
+"#;
+    assert_eq!(
+        fake_product_artifact(messages),
+        Some(PathBuf::from(
+            "/custom target/aarch64-unknown-linux-gnu/debug/examples/host_fake_product"
+        ))
+    );
+    assert_eq!(
+        fake_product_artifact(b"{\"reason\":\"build-finished\",\"success\":true}"),
+        None
+    );
 }
 
 async fn run_fake(mode: &str) -> (Exited, String) {

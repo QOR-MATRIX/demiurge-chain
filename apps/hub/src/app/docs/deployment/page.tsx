@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 'use client';
 
 import Link from 'next/link';
@@ -179,14 +180,14 @@ export default function DeploymentPage() {
               <span className="w-2 h-2 rounded-full bg-green-400"></span>
               <span className="font-medium text-white">Mainnet</span>
             </div>
-            <code className="text-sm text-[var(--accent-primary)]">wss://rpc.demiurge.network</code>
+            <code className="text-sm text-[var(--accent-primary)]">ws://127.0.0.1:9944</code>
           </div>
           <div className="p-4 rounded-xl bg-[var(--bg-surface)] border border-white/10">
             <div className="flex items-center gap-2 mb-2">
               <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
               <span className="font-medium text-white">Testnet</span>
             </div>
-            <code className="text-sm text-[var(--accent-primary)]">wss://testnet.demiurge.network</code>
+            <code className="text-sm text-[var(--accent-primary)]">ws://127.0.0.1:9944</code>
           </div>
           <div className="p-4 rounded-xl bg-[var(--bg-surface)] border border-white/10">
             <div className="flex items-center gap-2 mb-2">

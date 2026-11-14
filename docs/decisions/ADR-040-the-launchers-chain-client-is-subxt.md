@@ -1,5 +1,7 @@
 # ADR-040: The launcher's chain client is `subxt`, driven by the chain's own metadata
 
+> Editorial note, 13 November 2026: retired host/contact literals are redacted. Historical claims retain their original dates and are not current deployment evidence. ADR-130 establishes QORSYNC.DEV as the only public domain.
+
 **Status:** Accepted, 20 September 2026.
 **Accepted under the owner's standing delegation for engineering choices.** Nothing here is a value
 [`OPEN_QUESTIONS.md`](../economics/OPEN_QUESTIONS.md) leaves open, and nothing here is reserved to the owner. No
@@ -113,7 +115,7 @@ None of this is taken from documentation. Each was run in this repository, again
    transaction that has been submitted may still finalise and must not be sent twice.
 
 8. **The chain endpoint is a WebSocket address**, `ws://` or `wss://`. The compiled-in defaults become
-   `wss://rpc.demiurge.cloud` and `ws://127.0.0.1:9944`. A stored `http://` or `https://` endpoint from an earlier
+   `retired-public-host` and `ws://127.0.0.1:9944`. A stored `http://` or `https://` endpoint from an earlier
    version is upgraded in place to `ws://` or `wss://` when settings are read, rather than failing, since it names
    the same node on the same port.
 
@@ -147,5 +149,5 @@ None of this is taken from documentation. Each was run in this repository, again
 - **What still needs a running launcher and a person** is unchanged in kind: approving and declining a real transfer
   against a local node. The host tests cover construction, refusal, endpoint handling and the nonce rule; they
   cannot cover a native dialog.
-- **This record does not open the chain to anyone.** Nothing is deployed, `wss://rpc.demiurge.cloud` resolves to
+- **This record does not open the chain to anyone.** Nothing is deployed, `retired-public-host` resolves to
   nothing, and the devnet in `framework/` is still never exposed.

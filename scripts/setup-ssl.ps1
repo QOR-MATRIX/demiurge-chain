@@ -1,3 +1,7 @@
+
+# Retired before any side effects; kept for source context only.
+throw "Retired deployment helper. Use docs/architecture/HOSTING.md and ADR-130; no deployment was performed."
+
 # SSL/TLS Certificate Setup
 # Configures Let's Encrypt SSL certificates for production
 
@@ -8,8 +12,8 @@ Write-Host ""
 
 # Configuration
 $SERVER = "51.210.209.112"
-$DOMAIN = "demiurge.cloud" # Update with your domain
-$EMAIL = "admin@demiurge.cloud" # Update with your email
+$DOMAIN = "qorsync.dev" # Update with your domain
+$EMAIL = "[retired contact]" # Update with your email
 
 Write-Host "📋 Prerequisites" -ForegroundColor Yellow
 Write-Host ""

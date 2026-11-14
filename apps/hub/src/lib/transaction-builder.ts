@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Transaction Builder - Create and sign blockchain transactions
  */
@@ -236,7 +237,7 @@ export async function estimateFee(txData: TransactionData): Promise<{ energy: nu
  */
 export async function submitSignedTransaction(
   signedTx: string,
-  rpcUrl: string = process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud'
+  rpcUrl: string = process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:9944'
 ): Promise<string> {
   const response = await fetch(rpcUrl, {
     method: 'POST',

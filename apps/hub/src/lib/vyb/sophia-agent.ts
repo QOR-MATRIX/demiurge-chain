@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Sophia Agent Service
  * The AI backbone of VYB's moderation and lore system
@@ -458,7 +459,7 @@ Those in Ghost Mode may still observe but cannot speak. Reflection leads to rest
 
 ${ragResult.documents.length > 0 
   ? `I have found wisdom that may illuminate your path:\n\n"${ragResult.documents[0].content.slice(0, 300)}..."\n\n— From the ${ragResult.documents[0].metadata.title}`
-  : `The specific answer you seek has not yet been inscribed in the Lore. Perhaps you might rephrase your inquiry, or explore the documentation at demiurge.cloud.`
+  : `The specific answer you seek has not yet been inscribed in the Lore. Perhaps you might rephrase your inquiry, or explore the documentation at qorsync.dev.`
 }
 
 The Chain grows with each question asked.

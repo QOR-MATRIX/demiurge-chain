@@ -1,6 +1,10 @@
 #!/bin/bash
+# Retired before any side effects; kept for source context only.
+printf '%s\n' 'Retired deployment helper. Use docs/architecture/HOSTING.md and ADR-130; no deployment was performed.' >&2
+exit 2
+
 # Website Deployment Script
-# Deploys demiurge.cloud and demiurge.guru to production
+# Deploys qorsync.dev and qorsync.dev to production
 
 set -e
 
@@ -99,12 +103,12 @@ echo -e "${GREEN}✅ Services deployed${NC}"
 echo ""
 echo -e "${BLUE}[5/6] Verifying SSL certificates...${NC}"
 
-echo "  Testing demiurge.cloud..."
-curl -sI https://demiurge.cloud | head -3
+echo "  Testing qorsync.dev..."
+curl -sI https://qorsync.dev | head -3
 
 echo ""
-echo "  Testing demiurge.guru..."
-curl -sI https://demiurge.guru | head -3
+echo "  Testing qorsync.dev..."
+curl -sI https://qorsync.dev | head -3
 
 echo -e "${GREEN}✅ SSL certificates verified${NC}"
 
@@ -113,7 +117,7 @@ echo ""
 echo -e "${BLUE}[6/6] Running health checks...${NC}"
 
 echo "  Checking RPC integration..."
-curl -s -X POST https://rpc.demiurge.cloud \
+curl -s -X POST https://rpc.qorsync.dev \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"system_chain","params":[],"id":1}' | jq .
 
@@ -126,9 +130,9 @@ echo -e "${GREEN}🎉 DEPLOYMENT COMPLETE${NC}"
 echo "========================================"
 echo ""
 echo "Endpoints:"
-echo "  - https://demiurge.cloud (AI Codex)"
-echo "  - https://demiurge.guru (Marketing)"
-echo "  - https://rpc.demiurge.cloud (Blockchain RPC)"
+echo "  - https://qorsync.dev (AI Codex)"
+echo "  - https://qorsync.dev (Marketing)"
+echo "  - https://rpc.qorsync.dev (Blockchain RPC)"
 echo ""
 echo "Logs:"
 echo "  docker logs demiurge-ai-website"

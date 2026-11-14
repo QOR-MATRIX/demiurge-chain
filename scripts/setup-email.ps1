@@ -7,9 +7,13 @@
 
 param(
     [string]$ResendApiKey,
-    [string]$FromEmail = "noreply@demiurge.cloud",
+    [string]$FromEmail = "[retired contact]",
     [string]$FromName = "Demiurge-Cloud"
 )
+# Retired before any side effects; kept for source context only.
+throw "Retired deployment helper. Use docs/architecture/HOSTING.md and ADR-130; no deployment was performed."
+
+
 
 $ErrorActionPreference = "Stop"
 
@@ -43,7 +47,7 @@ SMTP_USERNAME=resend
 SMTP_PASSWORD=$ResendApiKey
 SMTP_FROM_EMAIL=$FromEmail
 SMTP_FROM_NAME=$FromName
-BASE_URL=https://demiurge.cloud
+BASE_URL=https://qorsync.dev
 "@
 
 # Save locally

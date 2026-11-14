@@ -1,42 +1,40 @@
-# Where Demiurge stands
+# Where the network and Launcher stand
 
-For Andrew, 31 October 2026. One page, rewritten every session.
+For Andrew, 13 November 2026. Draft PR #118 on `session/qorsync-domains`
+contains the tested network/Launcher repairs and homepage ownership handoff.
+Service audits keep it unmerged; QOR OS's core pin has not moved.
 
-## What Demiurge is
+The Launcher reads executable locations from Cargo, the Rust build tool.
+Its four formerly failing spawn tests and new regression pass. Hosted checks
+pass 109 host tests with five ignored and 245 core tests with 10 ignored,
+plus formatting, frontend, design and accessibility checks.
 
-A blockchain that pays makers when their work is used, and a desktop launcher to use it.
-The currency, **CGT**, is for spending, not holding. **QOR OS** — *your operating system,
-private repository* — is built on it. Code: `github.com/QOR-MATRIX/demiurge-chain`.
+Workflow actions and tools have reviewed pins; checkouts discard credentials.
+Default tokens are read-only; the allowlist permits nine action repositories.
+All 13 two-validator recovery checks pass on a hosted local test network.
+Rust 1.100's optional report fails on 66 generated-code lint errors;
+required checks pass on pinned Rust 1.98.1.
 
-## Live today (checked this session, from outside)
+Core and Launcher audits report zero vulnerability findings; 13 core and
+23 host maintenance warnings remain. QOR ID and Social still fail on an SQLite
+database dependency. Stable SQLx, their database library, cannot resolve the
+fixed version. No exception was added.
 
-**qorsync.dev**, with **QOR Mobile 0.1.0** and the **QOR Launcher 0.1.17** to download;
-**Devnet** — *the test chain on servers* — on code version 11 with two **peers** — *other
-nodes it talks to*; **QOR ID** — *the one sign-in*; **Social** — *the chat service*, at its
-Railway address; **ARQADE** — *the gaming website*.
+All 213 chain tests pass with WebAssembly, portable runtime code, built.
+Compatible dependency patches leave 38 vulnerability findings and 26 warnings.
+The chain framework and runtime source are unchanged; no network upgrade occurred.
 
-## This session
+The homepage is now maintained in QOR-MATRIX/QOR-OS, with its Analytics package,
+tests and licences. This copy is frozen. The existing Astra Matrix / qor project
+now builds QOR OS's main branch and QORSYNC.DEV serves it. Links, redirect,
+security headers and Analytics script delivery pass live checks. QOR OS PR #9 is
+deployed at `f4c9863`; all 47 public files match reviewed bytes with the proxy
+header correction in place. Dashboard collection remains unproven. This session
+validates and commits the pending upstream ownership handoff; no service code changes.
 
-1. **You merged #116**: the restated homepage (**ADR-128** — *a numbered decision record*)
-   is live, read from outside.
-2. **Two of QOR OS's new games are named**, by you: Ever Rift and Darkveil. Their rules,
-   tests and recorded runs come here (**ADR-129**), so ARQADE's server can one day confirm
-   their runs. The games stay in QOR OS, and nothing on the website or in the launcher
-   changes. It is on the **branch** — *changes not yet in `main`* —
-   `session/ever-rift-and-darkveil`, in its **pull request** — *a request to merge it*.
+QOR ID readiness and advancing finalized blocks pass dated read-only probes.
+Social/ARQADE custom hosts and client migration remain open. The homepage was
+deployed; no network upgrade, device image or package release was published.
 
-## What only you can do
-
-1. **Merge the games' pull request.** It changes nothing anyone sees.
-2. **Back up the test key**, `%USERPROFILE%\.qor-launcher\android\`, off this PC. Lose
-   it, and testers must uninstall before the next release.
-3. **Try QOR Mobile on your phone**: it has run only on the emulator.
-4. **The rest carried from before** is HANDOFF §4.0: the economic numbers, the legal
-   work, code signing, an outside security review, and the names still to choose.
-
-**Next in engineering:** keys on Android (L13.3), so QOR Mobile can hold a wallet.
-
-## Cost per month
-
-As recorded: the homepage and ARQADE use Vercel's **Hobby plan** — *a non-commercial tier*
-(HANDOFF §4.0); Railway's cost is not yet measured (SYSTEMS).
+Resolve service dependencies before a core pin update and broader bridge commands,
+the shell-to-core interface. DIRECTION is the roadmap; SYSTEMS maps ownership.

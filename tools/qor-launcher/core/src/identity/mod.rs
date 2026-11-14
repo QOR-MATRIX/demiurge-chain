@@ -1070,14 +1070,14 @@ mod tests {
 
     #[test]
     fn endpoint_joins_paths_without_doubling_slashes() {
-        let client = IdentityClient::new("https://demiurge.cloud/api/v1/").unwrap();
+        let client = IdentityClient::new("https://id.qorsync.dev/api/v1/").unwrap();
         assert_eq!(
             client.url("/auth/login"),
-            "https://demiurge.cloud/api/v1/auth/login"
+            "https://id.qorsync.dev/api/v1/auth/login"
         );
         assert_eq!(
             client.url("auth/login"),
-            "https://demiurge.cloud/api/v1/auth/login"
+            "https://id.qorsync.dev/api/v1/auth/login"
         );
     }
 

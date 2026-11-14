@@ -58,7 +58,7 @@
       "trigger": "onGameComplete",
       "soulbound": true,
       "metadata": {
-        "image": "https://demiurge.cloud/nft/achievements/first_play.png",
+        "image": "https://qorsync.dev/nft/achievements/first_play.png",
         "attributes": [
           { "trait_type": "Achievement", "value": "First Steps" },
           { "trait_type": "Game", "value": "Your Game Name" },
@@ -78,7 +78,7 @@
       "triggerValue": 10000,
       "soulbound": true,
       "metadata": {
-        "image": "https://demiurge.cloud/nft/achievements/high_scorer.png",
+        "image": "https://qorsync.dev/nft/achievements/high_scorer.png",
         "attributes": [
           { "trait_type": "Achievement", "value": "High Scorer" },
           { "trait_type": "Game", "value": "Your Game Name" },
@@ -100,7 +100,7 @@
       "triggerValue": 100000,
       "soulbound": true,
       "metadata": {
-        "image": "https://demiurge.cloud/nft/achievements/master.png",
+        "image": "https://qorsync.dev/nft/achievements/master.png",
         "attributes": [
           { "trait_type": "Achievement", "value": "Game Master" },
           { "trait_type": "Game", "value": "Your Game Name" },

@@ -20,7 +20,7 @@ result = subprocess.run([
     "curl", "-s", "-X", "POST",
     "-H", "Content-Type: application/json",
     "-d", json.dumps(rpc_data),
-    "https://rpc.demiurge.cloud"
+    "https://rpc.qorsync.dev"
 ], capture_output=True, text=True)
 print("\nconsensus_getStatus (HTTPS):")
 print(result.stdout)
@@ -31,7 +31,7 @@ result = subprocess.run([
     "curl", "-s", "-X", "POST",
     "-H", "Content-Type: application/json",
     "-d", json.dumps(rpc_data),
-    "https://rpc.demiurge.cloud"
+    "https://rpc.qorsync.dev"
 ], capture_output=True, text=True)
 print("\nchain_getHealth (HTTPS):")
 print(result.stdout)

@@ -1,5 +1,7 @@
 # Market and Library
 
+> Domain maintenance, 13 November 2026: retired address literals are redacted under ADR-130. Historical deployments keep their original dates; this is not current service verification.
+
 **Status:** Blueprint, 21 September 2026. Describes intent, except where the dated notes below name code that
 exists. Measured against the tree on 6 October 2026: `construct_runtime!` mounts `pallet-nfts` (as `Nfts`, index 7)
 with `Drc369`, `Utility`, `Drc369Royalties` and `ArqWallet` beside it (`chain/runtime/src/lib.rs`); the launcher's
@@ -368,7 +370,7 @@ resale their royalty policy covers; and a remix that pays its parent because the
 - **Offline launch.** Not until gap 4 is decided. An entitlement check needs the chain.
 - **Buying without CGT.** No fiat rail, no card, no bridge, and no sponsorship mechanism (U-4). A buyer
   arrives with CGT or does not buy. **The owner asked on 22 September 2026 for exactly this to change** — a
-  marketplace on demiurge.cloud selling assets for USD, with a fixed platform share proposed at 15% — and it is
+  marketplace on retired-public-host selling assets for USD, with a fixed platform share proposed at 15% — and it is
   open as **U-15**: what the share is of, where it goes with no treasury (M6.5), and who holds the money, which
   brings custody, KYC/AML, chargebacks and escrow (U-8). Recorded as asked for, not as decided.
 - **Anything about what CGT is worth.** A price is a price and a royalty is payment for use; neither surface

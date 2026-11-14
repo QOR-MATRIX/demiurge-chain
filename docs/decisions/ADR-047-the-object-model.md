@@ -1,5 +1,7 @@
 # ADR-047: The object model — a BLAKE3 manifest root on chain, chunking beneath it, and a mint that pins a commit
 
+> Editorial note, 13 November 2026: retired host/contact literals are redacted. Historical claims retain their original dates and are not current deployment evidence. ADR-130 establishes QORSYNC.DEV as the only public domain.
+
 **Status:** **Accepted, 22 September 2026, by the project owner**, with the three questions reserved to the owner answered as recommended (Decision 13, rows 11 to 13). Proposed on 21 September 2026.
 **The owner's summary, in plain words:** an asset is identified by a fingerprint of its contents, so it cannot be quietly swapped; how the bytes are stored can change without changing what the asset is; minting pins one exact commit, never a moving branch; the fingerprint method is tagged so it can be upgraded later; and an asset can be revised until a one-way switch makes it permanent.
 **Carries out:** roadmap item **M2.3** — the wire format decisions FRAME forces: field bounds, token identity, the physics fixed-point encoding and the rental time unit (`docs/DIRECTION.md:235-236`). Ticking it needs an accepted ADR, because `beta.wire-format-frozen` reads *"The DRC-369 wire format and token identity are frozen, recorded in an accepted ADR, before any SDK is published"* (`docs/GATES.toml:674-677`, `done = false`, no evidence).
@@ -10,7 +12,7 @@
 
 ## Context
 
-**Nothing of this exists yet.** `construct_runtime!` mounts System, Timestamp, Aura, Grandpa, Balances, Session, ValidatorSet and (feature-gated) Sudo — no `pallet-nfts`, no `pallet-assets`, no DRC-369 (`chain/runtime/src/lib.rs:324-340`). DRC-369 is M4 and unstarted; the old module was deleted with `framework/` and nothing is carried (`docs/DIRECTION.md:174`). Studio is a tile pointing outside the launcher, at `https://demiurge.cloud/create` (`tools/qor-launcher/src/lib/systems.ts:115-124`); it moves inside at L7.5. M4 is blocked by nothing technical and nothing economic — only by M2.1 and M2.3 (`docs/SYSTEMS.md:131-141`).
+**Nothing of this exists yet.** `construct_runtime!` mounts System, Timestamp, Aura, Grandpa, Balances, Session, ValidatorSet and (feature-gated) Sudo — no `pallet-nfts`, no `pallet-assets`, no DRC-369 (`chain/runtime/src/lib.rs:324-340`). DRC-369 is M4 and unstarted; the old module was deleted with `framework/` and nothing is carried (`docs/DIRECTION.md:174`). Studio is a tile pointing outside the launcher, at `retired-public-host/create` (`tools/qor-launcher/src/lib/systems.ts:115-124`); it moves inside at L7.5. M4 is blocked by nothing technical and nothing economic — only by M2.1 and M2.3 (`docs/SYSTEMS.md:131-141`).
 
 **The chain does not commit us to a content hash.** The runtime hashes with `BlakeTwo256` and `H256` (`chain/runtime/src/lib.rs:94,196`), but that governs the state trie, storage keys and headers. File bytes are never in a call (`docs/architecture/MIGRATION_INVENTORY.md:216-226`, F-D1), so the runtime will never *compute* a content hash: it stores 32 opaque bytes and compares them. The choice is free in exactly one direction — for as long as the runtime never has to **verify** a proof over that hash.
 

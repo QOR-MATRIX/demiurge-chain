@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -241,7 +242,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             
             {/* Learn more link */}
             <a
-              href="https://demiurge.guru"
+              href="https://qorsync.dev"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 transition-all duration-200"

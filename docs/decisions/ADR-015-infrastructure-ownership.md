@@ -1,5 +1,7 @@
 # ADR-015: Which service owns which infrastructure concern
 
+> Editorial note, 13 November 2026: retired host/contact literals are redacted. Historical claims retain their original dates and are not current deployment evidence. ADR-130 establishes QORSYNC.DEV as the only public domain.
+
 **Status:** Accepted, 14 September 2026, by the project owner, as proposed. Nothing is deployed yet.
 Clarified on 15 September 2026, at the owner's direction: QOR ID serves its own pages on its own subdomain,
 and Vercel serves marketing and the web surfaces only (below). The clarification does not change the
@@ -53,11 +55,11 @@ This makes explicit a split the table above implies. It does not change the deci
 
 - **QOR ID serves its own pages, on its own subdomain.** The links in QOR ID's emails (address
   verification, confirmation of a new address, password reset) open pages QOR ID serves itself. They are
-  reached at `https://<qor-id-subdomain>.demiurge.cloud`, a placeholder: the owner sets the name at
+  reached at `https://<qor-id-subdomain>.retired-public-host`, a placeholder: the owner sets the name at
   deployment. That origin is QOR ID's `BASE_URL`.
 - **Vercel serves marketing and the web surfaces only.** It does not proxy, rewrite or redirect any of
   QOR ID's paths.
-- **Why.** Routing `demiurge.cloud` paths through Vercel to QOR ID on Fly would put a proxy and a rewrite
+- **Why.** Routing `retired-public-host` paths through Vercel to QOR ID on Fly would put a proxy and a rewrite
   layer between people and one-use tokens, and add a failure mode for no benefit. A dedicated subdomain
   keeps QOR ID's surface separate and the path direct.
 - The subdomain's name and its TLS arrangement stay open until deployment (see "Open questions").
@@ -113,7 +115,7 @@ operated by many parties and are not a hosting decision.
 **Open questions.**
 - Redis versus Postgres-backed sessions.
 - Where off-Fly backups go.
-- The domain and TLS arrangement for `demiurge.cloud`, whose DNS still points at a decommissioned server.
+- The domain and TLS arrangement for `retired-public-host`, whose DNS still points at a decommissioned server.
 
 ## Sources
 

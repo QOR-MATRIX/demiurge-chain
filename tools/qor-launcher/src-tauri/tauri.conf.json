@@ -37,7 +37,7 @@
         "style-src": "'self' 'unsafe-inline'",
         "img-src": "'self' data: blob: https:",
         "font-src": "'self' data:",
-        "connect-src": "'self' ipc: http://ipc.localhost https://demiurge.cloud https://rpc.demiurge.cloud http://127.0.0.1:* http://localhost:*",
+        "connect-src": "'self' ipc: http://ipc.localhost https://qorsync.dev https://rpc.qorsync.dev http://127.0.0.1:* http://localhost:*",
         "frame-src": "'none'",
         "object-src": "'none'",
         "base-uri": "'self'",

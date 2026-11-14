@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyWebhookSignature, stripe } from '@/lib/stripe';
 import { 
@@ -415,7 +416,7 @@ async function mintOrUpgradeDonorBadge(
   try {
     if (donorData.badge_nft_uuid) {
       // Update existing badge via fetch to RPC endpoint
-      const rpcUrl = process.env.NEXT_PUBLIC_BLOCKCHAIN_RPC_URL || 'https://rpc.demiurge.cloud';
+      const rpcUrl = process.env.NEXT_PUBLIC_BLOCKCHAIN_RPC_URL || 'http://127.0.0.1:9944';
       await fetch(rpcUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

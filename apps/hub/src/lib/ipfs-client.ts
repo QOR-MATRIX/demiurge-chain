@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * IPFS Client for Demiurge
  * 
@@ -51,8 +52,8 @@ const IPFS_GATEWAYS = {
   },
   // Demiurge hosted gateway (if available)
   demiurge: {
-    api: 'https://ipfs.demiurge.cloud/api/v0',
-    gateway: 'https://ipfs.demiurge.cloud/ipfs/',
+    api: 'http://127.0.0.1:5001/api/v0',
+    gateway: 'http://127.0.0.1:5001/ipfs/',
   },
 };
 
@@ -269,7 +270,7 @@ class IPFSClient {
     // Handle local:// URIs (fallback storage)
     if (ipfsUri.startsWith('local://')) {
       const hash = ipfsUri.replace('local://', '');
-      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://demiurge.cloud';
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://qorsync.dev';
       return `${baseUrl}/api/media/${hash}`;
     }
     

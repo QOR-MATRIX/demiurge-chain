@@ -421,7 +421,7 @@ reason = "An asset is a card now: its face carries identity and its close-up car
 date = "2026-09-22"
 type = "tightening"
 change = "market.questions counts U-15 as well as U-7, so Market cannot be met while the platform's share of a sale and the fiat rail are open. No kind's met condition, evidence rule or threshold changes; a criterion gains a unit."
-reason = "The owner asked on 2026-09-22 for a Sell path and a marketplace on demiurge.cloud settling in USD with a platform share proposed at 15%. A comment in this file already said the platform share had no question id to count; now it does. The share is recorded as the owner's proposal, not as a decided value, because AGENTS.md section 5 forbids writing an undecided economic number anywhere as decided."
+reason = "The owner asked on 2026-09-22 for a Sell path and a marketplace on the retired public host (address redacted under ADR-130) settling in USD with a platform share proposed at 15%. A comment in this file already said the platform share had no question id to count; now it does. The share is recorded as the owner's proposal, not as a decided value, because AGENTS.md section 5 forbids writing an undecided economic number anywhere as decided."
 
 [[change_log]]
 date = "2026-09-22"
@@ -475,7 +475,7 @@ reason = "Sell used to be a disabled menu item. It now drafts a listing on this 
 date = "2026-09-23"
 type = "tightening"
 change = "beta.launcher counts L4.6 and qfx.roadmap counts P2.8. Two units added to two criteria; no kind's met condition, evidence rule or threshold changes. Both gates become harder to meet, neither easier."
-reason = "Found by running the gate-coverage check in HANDOFF.md §5, which reports every roadmap item no criterion counts. It named three: L2.1, which is deliberate and explained on its criterion, and L4.6 and P2.8, which were not. Both were appended to their tracks on 2026-09-22, after the gate lists that would have counted them were written -- the third time this exact omission has happened (M6.4 and M6.5 when M3.1 was narrowed, M4.5, M5.6 and M6.6 when M3.3 was), and the reason that check exists. L4.6 goes to beta.launcher because it counts every other L4 item and because Beta already requires what L4.6 waits on. P2.8 goes to qfx.roadmap because it counts every other P2 item."
+reason = "Found by running the gate-coverage check in HANDOFF.md Â§5, which reports every roadmap item no criterion counts. It named three: L2.1, which is deliberate and explained on its criterion, and L4.6 and P2.8, which were not. Both were appended to their tracks on 2026-09-22, after the gate lists that would have counted them were written -- the third time this exact omission has happened (M6.4 and M6.5 when M3.1 was narrowed, M4.5, M5.6 and M6.6 when M3.3 was), and the reason that check exists. L4.6 goes to beta.launcher because it counts every other L4 item and because Beta already requires what L4.6 waits on. P2.8 goes to qfx.roadmap because it counts every other P2 item."
 
 [[change_log]]
 date = "2026-09-23"
@@ -955,7 +955,7 @@ reason = "A scope change rather than a loosening: the launcher's default theme c
 date = "2026-10-22"
 type = "tightening"
 change = "CI's step 'One look, from one source (ADR-108)' also runs docs/design/check-qml.mjs, over the QML of QOR Media (tools/qor-media/qml/) and the QOR Launcher for Android (tools/qor-launcher/shell/qml/), but their generated Tokens.qml. It fails when Tokens.qml is missing, or Theme.qml writes a colour or does not bind to Tokens; when a face is not one of Theme's; when a text size is not one of Theme's steps, or tracking is not a step times one of Theme's; when a colour is written, as a string or as Qt.rgba() and the like of numbers; when a corner is not Theme's, another item's, a circle or a hairline of 2 pixels or less; when a duration is not Theme's, but for the music's slow glow in QOR Media's player, or an easing is not Easing.BezierSpline on Theme.ease; or when a control is kept from the keyboard (focusPolicy: Qt.NoFocus). tokens.mjs --check gains their generated files and bundled faces. [ci].quality_gates records it."
-reason = "A tightening: more of the tree must pass the same step, nothing relaxed. Proven to fail first, against a planted fault each: Theme's raised written as #1a1f29, an icon button with Qt.NoFocus, a title in Segoe UI, a dialog's title at 17 pixels, the find bar's corner at 10, the viewer's zoom at 140 ms, its turn eased with Easing.OutCubic, the player's backdrop in \"black\", the shell's eyebrow tracked 2.4 pixels, and a panel filled with Qt.rgba(0.07, 0.09, 0.13, 1). The applications' own tests, run on the owner's PC since CI has no licensed Qt, caught more the static check cannot see; HANDOFF §4 item 122 lists them."
+reason = "A tightening: more of the tree must pass the same step, nothing relaxed. Proven to fail first, against a planted fault each: Theme's raised written as #1a1f29, an icon button with Qt.NoFocus, a title in Segoe UI, a dialog's title at 17 pixels, the find bar's corner at 10, the viewer's zoom at 140 ms, its turn eased with Easing.OutCubic, the player's backdrop in \"black\", the shell's eyebrow tracked 2.4 pixels, and a panel filled with Qt.rgba(0.07, 0.09, 0.13, 1). The applications' own tests, run on the owner's PC since CI has no licensed Qt, caught more the static check cannot see; HANDOFF Â§4 item 122 lists them."
 
 [[change_log]]
 date = "2026-10-22"
@@ -1019,6 +1019,19 @@ approved_by = "owner, 2026-10-27 (retroactive): merged #107 with ADR-121 option 
 # ---------------------------------------------------------------------------
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
+
+[[change_log]]
+date = "2026-11-13"
+type = "tightening"
+change = "ADR-131 adds a homepage job: locked Node install with lifecycle scripts disabled, static public-asset build, content and analytics privacy checks, and npm audit at every severity. Existing service and chain checks are unchanged."
+reason = "The owner requested Vercel Analytics. Its dependency, pageview redaction and public output must be checked alongside the existing homepage content."
+
+[[change_log]]
+date = "2026-11-13"
+type = "scope-transfer"
+change = "ADR-132 moves the homepage's locked install, static build, privacy checks, audit and npm update proposals to QOR-MATRIX/QOR-OS. Its dedicated homepage workflow passes there; the duplicate upstream job added by ADR-131 retires. Existing upstream language/design/content, chain, core and service gates remain unchanged."
+reason = "The owner explicitly directed QOR OS to be the source for the existing Astra Matrix / QOR project. There is one maintained homepage; its tests travel with it. No service audit exception or release threshold is changed."
+approved_by = "owner, 2026-11-13: canonical repository and Vercel project alignment"
 
 [kinds.check]
 reads = "this file: `done` and `evidence` (a commit hash, a URL, or a dated owner confirmation recorded in HANDOFF.md)"

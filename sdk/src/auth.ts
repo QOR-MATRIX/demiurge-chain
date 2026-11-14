@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * DemiurgeAuth - Authentication for Demiurge-Cloud
  * 
@@ -54,7 +55,7 @@ export interface DemiurgeAuthOptions {
  * @example
  * ```typescript
  * // Keypair-based login
- * const auth = new DemiurgeAuth({ authEndpoint: 'https://auth.demiurge.cloud' });
+ * const auth = new DemiurgeAuth({ authEndpoint: 'http://127.0.0.1:8080' });
  * const wallet = Wallet.generate();
  * const session = await auth.loginWithKeypair(wallet);
  * 
@@ -68,7 +69,7 @@ export class DemiurgeAuth {
   private currentSession: AuthSession | null = null;
 
   constructor(options: DemiurgeAuthOptions = {}) {
-    this.authEndpoint = options.authEndpoint || 'https://auth.demiurge.cloud';
+    this.authEndpoint = options.authEndpoint || 'http://127.0.0.1:8080';
     this.timeout = options.timeout || 30000;
   }
 

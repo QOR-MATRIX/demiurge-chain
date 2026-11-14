@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 // Demiurge Wallet Extension - QOR ID Login Screen
 import React, { useState } from 'react';
 import { useStore } from '../store';
@@ -58,7 +59,7 @@ export function LoginScreen() {
         <p className="text-center text-gray-500 text-xs mt-4">
           Don&apos;t have a QOR ID?{' '}
           <a
-            href="https://demiurge.cloud/auth"
+            href="https://qorsync.dev/auth"
             target="_blank"
             rel="noopener noreferrer"
             className="text-demiurge-400 hover:text-demiurge-300"
@@ -136,7 +137,7 @@ export function LoginScreen() {
 
       <p className="text-center text-gray-500 text-xs mt-4">
         <a
-          href="https://demiurge.cloud/auth"
+          href="https://qorsync.dev/auth"
           target="_blank"
           rel="noopener noreferrer"
           className="text-demiurge-400 hover:text-demiurge-300"
@@ -145,7 +146,7 @@ export function LoginScreen() {
         </a>
         {' · '}
         <a
-          href="https://demiurge.cloud/auth/reset"
+          href="https://qorsync.dev/auth/reset"
           target="_blank"
           rel="noopener noreferrer"
           className="text-gray-400 hover:text-gray-300"

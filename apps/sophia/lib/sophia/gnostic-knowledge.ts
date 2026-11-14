@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Gnostic Knowledge Base for Sophia
  *
@@ -73,7 +74,7 @@ export const GNOSTIC_KNOWLEDGE: GnosticEntry[] = [
     gnosticOrigin:
       'The Pleroma (Greek: \u03A0\u03BB\u03AE\u03C1\u03C9\u03BC\u03B1, "fullness") is the realm of light where all Aeons dwell in unity with the Monad. It represents completeness, perfection, and the totality of existence before the fall. Everything within the Pleroma is in harmony.',
     protocolMapping:
-      'The Pleroma is the mainnet -- the fully realized, production blockchain where all modules operate in harmony. When we say "From Monad to Pleroma," we mean the journey from the singular origin point to the fully-featured, living network. The production server at demiurge.cloud hosts the Pleroma.',
+      'The Pleroma is the mainnet -- the fully realized, production blockchain where all modules operate in harmony. When we say "From Monad to Pleroma," we mean the journey from the singular origin point to the fully-featured, living network. The production server at qorsync.dev hosts the Pleroma.',
     relatedTerms: ['Kenoma', 'Monad', 'Aeon'],
   },
   {

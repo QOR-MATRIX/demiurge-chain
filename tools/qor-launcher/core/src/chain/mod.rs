@@ -630,13 +630,7 @@ mod tests {
         );
         assert_eq!(normalise_endpoint(DEFAULT_RPC).unwrap(), DEFAULT_RPC);
 
-        for bad in [
-            "",
-            "   ",
-            "127.0.0.1:9944",
-            "ftp://node",
-            "rpc.demiurge.cloud",
-        ] {
+        for bad in ["", "   ", "127.0.0.1:9944", "ftp://node", "qorsync.dev"] {
             assert_eq!(
                 normalise_endpoint(bad).unwrap_err().kind(),
                 "rpc",

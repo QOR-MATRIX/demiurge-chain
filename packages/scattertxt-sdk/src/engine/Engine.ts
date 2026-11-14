@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * ScatterTXT Engine Core
  * 
@@ -18,8 +19,8 @@ import type {
   GameEvent,
 } from '../types';
 
-const DEFAULT_RPC_URL = 'https://rpc.demiurge.cloud';
-const DEFAULT_WS_URL = 'wss://rpc.demiurge.cloud/ws';
+const DEFAULT_RPC_URL = 'http://127.0.0.1:9944';
+const DEFAULT_WS_URL = 'ws://127.0.0.1:9944/ws';
 
 interface EngineEvents {
   'connected': () => void;

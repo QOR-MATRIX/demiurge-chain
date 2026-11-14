@@ -1,5 +1,7 @@
 # ADR-056: No lock screen: the vault's key is in the keychain, and QOR ID never blocks the launcher
 
+> Editorial note, 13 November 2026: retired host/contact literals are redacted. Historical claims retain their original dates and are not current deployment evidence. ADR-130 establishes QORSYNC.DEV as the only public domain.
+
 **Status:** Accepted, 28 September 2026, by the project owner.
 **Supersedes:** [ADR-055](ADR-055-the-vault-opens-with-windows-hello-alone.md) (Windows Hello as the vault's only
 seal) and, with it, what remained of [ADR-054](ADR-054-unlocking-with-windows-hello.md).
@@ -13,7 +15,7 @@ signed in last still opens with nothing asked; once it signs out, its key leaves
 
 Hours after ADR-055 the owner moved their vault to Windows Hello and met the next wall: the launcher showed the
 shell only when the vault was open **and** QOR ID had signed in, and QOR ID was not running. The default QOR ID
-endpoint is `demiurge.cloud`, which is not deployed, so without a local service no one could get past the Gate.
+endpoint is `retired-public-host`, which is not deployed, so without a local service no one could get past the Gate.
 The owner: "GET RID THE FUCK OF THE FUCKING VAULT AND WINDOWS HELLO … CLEARLY IT IS NOT FUCKING DOING ANYTHING BUT
 MAKING IT IMPOSSIBLE TO LOGIN."
 

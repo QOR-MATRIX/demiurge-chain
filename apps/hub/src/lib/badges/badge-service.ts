@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Official Badge Minting Service
  * 
@@ -81,14 +82,14 @@ async function buildBadgeMetadata(
     name: `${badge.name} Badge`,
     description: badge.description,
     image: badge.imageUrl.startsWith('/') 
-      ? `https://demiurge.cloud${badge.imageUrl}` 
+      ? `https://qorsync.dev${badge.imageUrl}`
       : badge.imageUrl,
     animation_url: badge.animatedUrl 
       ? (badge.animatedUrl.startsWith('/') 
-          ? `https://demiurge.cloud${badge.animatedUrl}` 
+          ? `https://qorsync.dev${badge.animatedUrl}`
           : badge.animatedUrl)
       : undefined,
-    external_url: `https://demiurge.cloud/badge/${badgeType.toLowerCase()}`,
+    external_url: `https://qorsync.dev/badge/${badgeType.toLowerCase()}`,
     
     drc369: {
       version: '1.0',

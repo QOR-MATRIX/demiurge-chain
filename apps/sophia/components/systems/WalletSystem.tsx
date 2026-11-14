@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 "use client";
 
 import React, { useState } from "react";
@@ -373,7 +374,7 @@ export const WalletSystem: React.FC = () => {
                             {tx.amount}
                           </p>
                           <a
-                            href={`https://explorer.demiurge.cloud/tx/${tx.hash}`}
+                            href={`https://qorsync.dev/tx/${tx.hash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-primary-400 hover:text-primary-300"

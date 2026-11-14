@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * VYB Social Platform Service
  * Handles all VYB data operations and blockchain interactions
@@ -519,7 +520,7 @@ class VYBService {
         name: options.name,
         description: options.description || `${options.mediaType} shared on VYB`,
         image: options.artworkUrl || options.mediaUrl, // Use artwork if available, otherwise media URL
-        external_url: `https://demiurge.cloud/nft`,
+        external_url: `https://qorsync.dev/nft`,
         attributes,
         drc369: {
           version: '1.0' as const,

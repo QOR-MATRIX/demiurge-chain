@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 import { NextRequest, NextResponse } from 'next/server';
 import { qorAuth } from '@demiurge/qor-sdk';
 import { createDonationCheckoutSession } from '@/lib/stripe';
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Stripe Checkout Session
-    const origin = request.headers.get('origin') || 'https://demiurge.cloud';
+    const origin = request.headers.get('origin') || 'https://qorsync.dev';
     const session = await createDonationCheckoutSession({
       userId,
       userEmail,

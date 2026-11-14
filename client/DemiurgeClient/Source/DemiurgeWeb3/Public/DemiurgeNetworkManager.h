@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 // Copyright 2026 Demiurge-Cloud Project. All Rights Reserved.
 
 #pragma once
@@ -30,7 +31,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnChainInfoUpdated, const FStrin
  * 
  * Connection:
  *   Default: ws://127.0.0.1:9944 (local node)
- *   Production: wss://rpc.demiurge.io:9944
+ *   Production: ws://127.0.0.1:9944
  */
 UCLASS(Blueprintable, BlueprintType)
 class DEMIURGEWEB3_API UDemiurgeNetworkManager : public UObject

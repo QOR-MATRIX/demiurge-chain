@@ -1,5 +1,7 @@
 # ADR-069: ARQADE, the gaming platform: a product under ADR-050, a third web surface, and the decisions it needs
 
+> Editorial note, 13 November 2026: retired host/contact literals are redacted. Historical claims retain their original dates and are not current deployment evidence. ADR-130 establishes QORSYNC.DEV as the only public domain.
+
 **Status:** **Accepted**, 4 October 2026, by the project owner, who wrote "I accept ADR-069 and ADR-043 as written".
 Proposed the same day. Decision 1 is the owner's direction; decisions 2 to 9 were the assistant's recommendations and
 are accepted as written. **The three further choices listed after decision 9 (design, hosting, name) are not decided
@@ -33,7 +35,7 @@ outside this repository. Read on 4 October 2026 (files only):
   a template "creator" and an in-browser terminal.
 - **What is not real.** Solo scores, "Energy" and tokens live in `localStorage` (`app/page.tsx:15-21`); a finished
   game grants 0 to 3 tokens from browser randomness. A `qor_id` column exists (`db/schema.ts:8`) and nothing writes
-  it. `app/api/chain/route.ts:4` calls `chain_getBlockNumber` at `https://rpc.demiurge.cloud` — the deleted custom
+  it. `app/api/chain/route.ts:4` calls `chain_getBlockNumber` at `retired-public-host` — the deleted custom
   chain's vocabulary at an address that never served this chain. The storefront shows **USD prices** for Energy
   packs ($5, $20, $60, `app/systems.tsx:11`, marked not connected) and names **CRGT** and **"Energy Tokens → DMRG"**
   (`systems.tsx:10-13`). It has no `test` script; `node --test tests/arena.test.mjs` is run by hand.
@@ -147,8 +149,8 @@ state or XP — and wrong or silent on the following, each of which changes what
 - **Design.** Either ARQADE gets a design record of its own that admits its cinematic look on its own surface, as
   ADR-051 admitted QFX's canvas, or it is restyled to `DESIGN_SYSTEM.md`. Recommendation: its own record, with the
   launcher's rules on reduced motion, contrast and focus kept.
-- **Hosting.** Stay on OpenAI Sites as a prototype host, or move to `demiurge.cloud` (ADR-042) on Railway or
-  Cloudflare. Recommendation: keep Sites until P7.3; serve production from `demiurge.cloud`, where QOR ID's
+- **Hosting.** Stay on OpenAI Sites as a prototype host, or move to `retired-public-host` (ADR-042) on Railway or
+  Cloudflare. Recommendation: keep Sites until P7.3; serve production from `retired-public-host`, where QOR ID's
   allowlist and ADR-043's redirect URIs can name it.
 - **Name.** ARQADE is a public name; it is cleared as `public-release.name-clearance` clears the others before a
   public launch.

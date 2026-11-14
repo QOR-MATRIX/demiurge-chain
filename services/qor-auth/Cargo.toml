@@ -2,7 +2,7 @@
 name = "qor-auth"
 version = "0.1.0"
 edition = "2024"
-authors = ["Alaustrup <alaustrup@demiurge.io>"]
+authors = ["Alaustrup"]
 license = "Apache-2.0"
 description = "Qor ID Authentication Service - The Non-Dual Identity System"
 repository = "https://github.com/QOR-MATRIX/demiurge-chain"

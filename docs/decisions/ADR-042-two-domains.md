@@ -1,4 +1,8 @@
-# ADR-042: Two domains — `qorsync.dev` for operations, `demiurge.cloud` for what people see
+# ADR-042: Two domains — `qorsync.dev` for operations, `retired-public-host` for what people see
+
+> Editorial note, 13 November 2026: retired host/contact literals are redacted. Historical claims retain their original dates and are not current deployment evidence. ADR-130 establishes QORSYNC.DEV as the only public domain.
+
+**Current scope:** The two-domain policy is superseded by [ADR-130](ADR-130-qorsync-is-the-public-domain.md), 13 November 2026. The historical decision below is retained.
 
 **Status:** **Accepted**, 28 September 2026, by the project owner (proposed 20 September 2026). On acceptance the
 `qorsync.dev` zone held only Vercel's own managed defaults (a catch-all `*` and the apex, both routing to Vercel,
@@ -7,7 +11,7 @@ it is `ci.qorsync.dev` (ADR-058). The
 plan behind it is [`../architecture/HOSTING.md`](../architecture/HOSTING.md).
 
 **Relates to:** [ADR-015](ADR-015-infrastructure-ownership.md), whose 15 September 2026 clarification put
-QOR ID's pages on a subdomain of `demiurge.cloud`. If this record is accepted, that clarification is
+QOR ID's pages on a subdomain of `retired-public-host`. If this record is accepted, that clarification is
 amended — and decision 3 below says exactly how, because the amendment is not the obvious one.
 
 ## Context
@@ -16,7 +20,7 @@ The owner acquired a second domain and named the split on 20 September 2026:
 
 - **`qorsync.dev`** — all QOR operations: QOR ID and auth, the development backend, relays, agentic
   synchronisation, public chain RPC, and the launcher's backend needs such as update endpoints.
-- **`demiurge.cloud`** — the user-facing frontends: dashboards and visual experiences.
+- **`retired-public-host`** — the user-facing frontends: dashboards and visual experiences.
 
 ADR-015 chose the providers and is not reopened here. What it did not anticipate is a second domain, and
 a second domain changes three things that a provider choice does not touch: where a person's browser
@@ -27,7 +31,7 @@ Two facts from the tree shape this, both verified on 20 September 2026:
 - **QOR ID authenticates with bearer tokens, not cookies** (`middleware/auth.rs:76`). Splitting the
   surface across two registrable domains therefore breaks no session, because there is no cookie whose
   scope a domain boundary would cut.
-- **QOR ID sends email from `demiurge.cloud`**, verified in Resend and proven live on 2026-09-15.
+- **QOR ID sends email from `retired-public-host`**, verified in Resend and proven live on 2026-09-15.
 
 ## Decision
 
@@ -35,15 +39,15 @@ Two facts from the tree shape this, both verified on 20 September 2026:
    API and the launcher's update endpoint live there, one component per subdomain, as mapped in
    `HOSTING.md` §2.
 
-2. **`demiurge.cloud` is the domain for what a person looks at.** The public viewer (M5.4), the remote
+2. **`retired-public-host` is the domain for what a person looks at.** The public viewer (M5.4), the remote
    console (M5.5) and any marketing surface live there.
 
-3. **QOR ID's three user-facing pages stay on `demiurge.cloud`, while its API moves to
+3. **QOR ID's three user-facing pages stay on `retired-public-host`, while its API moves to
    `id.qorsync.dev`.** The pages its emails open — address verification, confirmation of a new address,
-   password reset — are served on `account.demiurge.cloud`, and `BASE_URL` is that origin.
+   password reset — are served on `retired-public-host`, and `BASE_URL` is that origin.
 
    **This is a deliberate exception to decision 1, and it is the part of this record most likely to be
-   rejected.** The reason is in `HOSTING.md` §5: email is sent from `demiurge.cloud`, and an email whose
+   rejected.** The reason is in `HOSTING.md` §5: email is sent from `retired-public-host`, and an email whose
    sender and link are on different domains is the exact shape of a phishing message. Whichever way the
    owner resolves it, **the sender domain and the link domain must be the same domain**. Option B in
    that section — moving transactional sending to `qorsync.dev` and putting all of QOR ID there — meets

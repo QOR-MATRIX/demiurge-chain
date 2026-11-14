@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 'use client';
 
 /**
@@ -41,7 +42,7 @@ interface AuthSession {
 
 // Use local proxy to avoid CORS issues
 const RPC_URL = '/api/rpc';
-const RPC_DISPLAY_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud';
+const RPC_DISPLAY_URL = process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:9944';
 
 const HELP_TEXT = `
 ╔══════════════════════════════════════════════════════════════════════════╗
@@ -727,7 +728,7 @@ Examples:
     isJson: boolean,
     fullInput: string
   ): Promise<CommandResult[]> {
-    const authUrl = process.env.NEXT_PUBLIC_API_URL || 'https://auth.demiurge.cloud';
+    const authUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8080';
     
     switch (subcommand) {
       case 'check': {
@@ -893,7 +894,7 @@ Examples:
       case 'register':
         return [{
           type: 'info',
-          content: `🔐 Registration requires the web interface.\n\n  Visit: https://demiurge.cloud`,
+          content: `🔐 Registration requires the web interface.\n\n  Visit: https://qorsync.dev`,
         }];
 
       default:

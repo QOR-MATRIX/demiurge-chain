@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Centralized API Client
  * 
@@ -262,7 +263,7 @@ function createApiClient(baseURL: string): AxiosInstance {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
   (typeof window !== 'undefined' && window.location?.hostname === 'localhost'
     ? 'http://localhost:8080/api/v1'
-    : 'https://demiurge.cloud/api/v1');
+    : 'http://127.0.0.1:3000/api/v1');
 
 const apiClient = createApiClient(API_BASE_URL);
 

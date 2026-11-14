@@ -1,5 +1,7 @@
 # Security
 
+> Editorial note, 13 November 2026: retired host/contact literals are redacted. Historical claims retain their original dates and are not current deployment evidence. ADR-130 establishes QORSYNC.DEV as the only public domain.
+
 ## Status
 
 **Demiurge has not been audited.** It is pre-release software. Do not hold real value on it.
@@ -87,16 +89,16 @@ Anthropic key, no signed JWT and no mnemonic. The public repository was publishe
     removed so nothing can derive one again, the profile reports no chain account until a key is proven, and
     migration 018 cleared the derived addresses already stored.
   - Email goes through Resend. Delivery to a real inbox is not yet confirmed.
-    - The `demiurge.cloud` sending domain is verified in Resend. Checked in public DNS on 2026-09-15: DKIM,
+    - The `retired-public-host` sending domain is verified in Resend. Checked in public DNS on 2026-09-15: DKIM,
       SPF and the bounce MX record resolve and match.
     - DMARC is published at `p=none`, which only monitors: receivers are not asked to reject mail that
-      fails authentication for `demiurge.cloud`.
+      fails authentication for `retired-public-host`.
     - The owner set a sending-only key in the environment on 2026-09-15. Resend refuses it anything but
       sending.
-    - A live run the same day sent both messages from `noreply@demiurge.cloud` to Resend's test address
+    - A live run the same day sent both messages from `[retired contact]` to Resend's test address
       `delivered@resend.dev`, and the whole flow completed through the links they carried. Resend marked
       both delivered, the reset message some minutes after the verification message.
-    - `demiurge.cloud` itself has no MX record, so no address at it can receive mail.
+    - `retired-public-host` itself has no MX record, so no address at it can receive mail.
     - QOR ID serves the pages the links open (`/verify-email` and `/reset-password`) on its own subdomain
       (ADR-015, clarified 2026-09-15). The name is set at deployment: `BASE_URL` is `https://id.qorsync.dev`
       (`services/qor-auth/DEPLOY-RAILWAY.md`). `BASE_URL` has no default, and email stays unconfigured unless it
@@ -382,7 +384,7 @@ and carries forward as a requirement for the Polkadot SDK chain and QOR ID (ADR-
     - Checked end to end against a local stand-in for Resend (`scripts/e2e/email-via-resend.mjs`, 13
       checks): an address is verified through the message it receives, an unverified address gets no reset
       link, and a verified one does.
-    - Live through `demiurge.cloud` on 2026-09-15, to Resend's test address:
+    - Live through `retired-public-host` on 2026-09-15, to Resend's test address:
       - registration's message was delivered, and its link verified the address;
       - a reset link was sent, and it reset the password;
       - each link worked once;
@@ -666,6 +668,14 @@ becomes a prerequisite: the CORS specification forbids `Access-Control-Allow-Ori
 credentials, so a cookie face cannot use a wildcard even if someone wanted to.
 
 ## Reporting a vulnerability
+
+Use this repository's [private vulnerability reporting form](https://github.com/QOR-MATRIX/demiurge-chain/security/advisories/new).
+GitHub's reporting setting was enabled and read back on 13 November 2026. The
+report remains private to the reporter and repository security maintainers.
+Include the affected revision, component, reproduction steps and expected impact;
+do not include a real credential or recovery phrase. This replaces reliance on
+a retired-domain contact address. Historical contact guidance below is not the
+current intake route.
 
 Do not open a public issue. Contact the maintainer, [@ALaustrup](https://github.com/ALaustrup), directly,
 with reproduction steps. Allow reasonable time for a fix before disclosure.

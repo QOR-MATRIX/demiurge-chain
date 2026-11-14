@@ -1,6 +1,7 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 import { NextRequest, NextResponse } from 'next/server'
 
-const BUG_REPORT_EMAIL = process.env.BUG_REPORT_EMAIL || 'alaustrup@demiurge.cloud'
+const BUG_REPORT_EMAIL = process.env.BUG_REPORT_EMAIL || ''
 
 export async function POST(request: NextRequest) {
   try {

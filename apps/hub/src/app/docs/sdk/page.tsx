@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 'use client';
 
 import Link from 'next/link';
@@ -159,7 +160,7 @@ export default function SDKPage() {
             <pre className="bg-black/30 rounded-lg p-3 font-mono text-sm text-gray-300 overflow-x-auto">
 {`import { DemiurgeClient } from '@demiurge/sdk';
 
-const client = new DemiurgeClient('wss://rpc.demiurge.network');
+const client = new DemiurgeClient('ws://127.0.0.1:9944');
 const balance = await client.getBalance('5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY');`}
             </pre>
           </div>

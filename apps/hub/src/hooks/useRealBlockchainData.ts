@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Real-time blockchain data hook
  * Replaces all mock data with actual RPC queries
@@ -6,7 +7,7 @@
 import { useState, useEffect } from 'react';
 import { DemiurgeClient } from '@demiurge/sdk';
 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud';
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:9944';
 
 const client = new DemiurgeClient({ endpoint: RPC_URL });
 

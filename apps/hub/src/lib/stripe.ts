@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Stripe Integration for Demiurge Donations
  * 
@@ -69,7 +70,7 @@ export async function createDonationCheckoutSession(params: {
             product_data: {
               name: `Demiurge Donation - Tier ${tierLevel}`,
               description: `Support the Demiurge ecosystem and receive exclusive perks`,
-              images: ['https://demiurge.cloud/donation-hero.png'],
+              images: ['https://qorsync.dev/donation-hero.png'],
             },
             unit_amount: amountCents,
           },

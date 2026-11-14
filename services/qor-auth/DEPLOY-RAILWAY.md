@@ -1,5 +1,7 @@
 # QOR ID on Railway
 
+> Domain maintenance, 13 November 2026: retired address literals are redacted under ADR-130. Historical deployments keep their original dates; this is not current service verification.
+
 QOR ID, its Postgres and its Redis run on Railway (ADR-063): project **`demiurge`**, environment `production`,
 region `iad`. This file is the record of how they are set up. Railway has deprecated `railway.json`, so every
 setting lives on the service and is written down here instead.
@@ -43,7 +45,7 @@ Migrations run at startup, from inside the binary; the latest is `023_chosen_nam
 **`QOR_AUTH__SERVER__PORT` is deliberately not set**, so Railway's `PORT` is used. **`PASSWORD_MIN_LENGTH` is 12**
 because `config/production.toml` carries a weaker 8, and changing that file is the owner's policy decision.
 
-**Email is on (1 October 2026).** `EMAIL_FROM` is `Demiurge-Cloud <noreply@demiurge.cloud>`, `BASE_URL` is
+**Email is on (1 October 2026).** `EMAIL_FROM` is `Demiurge-Cloud <[retired contact]>`, `BASE_URL` is
 `https://id.qorsync.dev`, and `RESEND_API_KEY` is a secret the owner pasted in the dashboard; the service logs
 "Email service configured". `RESEND_WEBHOOK_SECRET` is not confirmed set: while it is unset, bounce and complaint
 reports are refused with 503, and `main.rs` warns at start-up ("RESEND_WEBHOOK_SECRET is not set"), so the deploy log

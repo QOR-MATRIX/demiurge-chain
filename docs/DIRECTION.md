@@ -6,7 +6,7 @@ we building". Decisions behind it are indexed in [`DECISIONS.md`](DECISIONS.md).
 [`protocol/PROTOCOL.md`](protocol/PROTOCOL.md). How the current code measures up against all of it is
 [`audit/RECONCILIATION.md`](audit/RECONCILIATION.md).
 
-**Last updated:** 2026-10-06
+**Last updated:** 2026-11-13
 
 ---
 
@@ -241,6 +241,69 @@ D-008). Verified live with three validators. Its behaviour becomes the acceptanc
 ([`MIGRATION_INVENTORY.md`](architecture/MIGRATION_INVENTORY.md) §9).
 
 ### 7.1 Security track (started 2026-09-14, ahead of M2)
+
+- [x] Verify the CI workflow hardening at `97dcb13` (run `43519214320`): both workflows pin
+  external actions to full upstream commits; checkouts do not persist credentials;
+  cargo-audit 0.22.2 and cargo-llvm-cov 0.9.1 use a pinned release installer with
+  checksum verification and no fallback. Weekly Actions dependency proposals
+  keep updates reviewable. Commands, gates and triggers are unchanged; the manual
+  devnet image workflow has not been run. Chain, Launcher, QOR ID, Social, ARQADE
+  and coverage jobs pass; the service dependency audits below still fail.
+  The live repository allowlist permits only the nine used action repositories;
+  default tokens are read-only and cannot approve pull requests. Global SHA
+  enforcement waits until the pinned source reaches main. The conditional
+  two-validator job passes all 13 agreement/finality/restart checks in
+  `43522526902` on a hosted local test network; its Rust 1.100.0
+  report fails on 66 generated DRC-369 `clone_on_copy` diagnostics (ADR-072).
+  Required Rust 1.98.1 checks pass; neither pin nor lint policy changed. Image execution/publication remain
+  separate from this workflow-source and hosted CI validation.
+
+- [ ] Remediate the 13 November pinned-core audit findings before adding bridge capabilities:
+  libsqlite3-sys 0.38.2 (RUSTSEC-2026-0459), quinn-proto 0.11.18
+  (RUSTSEC-2026-0523 and RUSTSEC-2026-0524), quinn-udp 0.5.15
+  (RUSTSEC-2026-0538). Review target/feature reachability, update and test upstream,
+  then rerun the audit before a QOR OS pin change. Thirteen additional warnings
+  were reported; no exception was added. The UDP advisory excludes Linux and Windows.
+  **Repair in progress, 13 November:** the core and host now lock rusqlite 0.41.1,
+  libsqlite3-sys 0.39.1, quinn-proto 0.11.19 and quinn-udp 0.5.16. Local audits
+  report zero vulnerability advisories, with 13 core/23 host warnings retained.
+  QOR ID's QUIC dependencies are patched too. QOR ID and Social each still report
+  RUSTSEC-2026-0459 in SQLx's optional SQLite dependency; stable SQLx 0.9.0 also
+  rejects libsqlite3-sys 0.39.1, so an incompatible upgrade was not retained.
+  An isolated resolution with default SQLx features disabled still retains
+  SQLite and MySQL in the lock; feature trimming alone does not clear the audit.
+  No ignore was added. Hosted build/test jobs pass at `042941c`: 245 core tests
+  pass with 10 ignored and 109 host tests with five ignored. Service audits,
+  maintenance warnings and QOR OS integration remain open before a pin change.
+  The chain locks the compatible QUIC patches, libz-sys 1.1.31 and Wasmtime
+  36.0.20; its report falls from 53 to 44 vulnerability findings, with 36
+  warnings. The SDK pin and runtime source are unchanged. All 213 workspace tests
+  pass with WebAssembly built at `042941c`; unresolved SDK dependencies remain tracked.
+  A further compatible update selects rustls-webpki 0.103.17, webpki-root-certs
+  1.0.12, zstd 0.13.5, zstd-safe 7.4.1 and zstd-sys 2.1.3+zstd.1.5.7. Its local
+  audit reports 38 findings and 26 warnings. Hosted CI at `3d71009` passes all
+  213 chain tests with WebAssembly built, 245 core tests (10 ignored) and 109
+  host tests (five ignored); both service dependency audits still fail. `sc-tracing 47.0.0` requires tracing-subscriber exactly
+  0.3.19, so the attempted logging update was refused without changing the SDK.
+  Launcher spawn tests now consume Cargo's reported executable path instead of
+  assuming a build-directory layout. All four formerly failing real-spawn cases
+  and the new artifact-discovery regression pass in that hosted run.
+**Homepage ownership has moved to QOR OS** (ADR-132): source, Analytics,
+  locked build, privacy checks and dependency updates live in
+  [QOR-MATRIX/QOR-OS/site](https://github.com/QOR-MATRIX/QOR-OS/tree/main/site).
+  The existing Astra Matrix / qor project's connection to QOR OS/main/site is
+  verified. This repository's copy is frozen. QOR OS's hosting guide owns final
+  deployment verification; analytics dashboard collection is a separate claim.
+
+- [ ] Complete ADR-130's service-domain migration: verify hosting access, prepare
+  Social/ARQADE custom hosts, validate service protocols, then coordinate client
+  defaults, installed settings and released binaries. Source cleanup alone does not
+  complete this gate. Legacy deployment helpers remain disabled.
+  At 22:33-22:34 UTC, the homepage and QOR ID health/readiness respond successfully;
+  WebSocket RPC reports runtime 11 and advancing finalized headers. Authenticated
+  CLI access resolves the homepage project's connection; Social/ARQADE domains
+  and authentication/client migration remain open.
+
 
 These are defects in active code that would matter the moment anything is deployed. They are not
 migration work. Each carries forward as a requirement for the Polkadot SDK chain and QOR ID. Details are

@@ -7,6 +7,14 @@ to 1.98.1 (`chain/rust-toolchain.toml`) it is green, and a scheduled job reports
 failing the run. This file is the write-up the owner decided from, written the same day, because every way to turn CI
 green weakened a check a release gate reads. Below, it is kept as written, in the present tense of 4 October.
 
+**Rechecked 13 November 2026:** the optional newest-stable report in
+[run 43522526902](https://github.com/QOR-MATRIX/demiurge-chain/actions/runs/43522526902),
+at source `97dcb13`, uses Rust 1.100.0 and fails on 66 `clone_on_copy` diagnostics
+at DRC-369 event/call parameters expanded by the SDK macros. It does not build
+the WebAssembly runtime and is not test evidence. The required Rust 1.98.1 run
+`43519214320` passes formatting, lints and all 213 chain tests with WebAssembly
+built. The compiler/SDK pins and lint policy remain unchanged.
+
 ## What happened
 
 - CI installs whatever Rust is newest (`dtolnay/rust-toolchain@stable`). On 28 September Rust **1.99.0** came out.

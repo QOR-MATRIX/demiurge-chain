@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Spline User Data Webhook
  * 
@@ -6,7 +7,7 @@
  * 
  * Setup in Spline:
  * 1. Open Variables & Data Panel → APIs tab → New API
- * 2. Set URL: https://demiurge.cloud/api/spline/user
+ * 2. Set URL: http://127.0.0.1:3000/api/spline/user
  * 3. Method: GET
  * 4. Headers: Add "Authorization: Bearer <token>" (use Spline variables)
  * 5. Map response to user-related Spline variables
@@ -14,7 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://rpc.demiurge.cloud';
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:9944';
 
 // Simple JWT decode (no verification - for Spline visualization only)
 function decodeJWT(token: string): { user_id: string; qor_id: string; role: string; address?: string } | null {

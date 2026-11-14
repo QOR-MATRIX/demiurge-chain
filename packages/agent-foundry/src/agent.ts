@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 /**
  * Ethereal Agent
  * 
@@ -50,7 +51,7 @@ export class EtherealAgent extends EventEmitter<AgentEvents> {
 
     // Create memory client (will be initialized after registration)
     this.memory = new MemoryClient({
-      rpcEndpoint: config.rpcEndpoint || 'https://rpc.demiurge.cloud',
+      rpcEndpoint: config.rpcEndpoint || 'http://127.0.0.1:9944',
       agentDid: '', // Set after registration
       llmProvider: this.llm,
     });
@@ -96,7 +97,7 @@ export class EtherealAgent extends EventEmitter<AgentEvents> {
 
       // Initialize memory client with DID
       this.memory = new MemoryClient({
-        rpcEndpoint: this.config.rpcEndpoint || 'https://rpc.demiurge.cloud',
+        rpcEndpoint: this.config.rpcEndpoint || 'http://127.0.0.1:9944',
         agentDid: this._did!.did,
         llmProvider: this.llm,
         sessionToken: this.sessionToken || undefined,
@@ -423,7 +424,7 @@ export class EtherealAgent extends EventEmitter<AgentEvents> {
    * Make RPC call
    */
   private async rpc(method: string, params: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const endpoint = this.config.rpcEndpoint || 'https://rpc.demiurge.cloud';
+    const endpoint = this.config.rpcEndpoint || 'http://127.0.0.1:9944';
     
     const response = await axios.post(
       endpoint,
@@ -607,8 +608,8 @@ export interface AgentRegistrationOptions {
 export async function registerAgent(
   options: AgentRegistrationOptions
 ): Promise<RegisteredAgent> {
-  const authEndpoint = options.authEndpoint || 'https://auth.demiurge.cloud';
-  const rpcEndpoint = options.rpcEndpoint || 'https://rpc.demiurge.cloud';
+  const authEndpoint = options.authEndpoint || 'http://127.0.0.1:8080';
+  const rpcEndpoint = options.rpcEndpoint || 'http://127.0.0.1:9944';
   
   // Generate keypair
   const privateKeyBytes = new Uint8Array(32);

@@ -1,3 +1,4 @@
-scripts
 README.md
 .vercel
+node_modules
+dist

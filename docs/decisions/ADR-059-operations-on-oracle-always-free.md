@@ -1,5 +1,7 @@
 # ADR-059: The operations server runs on Oracle Cloud's Always Free tier
 
+> Editorial note, 13 November 2026: retired host/contact literals are redacted. Historical claims retain their original dates and are not current deployment evidence. ADR-130 establishes QORSYNC.DEV as the only public domain.
+
 **Status:** Accepted, 28 September 2026, by the project owner. **Superseded the same day by
 [ADR-060](ADR-060-operations-on-the-owners-computer.md)**: the owner rejected Oracle; the stack runs on the owner's
 computer behind a Cloudflare Tunnel. Nothing was ever created on Oracle.
@@ -34,7 +36,7 @@ node, were weaker. **The owner chose Oracle.**
    well-known `//Alice`: an RPC endpoint on it lets anyone take the chain over. `rpc.qorsync.dev` is created with a
    test specification whose sudo key is generated privately; that specification is owed in `chain/`.
 6. **QOR ID runs in production mode with no email service**, so it refuses email flows and says so; sign-up and
-   sign-in with a vault key need none. Email waits on ADR-042's decision 3 (`account.demiurge.cloud`, whose DNS is
+   sign-in with a vault key need none. Email waits on ADR-042's decision 3 (`retired-public-host`, whose DNS is
    still at GoDaddy).
 
 ## Consequences
@@ -45,4 +47,4 @@ node, were weaker. **The owner chose Oracle.**
 - **Capacity is not guaranteed at signup**: Ampere machines are often out of capacity, and a retry or another
   availability domain may be needed.
 - The launcher's QOR ID endpoint becomes `https://id.qorsync.dev/api/v1` once the stack is up; its default
-  (`demiurge.cloud`) changes in the same change that proves the endpoint answers.
+  (`retired-public-host`) changes in the same change that proves the endpoint answers.

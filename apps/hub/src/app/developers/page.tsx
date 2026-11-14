@@ -1,3 +1,4 @@
+// Frozen legacy code: domain cleanup only; loopback examples are not live integrations (ADR-130).
 'use client';
 
 import { useState } from 'react';
@@ -22,7 +23,7 @@ const CODE_EXAMPLES: CodeExample[] = [
     code: `import { DemiurgeClient } from '@demiurge/sdk';
 
 const client = new DemiurgeClient({
-  rpcUrl: 'https://rpc.demiurge.cloud'
+  rpcUrl: 'http://127.0.0.1:9944'
 });
 
 // Get current block
@@ -37,7 +38,7 @@ console.log('Connected! Block:', blockNumber);`,
     code: `import { DemiurgeClient } from '@demiurge/sdk';
 
 const client = new DemiurgeClient({
-  rpcUrl: 'https://rpc.demiurge.cloud'
+  rpcUrl: 'http://127.0.0.1:9944'
 });
 
 const balance = await client.getBalance(
@@ -54,7 +55,7 @@ console.log('Balance:', balance, 'CGT');`,
     code: `import { DRC369Client } from '@demiurge/drc369-sdk';
 
 const drc369 = new DRC369Client({
-  rpcUrl: 'https://rpc.demiurge.cloud'
+  rpcUrl: 'http://127.0.0.1:9944'
 });
 
 const nft = await drc369.getToken('nft-001');
@@ -112,7 +113,7 @@ console.log(result.output);`,
     title: 'Direct RPC Call',
     description: 'Query the blockchain via JSON-RPC',
     language: 'bash',
-    code: `curl -X POST https://rpc.demiurge.cloud \\
+    code: `curl -X POST http://127.0.0.1:9944 \\
   -H "Content-Type: application/json" \\
   -d '{
     "jsonrpc": "2.0",
@@ -317,7 +318,7 @@ export default function DevelopersPage() {
                     <pre className="text-gray-300">{`import { DemiurgeClient } from '@demiurge/sdk';
 
 const client = new DemiurgeClient({
-  rpcUrl: 'https://rpc.demiurge.cloud'
+  rpcUrl: 'http://127.0.0.1:9944'
 });
 
 const block = await client.getBlockNumber();
@@ -397,7 +398,7 @@ const validators = await client.getValidators();`}</pre>
               
               <div className="bg-black/50 rounded-lg p-4 mb-6">
                 <div className="text-sm text-gray-400 mb-2">Endpoint</div>
-                <code className="text-neon-cyan">https://rpc.demiurge.cloud</code>
+                <code className="text-neon-cyan">http://127.0.0.1:9944</code>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

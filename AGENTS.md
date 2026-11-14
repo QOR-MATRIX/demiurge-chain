@@ -40,7 +40,7 @@ is not current.
 
 ## 4. Scope
 
-Active: `chain/`, `services/qor-auth/`, `services/social/` (ADR-091, since 15 October 2026), `tools/qor-launcher/`, `tools/qor-media/` (ADR-094, since 16 October 2026), `products/arqade/` (ADR-069, since 4 October 2026), `products/qq/` (QQ on Qt 6, ADR-083, since 8 October 2026) and `site/` (the homepage at qorsync.dev, ADR-100, since 18 October 2026). Everything under `apps/`, `cli/`,
+Active: `chain/`, `services/qor-auth/`, `services/social/` (ADR-091, since 15 October 2026), `tools/qor-launcher/`, `tools/qor-media/` (ADR-094, since 16 October 2026), `products/arqade/` (ADR-069, since 4 October 2026), `products/qq/` (QQ on Qt 6, ADR-083, since 8 October 2026). Everything under `apps/`, `cli/`,
 `sdk/`, `packages/` and `client/` is frozen (D-011, amended by ADR-011): do not extend it or treat it as
 working unless the owner brings it back into scope. `aeons/`, `archons/` and `syzygies/` are dead.
 
@@ -68,6 +68,11 @@ pre-realignment documentation (§1), it is code rather than a contradicting plan
 history is not forbidden — but it is an untrusted chain that accepted forged signatures, and nothing in it
 should be copied forward.
 
+**The homepage is developed in `QOR-MATRIX/QOR-OS/site/`** (ADR-132), deployed
+by the existing Astra Matrix / qor project. This repository's `site/` is frozen;
+do not develop or deploy it. QORSYNC.DEV, signed download links and source notices
+are preserved. Homepage contribution and deployment guidance lives in QOR OS.
+
 ## 5. Money
 
 - CGT has 18 decimals. All amounts are integer **embers** in `u128` (1 CGT = 10^18 embers; a Spark is a thousandth of a
@@ -91,6 +96,11 @@ should be copied forward.
   to (ADR-006).
 
 ## 6. Language
+
+Public first-party links use QORSYNC.DEV and approved service subdomains (ADR-130).
+Never reintroduce retired public-host literals, including examples and historical copy.
+Keep real upstream source/licence links and stable application/keychain identifiers;
+source maintenance is not evidence of a live service or permission to publish a release.
 
 Demiurge is infrastructure for creators to earn from use, not a vehicle for appreciation (ADR-008).
 APY, yield, return in the financial sense, ROI, investment, passive income and any statement about
