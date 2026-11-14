@@ -1,7 +1,8 @@
 # Every system this repository names
 
-Rewritten 13 November 2026 against source, hosted checks at `97dcb13`, and local
-homepage analytics validation on `session/qorsync-domains`. This inventory identifies implementation and ownership; it does not
+Rechecked 13 November 2026 against the current source and hosted checks at `d4c51d7`,
+with the homepage transfer and QOR OS's final delivery receipt at `f4c9863`.
+This inventory identifies implementation and ownership; it does not
 restate old CI counts or label historical deployments as currently live.
 [DIRECTION.md](DIRECTION.md) remains the only roadmap and
 [DECISIONS.md](DECISIONS.md) the decision index.
@@ -52,15 +53,16 @@ These are source locations, not claims of a new installed build.
 | Qontrol | Core `qontrol/` and the Projects surface; the product roadmap remains P1. |
 | QFX, GNOSIS, Stream | The product tracks in DIRECTION define these names and remaining work. This session makes no new implementation/readiness claim for them. |
 | Market and Library | Core and Launcher sources listed above; completion of a product track or paid model is not implied. |
-| Homepage | `site/`; canonical address QORSYNC.DEV. Pinned Vercel Analytics 2.0.1 and its asset-copy build pass 33 static checks and six privacy/build tests locally, with zero npm audit findings. Collection is limited to canonical homepage pageviews, with URL redaction and browser opt-outs (ADR-131). Source links include QOR OS; the last live HTML probe lacks that link. Project access still fails after renewed team approval; deployment and live collection are unverified. |
+| Homepage | Maintained in [QOR-MATRIX/QOR-OS/site](https://github.com/QOR-MATRIX/QOR-OS/tree/main/site), with pinned Analytics, privacy/output checks and licences (ADR-132). This copy is frozen. The existing Astra Matrix / qor project reads QOR OS/main/site and QORSYNC.DEV serves `f4c9863`. All 47 public files match reviewed bytes; Analytics script delivery is verified, dashboard collection is not. |
 
 ## Tooling, hosting and outstanding acceptance
 
 The existing hosted workflow is `.github/workflows/ci.yml`. The new public-domain
 check and its tests run there; the Launcher also checks its actual registry and
 content security policy. Launcher spawn tests use Cargo's artifact messages, so
-separate build directories no longer break executable discovery. The homepage adds
-one pinned browser dependency and a static copy build, without a new framework.
+separate build directories no longer break executable discovery. The homepage build, privacy/audit job and dependency updates moved with their source
+to QOR OS; the duplicate upstream job retires under ADR-132. Existing content,
+design and language checks remain.
 All external actions now use full upstream commit hashes. Checkouts do not persist
 credentials; the auditor and coverage tools keep explicit versions and verified
 downloads without fallback installation. Dependabot proposes weekly Actions
@@ -90,8 +92,9 @@ move remain open; this is not live-service or release acceptance.
 An inventory finding alone does not demonstrate exploitation.
 
 [HOSTING.md](architecture/HOSTING.md) records the current verification boundary:
-Vercel returned apex/`www` domain assignments, public DNS uses Cloudflare, but
-the connected account could not open the assigned project. Public QOR ID health/readiness and the chain's read-only
+Authenticated Vercel CLI access verified and corrected the existing QOR project
+connection; QORSYNC.DEV serves QOR OS main, with the apex/`www` bindings preserved.
+The connector still returns 404, which is not evidence of an absent project. Public QOR ID health/readiness and the chain's read-only
 WebSocket check pass at 22:33-22:34 UTC. Social/ARQADE service
 hosts, installed settings, mail sending and replacement releases still need a
 coordinated migration. No service or credential configuration was changed.

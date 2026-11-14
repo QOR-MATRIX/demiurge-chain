@@ -1,42 +1,40 @@
 # Where the network and Launcher stand
 
 For Andrew, 13 November 2026. Draft PR #118 on `session/qorsync-domains`
-contains repairs tested at `97dcb13` and the requested homepage analytics integration.
+contains the tested network/Launcher repairs and homepage ownership handoff.
 Service audits keep it unmerged; QOR OS's core pin has not moved.
 
-The Launcher helper locates executable output from Cargo, the Rust build tool.
-Its four previously failing spawn tests and new regression pass. Hosted checks pass
-109 host tests with five ignored and 245 core tests with 10 ignored, plus
-formatting, frontend, design and accessibility checks.
+The Launcher reads executable locations from Cargo, the Rust build tool.
+Its four formerly failing spawn tests and new regression pass. Hosted checks
+pass 109 host tests with five ignored and 245 core tests with 10 ignored,
+plus formatting, frontend, design and accessibility checks.
 
 Workflow actions and tools have reviewed pins; checkouts discard credentials.
-Default tokens are read-only, and the allowlist permits nine repositories.
+Default tokens are read-only; the allowlist permits nine action repositories.
 All 13 two-validator recovery checks pass on a hosted local test network.
 Rust 1.100's optional report fails on 66 generated-code lint errors;
 required checks pass on pinned Rust 1.98.1.
 
-Core and Launcher audits report zero vulnerability findings; 13 core and 23
-host maintenance warnings remain. QOR ID and Social still fail on an SQLite
-database dependency. Stable SQLx, their database library, cannot accept the
-fixed version; disabling default features retains the affected optional driver.
-No exception was added.
+Core and Launcher audits report zero vulnerability findings; 13 core and
+23 host maintenance warnings remain. QOR ID and Social still fail on an SQLite
+database dependency. Stable SQLx, their database library, cannot resolve the
+fixed version. No exception was added.
 
 All 213 chain tests pass with WebAssembly, portable runtime code, built.
 Compatible dependency patches leave 38 vulnerability findings and 26 warnings.
 The chain framework and runtime source are unchanged; no network upgrade occurred.
 
-The homepage now installs pinned Vercel Analytics 2.0.1. Its static build,
-33 content checks, six privacy/build tests and dependency audit pass locally.
-Only canonical homepage pageviews qualify; URL details are removed, browser
-privacy opt-outs are honoured and preview visits are excluded. This is source
-integration; live collection is unverified.
+The homepage is now maintained in QOR-MATRIX/QOR-OS, with its Analytics package,
+tests and licences. This copy is frozen. The existing Astra Matrix / qor project
+now builds QOR OS's main branch and QORSYNC.DEV serves it. Links, redirect,
+security headers and Analytics script delivery pass live checks. QOR OS PR #9 is
+deployed at `f4c9863`; all 47 public files match reviewed bytes with the proxy
+header correction in place. Dashboard collection remains unproven. This session
+validates and commits the pending upstream ownership handoff; no service code changes.
 
-Read-only probes confirm QORSYNC.DEV, QOR ID readiness and advancing finalized
-blocks. Vercel retains domain assignments but project access still fails after
-renewed team approval. The live homepage lacks the new QOR OS repository link.
-Social/ARQADE custom hosts and client migration remain open. No production
-deployment, image, package publication or release occurred.
+QOR ID readiness and advancing finalized blocks pass dated read-only probes.
+Social/ARQADE custom hosts and client migration remain open. The homepage was
+deployed; no network upgrade, device image or package release was published.
 
-Resolve service dependencies and maintenance warnings before a QOR OS pin update
-and broader bridge commands, the shell-to-core interface. The only roadmap is
-`docs/DIRECTION.md`; `docs/SYSTEMS.md` maps current implementations.
+Resolve service dependencies before a core pin update and broader bridge commands,
+the shell-to-core interface. DIRECTION is the roadmap; SYSTEMS maps ownership.

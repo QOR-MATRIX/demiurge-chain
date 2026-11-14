@@ -15,6 +15,11 @@ Makers earn when their work is used, licensed or remixed — on one sign-in, one
 
 ---
 
+The operating system and canonical homepage are maintained in
+[QOR-MATRIX/QOR-OS](https://github.com/QOR-MATRIX/QOR-OS) (private; access required).
+This repository remains the network, Launcher and shared core source.
+[Homepage ownership](site/README.md) follows ADR-132.
+
 ## What Demiurge is
 
 Demiurge is a **Substrate layer 1 on the Polkadot SDK** whose currency is **CGT, the Creator God Token**, and a

@@ -2,107 +2,63 @@
 
 ## Current session: 13 November 2026
 
-The owner requested `npm i @vercel/analytics`. `site/` now has its own private npm
-manifest and integrity lock for version 2.0.1, independent of the frozen root
-workspace. A small Node 24 build copies 41 public files, including the unmodified
-browser module and its licence, to `dist/`. All 33 content checks and six
-analytics/build tests pass locally, and npm audit reports no findings. The
-canonical homepage alone initialises analytics; pageview URL details are removed,
-custom events refused, browser privacy opt-outs honoured, and local/preview
-visits excluded. A pinned hosted job and weekly dependency proposals cover it.
-ADR-131 amends ADR-100's no-build/no-analytics decisions. No collection activation
-or production deployment was performed. Commands and hosting requirements are in
-`site/README.md`; new receipts are in QOR OS
-`build/development-2026-11-13/session-07/`.
+The owner directed QOR-MATRIX/QOR-OS to be the canonical project repository and
+Astra Matrix / qor to be its Vercel project. ADR-132 transfers homepage ownership
+to QOR OS, whose PR #8 merged at `1dc617b`. Its `site/` imports this repository's
+source at `d4c51d7` with hashes and licences. This copy is now frozen, its automatic
+Git deployments disabled, and its duplicate build/audit job and npm update proposals
+removed. Existing upstream content, design, language and service checks stay intact.
+QOR OS's homepage job, broader tooling checks and history scan pass on GitHub.
 
-Read-only live checks at 22:33-22:34 UTC confirm HTTP 200 from the homepage,
-QOR ID health and database/cache readiness, and WebSocket RPC runtime 11 with
-advancing finalized headers. The returned homepage HTML has no retired
-first-party URL attributes but lacks the exact QOR OS repository link. These
-checks do not cover authentication, release clients or every rendered screen.
-The Vercel project remains inaccessible through the connected team; no routing,
-credential or deployment change was made. See `docs/architecture/HOSTING.md`.
+Authenticated Vercel CLI access resolves the connector's misleading 404: existing
+project `prj_pUNenZCSC3eh2tyJdHbHCt9rUlW0`, team `astramatrix`, now reads QOR OS
+repository `1435244138`, `main`, root `site`. The locked Node 24 build publishes
+only `dist`. QORSYNC.DEV's alias serves that QOR OS main revision; `www` redirects
+with 308. HTTPS, canonical links, security headers, private-file exclusion and
+Analytics script delivery pass. QOR OS PR #9 subsequently merged the no-transform
+header at `f4c9863`; all 47 public files now match reviewed bytes, including both
+HTML pages, with no appended edge beacon. Its documentation is pushed at `f7db441`.
+See its `docs/HOSTING.md` and `build/development-2026-11-13/session-09/` receipts.
+Analytics dashboard collection is not proven. No network, device or package release
+was published by the homepage deployment.
 
-The workflow follow-up pins every external action in both workflows to a full
-upstream commit, removes persisted checkout credentials, and pins cargo-audit
-0.22.2/cargo-llvm-cov 0.9.1 through the normal install-action v2.90.3 release
-with checksum verification and no fallback. Dependabot proposes weekly Actions
-updates. Job commands, gates and triggers remain unchanged; the publishing
-workflow remains manual and was not run. Hosted run `43519214320` at `97dcb13`
-passes the chain, Launcher, QOR ID, Social, ARQADE and coverage jobs; only the
-security job fails on the two service audits. It repeats all 213 chain tests,
-245 core tests (10 ignored) and 109 host tests (five ignored). The organisation's Free plan does not provide GitHub's Enterprise
-workflow lockfiles, so hashes are recorded directly in the workflow source.
-The live repository allowlist now permits only its nine used action repositories;
-read-only default tokens and no pull-request approval are verified. The checked
-policy is `.github/actions-policy.json`; global SHA enforcement waits until the
-source pins reach main. The setting does not make the unresolved audits pass.
-
-The existing CI workflow was also dispatched at `97dcb13` as run `43522526902`
-to exercise its conditional two-validator agreement/finality/restart check and
-newest-stable compiler report. The two-validator job completed successfully:
-13 checks pass, including agreement, finality, a survivor after peer shutdown,
-and the restarted peer catching up to the same chain. This is a local test network.
-The Rust 1.100.0 report fails on 66 `clone_on_copy` errors in generated DRC-369
-code, the macro issue tracked by ADR-072. Required Rust 1.98.1 checks remain
-passing; no lint suppression or compiler/SDK pin change was made.
-The validator job builds and runs an isolated local test network on a hosted
-runner; no public network upgrade or image workflow was requested.
-
-The next compatible chain lock update selects rustls-webpki 0.103.17,
-webpki-root-certs 1.0.12, zstd 0.13.5, zstd-safe 7.4.1 and zstd-sys
-2.1.3+zstd.1.5.7. Local cargo-audit now reports 38 vulnerability findings and
-26 warnings, from 44/36. Hosted CI at `3d71009` passes all 213 chain workspace
+Network and Launcher work remains in draft PR #118 on `session/qorsync-domains`.
+The required Rust 1.98.1 hosted checks at `97dcb13` pass all 213 chain workspace
 tests with WebAssembly built, 245 core tests (10 ignored) and 109 Launcher host
-tests (five ignored). Formatting, lints, frontend checks, QOR ID, Social, ARQADE
-and coverage jobs pass. The workflow still fails the two service dependency
-audits; the conditional newest-Rust and multi-validator jobs did not run.
-The attempted tracing-subscriber update was rejected because
-`sc-tracing 47.0.0` requires exactly 0.3.19; no SDK pin, source override, audit
-ignore or runtime source was changed. Stable SQLx remains 0.9.0, so its existing
-SQLite constraint still blocks the two service audits. New receipts are in
-QOR OS `build/development-2026-11-13/session-06/`.
+tests (five ignored), plus QOR ID, Social, ARQADE and coverage jobs. Cargo artifact
+messages fix all four Launcher spawn failures and a custom-target regression.
+The separate hosted run `43522526902` passes all 13 two-validator agreement,
+finality and restart checks on a local test network. Its optional Rust 1.100.0
+report retains 66 generated DRC-369 clone_on_copy errors (ADR-072).
 
-Work remains on `session/qorsync-domains` in draft [PR #118](https://github.com/QOR-MATRIX/demiurge-chain/pull/118).
-Domain changes at `243a55d` passed the chain, QOR ID, Social, ARQADE and coverage
-jobs. Launcher tests failed four real-spawn cases because their helper path
-assumed Cargo's old directory layout. The helper now reads Cargo's executable
-artifact message; an additional regression covers custom target paths and
-irrelevant/no-executable messages. At `042941c`, the hosted Launcher job passes, including all four repaired spawn
-cases and the new artifact-discovery regression (109 host tests pass, five ignored).
-The core passes 245 tests with 10 ignored; format and clippy checks pass too.
+Core and host dependency audits report zero vulnerability findings, with 13 and
+23 maintenance warnings. Both service audits remain blocked by SQLite
+RUSTSEC-2026-0459: stable SQLx 0.9.0 cannot resolve the repaired dependency, and
+disabling default features still retains the optional driver in the lock. The
+chain's compatible certificate/compression, QUIC, zlib and Wasmtime updates leave
+38 vulnerability findings and 26 warnings. Its SDK pin, consensus/runtime source
+and QOR OS core pin are unchanged. No ignore or release gate was relaxed.
 
-The core and Launcher host now lock rusqlite 0.41.1, libsqlite3-sys 0.39.1,
-quinn-proto 0.11.19 and quinn-udp 0.5.16. Local cargo-audit reports zero
-vulnerability advisories; 13 core/23 host warnings remain. QOR ID's QUIC locks
-are patched. QOR ID and Social each still fail on SQLite RUSTSEC-2026-0459.
-A trial of stable SQLx 0.9.0 rejected libsqlite3-sys 0.39.1 (its upper bound is
-below 0.38.0); the trial was removed. Resolve that upstream constraint without
-adding an ignore or claiming an unused lock dependency proves runtime exposure.
+All workflow actions have reviewed full commit pins; checkout credentials are
+not persisted, and audit/coverage tools use fixed versions and verified downloads.
+The live allowlist permits nine action repositories with read-only default tokens
+and no pull-request approval. Global SHA enforcement waits until these pins reach
+main, whose existing jobs must remain usable. The image publisher remains manual
+and was not dispatched.
 
-The chain locks compatible QUIC patches, libz-sys 1.1.31 and Wasmtime 36.0.20.
-Its report improves from 53 to 44 vulnerability findings, with 36 warnings.
-The SDK pin, consensus and runtime source are unchanged. All 213 hosted workspace
-tests pass with WebAssembly built at `042941c`. This is not deployment or hardware
-acceptance. No audit
-exception or gate was weakened. QOR OS still uses its existing core pin.
+ADR-130 keeps QORSYNC.DEV and approved service subdomains canonical. The dated
+22:33-22:34 UTC probes show QOR ID health/database/cache readiness and RPC runtime
+11 with advancing finalized headers. They do not test authentication, client
+upgrades or every screen. Social/ARQADE custom domains, installed settings and mail
+sending still need a coordinated migration. Legacy deployment helpers remain
+disabled; credential identifiers are unchanged.
 
-ADR-130 keeps QORSYNC.DEV and its approved service subdomains canonical. Source
-checks, disabled retired deployment scripts, accurate Developers/frozen tiles
-and stable credential identifiers remain in place. GitHub private vulnerability
-reporting is enabled. Vercel confirms domain assignments but the connected account
-cannot access the assigned project; Social/ARQADE host migration remains open.
-No deployment, release, image, credential or production configuration changed.
-Automatic Vercel preview checks are separate from production acceptance.
-
-An isolated SQLx resolution with default features disabled and explicit PostgreSQL,
-macros and migration features still locks the affected SQLite dependency. No
-feature-only workaround was retained. QOR ID, Social, ARQADE and coverage jobs
-also pass at `042941c`; the two service audits keep the overall run red.
-
-Continue with service SQLite remediation and maintenance warnings
-before richer bridge capabilities or a QOR OS pin move. QOR OS keeps local
-resolver/audit receipts under `build/development-2026-11-13/session-05/`.
+Resolve the service dependency constraints and maintenance warnings before richer
+bridge commands or a QOR OS pin update. Earlier native, resolver and audit evidence
+is preserved in QOR OS sessions 05-07; sessions 08-09 record hosting ownership and
+live verification. The previously uncommitted upstream ownership handoff is now
+reviewed for commit under the owner's instruction to reconcile local and remote
+Git. No source from a frozen application is current integration guidance.
 
 ## Historical handoff records
 

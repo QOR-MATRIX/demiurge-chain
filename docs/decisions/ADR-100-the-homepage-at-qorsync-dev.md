@@ -1,5 +1,8 @@
 # ADR-100: The project's homepage at qorsync.dev, written for search engines and AI crawlers
 
+Homepage ownership and implementation location are superseded by
+[ADR-132](ADR-132-the-homepage-moves-to-qor-os.md), 13 November 2026. The decision below retains its original scope.
+
 > Editorial note, 13 November 2026: retired host/contact literals are redacted. Historical claims retain their original dates and are not current deployment evidence. ADR-130 establishes QORSYNC.DEV as the only public domain.
 
 **Current scope:** The retired-domain redirect requirement is superseded by [ADR-130](ADR-130-qorsync-is-the-public-domain.md), 13 November 2026. The historical decision below is retained.

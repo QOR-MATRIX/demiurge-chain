@@ -288,20 +288,21 @@ D-008). Verified live with three validators. Its behaviour becomes the acceptanc
   Launcher spawn tests now consume Cargo's reported executable path instead of
   assuming a build-directory layout. All four formerly failing real-spawn cases
   and the new artifact-discovery regression pass in that hosted run.
-**Homepage analytics source is prepared** in `site/` (ADR-131):
-  exact package/integrity lock, static asset-copy build, homepage-only collection,
-  URL redaction and browser opt-outs. Local build, 33 site checks, six privacy/build
-  tests and npm audit pass. Project activation, deployment and live collection
-  are not complete; hosting access below remains unresolved.
+**Homepage ownership has moved to QOR OS** (ADR-132): source, Analytics,
+  locked build, privacy checks and dependency updates live in
+  [QOR-MATRIX/QOR-OS/site](https://github.com/QOR-MATRIX/QOR-OS/tree/main/site).
+  The existing Astra Matrix / qor project's connection to QOR OS/main/site is
+  verified. This repository's copy is frozen. QOR OS's hosting guide owns final
+  deployment verification; analytics dashboard collection is a separate claim.
 
 - [ ] Complete ADR-130's service-domain migration: verify hosting access, prepare
   Social/ARQADE custom hosts, validate service protocols, then coordinate client
   defaults, installed settings and released binaries. Source cleanup alone does not
   complete this gate. Legacy deployment helpers remain disabled.
   At 22:33-22:34 UTC, the homepage and QOR ID health/readiness respond successfully;
-  WebSocket RPC reports runtime 11 and advancing finalized headers. Vercel project
-  access, the undeployed homepage repository link, Social/ARQADE domains and
-  authentication/client migration remain open.
+  WebSocket RPC reports runtime 11 and advancing finalized headers. Authenticated
+  CLI access resolves the homepage project's connection; Social/ARQADE domains
+  and authentication/client migration remain open.
 
 
 These are defects in active code that would matter the moment anything is deployed. They are not

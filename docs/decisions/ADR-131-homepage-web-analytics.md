@@ -1,5 +1,8 @@
 # ADR-131: Vercel Web Analytics on the public homepage
 
+Homepage ownership and implementation location are superseded by
+[ADR-132](ADR-132-the-homepage-moves-to-qor-os.md), 13 November 2026. The decision below retains its original scope.
+
 **Status:** Accepted, 13 November 2026, under the owner's explicit request
 `npm i @vercel/analytics` and existing development authority. This authorises
 source work; it does not claim the owner enabled collection or requested a deployment.

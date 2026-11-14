@@ -139,6 +139,7 @@ of the earlier decisions they supersede.
 | [ADR-129](ADR-129-ever-rift-and-darkveil-rules-are-shared.md) | Ever Rift's and Darkveil's rules join ARQADE's shared rules. Amends ADR-126 decision 3: seven rule modules, not five, the two new ones named by the owner in QOR OS's QOR-0019; their Node tests and fixtures here too; the games themselves stay in QOR OS, and neither the website nor the launcher changes; no economic value | Accepted, 31 October 2026, by the owner, who named the two games in QOR OS's QOR-0019. Decides no economic value |
 | [ADR-130](ADR-130-qorsync-is-the-public-domain.md) | QORSYNC.DEV and approved service subdomains; retired public hosts redacted, frozen clients remain unsupported, deployment verified separately | Accepted 2026-11-13 |
 | [ADR-131](ADR-131-homepage-web-analytics.md) | Pinned homepage analytics, URL redaction, browser opt-outs and a static asset-copy build; amends ADR-100 | Accepted 2026-11-13 |
+| [ADR-132](ADR-132-the-homepage-moves-to-qor-os.md) | Homepage ownership and deployment move to QOR-MATRIX/QOR-OS; the upstream copy is frozen and duplicate homepage automation retires | Accepted 2026-11-13, owner directed canonical repository/project alignment |
 
 A record is never edited to change its decision. A later record supersedes it and both say so.
 
