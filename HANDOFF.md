@@ -2,6 +2,19 @@
 
 ## Current session: 13 November 2026
 
+The owner requested `npm i @vercel/analytics`. `site/` now has its own private npm
+manifest and integrity lock for version 2.0.1, independent of the frozen root
+workspace. A small Node 24 build copies 41 public files, including the unmodified
+browser module and its licence, to `dist/`. All 33 content checks and six
+analytics/build tests pass locally, and npm audit reports no findings. The
+canonical homepage alone initialises analytics; pageview URL details are removed,
+custom events refused, browser privacy opt-outs honoured, and local/preview
+visits excluded. A pinned hosted job and weekly dependency proposals cover it.
+ADR-131 amends ADR-100's no-build/no-analytics decisions. No collection activation
+or production deployment was performed. Commands and hosting requirements are in
+`site/README.md`; new receipts are in QOR OS
+`build/development-2026-11-13/session-07/`.
+
 Read-only live checks at 22:33-22:34 UTC confirm HTTP 200 from the homepage,
 QOR ID health and database/cache readiness, and WebSocket RPC runtime 11 with
 advancing finalized headers. The returned homepage HTML has no retired
@@ -27,7 +40,9 @@ source pins reach main. The setting does not make the unresolved audits pass.
 
 The existing CI workflow was also dispatched at `97dcb13` as run `43522526902`
 to exercise its conditional two-validator agreement/finality/restart check and
-newest-stable compiler report. The two-validator job is still running.
+newest-stable compiler report. The two-validator job completed successfully:
+13 checks pass, including agreement, finality, a survivor after peer shutdown,
+and the restarted peer catching up to the same chain. This is a local test network.
 The Rust 1.100.0 report fails on 66 `clone_on_copy` errors in generated DRC-369
 code, the macro issue tracked by ADR-072. Required Rust 1.98.1 checks remain
 passing; no lint suppression or compiler/SDK pin change was made.

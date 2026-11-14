@@ -60,6 +60,26 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  homepage:
+    name: "Homepage: locked install, static build, privacy checks and audit"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./site
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci --ignore-scripts --no-fund
+      - run: npm run build
+      - run: npm run check
+      - run: npm audit --audit-level=low
+
   chain:
     name: "chain/: format, lints, tests (the Substrate L1)"
     runs-on: ubuntu-latest

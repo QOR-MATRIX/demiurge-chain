@@ -252,7 +252,8 @@ D-008). Verified live with three validators. Its behaviour becomes the acceptanc
   The live repository allowlist permits only the nine used action repositories;
   default tokens are read-only and cannot approve pull requests. Global SHA
   enforcement waits until the pinned source reaches main. The conditional
-  two-validator job is running separately in `43522526902`; its Rust 1.100.0
+  two-validator job passes all 13 agreement/finality/restart checks in
+  `43522526902` on a hosted local test network; its Rust 1.100.0
   report fails on 66 generated DRC-369 `clone_on_copy` diagnostics (ADR-072).
   Required Rust 1.98.1 checks pass; neither pin nor lint policy changed. Image execution/publication remain
   separate from this workflow-source and hosted CI validation.
@@ -287,6 +288,12 @@ D-008). Verified live with three validators. Its behaviour becomes the acceptanc
   Launcher spawn tests now consume Cargo's reported executable path instead of
   assuming a build-directory layout. All four formerly failing real-spawn cases
   and the new artifact-discovery regression pass in that hosted run.
+**Homepage analytics source is prepared** in `site/` (ADR-131):
+  exact package/integrity lock, static asset-copy build, homepage-only collection,
+  URL redaction and browser opt-outs. Local build, 33 site checks, six privacy/build
+  tests and npm audit pass. Project activation, deployment and live collection
+  are not complete; hosting access below remains unresolved.
+
 - [ ] Complete ADR-130's service-domain migration: verify hosting access, prepare
   Social/ARQADE custom hosts, validate service protocols, then coordinate client
   defaults, installed settings and released binaries. Source cleanup alone does not

@@ -29,6 +29,22 @@ retains the apex/`www` assignment. The project detail/domain endpoints return
 404. Do not infer ownership transfer, deletion or a running deployment from that.
 Confirm the correct project access and DNS account before changing routing.
 
+The owner supplied `https://vercel.com/astramatrix/qor` and completed the
+Vercel-requested renewed team authorisation. The post-approval team lookup
+succeeds, but project lookup still returns 404 and the project list is empty.
+The domain API binds both verified names to `prj_pUNenZCSC3eh2tyJdHbHCt9rUlW0`,
+with `www` redirecting to the apex using HTTP 308. Observed preview project names
+also return 404 through the connector. These findings do not prove deletion.
+No further routing or account mutation was attempted.
+
+ADR-131 prepares Vercel Web Analytics in `site/` without enabling it remotely.
+Use `site/` as the project root, its locked install with scripts disabled, the
+static asset-copy build, and `dist` as output (see `site/vercel.json`). Confirm
+dashboard overrides, enable Analytics on the verified project, then deploy only
+with the owner's publication instruction. Live script delivery and dashboard
+collection remain unverified. The source keeps script/connection policy
+same-origin and redacts homepage pageview URLs.
+
 The live homepage's returned HTML contained no retired first-party URL attributes
 among 27 absolute URL attributes, but no exact QOR OS repository link either.
 This does not inspect JavaScript bundles, authenticated screens or released

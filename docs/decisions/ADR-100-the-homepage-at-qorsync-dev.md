@@ -4,6 +4,9 @@
 
 **Current scope:** The retired-domain redirect requirement is superseded by [ADR-130](ADR-130-qorsync-is-the-public-domain.md), 13 November 2026. The historical decision below is retained.
 
+Decision 2's no-build rule and the analytics exclusion are amended by
+[ADR-131](ADR-131-homepage-web-analytics.md), 13 November 2026, at the owner's request.
+
 **Status:** **Accepted**, 18 October 2026, by the owner. The owner asked for the project to be found and described
 accurately in search ("Currently a forked version of the project is being displayed when searched, id like to make sure
 that information is consistant with this project as closely as possible"), chose `qorsync.dev` as the one official

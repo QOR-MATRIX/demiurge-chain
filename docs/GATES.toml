@@ -1020,6 +1020,12 @@ approved_by = "owner, 2026-10-27 (retroactive): merged #107 with ADR-121 option 
 # Kinds of signal. Each criterion has exactly one kind.
 # ---------------------------------------------------------------------------
 
+[[change_log]]
+date = "2026-11-13"
+type = "tightening"
+change = "ADR-131 adds a homepage job: locked Node install with lifecycle scripts disabled, static public-asset build, content and analytics privacy checks, and npm audit at every severity. Existing service and chain checks are unchanged."
+reason = "The owner requested Vercel Analytics. Its dependency, pageview redaction and public output must be checked alongside the existing homepage content."
+
 [kinds.check]
 reads = "this file: `done` and `evidence` (a commit hash, a URL, or a dated owner confirmation recorded in HANDOFF.md)"
 met = "done = true and evidence is not empty"
@@ -1057,6 +1063,7 @@ workflow = "Pleroma CI"
 repository = "QOR-MATRIX/demiurge-chain"
 file = ".github/workflows/ci.yml"
 quality_gates = [
+  "site/: Node 24; npm ci --ignore-scripts --no-fund; npm run build; npm run check (static content, installed analytics SDK, URL redaction, browser opt-outs and public-only output); npm audit --audit-level=low. ADR-131 adds this homepage job; existing service audits remain required",
   "chain/: cargo fmt --all --check; cargo clippy --workspace --all-targets -D warnings; cargo test --workspace --locked, WITHOUT SKIP_WASM_BUILD, which cannot build a chain specification and is never evidence. On Rust 1.98.1, pinned by chain/rust-toolchain.toml since 2026-10-04 (ADR-072)",
   "chain/: two validators agree, finalise and catch up. A job of its own, because it needs a release build with the sudo feature: cargo build -p demiurge-node --release --features sudo --locked, then node scripts/check-two-validators.mjs. It fails the run; criterion alpha.multi-validator reads it. Since 2026-09-21 it runs NIGHTLY (03:00 UTC) and on workflow_dispatch, not on every push",
   "services/qor-auth: cargo fmt --check; cargo clippy --all-targets -D warnings; cargo test -- --include-ignored, against a migrated Postgres 16 and a Redis 7.4",
