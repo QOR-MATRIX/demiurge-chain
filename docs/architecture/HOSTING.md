@@ -30,13 +30,14 @@ despite the connector's repeated 404. Its Git connection is now QOR-MATRIX/QOR-O
 repository ID `1435244138`, branch `main`, root `site`. Node 24 installs from the
 lock with scripts disabled, builds public assets and serves `dist`.
 
-QOR OS PR #8 merged at `1dc617b`; the production alias was verified against that
-exact Git source. HTTPS, canonical repository links, security headers, the `www`
-308 redirect, private-file exclusion and Analytics script delivery pass. Public
-DNS remains proxied through Cloudflare; its automatic beacon injection prompted
-QOR OS's no-transform header correction. The canonical
+QOR OS PR #9 merged at `f4c9863`; the production alias serves that exact Git
+source, and all 47 public files match reviewed bytes. HTTPS, canonical repository
+links, security headers, the `www` 308 redirect, private-file exclusion and
+Analytics script delivery pass. Public DNS remains proxied through Cloudflare;
+the delivered no-transform header now prevents its observed beacon injection.
+The canonical
 [hosting guide](https://github.com/QOR-MATRIX/QOR-OS/blob/main/docs/HOSTING.md)
-owns final deployment and delivery evidence, under session-08. Analytics dashboard
+owns final deployment and delivery evidence, under session-09. Analytics dashboard
 collection remains separate. No DNS transfer, replacement project, credential
 copy or network-service deployment was needed for this homepage alignment.
 
